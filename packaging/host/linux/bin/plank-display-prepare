@@ -9,9 +9,11 @@ cleanup_only=false
 requested_layout=
 requested_mode_1=
 requested_mode_2=
+requested_primary_output=-1
+primary_output_supplied=false
 
 usage() {
-  echo "usage: $0 [--cleanup] [--config FILE] [--output FILE] [--edid-dir DIRECTORY] [--layout LAYOUT --mode-1 MODE [--mode-2 MODE]]" >&2
+  echo "usage: $0 [--cleanup] [--config FILE] [--output FILE] [--edid-dir DIRECTORY] [--layout LAYOUT --mode-1 MODE [--mode-2 MODE] [--primary-output 0|1]]" >&2
 }
 
 while (($#)); do
@@ -48,6 +50,12 @@ while (($#)); do
     --mode-2)
       (($# >= 2)) || { usage; exit 2; }
       requested_mode_2=$2
+      shift 2
+      ;;
+    --primary-output)
+      (($# >= 2)) || { usage; exit 2; }
+      requested_primary_output=$2
+      primary_output_supplied=true
       shift 2
       ;;
     *)
@@ -111,7 +119,7 @@ esac
 active_layout=
 output_mode_1=
 output_mode_2=
-if [[ -n $requested_layout || -n $requested_mode_1 || -n $requested_mode_2 ]]; then
+if [[ -n $requested_layout || -n $requested_mode_1 || -n $requested_mode_2 || $primary_output_supplied == true ]]; then
   [[ -n $requested_layout && -n $requested_mode_1 ]] || {
     echo "a requested display transition requires --layout and --mode-1" >&2
     exit 2
@@ -128,10 +136,18 @@ if [[ -n $requested_layout || -n $requested_mode_1 || -n $requested_mode_2 ]]; t
       exit 2
     }
     output_mode_2=$requested_mode_2
+    [[ $primary_output_supplied == false || $requested_primary_output == 0 || $requested_primary_output == 1 ]] || {
+      echo "invalid dual-display primary output index" >&2
+      exit 2
+    }
   elif [[ -n $requested_mode_2 ]]; then
     echo "--mode-2 is valid only for a dual display transition" >&2
     exit 2
   else
+    [[ $primary_output_supplied == false || $requested_primary_output == 0 ]] || {
+      echo "invalid single-display primary output index" >&2
+      exit 2
+    }
     output_mode_2=1920x1080
   fi
 elif [[ $startup_policy == virtual ]]; then
@@ -257,7 +273,13 @@ if [[ $active_layout == single ]]; then
 else
   connected_monitors="DFP-0, DFP-2"
   custom_edid="DFP-0:${edid_dir}/virtual-1.edid; DFP-2:${edid_dir}/virtual-2.edid"
-  metamodes="DFP-0: ${output_mode_1} +0+0, DFP-2: ${output_mode_2} +${output_1_width}+0"
+  if [[ $requested_primary_output == 1 ]]; then
+    # Keep the primary connector first even when it sits on the right. Flame
+    # uses this order to choose its main UI after Xorg restarts.
+    metamodes="DFP-0: ${output_mode_2} +${output_1_width}+0, DFP-2: ${output_mode_1} +0+0"
+  else
+    metamodes="DFP-0: ${output_mode_1} +0+0, DFP-2: ${output_mode_2} +${output_1_width}+0"
+  fi
 fi
 
 output_directory=${output_file%/*}

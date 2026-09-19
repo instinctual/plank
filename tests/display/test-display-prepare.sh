@@ -89,6 +89,27 @@ run_requested_prepare \
 grep -Fq 'DFP-0: 4096x2160 +0+0, DFP-2: 1024x2160 +4096+0' "$output_file"
 grep -Fq 'virtual-2.edid' "$output_file"
 
+run_requested_prepare \
+  --layout dual-horizontal --mode-1 1920x1200 --mode-2 2560x1440 \
+  --primary-output 1 >/dev/null
+grep -Fq 'DFP-0: 2560x1440 +1920+0, DFP-2: 1920x1200 +0+0' "$output_file"
+for invalid_primary in -1 -2 2 text; do
+  if run_requested_prepare --layout dual-horizontal --mode-1 1920x1200 \
+      --mode-2 2560x1440 --primary-output "$invalid_primary" >/dev/null 2>&1; then
+    echo "an invalid virtual primary output was accepted" >&2
+    exit 1
+  fi
+done
+if run_requested_prepare --layout single --mode-1 1920x1200 \
+    --primary-output 1 >/dev/null 2>&1; then
+  echo "a second primary output was accepted for one display" >&2
+  exit 1
+fi
+if run_requested_prepare --primary-output 0 >/dev/null 2>&1; then
+  echo "a virtual primary without a requested layout was accepted" >&2
+  exit 1
+fi
+
 previous_hash=$(sha256sum "$output_file")
 printf '[display]\nstartup_layout = three\n' >"$config_file"
 if run_prepare >/dev/null 2>&1; then

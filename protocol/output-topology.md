@@ -33,6 +33,7 @@ The host returns `schema_version: 13` and a numeric `feature_flags` field from
 - `0x10000` — explicit GDM-to-user desktop handoff notice on the native control channel
 - `0x20000` — authenticated desktop stage for reconnect progress
 - `0x40000` — opaque media-worker instance identity for early replacement detection
+- `0x2000000` — bind the first virtual connector to the client-primary side
 
 ### Expected desktop handoff status
 
@@ -128,7 +129,7 @@ The document contains a monotonically changing `generation`, the bounding
 desktop rectangle, a `layout` object, and an `outputs` array. `layout.kind` is
 `physical`, `single`, or `dual-horizontal`; `layout.virtual_modes` is empty for
 a physical layout, contains one administrator-qualified mode for `single`, and
-contains the independently ordered primary/secondary modes for
+contains the independently ordered left/right modes for
 `dual-horizontal`. `layout.startup_kind` reports the concrete boot topology:
 `physical`, or `single` for the safe 1920x1080 baseline created by the
 administrator's `virtual` policy. `layout.allowed_kinds` explicitly lists the
@@ -219,6 +220,24 @@ termination reason `0x80030024`, joins the old stream, and only then starts
 replacement display and media state. The displaced client disables automatic
 reconnect and reports that its session was transferred. No Host OS logout
 occurs, so the user's desktop and applications remain running.
+
+### Virtual connector order (optional `0x2000000`)
+
+On a virtual-startup Host, a Client negotiating `0x2000000` may send
+`plankPrimaryOutput=0` or `1` for a dual-horizontal layout. The index refers
+to the requested left/right mode order. The Host places its first virtual
+connector (`DP-0`, shown as PLK Display 1) on that side and marks it primary.
+This lets applications that choose the first connector, including Flame,
+open on the same screen as the Mac primary display. Omitting the index keeps
+the earlier DP-0-left behavior. A single-output request accepts only `0`;
+unnegotiated or out-of-range values are rejected.
+
+GDM preparation and live XRandR transitions use the same assignment. The Host
+reports virtual modes in desktop left/right order, regardless of connector
+enumeration. Manual two-output bookmarks retain their selected mode sizes;
+the optional index changes connector placement only. Host worker and supervisor
+use private `SC-DISPLAY-4` messages and must be updated together. The
+right-primary topology vector is `output-topology-v13-virtual-primary.json`.
 
 ## Launch and Input Rules
 
