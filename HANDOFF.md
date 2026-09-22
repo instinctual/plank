@@ -15,29 +15,55 @@ using the existing authenticated coordinator without sharing its private key.
 See `docs/development/plans/host-identity-trust.plan` and
 `docs/security/host-identity-trust.md` for the residual TOFU risk and design.
 
-Implementation is not yet qualified. First root checkpoint `b0d789f` and followups
-through `c9fd940` are pushed; Client is `4e984525` (including `9a66daa4` recovery
-gating). Candidate version is `1.0.153-code-review-fixes`. Client trust-store (9),
-real TLS guard (5) and responsive consent UI (11) tests passed on the Ubuntu
-builder. Real NvHTTP launch/authentication integration passed all 19 scenarios:
-first use, known/unknown recovery, replacement cancellation/approval, changed
-keys between username and password, redirects and malformed launch responses.
-That integration test is now a Linux Client build gate. No network-supplied
-certificate is trusted after sending credentials.
+Implementation and automated build gates pass; live acceptance is outstanding.
+Root implementation through `984b80c3147cf498574ff97543863d5d20907246` and Client
+`4e98452559d1c679fcce607dbde3e5b0f2e8c035` are pushed. Candidate version is
+`1.0.153-code-review-fixes`. Linux Host remains
+`ebf63ac9347e461a1eaff5adc83a77724187002a`; kymux remains
+`158719b67f83e3d83e8bfba1588420ed84a65cab`; Client common-C remains
+`060f6179f88343327b44d915007f1fb4cede71f1`.
 
-Linux certificate renewal, reconnect source checks (14), portable package-script
-checks (23), CI policy checks (60) and version checks pass. The first complete
-Linux Client CI build passed (run `35696323594`). macOS package filesystem tests
-passed (63 checks in run `35697760809`); later coverage also checks interrupted
-PEM/DER renewal. Mac runs exposed and corrected fixture/tool differences:
-existing-key LibreSSL requests require `-new`, tests must select the same Qt
-OpenSSL/TLS 1.3 backend as the app, and the XPC fixture must not retain itself.
-Machine issuance now has an actual system-crypto test and the existing signed
-XPC tests are wired into the Host build. Integrated builds must still finish;
-do not call this ready to install. No live machine state has changed, and no
-package has been installed. Next: complete hosted Mac/Client gates, inspect the
-actual Network.framework certificate chain, then live login/logout, cross-user
-handoff and replacement acceptance with matching packages.
+Hosted validation:
+
+- Linux Host and Client passed in run `35698729084`, root
+  `b9a99c3418051f26918f21baf1fa1d60353ca341`. Subsequent source changes affect
+  only Mac diagnostics/test setup and documentation, not these Linux payloads.
+- macOS Host passed in run `35701450093`, root `984b80c`: package filesystem
+  checks (65), signed XPC checks (262), actual system-crypto certificate issuance
+  for distinct worker keys, and actual Network.framework TLS chain emission
+  (worker leaf followed by machine authority), including authenticated HTTP.
+- macOS Client passed in run `35701452179`, root `984b80c`. Both Client platforms
+  pass trust-store (9), real TLS guard (5) and responsive consent UI (11) tests.
+  TLS tests prove ordinary worker-key changes retain identity and rejected
+  replacements receive no HTTP credential bytes.
+- Real NvHTTP launch/authentication integration passed all 19 scenarios in the
+  Linux Client build: first use, known/unknown recovery, replacement decisions,
+  mid-password-conversation key changes, redirects and malformed launch replies.
+- Linux certificate renewal, reconnect checks (14), portable package-script
+  checks (23), CI policy checks (60) and version checks pass.
+
+Mac test setup must retain these resolved details: existing-key LibreSSL
+requests require `-new`; the XPC fixture must not retain itself; private test
+directories require POSIX `realpath` (Foundation can retain the `/var` alias);
+bare Qt TLS tests need the pinned dependency `DYLD_LIBRARY_PATH`, whereas the
+packaged application finds its OpenSSL libraries in its bundle. None of these
+are reasons to relax TLS 1.3, private-directory checks or identity validation.
+
+Verified Linux artifacts are collected in the canonical checkout under
+`artifacts/packages/candidates/1.0.153-code-review-fixes/linux/`, with original
+source SHA, hashes and gitlinks in the catalog manifest:
+
+- `plank-client_1.0.153-code-review-fixes_amd64.deb` — SHA-256
+  `7cd9e9219795b10d7376ade72ade60846595a901a26ceb7d5e63c252b845a6b1`.
+- `plank-host-1.0.153-0.code_review_fixes.1.el9.x86_64.rpm` — SHA-256
+  `81002e04f6d26c0b9ba2e8450f3f65ea389ad99ca4fdb4692bc50cf1027ec39a`.
+
+Mac runs were unsigned compile/test gates, not distributable signed packages.
+Protected signing does not currently allow this feature branch. Next: obtain
+approval for feature-branch signing and installation on the authorized test
+Host/Client, then test login/logout, cross-user handoff, key-preserving reinstall
+and explicit replacement acceptance. No live machine state has changed and no
+package has been installed. Do not merge or claim hardware acceptance yet.
 
 The previous candidate and package provenance below remain valid and untouched.
 
