@@ -51,13 +51,18 @@ static BOOL crypto(NSString *directory, NSArray<NSString *> *arguments) {
     task.standardInput = task.standardOutput = task.standardError = NSFileHandle.fileHandleWithNullDevice;
     dispatch_semaphore_t finished = dispatch_semaphore_create(0);
     task.terminationHandler = ^(NSTask *ended) { (void)ended; dispatch_semaphore_signal(finished); };
-    if (![task launchAndReturnError:NULL]) return NO;
+    if (![task launchAndReturnError:NULL]) {
+        NSLog(@"PLANK certificate crypto could not start (operation=%@)", arguments.firstObject); return NO;
+    }
     if (dispatch_semaphore_wait(finished, dispatch_time(DISPATCH_TIME_NOW, NSEC_PER_SEC))) {
         // Only this exact crypto child. No shell or user-controlled arguments.
         kill(task.processIdentifier, SIGKILL);
         [task waitUntilExit];
+        NSLog(@"PLANK certificate crypto timed out (operation=%@)", arguments.firstObject);
         return NO;
     }
+    if (task.terminationStatus != 0)
+        NSLog(@"PLANK certificate crypto failed (operation=%@ status=%d)", arguments.firstObject, task.terminationStatus);
     return task.terminationStatus == 0;
 }
 
@@ -98,7 +103,7 @@ static BOOL wordIs(xpc_object_t message, const char *name, uint64_t expected) {
 NSDictionary<NSString *, NSData *> *PLANKMacIssueWorkerIdentity(NSData *csr, NSString *directory) {
     if (getuid() != geteuid() || !csr.length || csr.length > 16384) return nil;
     NSString *stage = stageIn(directory);
-    if (!stage) return nil;
+    if (!stage) { NSLog(@"PLANK certificate issuer rejected its private directory"); return nil; }
     NSData *profile = [@"basicConstraints=critical,CA:FALSE\nkeyUsage=critical,digitalSignature\nextendedKeyUsage=serverAuth\nsubjectAltName=DNS:plank-host\n" dataUsingEncoding:NSASCIIStringEncoding];
     BOOL ok = writeNew(csr, [stage stringByAppendingPathComponent:@"request.pem"]) &&
         writeNew(profile, [stage stringByAppendingPathComponent:@"profile.cnf"]);
@@ -115,6 +120,8 @@ NSDictionary<NSString *, NSData *> *PLANKMacIssueWorkerIdentity(NSData *csr, NSS
     SecKeyRef key = publicBytes ? SecKeyCreateWithData((__bridge CFDataRef)publicBytes, (__bridge CFDictionaryRef)attributes, NULL) : NULL;
     NSDictionary *keyAttributes = key ? CFBridgingRelease(SecKeyCopyAttributes(key)) : nil;
     unsigned bits = [keyAttributes[(__bridge id)kSecAttrKeySizeInBits] unsignedIntValue];
+    if (ok && bits != 3072 && bits != 4096)
+        NSLog(@"PLANK certificate issuer rejected worker key (bits=%u)", bits);
     ok = ok && (bits == 3072 || bits == 4096);
     if (key) CFRelease(key);
     NSString *serial = [@"0x" stringByAppendingString:[NSUUID.UUID.UUIDString stringByReplacingOccurrencesOfString:@"-" withString:@""]];
@@ -127,6 +134,8 @@ NSDictionary<NSString *, NSData *> *PLANKMacIssueWorkerIdentity(NSData *csr, NSS
     NSData *pem = ok ? readPublicResult([stage stringByAppendingPathComponent:@"cert.pem"]) : nil;
     NSData *der = ok ? readPublicResult([stage stringByAppendingPathComponent:@"cert.der"]) : nil;
     NSData *authority = ok ? readPublicResult([directory stringByAppendingPathComponent:@"cert.der"]) : nil;
+    if (ok && (!pem || !der || !authority))
+        NSLog(@"PLANK certificate issuer rejected public result metadata (pem=%d der=%d authority=%d)", pem != nil, der != nil, authority != nil);
     removeStage(stage);
     return pem && der && authority ? @{@"certificate": pem, @"der": der, @"authority": authority} : nil;
 }
