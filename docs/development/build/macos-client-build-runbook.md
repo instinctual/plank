@@ -214,7 +214,10 @@ the app to Trash. Host installation/permissions are separate and unchanged.
   `tests/video/macos-client-tls.cpp` probe distinguishes backend availability
   from Host reachability without sending credentials. It must run from an app
   bundle when testing bundled OpenSSL lookup (a bare CLI has no Frameworks
-  directory for Qt to discover). See the pinned [Qt6.10.2 loader source](https://github.com/qt/qtbase/blob/v6.10.2/src/plugins/tls/openssl/qsslsocket_openssl_symbols.cpp).
+  directory for Qt to discover). Bare build-time TLS tests instead receive
+  `DYLD_LIBRARY_PATH="$PLANK_MAC_CLIENT_DEPS/install/lib"` for those same pinned
+  libraries; this is not a packaged runtime setting or a substitute for the
+  bundled gate. See the pinned [Qt6.10.2 loader source](https://github.com/qt/qtbase/blob/v6.10.2/src/plugins/tls/openssl/qsslsocket_openssl_symbols.cpp).
 - macOS Local Network privacy can block an otherwise valid packaged Client
   with network error99 while loopback and a separately launched curl work.
   Inspect `/usr/bin/log show --info --debug` for Local Network blocked events

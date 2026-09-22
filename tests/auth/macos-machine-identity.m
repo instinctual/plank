@@ -3,6 +3,7 @@
 #import "machine-identity.h"
 #import <Security/Security.h>
 #include <sys/stat.h>
+#include <stdlib.h>
 #include <unistd.h>
 
 #define CHECK(value) do { if (!(value)) { fprintf(stderr, "machine identity failed at line %d\n", __LINE__); exit(1); } } while (0)
@@ -29,6 +30,12 @@ int main(void) { @autoreleasepool {
     NSString *directory = [[NSTemporaryDirectory() stringByResolvingSymlinksInPath]
         stringByAppendingPathComponent:[@"plank-machine-identity-" stringByAppendingString:NSUUID.UUID.UUIDString]];
     CHECK(mkdir(directory.fileSystemRepresentation, 0700) == 0);
+    // Foundation can retain the /var alias for the runner's temporary path.
+    // Exercise the production no-symlink walk with an actual canonical path.
+    char *canonical = realpath(directory.fileSystemRepresentation, NULL);
+    CHECK(canonical);
+    directory = [NSString stringWithUTF8String:canonical];
+    free(canonical);
     run(directory, @[@"req", @"-new", @"-x509", @"-newkey", @"rsa:3072", @"-nodes", @"-days", @"2",
         @"-sha256", @"-subj", @"/CN=PLANK Host Machine", @"-addext", @"subjectAltName=DNS:plank-host",
         @"-addext", @"basicConstraints=critical,CA:TRUE,pathlen:0", @"-addext", @"keyUsage=critical,digitalSignature,keyCertSign",

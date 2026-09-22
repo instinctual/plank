@@ -64,7 +64,10 @@ mkdir -p "$build/tests/$suite"
         QMAKE_MACOSX_DEPLOYMENT_TARGET="$MACOSX_DEPLOYMENT_TARGET" QMAKE_APPLE_DEVICE_ARCHS=arm64 \
         "QMAKE_CXXFLAGS+=-include arm_acle.h"
     make -j"${PLANK_BUILD_JOBS:-8}"
-    PLANK_REPO_ROOT="$source_root" QT_QPA_PLATFORM=offscreen QT_QUICK_BACKEND=software "./$suite"
+    # These are bare test executables, not deployed app bundles. Give Qt's
+    # OpenSSL loader the same pinned libraries the package puts in Frameworks.
+    DYLD_LIBRARY_PATH="$PLANK_MAC_CLIENT_DEPS/install/lib" \
+        PLANK_REPO_ROOT="$source_root" QT_QPA_PLATFORM=offscreen QT_QUICK_BACKEND=software "./$suite"
 )
 done
 # Exercise the actual input worker with a queued drag, without a host or UI.
