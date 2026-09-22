@@ -276,7 +276,7 @@ prepare_machine_authority() {
     # An invalid existing key is a failed install, never silent identity loss.
     /usr/bin/openssl rsa -in "$key" -check -noout >/dev/null 2>&1 || fail 'Invalid machine identity key; it was not replaced'
     stage=$(/usr/bin/mktemp -d "$state/SignIn/.renew.XXXXXX")
-    /usr/bin/openssl req -x509 -key "$key" -sha256 -days 3650 \
+    /usr/bin/openssl req -new -x509 -key "$key" -sha256 -days 3650 \
         -subj '/CN=PLANK Host Machine' -addext subjectAltName=DNS:plank-host \
         -addext basicConstraints=critical,CA:TRUE,pathlen:0 \
         -addext keyUsage=critical,digitalSignature,keyCertSign -out "$stage/cert.pem"

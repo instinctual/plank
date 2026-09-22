@@ -90,9 +90,13 @@ static void removeStage(NSString *stage) {
     rmdir(stage.fileSystemRepresentation);
 }
 
-NSDictionary<NSString *, NSData *> *PLANKMacIssueWorkerIdentity(NSData *csr) {
-    if (getuid() || geteuid() || !csr.length || csr.length > 16384) return nil;
-    NSString *directory = @"/Library/Application Support/PLANK/SignIn";
+static BOOL wordIs(xpc_object_t message, const char *name, uint64_t expected) {
+    xpc_object_t value = xpc_dictionary_get_value(message, name);
+    return value && xpc_get_type(value) == XPC_TYPE_UINT64 && xpc_uint64_get_value(value) == expected;
+}
+
+NSDictionary<NSString *, NSData *> *PLANKMacIssueWorkerIdentity(NSData *csr, NSString *directory) {
+    if (getuid() != geteuid() || !csr.length || csr.length > 16384) return nil;
     NSString *stage = stageIn(directory);
     if (!stage) return nil;
     NSData *profile = [@"basicConstraints=critical,CA:FALSE\nkeyUsage=critical,digitalSignature\nextendedKeyUsage=serverAuth\nsubjectAltName=DNS:plank-host\n" dataUsingEncoding:NSASCIIStringEncoding];
@@ -154,7 +158,7 @@ NSData *PLANKMacAuthorizeDesktopIdentity(NSString *directory, const char *servic
     xpc_connection_send_message_with_reply(peer, message, queue, ^(xpc_object_t response) {
         if (xpc_get_type(response) == XPC_TYPE_DICTIONARY && xpc_connection_get_euid(peer) == 0 &&
             xpc_dictionary_get_count(response) == 5 &&
-            xpc_dictionary_get_uint64(response, "version") == 1 && xpc_dictionary_get_uint64(response, "status") == 0) {
+            wordIs(response, "version", 1) && wordIs(response, "status", 0)) {
             NSMutableDictionary *values = [NSMutableDictionary dictionary];
             for (NSString *name in @[@"certificate", @"der", @"authority"]) {
                 size_t size = 0;
@@ -176,8 +180,17 @@ NSData *PLANKMacAuthorizeDesktopIdentity(NSString *directory, const char *servic
     SecCertificateRef leaf = result[@"der"] ? SecCertificateCreateWithData(NULL, (__bridge CFDataRef)result[@"der"]) : NULL;
     SecKeyRef publicKey = leaf ? SecCertificateCopyKey(leaf) : NULL;
     NSData *actualKey = publicKey ? CFBridgingRelease(SecKeyCopyExternalRepresentation(publicKey, NULL)) : nil;
+    SecPolicyRef policy = SecPolicyCreateSSL(true, CFSTR("plank-host"));
+    SecTrustRef trust = NULL;
+    NSArray *certificates = root && leaf ? @[(__bridge id)leaf, (__bridge id)root] : nil;
+    BOOL validChain = certificates && SecTrustCreateWithCertificates((__bridge CFArrayRef)certificates, policy, &trust) == errSecSuccess &&
+        SecTrustSetAnchorCertificates(trust, (__bridge CFArrayRef)@[(__bridge id)root]) == errSecSuccess &&
+        SecTrustSetAnchorCertificatesOnly(trust, true) == errSecSuccess &&
+        SecTrustSetNetworkFetchAllowed(trust, false) == errSecSuccess && SecTrustEvaluateWithError(trust, NULL);
+    if (trust) CFRelease(trust);
+    if (policy) CFRelease(policy);
     // Check the returned leaf belongs to the private key that made this CSR.
-    ok = result && root && leaf && crypto(stage, @[@"rsa", @"-in", @"../key.pem", @"-RSAPublicKey_out", @"-outform", @"DER", @"-out", @"public.der"]);
+    ok = result && validChain && crypto(stage, @[@"rsa", @"-in", @"../key.pem", @"-RSAPublicKey_out", @"-outform", @"DER", @"-out", @"public.der"]);
     NSString *publicPath = [stage stringByAppendingPathComponent:@"public.der"];
     if (ok) ok = !chmod(publicPath.fileSystemRepresentation, 0600) && [actualKey isEqual:readPublicResult(publicPath)];
     if (publicKey) CFRelease(publicKey);

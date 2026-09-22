@@ -153,8 +153,11 @@ static void connectionTests(NSString *requirement) {
             CHECK(!xpc_dictionary_get_value(reply, "key"));
         }
         CHECK(until(fixture, ^BOOL { return fixture.attached == 0; }));
+        dispatch_sync(fixture.queue, ^{
+            CHECK(issuedCount == ((scenario == 0 || scenario == 3) && getuid() != 0 ? 1u : 0u));
+            fixture.registry.issueIdentity = nil;
+        });
         [fixture close]; xpc_connection_cancel(peer);
-        (void)issuedCount;
     }
     @autoreleasepool {
         Fixture *f = [[Fixture alloc] initWithNative:NO requirement:requirement];

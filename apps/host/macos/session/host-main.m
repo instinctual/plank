@@ -136,7 +136,7 @@ static int machine(const char *service) {
         }];
     if (!registry) return 2;
     registry.issueIdentity = ^NSDictionary<NSString *, NSData *> *(NSData *csr) {
-        return PLANKMacIssueWorkerIdentity(csr);
+        return PLANKMacIssueWorkerIdentity(csr, @"/Library/Application Support/PLANK/SignIn");
     };
     weakRegistry = registry;
     xpc_connection_t listener = xpc_connection_create_mach_service(service, dispatch_get_main_queue(),

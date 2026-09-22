@@ -13,6 +13,11 @@ source "$source_root/scripts/build/build-paths.sh"
 plank_build_path_flags "$source_root" "$output"
 mkdir "$output"
 cd "$source_root"
+bash "$source_root/scripts/test/build-macos-agent-registry.sh" "$source_root" "$output/agent-registry-tests"
+xcrun clang -mmacosx-version-min=27.0 -fobjc-arc -Wall -Wextra -Werror \
+    -Iapps/host/macos/session apps/host/macos/session/machine-identity.m tests/auth/macos-machine-identity.m \
+    -framework Foundation -framework Security -o "$output/machine-identity-test"
+"$output/machine-identity-test"
 bash "$source_root/scripts/test/build-macos-display-recovery.sh" "$source_root" "$output/display-recovery-tests"
 bash "$source_root/scripts/test/build-macos-input.sh" "$source_root" "$output/input-tests" "$archive"
 bash "$source_root/scripts/test/build-macos-preview.sh" "$source_root" "$output/preview-tests" "$archive" --synthetic-only

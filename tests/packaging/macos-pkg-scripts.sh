@@ -170,7 +170,7 @@ if [[ ${1:-} = --filesystem ]]; then
     # Renewal and the CA-profile upgrade retain the machine private key. No
     # root key is copied to desktop users, and a second install is idempotent.
     machine_key_before=$(/usr/bin/shasum -a 256 "$state/SignIn/key.pem" "$state/SignIn/key.der")
-    /usr/bin/openssl req -x509 -key "$state/SignIn/key.pem" -days 1 \
+    /usr/bin/openssl req -new -x509 -key "$state/SignIn/key.pem" -days 1 \
         -subj '/CN=PLANK Host' -addext subjectAltName=DNS:plank-host -out "$state/SignIn/cert.pem"
     prepare_machine_authority
     /usr/bin/openssl x509 -in "$state/SignIn/cert.pem" -noout -checkend 2592000; ok
