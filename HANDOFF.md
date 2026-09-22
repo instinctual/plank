@@ -5,7 +5,9 @@
 Work is isolated in `build/worktrees/code-review-fixes`, root and Client branches
 `code-review-fixes`, based on root `9c9d6bd` and Client `6580f794` below. It retains
 the pending virtual-primary fixes; main and the unrelated primary checkout are
-unchanged. No merge, release or installation is authorized by this task.
+unchanged. No merge or release is authorized. The operator subsequently approved
+temporary feature-branch signing and installing matching candidates on the
+dedicated development Mac and Development NUC for live login/logout validation.
 
 The operator approved automatic first-use trust before credentials and an
 explicit Cancel / Trust Replacement Host dialog on identity changes. Trust is
@@ -58,12 +60,18 @@ source SHA, hashes and gitlinks in the catalog manifest:
 - `plank-host-1.0.153-0.code_review_fixes.1.el9.x86_64.rpm` — SHA-256
   `81002e04f6d26c0b9ba2e8450f3f65ea389ad99ca4fdb4692bc50cf1027ec39a`.
 
-Mac runs were unsigned compile/test gates, not distributable signed packages.
-Protected signing does not currently allow this feature branch. Next: obtain
-approval for feature-branch signing and installation on the authorized test
-Host/Client, then test login/logout, cross-user handoff, key-preserving reinstall
-and explicit replacement acceptance. No live machine state has changed and no
-package has been installed. Do not merge or claim hardware acceptance yet.
+Those Mac runs were unsigned compile/test gates, not distributable packages.
+Authorized signed Host/Client runs `35702904682` / `35702907819` are in progress
+at root `bd281914201929d9ce93a0388460269b25d2e064` (documentation-only successor).
+Temporary signing policy `60672211` permits exactly `code-review-fixes`; remove
+that policy after the signed builds finish, retaining `main` and all other
+protections. No package is installed yet. The development Mac is reachable with
+no active PLANK connection; its pre-upgrade machine public-key fingerprint was
+recorded privately. The Development NUC is unreachable at its recorded endpoint;
+the operator has been asked to confirm power/address. Do not substitute an
+End-User machine. Next: collect/verify the signed artifacts, install on approved
+targets, then test login/logout, cross-user handoff, key-preserving reinstall
+and explicit replacement acceptance. Do not merge or claim hardware acceptance.
 
 The previous candidate and package provenance below remain valid and untouched.
 

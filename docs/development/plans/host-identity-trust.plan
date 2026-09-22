@@ -47,4 +47,6 @@ external enrollment service or automatically accept a new authority.
    identity; renewal works without private-key disclosure or operator action.
 7. Hosted builds and explicit live login/logout/reinstall test before acceptance.
 
-No merge, release or machine installation is implied by this implementation task.
+The operator subsequently approved temporary protected signing for this branch
+and candidate installation on the dedicated development Mac and Development NUC
+for live login/logout qualification. No merge or release is authorized.
