@@ -75,6 +75,11 @@ enrollment, exact replacement and storage failure. `HostTlsGuardTest` uses real
 TLS sockets to assert rejected peers receive no HTTP credential bytes, including
 forged chains and old conversations after replacement. The existing consent UI
 suite covers the replacement dialog's responsive accept/cancel/Escape paths.
+The NvHTTP integration fixture exercises 19 launch/authentication scenarios,
+including a key swap between the username and password requests, and unknown
+automatic recovery. It runs in the Linux Client package build. The macOS issuer
+fixture signs distinct worker keys using the actual system crypto tool and
+checks the resulting chains with both LibreSSL and Security.framework.
 Host package tests cover renewal without key rotation; macOS XPC tests cover
 bounded issuance and scope rejection. Builds are not a substitute for live
 login/logout, cross-user handoff and genuine Host replacement acceptance.

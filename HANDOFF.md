@@ -15,17 +15,29 @@ using the existing authenticated coordinator without sharing its private key.
 See `docs/development/plans/host-identity-trust.plan` and
 `docs/security/host-identity-trust.md` for the residual TOFU risk and design.
 
-Implementation is not yet qualified. Client commits `5925bfd6` and `983d1e6f`
-are pushed to `code-review-fixes`. Client trust-store (9) and real
-TLS guard (5) Qt tests passed on the Ubuntu builder. They verify zero HTTP
-credential bytes reach a changed/untrusted peer, same-authority worker changes,
-forged chains and damaged storage. Linux certificate renewal test passed locally.
-Reconnect source checks (14), package-script checks (23), CI policy tests (60)
-and the version contract also pass. No complete Client or macOS compilation
-has run yet. Next: finish integration
-tests and macOS issuer/renewal review, compile all affected products, then live
-qualification. Do not describe this branch as ready to install. No live machine
-state has been changed; only isolated tests ran on the build-only Ubuntu VM.
+Implementation is not yet qualified. First root checkpoint `b0d789f` and followups
+through `c9fd940` are pushed; Client is `4e984525` (including `9a66daa4` recovery
+gating). Candidate version is `1.0.153-code-review-fixes`. Client trust-store (9),
+real TLS guard (5) and responsive consent UI (11) tests passed on the Ubuntu
+builder. Real NvHTTP launch/authentication integration passed all 19 scenarios:
+first use, known/unknown recovery, replacement cancellation/approval, changed
+keys between username and password, redirects and malformed launch responses.
+That integration test is now a Linux Client build gate. No network-supplied
+certificate is trusted after sending credentials.
+
+Linux certificate renewal, reconnect source checks (14), portable package-script
+checks (23), CI policy checks (60) and version checks pass. The first complete
+Linux Client CI build passed (run `35696323594`). macOS package filesystem tests
+passed (63 checks in run `35697760809`); later coverage also checks interrupted
+PEM/DER renewal. Mac runs exposed and corrected fixture/tool differences:
+existing-key LibreSSL requests require `-new`, tests must select the same Qt
+OpenSSL/TLS 1.3 backend as the app, and the XPC fixture must not retain itself.
+Machine issuance now has an actual system-crypto test and the existing signed
+XPC tests are wired into the Host build. Integrated builds must still finish;
+do not call this ready to install. No live machine state has changed, and no
+package has been installed. Next: complete hosted Mac/Client gates, inspect the
+actual Network.framework certificate chain, then live login/logout, cross-user
+handoff and replacement acceptance with matching packages.
 
 The previous candidate and package provenance below remain valid and untouched.
 
