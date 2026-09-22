@@ -60,18 +60,36 @@ source SHA, hashes and gitlinks in the catalog manifest:
 - `plank-host-1.0.153-0.code_review_fixes.1.el9.x86_64.rpm` — SHA-256
   `81002e04f6d26c0b9ba2e8450f3f65ea389ad99ca4fdb4692bc50cf1027ec39a`.
 
-Those Mac runs were unsigned compile/test gates, not distributable packages.
-Authorized signed Host/Client runs `35702904682` / `35702907819` are in progress
-at root `bd281914201929d9ce93a0388460269b25d2e064` (documentation-only successor).
-Temporary signing policy `60672211` permits exactly `code-review-fixes`; remove
-that policy after the signed builds finish, retaining `main` and all other
-protections. No package is installed yet. The development Mac is reachable with
-no active PLANK connection; its pre-upgrade machine public-key fingerprint was
-recorded privately. The Development NUC is unreachable at its recorded endpoint;
-the operator has been asked to confirm power/address. Do not substitute an
-End-User machine. Next: collect/verify the signed artifacts, install on approved
-targets, then test login/logout, cross-user handoff, key-preserving reinstall
-and explicit replacement acceptance. Do not merge or claim hardware acceptance.
+Authorized signed Host/Client runs `35702904682` / `35702907819` passed at root
+`bd281914201929d9ce93a0388460269b25d2e064` (documentation-only successor).
+Both passed Developer ID signing, notarization, stapling, Gatekeeper, package
+checks and temporary-keychain cleanup. The temporary feature-branch signing
+policy was removed afterward; the protected environment again permits only main.
+Signed artifacts are collected alongside Linux in the candidate catalog's
+`macos/` directory; all four final catalog checksums pass:
+
+- `plank-host_1.0.153-code-review-fixes_arm64.pkg` — SHA-256
+  `4aa8aaee245a0f01ed425061ae99e62125b230cbb6aebf643d91feb68efa5ff8`.
+- `plank-client_1.0.153-code-review-fixes_arm64.dmg` — SHA-256
+  `049f4d845717fa52d5ba7ea68e90c55859c8f9fb931ab3cc4a55e9c79ae45fe6`.
+
+The exact Host PKG is installed on the authorized development Mac. Installer,
+installed signature/version and byte-for-byte payload hash checks pass; executable
+SHA-256 is `a4c38ab81924d0845b93dffa84da96140b08bc3efa2e4d63387e42f96dcf3e65`.
+The machine key survived the upgrade unchanged. The actual desktop worker
+automatically obtained its machine-signed certificate, retained a separate key,
+and cannot read the root machine key. A bounded TLS 1.3 HTTP check validated
+that chain and the installed version. Non-prompting checks in the console Aqua
+session pass for screen/input/Accessibility before and after upgrade; audio
+consent is not tested. Machine/desktop roles are running without startup errors.
+Temporary diagnostic jobs/files and the privileged SSH session were removed.
+
+The Development NUC remains unreachable at its recorded endpoint. The operator
+has been asked to confirm power/address; no Client package was installed and no
+other target was substituted. Login/logout, cross-user handoff, media/input and
+replacement-dialog acceptance remain outstanding. Resume there once reachable;
+do not mistake successful Host installation for complete live acceptance. No
+merge or release occurred. Machine-specific evidence is in the private notes.
 
 The previous candidate and package provenance below remain valid and untouched.
 
