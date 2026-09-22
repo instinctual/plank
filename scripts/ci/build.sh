@@ -4,6 +4,7 @@ role=${1:?product role required}
 export CARGO_HOME="$PLANK_CARGO_ROOT" RUSTUP_HOME="$PLANK_RUSTUP_ROOT"
 export PATH="$CARGO_HOME/bin:$PATH"
 export CARGO_NET_OFFLINE=true
+python3 "$PLANK_SOURCE_ROOT/tests/network/test_datagram_sender.py"
 case $role in
   linux-host)
     export PLANK_HOST_FFMPEG_BUILD="$PLANK_SOURCE_ROOT/apps/host/linux/third-party/build-deps/build"

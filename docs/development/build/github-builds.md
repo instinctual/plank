@@ -33,6 +33,11 @@ in the Client build, and DMG packaging checks every bundled binary and the app
 plist. Live acceptance of the identical package on both OS versions is a
 separate gate; newer APIs require runtime availability checks.
 
+The initial policy job has a root-only checkout, with no initialized submodules.
+Keep its assertions limited to tracked root files. Dependency-source checks
+belong after product bootstrap: `build.sh` requires the Kynet datagram-sender
+check for all four products and fails if the pinned dependency is absent.
+
 Linux package artifacts expire after seven days and do not publish releases.
 The Linux Host job also builds the fake-backend input tests after packaging and
 runs the input/raw-HID suites 25 times in shuffled order. Tests use the exact

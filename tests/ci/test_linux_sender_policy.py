@@ -23,16 +23,16 @@ class LinuxSenderPolicyTests(unittest.TestCase):
             self.assertNotIn('PLANK_MACOS_FAST_SEND', script)
 
     def test_application_pacer_is_absent_from_runtime_and_diagnostics(self):
-        for directory in ('protocol/plank-transport/src', 'third_party/kyber-kymux/kynet/src',
-                          'probes/network/plank-transport/src'):
+        # The policy job checks only root sources; it deliberately does not
+        # initialize product submodules. Inspect Kynet after product bootstrap.
+        for directory in ('protocol/plank-transport/src', 'probes/network/plank-transport/src'):
             for path in (ROOT / directory).rglob('*.rs'):
                 source = path.read_text()
                 for removed in ('DatagramPacer', 'datagram_pacer', 'outgoing_pacer',
                                 'HOST_FAST_SEND', 'pacer_ns', 'sleep_requested_ns'):
                     self.assertNotIn(removed, source, str(path))
-        driver = (ROOT / 'third_party/kyber-kymux/kynet/src/driver/quinn.rs').read_text()
-        self.assertIn('self.conn.send_datagram(data)', driver)
-        self.assertNotIn('sleep_until', driver)
+        build = (ROOT / 'scripts/ci/build.sh').read_text()
+        self.assertIn('python3 "$PLANK_SOURCE_ROOT/tests/network/test_datagram_sender.py"', build)
 
     def test_package_tests_match_compiled_features_and_target_directory(self):
         host = (ROOT / 'scripts/build/build-host-package-binaries.sh').read_text()

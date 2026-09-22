@@ -81,13 +81,18 @@ submission deadline. This obsolete selection is now impossible. Earlier runs
 with incidental proxy drops are retained separately from controlled-loss runs.
 
 Next: verify dependency-first pushes and build all four matching candidates.
-Signed Mac installers require a temporary exact-branch environment permission;
-the operator has been asked to authorize it. Remove only that temporary policy
+The operator approved temporary exact-branch signing permission for these
+Mac candidates. Remove only that temporary policy
 after signing. Collect checksum/provenance-verified packages under
 `artifacts/packages/candidates/1.0.154-raptorq-upgrade/` in the canonical checkout.
 Do not mix pre-upgrade packages or relabel them. Native macOS compilation,
 hardware playback/input/WAN acceptance and the Client label-only Qt test remain
 pending; Linux feature-selection tests are not Apple hardware qualification.
+
+The first hosted attempts (`35790399772` / `35790403469`) stopped in policy,
+before compilation: a new source guard incorrectly required Kymux in the
+root-only checkout. Its dependency checks now run after bootstrap for all four
+products, while root policy verifies the wiring. No transport check is waived.
 
 ## Client label cleanup
 
