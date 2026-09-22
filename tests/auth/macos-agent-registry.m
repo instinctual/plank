@@ -124,6 +124,38 @@ static BOOL until(Fixture *f, BOOL (^predicate)(void)) {
 }
 
 static void connectionTests(NSString *requirement) {
+    // Certificate issuance is independent of the exclusive graphical lease.
+    // Use signed anonymous XPC and synthetic scope; never create machine keys.
+    for (unsigned scenario = 0; scenario < 5; ++scenario) {
+        Fixture *fixture = [[Fixture alloc] initWithNative:NO requirement:requirement];
+        __block unsigned issuedCount = 0;
+        dispatch_sync(fixture.queue, ^{
+            fixture.registry.issueIdentity = ^NSDictionary<NSString *, NSData *> *(NSData *csr) {
+                ++issuedCount;
+                if (scenario == 3) dispatch_sync(fixture.queue, ^{ fixture.allowed = NO; });
+                return @{@"certificate": csr, @"der": csr, @"authority": csr};
+            };
+        });
+        xpc_connection_t peer = [fixture client];
+        xpc_object_t message = xpc_dictionary_create(NULL, NULL, 0);
+        xpc_dictionary_set_uint64(message, "version", 1);
+        xpc_dictionary_set_uint64(message, "operation", 5);
+        NSData *csr = [@"synthetic-public-csr" dataUsingEncoding:NSUTF8StringEncoding];
+        xpc_dictionary_set_data(message, "csr", csr.bytes, csr.length);
+        if (scenario == 1) xpc_dictionary_set_uint64(message, "uid", getuid());
+        if (scenario == 2) xpc_dictionary_set_string(message, "csr", "wrong-type");
+        if (scenario == 4) dispatch_sync(fixture.queue, ^{ fixture.allowed = NO; });
+        xpc_object_t reply = request(peer, message);
+        CHECK(status(reply, 0) == (scenario == 0 && getuid() != 0));
+        if (status(reply, 0)) {
+            CHECK(xpc_dictionary_get_count(reply) == 5);
+            CHECK(!xpc_dictionary_get_value(reply, "generation"));
+            CHECK(!xpc_dictionary_get_value(reply, "key"));
+        }
+        CHECK(until(fixture, ^BOOL { return fixture.attached == 0; }));
+        [fixture close]; xpc_connection_cancel(peer);
+        (void)issuedCount;
+    }
     @autoreleasepool {
         Fixture *f = [[Fixture alloc] initWithNative:NO requirement:requirement];
         for (unsigned invalid = 0; invalid < 3; ++invalid) {

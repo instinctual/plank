@@ -5,6 +5,7 @@ preflight "${3:-}"
 verify_app
 [[ $(/usr/libexec/PlistBuddy -c 'Print :PLANKVersion' "$app/Contents/Info.plist") = "$version" ]] || fail 'Payload version mismatch'
 initialize_state
+prepare_machine_authority
 start_roles
 open_permission_setup
 echo 'PLANK Host installed. Open PLANK Host in Applications for privacy setup. Configuration and keys preserved.'

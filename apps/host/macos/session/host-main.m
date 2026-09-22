@@ -9,6 +9,7 @@
 #import "screen-capture.h"
 #include "permission-status.h"
 #import "desktop-provisioning.h"
+#import "machine-identity.h"
 #import "desktop-start.h"
 #import <AppKit/AppKit.h>
 #include <fcntl.h>
@@ -134,6 +135,9 @@ static int machine(const char *service) {
             dispatch_resume(exitWatch);
         }];
     if (!registry) return 2;
+    registry.issueIdentity = ^NSDictionary<NSString *, NSData *> *(NSData *csr) {
+        return PLANKMacIssueWorkerIdentity(csr);
+    };
     weakRegistry = registry;
     xpc_connection_t listener = xpc_connection_create_mach_service(service, dispatch_get_main_queue(),
         XPC_CONNECTION_MACH_SERVICE_LISTENER);
@@ -160,9 +164,12 @@ static int graphical(const char *service, NSString *role, NSString *directory, B
     PLANKMacGraphicalIdentity initial = [authority snapshot];
     if (!plank_macos_graphical_identity_valid(initial)) return startupFailure("graphical-scope");
     NSDictionary *publicConfiguration = nil;
+    NSData *authorityDER = nil;
     if (systemProvisioning) {
         if (phase == PLANKMacScopeDesktop) {
             if (!PLANKMacPrepareDesktop(&directory, &publicConfiguration)) return startupFailure("desktop-provisioning");
+            authorityDER = PLANKMacAuthorizeDesktopIdentity(directory, service, PLANKMacOwnSigningRequirement());
+            if (!authorityDER) return startupFailure("machine-identity");
         } else {
             publicConfiguration = PLANKMacReadPublicConfiguration(@"/Library/Application Support/PLANK", 0);
             if (!publicConfiguration) return startupFailure("machine-configuration");
@@ -252,7 +259,7 @@ static int graphical(const char *service, NSString *role, NSString *directory, B
             } else if (state == PLANKMacAgentRetiring || state == PLANKMacAgentDisconnected || state == PLANKMacAgentFinished) stop();
         }];
     weakAgent = agent;
-    runtime = [[PLANKMacHostRuntime alloc] initWithIdentity:identity information:information
+    runtime = [[PLANKMacHostRuntime alloc] initWithIdentity:identity authority:authorityDER information:information
         snapshot:^{ return [weakAgent bindGraphicalScope:[authority snapshot]]; }
         topology:^{ return [capture snapshot]; } address:config[@"Address"]
         certificate:[directory stringByAppendingPathComponent:@"cert.pem"]

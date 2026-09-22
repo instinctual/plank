@@ -22,6 +22,7 @@
 }
 - (instancetype)init { return nil; }
 - (instancetype)initWithIdentity:(SecIdentityRef)identity
+                       authority:(NSData *)authority
                      information:(PLANKMacServerInformation *)information
                         snapshot:(PLANKMacGraphicalSnapshot)snapshot
                         topology:(NSDictionary *(^)(void))topology address:(NSString *)address
@@ -39,7 +40,7 @@
     _address = [address copy]; _certificate = [certificate copy]; _privateKey = [privateKey copy];
     _sessions = [[PLANKMacAuthenticationSession alloc] initWithGraphicalSnapshot:snapshot];
     __weak typeof(self) weakSelf = self;
-    _server = [[PLANKMacHTTPSAuthServer alloc] initWithIdentity:identity sessions:_sessions
+    _server = [[PLANKMacHTTPSAuthServer alloc] initWithIdentity:identity authority:authority sessions:_sessions
         information:information topology:topology
         launch:^NSDictionary *(NSDictionary *request, NSString *token, NSData *peer, uint16_t port, unsigned *status) {
             typeof(self) owner = weakSelf;

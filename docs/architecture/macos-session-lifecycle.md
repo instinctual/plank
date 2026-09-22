@@ -96,11 +96,12 @@ two seconds, including the local stop, without additional input, and preserves
 already queued control messages before the terminal error. A passing loopback
 is not a substitute for actual LoginWindow-to-Aqua timing.
 
-Do not enable Linux's certificate-pinned worker-replacement probe on a Mac
-without a corresponding identity design: the current graphical roles have
-independent certificates. An unchanged workstation UUID is not proof that a
-new peer is the trusted replacement. Normal reconnect still requires fresh
-authentication and exact current graphical ownership.
+Do not infer replacement trust from an unchanged workstation UUID. Graphical
+roles have independent leaf keys but now share a machine signing authority;
+the Client verifies that chain against its persistent machine-public-key pin
+before authentication. This does not enable Linux's early worker-replacement
+probe on macOS or change the existing reconnect timing. Reconnect still
+requires fresh authentication and exact current graphical ownership.
 
 Control GET requests no longer append the inherited dummy `uniqueid` and
 random `uuid` query fields. The shared Client applies this to Linux and macOS;
@@ -132,11 +133,11 @@ regular, non-symlink, mode-0600 files owned by the same UID. The plist has exact
 represent the same certificate and PKCS#1 RSA private key; the native Security
 identity validates the key/certificate pair. This is developer startup wiring,
 not the final administrator configurator. Never copy the machine service's
-private key into a user-readable directory to make this work. Development roles
-retain independent TLS keys with the same public workstation UUID. This uses
-the existing Client certificate-profile validation and fresh authentication;
-the UUID is not a cryptographic trust anchor. Persistent machine-certificate
-pinning is not provided by that existing policy and remains a security gate.
+private key into a user-readable directory to make this work. Installed desktop
+roles obtain a machine-signed server leaf through the existing coordinator
+before opening a listener. LoginWindow retains the machine certificate. The
+Client pins their common machine public key; the public workstation UUID is
+not a cryptographic trust anchor. See [Host identity trust](../security/host-identity-trust.md).
 
 ## Development installation and reboot recovery
 
@@ -298,6 +299,7 @@ No passwords, images, input, paths, process IDs or shell commands are accepted.
 | Check, 2 | generation, sequence | Validate this connection's lease. |
 | Retired, 3 | generation, sequence | Agent reports local cleanup complete. |
 | Revoke, 4 | generation | Machine-to-agent notification. |
+| Issue identity, 5 | csr (1–16384 public PEM bytes) | Short-lived desktop-only connection; code-signature and kernel/OS scope checked before signing and again before reply. |
 
 Replies contain version/status and, on success only, generation. Status 0 is
 success, 1 busy, 2 revoked/retired. Generation is a random nonzero uint64 bound
@@ -305,10 +307,20 @@ to the exact connection. Sequence starts at one and increases by exactly one.
 Malformed, extra, unknown, replayed or one-way requests close the peer and revoke
 any lease. Linux protocols and shared feature flags are unchanged.
 
+Operation 5 does not acquire a graphical lease and accepts no UID, file path,
+private key or requested extensions. Its success response has exactly
+`version`, `status`, `certificate` (PEM), `der` and `authority` (DER); each public
+certificate is bounded to 16384 bytes. Its link closes after the reply. There
+is at most one signing operation on a separate serial lane, with bounded crypto
+children; health and ownership checks stay on the coordinator queue. Failed
+or late issuance cannot start a listener or write a certificate from a late
+callback. This additive private operation has matching workers/coordinator
+in the same package; it is not a negotiated network feature.
+
 One exclusive agent slot, at most four admitted links, five seconds to register.
 The graphical side permits one outstanding request, a two-second reply/freshness
 deadline and approximately two health checks per second. Both use their owner's
-serial queue, without another worker/unbounded work queue. A 250-ms backup check
+serial queue, without an unbounded work queue. A 250-ms backup check
 does not replace notification revocation or authorization at media/input delivery.
 
 ## Replacement ordering

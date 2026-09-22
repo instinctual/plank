@@ -111,7 +111,7 @@ int main(int argc, const char *argv[]) {
 #ifdef PLANK_MAC_PREVIEW_TEST
         // Qualification uses the actual Host assembly, with an explicit
         // loopback address and synthetic devices only in the synthetic build.
-        PLANKMacHostRuntime *runtime = [[PLANKMacHostRuntime alloc] initWithIdentity:identity
+        PLANKMacHostRuntime *runtime = [[PLANKMacHostRuntime alloc] initWithIdentity:identity authority:nil
             information:information snapshot:snapshot topology:topology address:@"127.0.0.1"
             certificate:[directory stringByAppendingPathComponent:@"cert.pem"]
             privateKey:[directory stringByAppendingPathComponent:@"key.pem"]
@@ -141,7 +141,7 @@ int main(int argc, const char *argv[]) {
 #endif
 #else
         PLANKMacAuthenticationSession *sessions = [[PLANKMacAuthenticationSession alloc] initWithGraphicalSnapshot:snapshot];
-        PLANKMacHTTPSAuthServer *server = [[PLANKMacHTTPSAuthServer alloc] initWithIdentity:identity
+        PLANKMacHTTPSAuthServer *server = [[PLANKMacHTTPSAuthServer alloc] initWithIdentity:identity authority:nil
             sessions:sessions information:information topology:topology launch:nil];
 #ifdef PLANK_SYNTHETIC_AUTH_TEST
         __block unsigned recoveryAttempts = 0;

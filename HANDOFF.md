@@ -1,6 +1,35 @@
 # PLANK handoff
 
-## Current task: virtual-primary PR repairs
+## In progress: automatic Host identity trust
+
+Work is isolated in `build/worktrees/code-review-fixes`, root and Client branches
+`code-review-fixes`, based on root `9c9d6bd` and Client `6580f794` below. It retains
+the pending virtual-primary fixes; main and the unrelated primary checkout are
+unchanged. No merge, release or installation is authorized by this task.
+
+The operator approved automatic first-use trust before credentials and an
+explicit Cancel / Trust Replacement Host dialog on identity changes. Trust is
+separate from bookmarks; deletion/recreation is not a reset. The operator also
+approved a stable machine authority across macOS login/logout and user changes,
+using the existing authenticated coordinator without sharing its private key.
+See `docs/development/plans/host-identity-trust.plan` and
+`docs/security/host-identity-trust.md` for the residual TOFU risk and design.
+
+Implementation is not yet qualified. Client commits `5925bfd6` and `983d1e6f`
+are pushed to `code-review-fixes`. Client trust-store (9) and real
+TLS guard (5) Qt tests passed on the Ubuntu builder. They verify zero HTTP
+credential bytes reach a changed/untrusted peer, same-authority worker changes,
+forged chains and damaged storage. Linux certificate renewal test passed locally.
+Reconnect source checks (14), package-script checks (23), CI policy tests (60)
+and the version contract also pass. No complete Client or macOS compilation
+has run yet. Next: finish integration
+tests and macOS issuer/renewal review, compile all affected products, then live
+qualification. Do not describe this branch as ready to install. No live machine
+state has been changed; only isolated tests ran on the build-only Ubuntu VM.
+
+The previous candidate and package provenance below remain valid and untouched.
+
+## Previous candidate: virtual-primary PR repairs
 
 The operator authorized fixing two Client findings in the coordinated Client
 #6 / Linux Host #9 / root #10 series. Work uses branch `virtual-primary-fixes`

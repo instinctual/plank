@@ -39,7 +39,8 @@
     dispatch_group_t _socketDrain;
 }
 
-- (instancetype)initWithIdentity:(SecIdentityRef)identity sessions:(PLANKMacAuthenticationSession *)sessions
+- (instancetype)initWithIdentity:(SecIdentityRef)identity authority:(NSData *)authority
+                       sessions:(PLANKMacAuthenticationSession *)sessions
                     information:(PLANKMacServerInformation *)information topology:(NSDictionary *(^)(void))topology
                          launch:(PLANKMacLaunchHandler)launch {
     if (!identity || !sessions || !information || !topology) return nil;
@@ -47,7 +48,11 @@
     if (getrlimit(RLIMIT_CORE, &core) || core.rlim_cur != 0) return nil;
     self = [super init];
     if (self) {
-        _identity = sec_identity_create(identity);
+        SecCertificateRef root = authority ? SecCertificateCreateWithData(NULL, (__bridge CFDataRef)authority) : NULL;
+        if (authority && !root) return nil;
+        _identity = root ? sec_identity_create_with_certificates(identity, (__bridge CFArrayRef)@[(__bridge id)root]) :
+            sec_identity_create(identity);
+        if (root) CFRelease(root);
         if (!_identity) return nil;
         _sessions = sessions;
         _information = information;

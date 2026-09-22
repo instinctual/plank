@@ -27,7 +27,8 @@ typedef NSDictionary *(^PLANKMacPrepareDisplayHandler)(NSDictionary *request, NS
 // dispatch and rechecks ownership before returning any display description.
 @property(copy) PLANKMacPrepareDisplayHandler prepareDisplay;
 @property(copy) BOOL (^recoverTopology)(BOOL (^valid)(void));
-- (instancetype)initWithIdentity:(SecIdentityRef)identity sessions:(PLANKMacAuthenticationSession *)sessions
+- (instancetype)initWithIdentity:(SecIdentityRef)identity authority:(NSData *)authority
+                       sessions:(PLANKMacAuthenticationSession *)sessions
                     information:(PLANKMacServerInformation *)information
                        topology:(NSDictionary *(^)(void))topology
                          launch:(PLANKMacLaunchHandler)launch;

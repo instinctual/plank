@@ -18,6 +18,7 @@
 // a physical display. Configured before start; same bounded auth lane.
 @property(copy) BOOL (^recoverDisplay)(BOOL (^valid)(void));
 - (instancetype)initWithIdentity:(SecIdentityRef)identity
+                       authority:(NSData *)authority
                      information:(PLANKMacServerInformation *)information
                         snapshot:(PLANKMacGraphicalSnapshot)snapshot
                         topology:(NSDictionary *(^)(void))topology

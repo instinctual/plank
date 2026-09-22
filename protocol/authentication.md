@@ -71,9 +71,17 @@ conversations expire after 120 seconds, and unclaimed tokens after 300 seconds.
 
 ## TLS and Network Policy
 
-Generate an RSA-3072/SHA-256 certificate with a DNS-only SAN using
-`scripts/maintenance/generate-plank-certificate.sh`. The client accepts only that
-self-signed certificate profile and requires TLS 1.3, but it does not classify
-or restrict the network interface selected by the operating system. Production
+The Host package provisions its RSA-3072/SHA-256 certificate and DNS-only SAN.
+The Client requires TLS 1.3 and a remembered machine public key before sending
+credentials or bearer tokens. Explicit first connection uses automatic TOFU;
+discovery does not populate trust and automatic recovery cannot replace it.
+Linux presents its self-signed machine certificate; a macOS desktop presents a
+server leaf directly signed by its machine authority. Changed-key confirmation
+applies to exactly the displayed old/new identities, before a new authentication
+conversation. See [Host identity trust](../docs/security/host-identity-trust.md)
+for chain constraints, replacement behavior and first-use limitations.
+
+This policy does not classify or restrict the network interface selected by
+the operating system. Production
 deployments must enforce their intended network boundary with interface-scoped
 host firewall rules.

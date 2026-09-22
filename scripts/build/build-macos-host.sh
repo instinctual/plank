@@ -114,7 +114,7 @@ sources=(apps/host/macos/auth/authentication-session.m apps/host/macos/auth/grap
     apps/host/macos/media/native-audio.m apps/host/macos/media/opus-encoder.m apps/host/macos/media/audio-tap.m
     apps/host/macos/input/input-events.m apps/host/macos/input/native-input.m apps/host/macos/input/quartz-input.m
     apps/host/macos/session/agent-registry.m apps/host/macos/session/agent-connection.m
-    apps/host/macos/session/desktop-provisioning.m apps/host/macos/session/desktop-start.m
+    apps/host/macos/session/desktop-provisioning.m apps/host/macos/session/machine-identity.m apps/host/macos/session/desktop-start.m
     apps/host/macos/session/host-runtime.m apps/host/macos/session/host-main.m)
 xcrun clang "${common[@]}" "-DPLANK_MACOS_HOST_VERSION=\"$PLANK_MACOS_HOST_VERSION\"" \
     "${sources[@]}" "$archive" -lpthread -lm -o "$output/plank-host"

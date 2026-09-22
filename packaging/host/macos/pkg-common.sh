@@ -245,8 +245,10 @@ initialize_state() {
     fi
     if ! present "$state/SignIn"; then
         stage=$(/usr/bin/mktemp -d "$state/.identity.XXXXXX")
-        /usr/bin/openssl req -x509 -newkey rsa:3072 -nodes -sha256 -days 365 \
-            -subj '/CN=PLANK Host' -addext subjectAltName=DNS:plank-host \
+        /usr/bin/openssl req -x509 -newkey rsa:3072 -nodes -sha256 -days 3650 \
+            -subj '/CN=PLANK Host Machine' -addext subjectAltName=DNS:plank-host \
+            -addext basicConstraints=critical,CA:TRUE,pathlen:0 \
+            -addext keyUsage=critical,digitalSignature,keyCertSign \
             -keyout "$stage/initial.pem" -out "$stage/cert.pem"
         /usr/bin/openssl rsa -in "$stage/initial.pem" -out "$stage/key.pem"
         /usr/bin/openssl rsa -in "$stage/key.pem" -outform DER -out "$stage/key.der"
@@ -257,4 +259,30 @@ initialize_state() {
     fi
     check_configuration
     prepare_logs
+}
+
+# Run after the old roles have stopped. Upgrade/renew the certificate, not the
+# machine key: Client trust is an SPKI fingerprint, independent of expiry,
+# certificate serial and which user currently owns the desktop.
+prepare_machine_authority() {
+    local certificate="$state/SignIn/cert.pem" key="$state/SignIn/key.pem" stage text
+    check_configuration
+    text=$(/usr/bin/openssl x509 -in "$certificate" -noout -text 2>/dev/null) || text=''
+    if [[ $text = *'CA:TRUE, pathlen:0'* && $text = *'PLANK Host Machine'* ]] &&
+        /usr/bin/openssl x509 -in "$certificate" -noout -checkend 2592000 >/dev/null 2>&1 &&
+        /usr/bin/openssl verify -CAfile "$certificate" "$certificate" >/dev/null 2>&1; then
+        return
+    fi
+    # An invalid existing key is a failed install, never silent identity loss.
+    /usr/bin/openssl rsa -in "$key" -check -noout >/dev/null 2>&1 || fail 'Invalid machine identity key; it was not replaced'
+    stage=$(/usr/bin/mktemp -d "$state/SignIn/.renew.XXXXXX")
+    /usr/bin/openssl req -x509 -key "$key" -sha256 -days 3650 \
+        -subj '/CN=PLANK Host Machine' -addext subjectAltName=DNS:plank-host \
+        -addext basicConstraints=critical,CA:TRUE,pathlen:0 \
+        -addext keyUsage=critical,digitalSignature,keyCertSign -out "$stage/cert.pem"
+    /usr/bin/openssl x509 -in "$stage/cert.pem" -outform DER -out "$stage/cert.der"
+    /bin/chmod 600 "$stage/cert.pem" "$stage/cert.der"
+    /bin/mv "$stage/cert.pem" "$certificate"
+    /bin/mv "$stage/cert.der" "$state/SignIn/cert.der"
+    /bin/rmdir "$stage"
 }

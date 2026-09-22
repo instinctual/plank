@@ -18,7 +18,12 @@ int main(int argc, char** argv)
     const auto values = QJsonDocument::fromJson(input.readAll()).object();
     NvHTTP http(NvAddress(QStringLiteral("127.0.0.1"), static_cast<quint16>(port)));
     const bool busy = mode == QLatin1String("auth-busy");
-    if (!busy) http.setPlankSessionToken(values.value("token").toString());
+    // Trust only the out-of-band certificate supplied by this synthetic test
+    // fixture. No product bypass or trusting the network leaf after sending.
+    const auto identity = HostTlsGuard::identityKey({QSslCertificate(values.value("certificate").toString().toUtf8())});
+    const QString endpoint = HostTrustStore::endpoint(QUrl(QString("https://127.0.0.1:%1").arg(port)));
+    if (HostTrustStore().check(endpoint, identity, true).status != HostTrustStore::Status::Trusted) return 2;
+    if (!busy) http.setPlankSessionToken(values.value("token").toString(), identity);
     try {
         if (busy) { http.authenticate(QStringLiteral("synthetic"), QStringLiteral("test")); return 1; }
         QString pin;
@@ -53,8 +58,10 @@ int main(int argc, char** argv)
         if (error.toQString().contains(QStringLiteral("do-not-log-this-response"))) return 1;
         try { http.getOutputTopology(); return 1; }
         catch (const GfeHttpResponseException& consumed) { if (consumed.getStatusCode() != 400) return 1; }
-    } catch (const QtNetworkReplyException&) {
-        if (mode != QLatin1String("timeout")) return 1;
+    } catch (const QtNetworkReplyException& error) {
+        const bool tlsFailure = mode == QLatin1String("wrong-pin") || mode == QLatin1String("certificate-swap");
+        if (mode != QLatin1String("timeout") && !tlsFailure) return 1;
+        if (tlsFailure && error.getError() != QNetworkReply::SslHandshakeFailedError) return 1;
         try { http.getOutputTopology(); return 1; }
         catch (const GfeHttpResponseException& consumed) { if (consumed.getStatusCode() != 400) return 1; }
     }

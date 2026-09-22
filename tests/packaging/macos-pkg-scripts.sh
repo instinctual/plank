@@ -153,6 +153,7 @@ if [[ ${1:-} = --filesystem ]]; then
         "$root/tests/packaging/macos-log-access.c" -o "$fixture/log-access"
     state="$fixture/state"; logs="$fixture/logs"
     initialize_state
+    prepare_machine_authority
     [[ $(/usr/bin/stat -f '%Su:%Sg:%Lp' "$logs") = root:admin:750 ]]; ok
     for name in host-machine.log host-sign-in.log; do
         [[ $(/usr/bin/stat -f '%Su:%Sg:%Lp' "$logs/$name") = root:admin:640 ]]; ok
@@ -166,6 +167,17 @@ if [[ ${1:-} = --filesystem ]]; then
     initialize_state
     after=$(/usr/bin/shasum -a 256 "$state/host.plist" "$state/SignIn/"* "$logs/"*)
     [[ $before = "$after" ]]; ok
+    # Renewal and the CA-profile upgrade retain the machine private key. No
+    # root key is copied to desktop users, and a second install is idempotent.
+    machine_key_before=$(/usr/bin/shasum -a 256 "$state/SignIn/key.pem" "$state/SignIn/key.der")
+    /usr/bin/openssl req -x509 -key "$state/SignIn/key.pem" -days 1 \
+        -subj '/CN=PLANK Host' -addext subjectAltName=DNS:plank-host -out "$state/SignIn/cert.pem"
+    prepare_machine_authority
+    /usr/bin/openssl x509 -in "$state/SignIn/cert.pem" -noout -checkend 2592000; ok
+    [[ $machine_key_before = "$(/usr/bin/shasum -a 256 "$state/SignIn/key.pem" "$state/SignIn/key.der")" ]]; ok
+    before=$(/usr/bin/shasum -a 256 "$state/host.plist" "$state/SignIn/"* "$logs/"*)
+    prepare_machine_authority
+    [[ $before = "$(/usr/bin/shasum -a 256 "$state/host.plist" "$state/SignIn/"* "$logs/"*)" ]]; ok
     # Reproduce the real .82 failure without changing product paths/services.
     /bin/chmod 744 "$logs"
     /bin/chmod 644 "$logs/host-machine.log" "$logs/host-sign-in.log"

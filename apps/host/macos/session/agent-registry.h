@@ -32,6 +32,9 @@ typedef NS_ENUM(unsigned, PLANKMacAgentEvent) {
 // capture, input, process launcher or password handling lives here. An attached
 // local agent is NOT a remote user's capture/input authorization.
 @interface PLANKMacAgentRegistry : NSObject
+// Configure before accepting peers. One bounded issuance at a time on a
+// separate serial lane; admission and response both recheck OS desktop scope.
+@property(copy) NSDictionary<NSString *, NSData *> *(^issueIdentity)(NSData *csr);
 - (instancetype)initWithQueue:(dispatch_queue_t)queue
                  requirement:(NSString *)requirement scope:(PLANKMacAgentScope)scope
                        event:(void (^)(PLANKMacAgentLease *, PLANKMacAgentEvent))event;

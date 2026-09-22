@@ -27,6 +27,7 @@ if grep -Fq 'IP Address:' <<<"$certificate_sans"; then
 fi
 
 first_fingerprint=$(openssl x509 -in "$certificate" -noout -fingerprint -sha256)
+first_key=$(openssl pkey -in "$private_key" -pubout -outform DER | openssl dgst -sha256)
 "$helper" "$certificate" "$private_key" another-name.test |
   grep -Fxq 'host_certificate=valid'
 second_fingerprint=$(openssl x509 -in "$certificate" -noout -fingerprint -sha256)
@@ -37,6 +38,20 @@ printf 'invalid certificate\n' >"$certificate"
   grep -Fq 'host_certificate=generated'
 openssl x509 -in "$certificate" -noout -ext subjectAltName |
   grep -Fq 'DNS:hardware-test-host.test'
+[[ $first_key == "$(openssl pkey -in "$private_key" -pubout -outform DER | openssl dgst -sha256)" ]]
+# Renewal inside the thirty-day window is automatic and retains the key.
+openssl req -x509 -key "$private_key" -days 1 -subj /CN=expiring \
+  -addext subjectAltName=DNS:hardware-test-host.test -out "$certificate"
+"$helper" "$certificate" "$private_key" hardware-test-host.test >/dev/null
+openssl x509 -in "$certificate" -noout -checkend 2592000 >/dev/null
+[[ $first_key == "$(openssl pkey -in "$private_key" -pubout -outform DER | openssl dgst -sha256)" ]]
+
+printf 'damaged key\n' >"$private_key"
+if "$helper" "$certificate" "$private_key" hardware-test-host.test >/dev/null 2>&1; then
+  echo 'certificate helper replaced an existing damaged identity' >&2
+  exit 1
+fi
+[[ $(<"$private_key") == 'damaged key' ]]
 
 if "$helper" "$certificate" "$private_key" 127.0.0.1 >/dev/null 2>&1; then
   echo 'certificate helper accepted an IP address as a DNS name' >&2

@@ -1,0 +1,50 @@
+# Automatic Host identity trust
+
+Branch: `code-review-fixes`, based on the current virtual-primary candidate.
+
+## Approved user experience
+
+- Standard Host package install; no pairing, certificate copying, enrollment,
+  certificate-management UI or additional administrator provisioning.
+- On explicit first connection, persist the validated Host public-key identity
+  before credentials. Automatic discovery must not populate trust.
+- Check all subsequent password and bearer-token requests before transmission.
+- Changed identity: Cancel (default) or Trust Replacement Host, with optional
+  old/new fingerprint details. Replacement approves exactly the shown key.
+- Store trust separately from bookmarks; deleting/recreating a bookmark does
+  not forget a destination's identity. Use the configured destination and port,
+  not an unauthenticated Host UUID or advertised alternate address, as its scope.
+- Fail closed on unreadable/corrupt storage, write failure, redirects,
+  certificate/profile failure, stale replacement consent or changed identity
+  during an authentication conversation. Reconnect cannot automatically reset.
+- Automatic TOFU does not authenticate the first connection. This is a
+  deliberate residual risk, not complete closure of the review finding.
+
+## Discovered platform prerequisite
+
+Linux uses the persistent machine TLS identity; its certificate renewal helper
+must preserve a valid private key. macOS currently uses distinct private TLS
+keys for root LoginWindow and each desktop user. Naively pinning those leaves
+would break normal login/logout and cross-user handoffs.
+
+Approved macOS solution (automatic across login/logout): retain worker-private
+keys and use one machine-owned signing identity through the existing authenticated
+machine-coordinator IPC. Validate the worker certificate chain and pin its
+machine authority. Do not distribute the machine private key to users, accept
+an unsigned list of alternate keys, weaken Host trust on transitions, add an
+external enrollment service or automatically accept a new authority.
+
+## Implementation/qualification
+
+1. Independent locked/atomic Client trust store, persistent across bookmarks.
+2. TLS pre-send gate and exact replacement decision UI, shared across platforms.
+3. Automatic stable Host identity lifecycle, including macOS worker boundaries.
+4. Loopback TLS tests: first-use, changed certificate with same key, changed
+   key, invalid profile/chain, mid-conversation replacement, no credential bytes
+   on rejection, storage races/errors, redirect rejection and delayed consent.
+5. QML tests: responsive Cancel/accept/Escape, safe default, stale/closed dialog.
+6. Host tests: upgrades preserve keys; new user and login/logout preserve machine
+   identity; renewal works without private-key disclosure or operator action.
+7. Hosted builds and explicit live login/logout/reinstall test before acceptance.
+
+No merge, release or machine installation is implied by this implementation task.

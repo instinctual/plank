@@ -46,7 +46,7 @@ int main(int argc, char** argv)
         bool greeter = false;
         const QString token = http.authenticate(QString::fromLocal8Bit(argv[3]), QString::fromUtf8(password), &greeter);
         password.fill('\0'); password.clear();
-        http.setPlankSessionToken(token);
+        http.setPlankSessionToken(token, http.hostIdentityKey());
         {
             const auto requested = NvOutputTopology::virtualModeSize(QString::fromLocal8Bit(argv[4]));
             const auto prepared = http.prepareMacDisplay(QString::fromLocal8Bit(argv[4]), encodingMode);
@@ -56,7 +56,7 @@ int main(int argc, char** argv)
         CHECK(NvHTTP::getXmlString(http.getServerInfo(NvHTTP::NVLL_NONE), "PairStatus") == "1");
         NvHTTP anonymous(http.address());
         CHECK(NvHTTP::getXmlString(anonymous.getServerInfo(NvHTTP::NVLL_NONE), "PairStatus") == "0");
-        anonymous.setPlankSessionToken(QString(44, QLatin1Char('x')));
+        anonymous.setPlankSessionToken(QString(44, QLatin1Char('x')), http.hostIdentityKey());
         CHECK(NvHTTP::getXmlString(anonymous.getServerInfo(NvHTTP::NVLL_NONE), "PairStatus") == "0");
         QString pin;
         const auto topology = http.getOutputTopology(&pin);

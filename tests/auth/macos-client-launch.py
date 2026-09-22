@@ -4,6 +4,7 @@ import argparse
 import base64
 import http.server
 import json
+import os
 from pathlib import Path
 import secrets
 import ssl
@@ -60,6 +61,12 @@ def main():
                     self.close_connection = True
 
                 def do_GET(self):
+                    if mode == "auth-busy" and self.path.startswith("/serverinfo"):
+                        if self.headers.get("Authorization"):
+                            faults.append("credentials in trust preflight")
+                        requests.append("discovery")
+                        self.respond(200, b'<root status_code="200"/>')
+                        return
                     if (self.path != "/plank/topology" or
                             self.headers.get("Authorization") != "Bearer " + token):
                         faults.append("unexpected topology request")
@@ -120,13 +127,14 @@ def main():
             worker.start()
             try:
                 result = subprocess.run([args.client, mode, str(server.server_port)],
-                                        input=json.dumps({"token": token}), text=True,
+                                        input=json.dumps({"token": token, "certificate": (root / "cert1.pem").read_text()}), text=True,
+                                        env={**os.environ, "XDG_DATA_HOME": str(root / mode)},
                                         capture_output=True, timeout=12)
                 if token in result.stdout + result.stderr or "do-not-log-this-response" in result.stdout + result.stderr:
                     raise RuntimeError(f"{mode}: sensitive response reached diagnostics")
                 if result.returncode:
                     raise RuntimeError(f"{mode}: Client qualification failed ({result.returncode}): {result.stderr}")
-                expected_requests = ["auth"] if mode == "auth-busy" else ["topology"] if mode in ("wrong-pin", "certificate-swap") else ["topology", "launch"]
+                expected_requests = ["discovery", "auth"] if mode == "auth-busy" else ["topology"] if mode in ("wrong-pin", "certificate-swap") else ["topology", "launch"]
                 if requests != expected_requests or faults:
                     raise RuntimeError(f"{mode}: incorrect HTTP request sequence")
                 print(f"{mode}: pass", flush=True)

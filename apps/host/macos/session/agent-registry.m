@@ -50,6 +50,7 @@ NSString *PLANKMacOwnSigningRequirement(void) {
 @property PLANKMacAgentLease *lease;
 @property uint64_t sequence, created;
 @property BOOL closed, retired;
+@property BOOL identityRequested;
 @end
 @implementation PLANKMacAgentLink
 @end
@@ -63,6 +64,8 @@ NSString *PLANKMacOwnSigningRequirement(void) {
     PLANKMacAgentLink *_current;
     dispatch_source_t _watch;
     BOOL _stopped;
+    BOOL _issuing;
+    dispatch_queue_t _identityQueue;
 }
 
 - (instancetype)init { return nil; }
@@ -78,6 +81,7 @@ NSString *PLANKMacOwnSigningRequirement(void) {
     if (!self) return nil;
     _queue = queue; _requirement = [requirement copy]; _scope = [scope copy]; _event = [event copy];
     _links = [NSMutableArray array];
+    _identityQueue = dispatch_queue_create("la.instinctual.PLANK.Host.identity-issuer", DISPATCH_QUEUE_SERIAL);
     __weak typeof(self) weakSelf = self;
     _watch = dispatch_source_create(DISPATCH_SOURCE_TYPE_TIMER, 0, 0, queue);
     dispatch_source_set_timer(_watch, DISPATCH_TIME_NOW, 250 * NSEC_PER_MSEC, 25 * NSEC_PER_MSEC);
@@ -130,6 +134,44 @@ static BOOL word(xpc_object_t message, const char *key, uint64_t *value) {
     uint64_t version = 0, operation = 0;
     if (!word(message, "version", &version) || version != 1 || !word(message, "operation", &operation)) {
         [self close:link]; return;
+    }
+    if (operation == 5) {
+        // A separate short-lived connection obtains only a certificate, not a
+        // graphical lease. The kernel and signing requirement identify its
+        // caller; a network request cannot choose a UID, key path or authority.
+        size_t length = 0;
+        const void *bytes = xpc_dictionary_get_data(message, "csr", &length);
+        PLANKMacAgentPeer peer = {xpc_connection_get_euid(link.connection),
+            xpc_connection_get_pid(link.connection), (uint32_t)xpc_connection_get_asid(link.connection)};
+        if (link.lease || link.identityRequested || _issuing || !self.issueIdentity ||
+            xpc_dictionary_get_count(message) != 3 || !bytes || !length || length > 16384 ||
+            !peer.uid || _scope(peer) != PLANKMacAgentDesktop) { [self close:link]; return; }
+        link.identityRequested = YES;
+        _issuing = YES;
+        NSData *csr = [NSData dataWithBytes:bytes length:length];
+        NSDictionary<NSString *, NSData *> *(^issue)(NSData *) = self.issueIdentity;
+        dispatch_async(_identityQueue, ^{
+            NSDictionary<NSString *, NSData *> *issued = issue(csr);
+            dispatch_async(self->_queue, ^{
+                self->_issuing = NO;
+                if (link.closed || self->_stopped) return;
+                if (self->_scope(peer) != PLANKMacAgentDesktop || issued.count != 3) { [self close:link]; return; }
+                for (NSString *name in @[@"certificate", @"der", @"authority"]) {
+                    NSData *value = issued[name];
+                    if (![value isKindOfClass:NSData.class] || !value.length || value.length > 16384) {
+                        [self close:link]; return;
+                    }
+                    xpc_dictionary_set_data(response, name.UTF8String, value.bytes, value.length);
+                }
+                xpc_dictionary_set_uint64(response, "version", 1);
+                xpc_dictionary_set_uint64(response, "status", 0);
+                xpc_connection_send_message(link.connection, response);
+                link.closed = YES;
+                [self->_links removeObject:link];
+                xpc_connection_send_barrier(link.connection, ^{ xpc_connection_cancel(link.connection); });
+            });
+        });
+        return;
     }
     if (operation == 1) { // Register: no caller-supplied UID/PID/audit session.
         uint64_t phase = 0;
