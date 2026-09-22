@@ -7,6 +7,9 @@ The operator authorized fixing two Client findings in the coordinated Client
 in `build/worktrees/virtual-primary-fixes` and its Client worktree. The fixes
 are pushed to the author's editable `codex/virtual-primary-order` PR branches.
 Main remains unchanged. Do not merge, install or publish without approval.
+The operator subsequently authorized building/signing and downloading all four
+test packages. The reviewed snapshot is also pushed to the maintainer-owned
+`virtual-primary-fixes` branch for protected hosted signing.
 
 Root PR base: `db868b4a8930397628c3fb10949c61c1c9ad6a2d`.
 Client repair: `6580f794141b2073eae1110136d8665605eb3803`.
@@ -28,9 +31,46 @@ Candidate version is 1.0.152, with the actual CI branch qualifier retained.
   capture/encoding, physical-monitor policy or Wacom-focus change was added.
 
 Local CI policy checks pass (60), version-contract and diff checks pass.
-Exact-source hosted Client checks are pending. No new hardware acceptance or
-signed installer is claimed. See `docs/development/virtual-primary-order-review.md`,
+PR run 35677116506 passed all four products. Both Client platforms passed 25
+OutputTopology tests; macOS passed 27 PlankPresentation tests. Linux compiles
+the shared presentation code but its suite list does not run that test.
+No new hardware acceptance is claimed. See `docs/development/virtual-primary-order-review.md`,
 `protocol/output-topology.md` and `docs/releases/1.0.152.md`.
+
+## Test package collection
+
+All candidate builds use exact root
+`0617daa52d4a136fb35cc9f12c5f446e722d39a3` and effective version
+`1.0.152-virtual-primary-fixes`. Collect under
+`artifacts/packages/candidates/1.0.152-virtual-primary-fixes/`; do not relabel
+the earlier PR-merge artifacts with the new branch name.
+
+- Linux Host/Client: run 35686244053, both passed and collected.
+- Signed macOS Host: run 35686244115, passed and collected.
+- Signed macOS Client: run 35686246368, passed and collected.
+
+Both Mac jobs passed Developer ID signing, notarization, stapling, Gatekeeper,
+package gates and temporary-keychain cleanup on disposable hosted runners.
+The temporary exact-branch signing permission was removed after both passed;
+the protected signing environment again permits only `main`.
+No candidate was installed or published, and no live macOS acceptance is implied.
+
+Downloaded packages are checked against each builder's recorded SHA-256 and
+source/gitlink provenance before the normal local collector is run. All four
+packages passed the final local checksum check and share the same source commit.
+The catalog manifest and sidecars retain full hashes. Package SHA-256 values:
+
+- Ubuntu Client: `fb55dd5f57f6e6dd495d47a4b0bae579ed5e4ebc65e324a6173ff42425130c42`.
+- Linux Host: `af2aa85e379c31f02d9aa667ca03ed03063751a8a33a17df4bca248273e66d6b`.
+- macOS Host: `9a57afe3678c9182c3a7be7f821e05554dae119e12167b4cd9df061918e04372`.
+- macOS Client: `153931f564be1e600f2982b0dc31781aa185690382ee735e09407d52a747739b`.
+
+The Linux Host passed all three selected-policy loss matrices at 150 Mbps,
+60 fps and 0/0.5/1/3/5% controlled loss, with 6.545–8.088 ms p95 delivery.
+RPM log-directory/manifest gates and the post-package input suites passed.
+These are automated builder checks, not WAN or live tablet qualification.
+The RPM retains the production BUILD_TESTS=OFF payload.
+Package-collection tests (6), version-contract checks and diff checks passed.
 
 ## Other open PRs
 
