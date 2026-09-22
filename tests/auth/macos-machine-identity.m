@@ -18,7 +18,7 @@ static void run(NSString *directory, NSArray<NSString *> *arguments) {
     CHECK(task.terminationStatus == 0);
 }
 
-static NSData *read(NSString *directory, NSString *name) {
+static NSData *fixtureRead(NSString *directory, NSString *name) {
     NSData *data = [NSData dataWithContentsOfFile:[directory stringByAppendingPathComponent:name]];
     CHECK(data.length > 0);
     return data;
@@ -35,12 +35,12 @@ int main(void) { @autoreleasepool {
         @"-keyout", @"key.pem", @"-out", @"cert.pem"]);
     run(directory, @[@"x509", @"-in", @"cert.pem", @"-outform", @"DER", @"-out", @"cert.der"]);
     CHECK(!chmod([directory stringByAppendingPathComponent:@"cert.der"].fileSystemRepresentation, 0600));
-    NSData *machineKey = read(directory, @"key.pem"), *authority = read(directory, @"cert.der");
+    NSData *machineKey = fixtureRead(directory, @"key.pem"), *authority = fixtureRead(directory, @"cert.der");
     for (unsigned worker = 0; worker < 2; ++worker) {
         run(directory, @[@"req", @"-new", @"-newkey", @"rsa:3072", @"-nodes", @"-sha256",
             @"-subj", @"/CN=PLANK Host", @"-addext", @"basicConstraints=critical,CA:TRUE",
             @"-keyout", @"worker.key", @"-out", @"worker.csr"]);
-        NSDictionary *issued = PLANKMacIssueWorkerIdentity(read(directory, @"worker.csr"), directory);
+        NSDictionary *issued = PLANKMacIssueWorkerIdentity(fixtureRead(directory, @"worker.csr"), directory);
         CHECK(issued.count == 3 && [issued[@"authority"] isEqual:authority]);
         CHECK([issued[@"certificate"] writeToFile:[directory stringByAppendingPathComponent:@"worker.pem"] atomically:YES]);
         run(directory, @[@"verify", @"-purpose", @"sslserver", @"-CAfile", @"cert.pem", @"worker.pem"]);
@@ -55,7 +55,7 @@ int main(void) { @autoreleasepool {
         CHECK(SecTrustSetNetworkFetchAllowed(trust, false) == errSecSuccess);
         CHECK(SecTrustEvaluateWithError(trust, NULL));
         CFRelease(trust); CFRelease(policy); CFRelease(root); CFRelease(leaf);
-        CHECK([read(directory, @"key.pem") isEqual:machineKey]);
+        CHECK([fixtureRead(directory, @"key.pem") isEqual:machineKey]);
         CHECK(!issued[@"key"] && !issued[@"path"]);
         NSArray *remaining = [files contentsOfDirectoryAtPath:directory error:NULL];
         for (NSString *name in remaining) CHECK(![name hasPrefix:@".certificate-"]);
@@ -63,11 +63,11 @@ int main(void) { @autoreleasepool {
     CHECK(!PLANKMacIssueWorkerIdentity([@"not a request" dataUsingEncoding:NSUTF8StringEncoding], directory));
     CHECK(!PLANKMacIssueWorkerIdentity([NSMutableData dataWithLength:16385], directory));
     CHECK(!chmod(directory.fileSystemRepresentation, 0755));
-    CHECK(!PLANKMacIssueWorkerIdentity(read(directory, @"worker.csr"), directory));
+    CHECK(!PLANKMacIssueWorkerIdentity(fixtureRead(directory, @"worker.csr"), directory));
     CHECK(!chmod(directory.fileSystemRepresentation, 0700));
     NSString *link = [directory stringByAppendingPathComponent:@"alias"];
     CHECK(!symlink(directory.fileSystemRepresentation, link.fileSystemRepresentation));
-    CHECK(!PLANKMacIssueWorkerIdentity(read(directory, @"worker.csr"), link));
+    CHECK(!PLANKMacIssueWorkerIdentity(fixtureRead(directory, @"worker.csr"), link));
     CHECK([files removeItemAtPath:directory error:NULL]);
     puts("macos_machine_identity=pass");
     return 0;

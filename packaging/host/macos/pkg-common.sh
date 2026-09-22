@@ -265,16 +265,21 @@ initialize_state() {
 # machine key: Client trust is an SPKI fingerprint, independent of expiry,
 # certificate serial and which user currently owns the desktop.
 prepare_machine_authority() {
-    local certificate="$state/SignIn/cert.pem" key="$state/SignIn/key.pem" stage text
+    local certificate="$state/SignIn/cert.pem" key="$state/SignIn/key.pem" stage text key_public cert_public
     check_configuration
+    # Validate the retained key even when the certificate looks current. A
+    # damaged key must never trigger silent replacement of the machine identity.
+    /usr/bin/openssl rsa -in "$key" -check -noout >/dev/null 2>&1 || fail 'Invalid machine identity key; it was not replaced'
+    key_public=$(/usr/bin/openssl rsa -in "$key" -noout -modulus 2>/dev/null)
+    cert_public=$(/usr/bin/openssl x509 -in "$certificate" -noout -modulus 2>/dev/null) || cert_public=''
     text=$(/usr/bin/openssl x509 -in "$certificate" -noout -text 2>/dev/null) || text=''
     if [[ $text = *'CA:TRUE, pathlen:0'* && $text = *'PLANK Host Machine'* ]] &&
         /usr/bin/openssl x509 -in "$certificate" -noout -checkend 2592000 >/dev/null 2>&1 &&
-        /usr/bin/openssl verify -CAfile "$certificate" "$certificate" >/dev/null 2>&1; then
+        /usr/bin/openssl verify -CAfile "$certificate" "$certificate" >/dev/null 2>&1 &&
+        [[ -n $key_public && $key_public = "$cert_public" ]] &&
+        /usr/bin/cmp -s <(/usr/bin/openssl x509 -in "$certificate" -outform DER) "$state/SignIn/cert.der"; then
         return
     fi
-    # An invalid existing key is a failed install, never silent identity loss.
-    /usr/bin/openssl rsa -in "$key" -check -noout >/dev/null 2>&1 || fail 'Invalid machine identity key; it was not replaced'
     stage=$(/usr/bin/mktemp -d "$state/SignIn/.renew.XXXXXX")
     /usr/bin/openssl req -new -x509 -key "$key" -sha256 -days 3650 \
         -subj '/CN=PLANK Host Machine' -addext subjectAltName=DNS:plank-host \

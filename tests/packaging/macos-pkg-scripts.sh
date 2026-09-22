@@ -178,6 +178,12 @@ if [[ ${1:-} = --filesystem ]]; then
     before=$(/usr/bin/shasum -a 256 "$state/host.plist" "$state/SignIn/"* "$logs/"*)
     prepare_machine_authority
     [[ $before = "$(/usr/bin/shasum -a 256 "$state/host.plist" "$state/SignIn/"* "$logs/"*)" ]]; ok
+    # An interrupted certificate-pair update must be repaired on reinstall.
+    printf 'damaged DER fixture' > "$state/SignIn/cert.der"
+    prepare_machine_authority
+    /usr/bin/cmp -s <(/usr/bin/openssl x509 -in "$state/SignIn/cert.pem" -outform DER) "$state/SignIn/cert.der"; ok
+    [[ $machine_key_before = "$(/usr/bin/shasum -a 256 "$state/SignIn/key.pem" "$state/SignIn/key.der")" ]]; ok
+    before=$(/usr/bin/shasum -a 256 "$state/host.plist" "$state/SignIn/"* "$logs/"*)
     # Reproduce the real .82 failure without changing product paths/services.
     /bin/chmod 744 "$logs"
     /bin/chmod 644 "$logs/host-machine.log" "$logs/host-sign-in.log"
