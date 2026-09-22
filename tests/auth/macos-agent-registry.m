@@ -128,11 +128,13 @@ static void connectionTests(NSString *requirement) {
     // Use signed anonymous XPC and synthetic scope; never create machine keys.
     for (unsigned scenario = 0; scenario < 5; ++scenario) {
         Fixture *fixture = [[Fixture alloc] initWithNative:NO requirement:requirement];
+        __weak Fixture *weakFixture = fixture;
         __block unsigned issuedCount = 0;
         dispatch_sync(fixture.queue, ^{
             fixture.registry.issueIdentity = ^NSDictionary<NSString *, NSData *> *(NSData *csr) {
                 ++issuedCount;
-                if (scenario == 3) dispatch_sync(fixture.queue, ^{ fixture.allowed = NO; });
+                Fixture *current = weakFixture;
+                if (scenario == 3 && current) dispatch_sync(current.queue, ^{ current.allowed = NO; });
                 return @{@"certificate": csr, @"der": csr, @"authority": csr};
             };
         });
