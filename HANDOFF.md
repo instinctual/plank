@@ -80,10 +80,14 @@ accidentally selected the old paced baseline on Linux and missed its 100 ms
 submission deadline. This obsolete selection is now impossible. Earlier runs
 with incidental proxy drops are retained separately from controlled-loss runs.
 
-Next: verify dependency-first pushes and build all four matching candidates.
-The operator approved temporary exact-branch signing permission for these
-Mac candidates. Remove only that temporary policy
-after signing. Collect checksum/provenance-verified packages under
+All four repositories are pushed. The package source is root
+`9b0dd6096e8beea5580aa36293a176c1c99d4df8`, including the root-only CI gate fix.
+Hosted builds are running: Linux Host `35790663274`, Linux Client `35790665949`,
+signed macOS Host `35790668424`, signed macOS Client `35790671562`.
+All four source-policy jobs passed. The operator approved temporary exact-branch
+signing permission for these Mac candidates: environment `macos-signing`,
+branch `raptorq-upgrade`, policy ID `60745002`. Remove only that temporary policy
+after signing; retain the existing main policy. Collect checksum/provenance-verified packages under
 `artifacts/packages/candidates/1.0.154-raptorq-upgrade/` in the canonical checkout.
 Do not mix pre-upgrade packages or relabel them. Native macOS compilation,
 hardware playback/input/WAN acceptance and the Client label-only Qt test remain
@@ -93,6 +97,14 @@ The first hosted attempts (`35790399772` / `35790403469`) stopped in policy,
 before compilation: a new source guard incorrectly required Kymux in the
 root-only checkout. Its dependency checks now run after bootstrap for all four
 products, while root policy verifies the wiring. No transport check is waived.
+
+Linux Host run `35790663274` subsequently stopped at the standalone PAM channel
+test: its old C++20 flag could not compile the newly included production C++23
+header (`std::byteswap`). The command now matches the Host/PAM suite's C++23
+standard, with a root-only policy regression test. No application code changes.
+Linux Client `35790665949` and signed macOS Host `35790668424` passed; their
+packages are collected at the source revision above, not relabeled to the
+build-script-only successor. macOS Client is still building.
 
 ## Client label cleanup
 

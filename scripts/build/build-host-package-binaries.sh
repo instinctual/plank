@@ -489,9 +489,10 @@ echo "host_auth_group_absence_gate=pass"
 
 # Exercise the actual Unix descriptor protocol before producing a package;
 # source-token checks alone cannot detect FD leaks or ancillary truncation.
+# This includes the production PAM header and must use the Host's C++23 mode.
 mkdir -p "$build_dir/plank-security-tests"
 /opt/rh/gcc-toolset-14/root/usr/bin/g++ \
-  -std=c++20 -Wall -Wextra -Wpedantic -Werror -pthread \
+  -std=c++23 -Wall -Wextra -Wpedantic -Werror -pthread \
   -I"$source_dir/src" "$repo_dir/tests/session/test-pam-broker-channel.cpp" \
   -o "$build_dir/plank-security-tests/pam-broker-channel-test"
 "$build_dir/plank-security-tests/pam-broker-channel-test"

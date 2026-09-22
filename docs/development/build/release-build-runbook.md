@@ -716,6 +716,11 @@ the incompatible GCC 11 archive at final link. Missing
 `std::__cxx11::basic_string::_M_replace_cold` or `_Float128` `std::to_chars`
 symbols are this compiler/library mismatch, not a source-code failure.
 
+Standalone PAM descriptor tests must also use the Host's **C++23** language
+mode. A `std::byteswap` error with GCC 14 can mean the test command still uses
+`-std=c++20`; changing compiler versions or removing the test is not the fix.
+The root CI policy checks this command against the PAM CMake suite's standard.
+
 Do not validate a changed Host branch by directly rebuilding a canonical Host
 build directory after switching branches. CMake's glob check can reconfigure
 that directory without the root package script's PLANK transport include
