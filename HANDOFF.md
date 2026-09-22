@@ -86,12 +86,11 @@ All four repositories are pushed. Linux Client `35790665949`, signed macOS Host
 `9b0dd6096e8beea5580aa36293a176c1c99d4df8`. Both Mac packages passed Developer ID
 signing, notarization and stapling. The operator-approved temporary signing
 policy `60745002` for branch `raptorq-upgrade` has been removed; the existing
-main policy remains. Linux Host run `35791713890` passed the corrected
-descriptor/privilege-drop check but stopped in the optimized PAM suite (see
-below). Its next source revision includes the Host fix above. Client, macOS
-Host, transport and Kymux sources are unchanged from their completed builds;
-the Linux-only serialization fix preserves the PAM wire format.
-Collect checksum/provenance-verified packages under
+main policy remains. Linux Host run **`35792933766` passed** at root
+**`7f363bf2701f35970428f9008e32f7aaf0f7f299`**, including the Host fix above.
+Client, macOS Host, transport and Kymux sources are unchanged from their
+completed builds; the Linux-only serialization fix preserves the PAM wire
+format. All four packages are downloaded and checksum/provenance-verified under
 `artifacts/packages/candidates/1.0.154-raptorq-upgrade/` in the canonical checkout.
 Do not mix pre-upgrade packages or relabel them. Native macOS compilation and
 the Linux Client label-only Qt test now pass. Both Client builds pass their
@@ -103,9 +102,26 @@ source revisions and gitlinks):
 
 | Package | SHA-256 |
 | --- | --- |
+| Rocky Linux Host RPM | `6ca606cee4c5be6d42b3c254cfee5ed83037968921c627605ab921abe7d79dd1` |
 | Ubuntu Client DEB | `ab5d1e96271a7cf1b7ab00e014fb5a2a75308fcea7997a6a82e665a4fdb2e5c1` |
 | macOS Host PKG | `a8332159f9a9f3dbca68475c89dbbfc4d380723619a7a84ba9ce4e7c1f658608` |
 | macOS Client DMG | `8cbd7fe9e4d22ba6d15b6d3905c689878ec4c5de1b9e676c435aa9f45d836b1e` |
+
+Recursive product/build pins verified in the hosted checkout logs (unchanged
+by the PAM build corrections):
+
+- Client common-C: `060f6179f88343327b44d915007f1fb4cede71f1`;
+  qmdnsengine: `920c097ffa742e2968290f15d4dde6693aec02e5`.
+- Host header-only common-C: `3a97a58f215323753cfd1180af760ec7e3253538`;
+  libvirtualhid: `a0d3aa0cc4d53daa18bfa2f2fbdf848957b6d294`;
+  libdisplaydevice: `6e9722f89103320c948dc1199066c9e17a69e88a`.
+- Host build-deps: `c29c4822cb96f5bfeb8640e72601c5cf4e3c3137`;
+  FFmpeg: `38b88335f99e76ed89ff3c93f877fdefce736c13`;
+  x264: `0480cb05fa188d37ae87e8f4fd8f1aea3711f7ee`;
+  NVENC headers: `e844e5b26f46bb77479f063029595293aa8f812d`;
+  Vulkan-Loader: `b8b96a2862bff1eed468e602d43f706beae89cf1`.
+- Host Simple-Web-Server: `546895a93a29062bb178367b46c7afb72da9881e`;
+  googletest: `52eb8108c5bdec04579160ae17225d66034bd723`.
 
 The first hosted attempts (`35790399772` / `35790403469`) stopped in policy,
 before compilation: a new source guard incorrectly required Kymux in the
@@ -130,7 +146,18 @@ allocation, header and guarded copy, initializes the test variable and adds
 empty/one-byte/maximum-size round trips. The complete C++23 RelWithDebInfo PAM
 suite now builds with `-Werror` and passes all three CTest entries locally.
 Neither warnings nor tests were disabled; the runbook requires this optimized
-configuration. The Linux Host package is pending the next hosted run.
+configuration. The final hosted run passes the root-to-unprivileged delegation
+test, all three optimized PAM CTest entries, input-lifecycle and RPM manifest/
+log-directory/binary gates. Its three consecutive 150 Mbps / 60 fps loss
+matrices pass at 0/0.5/1/3/5% loss: 2700 frames, zero unrecovered objects and
+zero proxy kernel drops. Per-phase p95 delivery is 6.041–7.366 ms. This remains
+loopback transport qualification, not live capture/decode/input or WAN acceptance.
+
+Next: test the matching 1.0.154 Host/Client candidates together on authorized
+hardware, including login/logout, reconnect/cancellation, audio/video, input
+and Wacom, then a real network-loss/soak test. Older peers are deliberately
+incompatible with the new ALPN generation. No package is installed, no branch
+is merged, and no release is published by this candidate-build task.
 
 ## Client label cleanup
 
