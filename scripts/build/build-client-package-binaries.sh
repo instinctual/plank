@@ -1719,6 +1719,16 @@ qmake6 "$repo_dir/tests/protocol/macos-client-discovery.pro" \
 make -C "$bookmark_test_build/persistence" -j"$(nproc)"
 "$bookmark_test_build/persistence/macos-client-discovery" \
   "$repo_dir/tests/protocol/macos-server-information.xml"
+mkdir "$bookmark_test_build/tls-launch"
+qmake6 "$repo_dir/tests/protocol/macos-client-launch.pro" \
+  "PLANK_CLIENT_SOURCE=$source_dir" \
+  "PLANK_COMMON_SOURCE=$source_dir/moonlight-common-c/moonlight-common-c" \
+  -o "$bookmark_test_build/tls-launch/Makefile"
+make -C "$bookmark_test_build/tls-launch" -j"$(nproc)"
+python3 "$repo_dir/tests/auth/macos-client-launch.py" \
+  --client "$bookmark_test_build/tls-launch/macos-client-launch" \
+  --topology "$repo_dir/tests/protocol/macos-output-topology-v13.json" \
+  --certificate-config "$repo_dir/probes/macos/https-cert.cnf"
 cleanup_bookmark_test
 trap - EXIT
 echo "client_host_aware_bookmark_test=pass"
