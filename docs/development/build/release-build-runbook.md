@@ -1000,6 +1000,11 @@ privilege-drop test. PAM descriptor delegation is only the first stage; do not
 describe the Host worker as unprivileged until runtime UID/capability and all
 remaining resource gates pass.
 
+Validate the PAM CMake suite with `RelWithDebInfo`, matching the package gate,
+not only Debug or sanitizer builds. GCC 14's optimized bounds/uninitialized
+diagnostics can expose issues that Debug does not compile-diagnose; keep
+`-Werror` enabled and fix the source/test rather than weakening the gate.
+
 The `host_x11_worker_exit_gate=pass` preflight exercises the fatal Xlib I/O
 callback in a child thread, verifying immediate worker exit without C++/NVIDIA
 exit handlers, descriptor closure and parent survival. This does not replace

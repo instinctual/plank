@@ -19,8 +19,9 @@ first, with staged-content and commit-message privacy checks enabled:
 The operator authorized committing, pushing and building matching candidates.
 Version is **1.0.154-raptorq-upgrade**. Kymux implementation is committed at
 `26be84d810b5b52d144705b52e592fb0eb6e8700`; Client candidate changelog is at
-`4d23231f600d59e9b812acbb0e2cdc88a51bc473`. Linux Host remains at its checkpoint
-above. Root integration follows `8f4475f55e04e487b7c52d37e55461bc2aacb775`.
+`4d23231f600d59e9b812acbb0e2cdc88a51bc473`. Linux Host is now
+`5829bf7c335440a8b25c3330643eacb4d914f00a`, adding the optimized-build PAM fix
+described below. Root integration follows `8f4475f55e04e487b7c52d37e55461bc2aacb775`.
 Retain `code-review-fixes` in all four repositories as the pre-upgrade rollback
 reference. Build on GitHub-hosted workers with verified dependency caches,
 not hardware targets. No main merge, installation or release publication is
@@ -80,18 +81,31 @@ accidentally selected the old paced baseline on Linux and missed its 100 ms
 submission deadline. This obsolete selection is now impossible. Earlier runs
 with incidental proxy drops are retained separately from controlled-loss runs.
 
-All four repositories are pushed. The package source is root
-`9b0dd6096e8beea5580aa36293a176c1c99d4df8`, including the root-only CI gate fix.
-Hosted builds are running: Linux Host `35790663274`, Linux Client `35790665949`,
-signed macOS Host `35790668424`, signed macOS Client `35790671562`.
-All four source-policy jobs passed. The operator approved temporary exact-branch
-signing permission for these Mac candidates: environment `macos-signing`,
-branch `raptorq-upgrade`, policy ID `60745002`. Remove only that temporary policy
-after signing; retain the existing main policy. Collect checksum/provenance-verified packages under
+All four repositories are pushed. Linux Client `35790665949`, signed macOS Host
+`35790668424` and signed macOS Client `35790671562` passed at root
+`9b0dd6096e8beea5580aa36293a176c1c99d4df8`. Both Mac packages passed Developer ID
+signing, notarization and stapling. The operator-approved temporary signing
+policy `60745002` for branch `raptorq-upgrade` has been removed; the existing
+main policy remains. Linux Host run `35791713890` passed the corrected
+descriptor/privilege-drop check but stopped in the optimized PAM suite (see
+below). Its next source revision includes the Host fix above. Client, macOS
+Host, transport and Kymux sources are unchanged from their completed builds;
+the Linux-only serialization fix preserves the PAM wire format.
+Collect checksum/provenance-verified packages under
 `artifacts/packages/candidates/1.0.154-raptorq-upgrade/` in the canonical checkout.
-Do not mix pre-upgrade packages or relabel them. Native macOS compilation,
-hardware playback/input/WAN acceptance and the Client label-only Qt test remain
-pending; Linux feature-selection tests are not Apple hardware qualification.
+Do not mix pre-upgrade packages or relabel them. Native macOS compilation and
+the Linux Client label-only Qt test now pass. Both Client builds pass their
+render-shutdown tests; hardware playback/input/WAN acceptance remains pending.
+Hosted builds are not Apple or Linux hardware qualification.
+
+Collected artifacts (SHA-256; the catalog manifest records exact per-package
+source revisions and gitlinks):
+
+| Package | SHA-256 |
+| --- | --- |
+| Ubuntu Client DEB | `ab5d1e96271a7cf1b7ab00e014fb5a2a75308fcea7997a6a82e665a4fdb2e5c1` |
+| macOS Host PKG | `a8332159f9a9f3dbca68475c89dbbfc4d380723619a7a84ba9ce4e7c1f658608` |
+| macOS Client DMG | `8cbd7fe9e4d22ba6d15b6d3905c689878ec4c5de1b9e676c435aa9f45d836b1e` |
 
 The first hosted attempts (`35790399772` / `35790403469`) stopped in policy,
 before compilation: a new source guard incorrectly required Kymux in the
@@ -104,7 +118,19 @@ header (`std::byteswap`). The command now matches the Host/PAM suite's C++23
 standard, with a root-only policy regression test. No application code changes.
 Linux Client `35790665949` and signed macOS Host `35790668424` passed; their
 packages are collected at the source revision above, not relabeled to the
-build-script-only successor. macOS Client is still building.
+build-script-only successor. macOS Client `35790671562` also passed and is
+collected at that same revision. The corrected standalone PAM test and all
+61 root CI policy tests pass locally; the local delegation privilege-drop
+subtest skips as non-root. The subsequent hosted root test passed.
+
+Run `35791713890` exposed optimized GCC 14 diagnostics that local Debug testing
+had not: a bounds warning for the header-only frame copy and an uninitialized
+test variable. Host `5829bf7c` takes one payload-size snapshot for validation,
+allocation, header and guarded copy, initializes the test variable and adds
+empty/one-byte/maximum-size round trips. The complete C++23 RelWithDebInfo PAM
+suite now builds with `-Werror` and passes all three CTest entries locally.
+Neither warnings nor tests were disabled; the runbook requires this optimized
+configuration. The Linux Host package is pending the next hosted run.
 
 ## Client label cleanup
 
@@ -112,8 +138,8 @@ Removed the macOS Experimental qualifier from the shared Add/Edit capture
 selector (`ScreenCaptureKit — macOS`) and on-screen capture-source stats
 (`ScreenCaptureKit`). Native X11/XShm keeps its existing Experimental label;
 capture/profile selection and streaming behavior are unchanged. The existing
-HostChoices Qt test now checks both labels. Source/diff checks pass; Qt runtime
-tests and a new package build remain pending. This change is included in the
+HostChoices Qt test now checks both labels and passes in the Ubuntu candidate
+build. Source/diff and package checks pass. This change is included in the
 Client checkpoint above alongside the earlier review fixes.
 
 ## Checkpointed: cancellation across transport establishment
