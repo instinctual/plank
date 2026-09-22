@@ -91,6 +91,15 @@ support or complete interactive acceptance. NVIDIA remains capped at 595.91.07.
 
 ## Upgrade sequence and acceptance
 
+RaptorQ upgrades require a coordinated Host/Client wire qualification, not just
+a passing Cargo build. The 1.x-to-2.x transition changes repair-symbol IDs;
+mixed versions can reconstruct incorrect bytes. Native generation
+`plank-native/2` rejects the old `kymux` ALPN during TLS, with no compatibility
+fallback. Keep the exact KyProto dependency pin, both product/probe lockfiles,
+FEC validator and byte-level vectors synchronized. See the
+[native transport contract](../../protocol/plank-transport/README.md#native-wire-generation-and-raptorq)
+and [RaptorQ qualification record](reviews/raptorq-2-qualification.md).
+
 1. Triage security advisories first. Determine whether the affected version and
    feature are actually shipped; absence of a GitHub alert is not proof of safety.
 2. Update build-only tools/Actions separately from runtime dependencies. Keep

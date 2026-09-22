@@ -15,9 +15,9 @@ package_version=$PLANK_PACKAGE_VERSION
 build_dir=$(realpath -m -- "${1:-${repo_dir}/build/package-host}")
 ffmpeg_dir=$(realpath -m -- "${2:-${source_dir}/cmake-build-ffmpeg-x264rgb-install/ffmpeg}")
 build_jobs=${PLANK_BUILD_JOBS:-8}
-plank_transport_cargo_features=${PLANK_TRANSPORT_CARGO_FEATURES:-quinn-telemetry,linux-fast-send}
+plank_transport_cargo_features=${PLANK_TRANSPORT_CARGO_FEATURES:-quinn-telemetry}
 case "$plank_transport_cargo_features" in
-  quinn-telemetry|quinn-telemetry,quinn-bbr|quinn-telemetry,linux-fast-send) ;;
+  quinn-telemetry|quinn-telemetry,quinn-bbr) ;;
   *)
     echo "unsupported PLANK transport Cargo feature set: ${plank_transport_cargo_features}" >&2
     exit 1
@@ -1107,8 +1107,7 @@ cmake --build "$build_dir" --parallel "$build_jobs" \
 # hardware-dependent C++ suite, not permission to skip transport qualification.
 (
   export CARGO_TARGET_DIR="$build_dir/plank-transport-cargo"
-  # Qualify the shipping policy only. Paced comparisons remain explicitly
-  # selectable diagnostics, not an additional fast-send packaging gate.
+  # Qualify the shipping policy. There is no alternate application-paced mode.
   cargo test --locked --offline --release --features "$plank_transport_cargo_features" \
     --manifest-path "$plank_transport_dir/Cargo.toml"
   PLANK_TRANSPORT_CARGO_FEATURES="$plank_transport_cargo_features" SC_NATIVE_CARGO_PROFILE=release \
@@ -1118,14 +1117,12 @@ cmake --build "$build_dir" --parallel "$build_jobs" \
 )
 echo "host_transport_policy_loopback_gate=pass features=$plank_transport_cargo_features"
 
-if [[ $plank_transport_cargo_features == quinn-telemetry,linux-fast-send ]]; then
-  rg -a -Fq 'application-pacer=off controller-budget-floor-bps=1000000000' \
-    "$build_dir/plank-host" || {
-    echo "host binary is missing the selected fast-send policy" >&2
-    exit 1
-  }
-  echo "host_fast_send_binary_gate=pass"
-fi
+rg -a -Fq 'PLANK sender: controller-budget-floor-bps=1000000000' \
+  "$build_dir/plank-host" || {
+  echo "host binary is missing the shared sender budget policy" >&2
+  exit 1
+}
+echo "host_send_budget_binary_gate=pass"
 
 nm -C "$build_dir/plank-host" | \
   rg ' [Tt] plank_transport_abi_version$' >/dev/null || {

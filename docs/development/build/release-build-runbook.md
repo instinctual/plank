@@ -638,26 +638,26 @@ decode/import and live playback acceptance; see
 
 ## Host RPM — linux-host-builder only
 
-The `linux-fast-send` candidate selects
-`PLANK_TRANSPORT_CARGO_FEATURES=quinn-telemetry,linux-fast-send` by default.
-The feature bypasses the application datagram pacer and floors the Quinn
-rate-derived window budget at 1 Gbps on Linux only; it changes neither the
-encoder target nor FEC, queues or MTU. For a controlled paced comparison,
-explicitly use `PLANK_TRANSPORT_CARGO_FEATURES=quinn-telemetry` and a separately
-identified candidate build; never mix policies under the same published bytes.
-No Client update is needed. Acceptance is tracked in
-`docs/development/plans/linux-fast-send.plan`.
+Host packaging selects `PLANK_TRANSPORT_CARGO_FEATURES=quinn-telemetry` by
+default. The application datagram pacer and platform-specific fast-send switches
+have been removed. All builds use the same 1 Gbps floor for the Host's
+RTT-bounded Quinn window budget; encoder target, FEC, queues and MTU remain
+independent. Quinn still schedules packets. There is no paced comparison build
+to select, and the package always verifies its sender-budget marker.
+The historical experiment is retained in `docs/development/plans/linux-fast-send.plan`;
+do not reuse its removed feature flags. The simultaneous RaptorQ 2 upgrade
+requires matching Host/Client builds; do not apply the old host-only deployment
+assumption to that wire change.
 
 Host packaging runs Rust unit tests and the real native/C ABI loopbacks against
 its selected Cargo features in the same `plank-transport-cargo` target directory.
-At the operator's direction, the additional paced-baseline comparison is
-suspended. Fast-send packaging requires its own Rust unit tests, all three
+Packaging requires Rust unit tests, all three
 native loss matrices with unchanged recovery/performance limits, and the C ABI
-checks. A failure in the shipping policy still stops packaging. The paced
-implementation remains available for an explicitly selected diagnostic build;
-do not reintroduce it as an automatic fast-send release gate.
+checks. A failure in the shipping policy stops packaging. No retired pacer
+implementation or comparison selection remains.
 Standalone loopback runners also accept `PLANK_TRANSPORT_CARGO_FEATURES`; an
-unset value exercises default Cargo features, not the fast-send Host selection.
+unset value exercises default Cargo features with the same sender policy,
+without the optional telemetry/source-first instrumentation.
 The loss fixture uses controlled receiver-side omissions, not a real WAN.
 Do not report its results as ten-minute or interactive hardware qualification.
 

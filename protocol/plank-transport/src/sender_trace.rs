@@ -75,16 +75,17 @@ impl Trace {
     ) {
         let send_ns = ns(start.at.elapsed());
         let mut guard = self.0.lock().unwrap();
-        if let Some(buffer) = guard.as_mut() {
-            if !buffer.flushed && buffer.rows.len() < CAPACITY {
-                buffer.rows.push(Row {
-                    start,
-                    frame,
-                    send_ns,
-                    failed,
-                    measurements,
-                });
-            }
+        if let Some(buffer) = guard.as_mut()
+            && !buffer.flushed
+            && buffer.rows.len() < CAPACITY
+        {
+            buffer.rows.push(Row {
+                start,
+                frame,
+                send_ns,
+                failed,
+                measurements,
+            });
         }
     }
 
@@ -105,14 +106,14 @@ impl Trace {
         );
         let _ = writeln!(
             out,
-            "PLANK sender-timing columns=frame,key,bytes,dequeue_ns,queue_ns,depth,wire_bps,queue_drops,send_ns,fec_total_ns,fec_copy_ns,fec_encoder_ns,fec_repair_ns,pacer_ns,sleep_requested_ns,sleeps,quinn_ns,quinn_max_ns,datagrams,datagram_bytes,failed"
+            "PLANK sender-timing columns=frame,key,bytes,dequeue_ns,queue_ns,depth,wire_bps,queue_drops,send_ns,fec_total_ns,fec_copy_ns,fec_encoder_ns,fec_repair_ns,quinn_ns,quinn_max_ns,datagrams,datagram_bytes,failed"
         );
         for row in buffer.rows.drain(..) {
             let f = row.frame;
             let m = row.measurements;
             let _ = writeln!(
                 out,
-                "PLANK sender-timing {},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{}",
+                "PLANK sender-timing {},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{}",
                 f.number,
                 u8::from(f.key),
                 f.bytes,
@@ -126,9 +127,6 @@ impl Trace {
                 m.fec_copy_ns,
                 m.fec_encoder_ns,
                 m.fec_repair_ns,
-                m.pacer_ns,
-                m.sleep_requested_ns,
-                m.sleeps,
                 m.quinn_ns,
                 m.quinn_max_ns,
                 m.datagrams,

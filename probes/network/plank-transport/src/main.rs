@@ -409,7 +409,6 @@ async fn run_server(args: &[String]) -> Result<()> {
         // path-MTU selection for this generic probe.
         max_udp_payload_size: None,
         congestion_controller_factory: None,
-        datagram_pacer: None,
     };
     let server =
         Connection::start_server_on_addr(bind_address, vec![certificate], private_key, &options)?;
@@ -651,7 +650,6 @@ async fn run_client(args: &[String]) -> Result<()> {
         max_udp_payload_size: None,
         certificate_hash: Some(certificate_hash.clone()),
         congestion_controller_factory: None,
-        datagram_pacer: None,
     };
     if role_order == "duplicate-media" || role_order == "duplicate-interaction" {
         let duplicate_role = if role_order == "duplicate-media" {

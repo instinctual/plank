@@ -1,6 +1,6 @@
 # PLANK handoff
 
-## Current: RaptorQ upgrade branch prepared
+## Current: RaptorQ 2 upgrade and application datagram pacer removal
 
 The root, Client, Linux Host and Kymux repositories are now on
 `raptorq-upgrade`, created from their complete `code-review-fixes` checkpoints,
@@ -16,26 +16,78 @@ first, with staged-content and commit-message privacy checks enabled:
 - Linux Host: `20ce61cc500a20b97a99fb79c2046e156d9f3dc3` (PAM isolation/deadlines).
 - Kymux: `ca10966e9842a9b94aaca7dbc9a6ee050bf1a79c` (data/FEC validation).
 
-RaptorQ remains pinned to 1.8.1; upgrade implementation has not started.
+The operator authorized committing, pushing and building matching candidates.
+Version is **1.0.154-raptorq-upgrade**. Kymux implementation is committed at
+`26be84d810b5b52d144705b52e592fb0eb6e8700`; Client candidate changelog is at
+`4d23231f600d59e9b812acbb0e2cdc88a51bc473`. Linux Host remains at its checkpoint
+above. Root integration follows `8f4475f55e04e487b7c52d37e55461bc2aacb775`.
 Retain `code-review-fixes` in all four repositories as the pre-upgrade rollback
-reference. Nothing is merged into main or pushed as part of this local branch
-preparation. No new packages
-or installations; existing 1.0.153 artifacts predate review fixes #2–7.
+reference. Build on GitHub-hosted workers with verified dependency caches,
+not hardware targets. No main merge, installation or release publication is
+authorized. Existing 1.0.153 artifacts predate review fixes #2–7 and this upgrade.
 
-The next implementation step is the coordinated upgrade to RaptorQ 2.0.1:
-update both product/probe lockfiles, adapt FEC validation to the changed repair
-symbol numbering, and reject incompatible peers before media starts. Preserve
-the existing malformed-input/allocation bounds, 30% repair policy, MTU and
-rate policy. Add matching-version recovery and mixed-version rejection tests,
-then rerun both transport feature selections and controlled loss matrices.
-Do not claim macOS hardware qualification from Linux feature-selection tests.
-Matching Host/Client packages require a new candidate version and the build
-runbook; no main merge or deployment is implied by creating this branch.
+RaptorQ is pinned to **2.0.1** in KyProto and both product/probe lockfiles;
+no other runtime dependency version changes. Receive validation accepts RFC
+repair IDs starting at K, retaining the earlier malformed-input/allocation
+bounds. A standalone old/new compatibility probe demonstrated incorrect
+reconstructed bytes in both mixed-version directions. Native TLS now offers
+only **`plank-native/2`**, rejecting mismatches before authentication/setup/media
+without an additional round trip or legacy decoder. Actual TLS tests cover
+both directions, setup/direct entry points and unknown/missing ALPN.
+See `docs/development/reviews/raptorq-2-qualification.md` for the wire contract.
 
-Before checkpointing, the shipping Linux Rust selection was rechecked: 52 unit,
-4 telemetry and 6 parser tests pass. Client source-gate tests (3), shell syntax,
-diff and privacy checks pass. Earlier detailed validation and remaining hardware
-gates below still apply; the label-only Qt test has not been run yet.
+At the operator's request, the application datagram pacer is **deleted**, not
+disabled: no optional pacer, reservation timer, platform fast-send feature,
+paced-baseline build or pacer/sleep trace columns remain. Quinn still schedules
+packets. All Host builds retain the existing **1 Gbps controller-budget floor**,
+RTT/window bounds, encoder target, FEC policy, MTU and queue limits. The Client's
+default Quinn controller is unchanged. Linux Host selects `quinn-telemetry`;
+Linux qualification of the Mac source-first algorithm selects
+`quinn-telemetry,macos-source-first`. Historical flags in older results below
+must not be reused. The runbooks and trace analyzer reflect the removal.
+
+Current local validation uses pinned Rust 1.89.0, offline/locked inputs and
+optimized builds on the Linux Host builder. Both selections pass product,
+KyProto and Kynet unit tests, production-library Clippy with warnings denied,
+encrypted typed all-lane round trips, both C ABI trust modes, reliable-data
+overflow and cancellation checks. New fixed repair-byte vectors, small-object
+repair-only recovery and existing multi-block/sub-block tests pass. Source-first
+traces parse without the deleted columns; 8 build-policy and 3 analyzer tests
+pass. Linux has 51 product unit, 34 KyProto and 6 Kynet tests; source-first has
+53 product unit, 35 KyProto and 6 Kynet tests. Both also pass 4 telemetry and
+6 reliable-data parser tests; the five ignored integration tests run explicitly
+through the loopback runner.
+
+Final controlled-loss sequences: **three consecutive runs per sender** at
+150 Mbps / 60 fps and 0/0.5/1/3/5% injected datagram loss, **5400 frames total,
+zero unrecovered objects and zero proxy kernel drops**. Per-phase p95 delivery
+is 5.728–8.411 ms for Linux and 6.385–13.063 ms for source-first. These are
+local transport tests, not hardware playback or a WAN soak. Validation evidence
+is in the builder work root's `raptorq-upgrade-validation/` directory; final
+logs use `no-pacer-` filenames. The Linux repeat is
+`no-pacer-linux-loopback-repeat.log`; the original failed sequence remains
+`no-pacer-linux-loopback.log`.
+Default-feature Client transport tests and the standalone probe's locked,
+offline compilation also pass. Without telemetry selected, the vendored Quinn
+crate still emits its two pre-existing unused-telemetry warnings; these were
+not introduced or suppressed by this change.
+
+The first post-removal Linux matrix sequence passed two runs, then lost a frame
+in run three while the test proxy recorded **76 unintended kernel drops**.
+That failure is retained, not converted into a pass; a complete repeat uses
+unchanged limits and no system tuning. An earlier source-first diagnostic
+accidentally selected the old paced baseline on Linux and missed its 100 ms
+submission deadline. This obsolete selection is now impossible. Earlier runs
+with incidental proxy drops are retained separately from controlled-loss runs.
+
+Next: verify dependency-first pushes and build all four matching candidates.
+Signed Mac installers require a temporary exact-branch environment permission;
+the operator has been asked to authorize it. Remove only that temporary policy
+after signing. Collect checksum/provenance-verified packages under
+`artifacts/packages/candidates/1.0.154-raptorq-upgrade/` in the canonical checkout.
+Do not mix pre-upgrade packages or relabel them. Native macOS compilation,
+hardware playback/input/WAN acceptance and the Client label-only Qt test remain
+pending; Linux feature-selection tests are not Apple hardware qualification.
 
 ## Client label cleanup
 

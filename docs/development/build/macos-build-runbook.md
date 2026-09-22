@@ -482,32 +482,33 @@ The rejected .54/.55 submission-batching implementation, feature and extra
 Quinn wrapper vendor tree have been removed. Historical source commits and
 measurements remain in the sender-drain investigation; do not reuse their build
 commands for a current candidate. The qualified source-first path below retains
-ordinary single-datagram submission and the tested Mac application-pacer bypass.
+ordinary single-datagram submission. The application datagram pacer is now
+deleted, not merely bypassed.
 
-For .53 source-first FEC qualification, use `PLANK_MACOS_SOURCE_FIRST=1`.
-This includes the .51 fast-send/timing experiment and enables source-first
-packet submission only on macOS. The wire format, repair count and library's
+For source-first FEC qualification, use `PLANK_MACOS_SOURCE_FIRST=1`.
+This includes sender timing and enables source-first packet submission. The repair count and library's
 repair encoder remain unchanged. The runner additionally checks byte-identical
 source packets against the retained RaptorQ library, multi-block/sub-block
 padding, recovery at 0/5/10/20% omitted sources, and preparation timing. The
 timing test is synthetic CPU preparation, not a network/performance gate.
-Keep the .51 archive and signed app for comparison; Client .52 stays unchanged.
+RaptorQ 2 changes repair IDs and the native QUIC protocol identifier; matching
+Host and Client packages are required. See the native transport contract.
 
-For the user-authorized combined sender experiment (.51), use
-`PLANK_MACOS_FAST_SEND=1` instead. This selects `macos-fast-send`, which includes
-sender timing. On macOS only, it passes no application datagram pacer to either
-server path and floors the rate-derived Quinn window budget at 1 Gbps. This is
+All Host builds use the shared sender policy: submit directly to Quinn and
+floor the rate-derived window budget at 1 Gbps. This is
 not an encoder bitrate, a measured link capacity, or a strict wire-rate cap;
 Quinn still schedules transmission. Encoder settings, FEC and queue capacities
-are unchanged. Keep this archive separate from the baseline. The feature is
-off by default and must not become a release default without live acceptance.
+are unchanged by pacer removal. The `PLANK_MACOS_FAST_SEND` switch and
+`macos-fast-send`/`linux-fast-send` Cargo features have been removed; there is
+no alternate paced baseline. Linux and macOS use the same sender budget policy.
 Check receiver loss as well as sender drain: immediate submission can move
-drops downstream. This experiment does not qualify the Linux sender.
+drops downstream. A Linux source-first transport test does not qualify native
+macOS capture, encoding, playback or package signing.
 
 For the explicitly authorized sender-drain diagnostic only, set
 `PLANK_MACOS_SENDER_TIMING=1` before `build-macos-transport.sh`. It selects the
-compile-time `sender-timing` feature (off by default), retaining ABI12 and the
-same wire/pacing/FEC policy. Build a separate verified archive; do not overwrite
+compile-time `sender-timing` feature (off by default), retaining the current ABI
+and wire/FEC policy. Build a separate verified archive; do not overwrite
 the retained baseline archive. Numeric measurements are future-local, capped at
 8192 frames/120seconds, and flushed only after worker join into existing stderr
 product logging. No runtime preference, extra listener, Client change or live

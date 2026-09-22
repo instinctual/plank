@@ -1,5 +1,12 @@
 # Linux Host fast-send qualification
 
+Historical experiment; superseded on `raptorq-upgrade` by deletion of the
+application datagram pacer and its platform feature switches. The shared Host
+sender always retains the 1 Gbps budget floor and Quinn scheduling. Do not use
+the old feature selections/comparison commands below for current builds; use
+the release runbook and RaptorQ qualification record. Historical measurements
+below remain historical, not acceptance evidence for the new combined build.
+
 Branch: linux-fast-send. Baseline: published 1.0.137.
 Candidate: 1.0.138-linux-fast-send. Built; not merged or live-accepted.
 

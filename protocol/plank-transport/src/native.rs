@@ -26,6 +26,10 @@ pub const SETUP_VIDEO_ENDPOINT_ID: u16 = 2;
 pub const SETUP_AUDIO_ENDPOINT_ID: u16 = 4;
 pub const SETUP_INPUT_ENDPOINT_ID: u16 = 6;
 
+#[cfg(test)]
+#[path = "native_version_tests.rs"]
+mod version_tests;
+
 #[derive(Clone, Copy)]
 pub struct NativeOptions {
     pub handshake_timeout: Duration,
@@ -531,7 +535,6 @@ mod tests {
             congestion_controller_factory: Some(PlankRateControllerFactory::new(
                 rate_policy.clone(),
             )),
-            datagram_pacer: rate_policy.outgoing_pacer(),
         };
         let server = kynet::Connection::start_server_on_addr(
             address,
@@ -568,7 +571,6 @@ mod tests {
             peer_certificate_der: _,
         } = client_protocols.expect("native KyProto client handshake failed");
 
-        let video_send_started = tokio::time::Instant::now();
         server_video
             .send
             .send(AVPacket::Codec(CodecPacket {
@@ -612,12 +614,6 @@ mod tests {
             }))
             .await
             .expect("failed to send native RaptorQ video frame");
-        if server_options.datagram_pacer.is_some() {
-            assert!(
-                video_send_started.elapsed() >= Duration::from_millis(5),
-                "native RaptorQ symbols bypassed the pre-Quinn pacer"
-            );
-        }
 
         let received_video_codec =
             tokio::time::timeout(Duration::from_secs(5), client_video.recv.recv())
@@ -823,7 +819,6 @@ mod tests {
             congestion_controller_factory: Some(PlankRateControllerFactory::new(
                 rate_policy.clone(),
             )),
-            datagram_pacer: rate_policy.outgoing_pacer(),
         };
         let server = kynet::Connection::start_server_on_addr(
             server_address,

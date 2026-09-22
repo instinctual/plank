@@ -37,6 +37,10 @@ cargo test "${cargo_profile_args[@]}" --locked --offline --manifest-path "$crate
   -p plank-transport -p kyproto --lib protocol::driver::av
 
 cargo test "${cargo_profile_args[@]}" --locked --offline --manifest-path "$crate_dir/Cargo.toml" \
+  native::version_tests::incompatible_peers_fail_tls_before_setup_or_media \
+  -- --ignored --exact --nocapture
+
+cargo test "${cargo_profile_args[@]}" --locked --offline --manifest-path "$crate_dir/Cargo.toml" \
   native::tests::native_kyproto_round_trip_preserves_all_initial_lanes \
   -- --ignored --exact --nocapture
 

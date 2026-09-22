@@ -13,10 +13,8 @@ default = []
 quinn-bbr = ["quinn-proto/plank-bbr-default"]
 quinn-telemetry = ["kynet/quinn-telemetry"]
 sender-timing = ["kynet/sender-timing", "kyproto/sender-timing"]
-# Host-only build selections; neither changes the wire contract or encoder rate.
-macos-fast-send = ["sender-timing"]
-macos-source-first = ["macos-fast-send", "kyproto/source-first-fec"]
-linux-fast-send = []
+# Source-first FEC selection used by the macOS Host; no alternate pacing mode.
+macos-source-first = ["sender-timing", "kyproto/source-first-fec"]
 
 [dependencies]
 anyhow = "1.0"
@@ -32,6 +30,7 @@ subtle = "2.6"
 tokio = { version = "1.47", features = ["io-util", "macros", "net", "rt-multi-thread", "sync", "time"] }
 
 [dev-dependencies]
+quinn = { version = "0.11", default-features = false, features = ["runtime-tokio", "rustls-ring"] }
 socket2 = "0.6"
 
 [patch.crates-io]

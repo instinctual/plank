@@ -55,7 +55,7 @@ def summarize(trace):
         groups[name]["totals_ms"] = {
             key: round(sum(r[key] for r in selected) / 1e6, 4)
             for key in ("send_ns", "fec_copy_ns", "fec_encoder_ns", "fec_repair_ns",
-                        "pacer_ns", "sleep_requested_ns", "quinn_ns")
+                        "quinn_ns")
         }
     return {"header": trace["header"], "groups": groups,
             "wire_bps_values": sorted({r["wire_bps"] for r in rows}),
@@ -63,8 +63,7 @@ def summarize(trace):
             "failed_submissions": sum(r["failed"] for r in rows),
             "slowest_frames": sorted(rows, key=lambda r: r["send_ns"], reverse=True)[:12],
             "notes": ["Elapsed wall times, not CPU time or delivery/ACK time.",
-                      "FEC total includes pacing and Quinn calls; do not sum nested totals.",
-                      "Pacer time includes reservation, timer wait, scheduler delay; not just sleep requests.",
+                      "FEC total includes Quinn calls; do not sum nested totals.",
                       "Quinn call time includes its lock and submission work; not a pure mutex measurement.",
                       "Queue drops sampled at dequeue; terminal/cancelled frame can be absent."]}
 
