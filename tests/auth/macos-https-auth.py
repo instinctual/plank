@@ -423,6 +423,51 @@ def synthetic(executable, config, receiver=None):
             # TemporaryDirectory removes only this test's exact ephemeral fixtures.
 
 
+def machine_authority_chain(executable, config):
+    """Exercise the real Network.framework chain, without installed Host state."""
+    with tempfile.TemporaryDirectory(prefix="plank-https-chain-") as temporary:
+        stage = Path(temporary)
+        root = stage / "machine"
+        root.mkdir(mode=0o700)
+        create_identity(root, config)
+        create_identity(stage, config)  # Independent worker key, not the root key.
+        (stage / "authority.der").write_bytes((root / "cert.der").read_bytes())
+        (stage / "leaf.cnf").write_text("basicConstraints=critical,CA:FALSE\n"
+            "keyUsage=critical,digitalSignature\nextendedKeyUsage=serverAuth\nsubjectAltName=DNS:localhost\n")
+        def crypto(arguments):
+            subprocess.run(["openssl", *arguments], cwd=stage, check=True,
+                           stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=10)
+        crypto(["req", "-new", "-key", "key.pem", "-subj", "/CN=PLANK worker", "-out", "worker.csr"])
+        crypto(["x509", "-req", "-in", "worker.csr", "-CA", "machine/cert.pem", "-CAkey", "machine/key.pem",
+                "-set_serial", "123", "-days", "1", "-sha256", "-extfile", "leaf.cnf", "-out", "cert.pem"])
+        crypto(["x509", "-in", "cert.pem", "-outform", "DER", "-out", "cert.der"])
+        process = subprocess.Popen([str(executable), temporary], stdout=subprocess.PIPE,
+                                   stderr=subprocess.PIPE, text=True)
+        try:
+            assert select.select([process.stdout], [], [], 10)[0], "Chain listener readiness timed out"
+            match = re.fullmatch(r"macos_https_auth_ready port=(\d+) desktop_active=1\n", process.stdout.readline())
+            assert match, "Chain listener not ready"
+            port = int(match[1])
+            command = tls_command(root / "cert.pem", port)
+            command.remove("-quiet")
+            result = subprocess.run(command + ["-showcerts", "-no_ign_eof"], input=b"",
+                                    capture_output=True, timeout=7)
+            assert result.returncode == 0, "Worker TLS chain handshake failed"
+            certificates = re.findall(rb"-----BEGIN CERTIFICATE-----.*?-----END CERTIFICATE-----", result.stdout, re.S)
+            expected = [(stage / "cert.pem").read_bytes().strip(), (root / "cert.pem").read_bytes().strip()]
+            assert certificates == expected, "Host did not send exactly worker leaf then machine authority"
+            discovery(root / "cert.pem", port)
+            authenticate(root / "cert.pem", port, "synthetic", "test")
+            print("macos_https_machine_chain=pass leaf_then_authority=1 authenticated_control=1")
+        finally:
+            process.terminate()
+            try:
+                process.communicate(timeout=3)
+            except subprocess.TimeoutExpired:
+                process.kill()
+                process.communicate(timeout=3)
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--server", type=Path)
@@ -448,6 +493,7 @@ def main():
         if not args.server or not args.config:
             parser.error("Synthetic suite requires --server and --config")
         synthetic(args.server, args.config, args.preview_receiver)
+        machine_authority_chain(args.server, args.config)
 
 
 if __name__ == "__main__":

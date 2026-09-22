@@ -68,6 +68,7 @@ int main(int argc, const char *argv[]) {
         // Create an in-memory identity directly with Apple's supported API.
         // No PKCS#12 importer, keychain insertion or trust-store modification.
         NSString *directory = [NSString stringWithUTF8String:argv[1]];
+        NSData *machineAuthority = [NSData dataWithContentsOfFile:[directory stringByAppendingPathComponent:@"authority.der"]];
         NSData *certificateBytes = [NSData dataWithContentsOfFile:[directory stringByAppendingPathComponent:@"cert.der"]];
         NSMutableData *keyBytes = [[NSData dataWithContentsOfFile:[directory stringByAppendingPathComponent:@"key.der"]] mutableCopy];
         if (!certificateBytes || !keyBytes) return 2;
@@ -111,7 +112,7 @@ int main(int argc, const char *argv[]) {
 #ifdef PLANK_MAC_PREVIEW_TEST
         // Qualification uses the actual Host assembly, with an explicit
         // loopback address and synthetic devices only in the synthetic build.
-        PLANKMacHostRuntime *runtime = [[PLANKMacHostRuntime alloc] initWithIdentity:identity authority:nil
+        PLANKMacHostRuntime *runtime = [[PLANKMacHostRuntime alloc] initWithIdentity:identity authority:machineAuthority
             information:information snapshot:snapshot topology:topology address:@"127.0.0.1"
             certificate:[directory stringByAppendingPathComponent:@"cert.pem"]
             privateKey:[directory stringByAppendingPathComponent:@"key.pem"]
@@ -141,7 +142,7 @@ int main(int argc, const char *argv[]) {
 #endif
 #else
         PLANKMacAuthenticationSession *sessions = [[PLANKMacAuthenticationSession alloc] initWithGraphicalSnapshot:snapshot];
-        PLANKMacHTTPSAuthServer *server = [[PLANKMacHTTPSAuthServer alloc] initWithIdentity:identity authority:nil
+        PLANKMacHTTPSAuthServer *server = [[PLANKMacHTTPSAuthServer alloc] initWithIdentity:identity authority:machineAuthority
             sessions:sessions information:information topology:topology launch:nil];
 #ifdef PLANK_SYNTHETIC_AUTH_TEST
         __block unsigned recoveryAttempts = 0;
