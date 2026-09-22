@@ -1,9 +1,13 @@
 # PLANK handoff
 
-## Current: pre-RaptorQ upgrade checkpoint
+## Current: RaptorQ upgrade branch prepared
 
-The operator authorized checkpointing all completed work and creating
-`raptorq-upgrade` from `code-review-fixes`, not main. This integration commit
+The root, Client, Linux Host and Kymux repositories are now on
+`raptorq-upgrade`, created from their complete `code-review-fixes` checkpoints,
+not main. The root baseline is `91eba02d39c0923008a3f7c9595636aa2b891d09`.
+The active worktree remains at `build/worktrees/code-review-fixes`; its directory
+name is not its current branch. Do not switch or modify the unrelated primary
+checkout as part of this work. The integration checkpoint
 preserves the accepted Host identity work, virtual-primary candidate changes,
 review fixes #2–7 and Client label cleanup. Dependency commits were created
 first, with staged-content and commit-message privacy checks enabled:
@@ -12,11 +16,21 @@ first, with staged-content and commit-message privacy checks enabled:
 - Linux Host: `20ce61cc500a20b97a99fb79c2046e156d9f3dc3` (PAM isolation/deadlines).
 - Kymux: `ca10966e9842a9b94aaca7dbc9a6ee050bf1a79c` (data/FEC validation).
 
-RaptorQ remains pinned to 1.8.1. The next step is to switch the root and all
-three maintained submodules to `raptorq-upgrade` at these exact checkpoints.
-Retain `code-review-fixes` as the pre-upgrade rollback reference. Nothing is
-merged into main or pushed as part of this local checkpoint. No new packages
+RaptorQ remains pinned to 1.8.1; upgrade implementation has not started.
+Retain `code-review-fixes` in all four repositories as the pre-upgrade rollback
+reference. Nothing is merged into main or pushed as part of this local branch
+preparation. No new packages
 or installations; existing 1.0.153 artifacts predate review fixes #2–7.
+
+The next implementation step is the coordinated upgrade to RaptorQ 2.0.1:
+update both product/probe lockfiles, adapt FEC validation to the changed repair
+symbol numbering, and reject incompatible peers before media starts. Preserve
+the existing malformed-input/allocation bounds, 30% repair policy, MTU and
+rate policy. Add matching-version recovery and mixed-version rejection tests,
+then rerun both transport feature selections and controlled loss matrices.
+Do not claim macOS hardware qualification from Linux feature-selection tests.
+Matching Host/Client packages require a new candidate version and the build
+runbook; no main merge or deployment is implied by creating this branch.
 
 Before checkpointing, the shipping Linux Rust selection was rechecked: 52 unit,
 4 telemetry and 6 parser tests pass. Client source-gate tests (3), shell syntax,
