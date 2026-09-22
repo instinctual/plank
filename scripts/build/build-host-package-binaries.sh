@@ -497,6 +497,17 @@ mkdir -p "$build_dir/plank-security-tests"
 "$build_dir/plank-security-tests/pam-broker-channel-test"
 echo "host_pam_delegation_protocol_gate=pass"
 
+# Compile actual PAM client/manager/broker sources and exercise stalled peers,
+# concurrency, cancellation and worker cleanup without touching a real account.
+# Keep this gate active even though the shipped payload has BUILD_TESTS=OFF.
+cmake -S "$repo_dir/tests/session/pam" -B "$build_dir/cmake-build-pam-hardening" \
+  -DCMAKE_CXX_COMPILER=/opt/rh/gcc-toolset-14/root/usr/bin/g++ \
+  -DPLANK_BOOST_SOURCE_DIR="$boost_source_dir" \
+  -DCMAKE_BUILD_TYPE=RelWithDebInfo
+cmake --build "$build_dir/cmake-build-pam-hardening" --parallel "$build_jobs"
+ctest --test-dir "$build_dir/cmake-build-pam-hardening" --output-on-failure
+echo "host_pam_deadline_isolation_gate=pass"
+
 # A fatal X-server disconnect must not run NVIDIA atexit handlers from the
 # cursor/capture thread while the encoder is still alive.
 rg -Fq 'SetIOErrorHandler(retire_failed_x11_worker)' "$source_dir/src/platform/linux/x11grab.cpp"

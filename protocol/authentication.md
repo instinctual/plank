@@ -69,6 +69,54 @@ Concurrent streams may share it. Releasing the last stream closes PAM and
 invalidates the token; a later resume requires a new login. Pending
 conversations expire after 120 seconds, and unclaimed tokens after 300 seconds.
 
+## Execution bounds and cancellation (Linux Host)
+
+PAM begin/respond operations run outside the authentication manager's state
+mutex, on four dedicated workers rather than the HTTPS event loop. Admission
+counts both running and queued work and has no backlog beyond those four
+operations. The manager separately caps conversations and tokens at 32.
+Canceled or expired in-flight conversations keep their capacity reservation
+until the operation exits; duplicate concurrent responses are rejected. A late
+PAM success cannot mint a token for a canceled or expired conversation.
+Socket teardown and cancellation also happen outside the state mutex.
+
+Each broker operation has one absolute 30-second monotonic deadline across
+descriptor delegation, request writes and response header/body reads. Partial
+traffic and interrupted system calls cannot restart that deadline. The private
+descriptor handshake remains capped at three seconds, including draining an
+already-submitted reply when canceled so it cannot be mistaken for the next
+request. Cancellation while waiting for serialization does not poison the
+shared channel.
+
+An in-process monitor watches duplicate HTTPS sockets for peer disconnect,
+without reading any TLS data. Client timeout/abort cancels only that request
+(100 ms monitor interval and 25 ms broker-I/O cancellation checks). Worker
+shutdown cancels admitted requests before joining them. The independent
+30-second deadline still bounds an unresponsive backend if no disconnect is
+observable. The socket is closed rather than synchronously writing a cancel
+message during object destruction.
+
+The broker parent watches caller EOF even when its PAM child is blocked inside
+SSSD. Normal PAM cleanup gets two seconds, after which the parent kills a stuck
+worker and reaps it without blocking later logins. Shutdown also bounds its
+reaping wait; no userspace deadline can force a kernel uninterruptible task to
+exit. Healthy, connected authenticated sessions have **no authentication
+timeout**. The 120-second human-response timeout and 300-second unclaimed-token
+expiry are separate. Revoking/expiring a claimed token does not end its live
+stream's PAM ownership.
+
+The framing, PAM service/account policy, TLS identity trust and Client protocol
+are unchanged. These implementation bounds affect the Linux Host, not native
+macOS authentication.
+
+The isolated `tests/session/pam` CMake suite compiles the actual manager, client,
+broker and HTTPS server against the pinned GoogleTest, Simple-Web-Server and
+prepared Boost inputs. It tests slow/truncated peers, blocked writes, late
+results, concurrent token/login operations, process cleanup, descriptor
+lifetimes and a real TLS status/abort exchange. The Host package builder runs
+this gate even with `BUILD_TESTS=OFF` for the shipped payload; no real credentials
+or account-policy changes are involved.
+
 ## TLS and Network Policy
 
 The Host package provisions its RSA-3072/SHA-256 certificate and DNS-only SAN.

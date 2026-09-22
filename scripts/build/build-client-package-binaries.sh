@@ -1740,6 +1740,15 @@ export LD_LIBRARY_PATH="${ffmpeg_prefix}/lib${LD_LIBRARY_PATH:+:${LD_LIBRARY_PAT
   exit 1
 }
 
+mkdir -p "$build_dir/tests/pacershutdown"
+(
+  cd "$build_dir/tests/pacershutdown"
+  qmake6 "$source_dir/tests/pacershutdown/pacershutdown.pro" CONFIG+=release
+  make -j"$(nproc)"
+  QT_QPA_PLATFORM=offscreen timeout 60 ./pacershutdown
+)
+echo "client_render_shutdown_gate=pass"
+
 mkdir -p "$build_dir"
 (
   cd "$build_dir"

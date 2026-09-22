@@ -31,8 +31,21 @@ if [[ -n ${PLANK_TRANSPORT_CARGO_FEATURES:-} ]]; then
   cargo_profile_args+=(--features "$PLANK_TRANSPORT_CARGO_FEATURES")
 fi
 
+# Dependency tests are not included by an ordinary product cargo test. Run the
+# actual audio/video FEC parsers and receiver state machines with our lockfile.
+cargo test "${cargo_profile_args[@]}" --locked --offline --manifest-path "$crate_dir/Cargo.toml" \
+  -p plank-transport -p kyproto --lib protocol::driver::av
+
 cargo test "${cargo_profile_args[@]}" --locked --offline --manifest-path "$crate_dir/Cargo.toml" \
   native::tests::native_kyproto_round_trip_preserves_all_initial_lanes \
+  -- --ignored --exact --nocapture
+
+cargo test "${cargo_profile_args[@]}" --locked --offline --manifest-path "$crate_dir/Cargo.toml" \
+  native_ffi::data_tests::reliable_data_overflow_fails_both_receivers \
+  -- --ignored --exact --nocapture
+
+cargo test "${cargo_profile_args[@]}" --locked --offline --manifest-path "$crate_dir/Cargo.toml" \
+  native_ffi::cancellation_tests::cancellation_interrupts_real_auth_endpoints_and_promotion \
   -- --ignored --exact --nocapture
 
 # Three required passes, not retries: set -e stops on the first failure.

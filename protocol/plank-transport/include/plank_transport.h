@@ -314,6 +314,11 @@ int32_t plank_transport_native_video_send(
 int32_t plank_transport_native_set_video_bitrate(
         PlankTransportNativeEndpoint *endpoint, uint32_t bitrate_kbps,
         uint32_t peak_bitrate_kbps);
+/* Native video/audio/input receives validate output storage and claim exactly
+ * one queued item atomically, then copy its payload outside the queue lock.
+ * BUFFER_TOO_SMALL reports the required size without consuming the item;
+ * metadata is written only on OK. A later video/audio overflow may still
+ * evict an unclaimed item before a caller retries with a larger buffer. */
 int32_t plank_transport_native_video_receive(
         PlankTransportNativeEndpoint *endpoint,
         PlankTransportNativeVideoFrameInfo *info,
@@ -324,6 +329,7 @@ int32_t plank_transport_native_audio_send(
         PlankTransportNativeEndpoint *endpoint,
         const PlankTransportNativeAudioPacketInfo *info,
         const uint8_t *payload, size_t payload_size);
+/* Audio hole notifications have size zero; payload may be NULL in that case. */
 int32_t plank_transport_native_audio_receive(
         PlankTransportNativeEndpoint *endpoint,
         PlankTransportNativeAudioPacketInfo *info,
@@ -338,6 +344,10 @@ int32_t plank_transport_native_input_receive(
         uint8_t *payload, size_t payload_capacity,
         size_t *payload_size_out, uint32_t timeout_ms);
 
+/* Reliable data payloads are 1..1048576 bytes. Each direction is bounded to
+ * 64 queued packets AND 8 MiB of payload. Send pressure returns TIMEOUT without
+ * enqueueing; incoming overflow fails the endpoint without evicting records.
+ * A short receive buffer leaves the pending record queued for a retry. */
 int32_t plank_transport_native_data_send(
         PlankTransportNativeEndpoint *endpoint,
         const uint8_t *payload, size_t payload_size);
@@ -349,8 +359,13 @@ int32_t plank_transport_native_data_receive(
 int32_t plank_transport_native_endpoint_stats(
         const PlankTransportNativeEndpoint *endpoint,
         PlankTransportNativeStats *stats);
+/* Stop cancels establishment, setup/promotion and streaming, then joins the
+ * worker. It does not wait for the handshake timeout. Hosts retain a bounded
+ * (up to one second) QUIC close drain. Repeated stop calls are safe; failure
+ * state and its original error are preserved. */
 int32_t plank_transport_native_endpoint_stop(
         PlankTransportNativeEndpoint *endpoint);
+/* Destroy includes stop. No other call may use this pointer during/after it. */
 void plank_transport_native_endpoint_destroy(
         PlankTransportNativeEndpoint *endpoint);
 size_t plank_transport_native_endpoint_last_error(

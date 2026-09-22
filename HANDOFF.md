@@ -1,6 +1,295 @@
 # PLANK handoff
 
-## In progress: automatic Host identity trust
+## Current: pre-RaptorQ upgrade checkpoint
+
+The operator authorized checkpointing all completed work and creating
+`raptorq-upgrade` from `code-review-fixes`, not main. This integration commit
+preserves the accepted Host identity work, virtual-primary candidate changes,
+review fixes #2–7 and Client label cleanup. Dependency commits were created
+first, with staged-content and commit-message privacy checks enabled:
+
+- Client: `f1c2e781bf806439971e37ce59d9cd41e0cf589b` (render shutdown plus labels).
+- Linux Host: `20ce61cc500a20b97a99fb79c2046e156d9f3dc3` (PAM isolation/deadlines).
+- Kymux: `ca10966e9842a9b94aaca7dbc9a6ee050bf1a79c` (data/FEC validation).
+
+RaptorQ remains pinned to 1.8.1. The next step is to switch the root and all
+three maintained submodules to `raptorq-upgrade` at these exact checkpoints.
+Retain `code-review-fixes` as the pre-upgrade rollback reference. Nothing is
+merged into main or pushed as part of this local checkpoint. No new packages
+or installations; existing 1.0.153 artifacts predate review fixes #2–7.
+
+Before checkpointing, the shipping Linux Rust selection was rechecked: 52 unit,
+4 telemetry and 6 parser tests pass. Client source-gate tests (3), shell syntax,
+diff and privacy checks pass. Earlier detailed validation and remaining hardware
+gates below still apply; the label-only Qt test has not been run yet.
+
+## Client label cleanup
+
+Removed the macOS Experimental qualifier from the shared Add/Edit capture
+selector (`ScreenCaptureKit — macOS`) and on-screen capture-source stats
+(`ScreenCaptureKit`). Native X11/XShm keeps its existing Experimental label;
+capture/profile selection and streaming behavior are unchanged. The existing
+HostChoices Qt test now checks both labels. Source/diff checks pass; Qt runtime
+tests and a new package build remain pending. This change is included in the
+Client checkpoint above alongside the earlier review fixes.
+
+## Checkpointed: cancellation across transport establishment
+
+Review fix #7 is implemented in the root `code-review-fixes` worktree,
+preserving pending fixes #2–6. One durable cancellation boundary now covers
+listener accept, TLS, KyProto authentication/endpoint negotiation, certificate
+approval, setup, promotion and streaming. The previous lane-local notification
+branches are removed. Registration precedes checking the stop/failure predicate,
+so a stop cannot be missed between phases or confused with a spurious wake.
+Stopping/terminal state cannot be revived by a concurrently completing setup;
+recorded failures retain their diagnosis. Start/stop serialize worker-handle
+publication and joining. Host close/drain stays outside cancellation and still
+has its one-second upper bound, including on handshake failure. Wire format,
+ABI, authentication and rate policy are unchanged.
+
+Five focused regression tests pass, including actual silent QUIC handshakes,
+destroy during startup and 32 concurrent start/stop races. A real encrypted
+loopback test additionally withholds auth/endpoint readiness on either peer,
+certificate approval and promotion. With 30-second handshake deadlines, Client
+stops took approximately 0.4–1.1 ms and connected Host stops approximately
+80–83 ms, including close delivery. Listener socket release is checked. This
+integration test is now part of the native loopback/package gate. The five
+focused tests also pass with macOS-source-first selected on Linux; no native
+macOS build/hardware validation is claimed.
+
+The shipping Linux feature selection passes 52 product unit tests, 4 telemetry
+tests, 6 parser tests, 25 dependency media tests, production-library Clippy with
+warnings denied, the typed all-lane round trip, reliable-data flood and both C
+ABI trust-mode loopbacks. The first three 150 Mbps / 60 fps loss matrices all
+passed performance/recovery checks (2700 frames, zero unrecovered objects);
+the third also recorded 16 proxy kernel drops, so it is not a controlled-loss-
+only sample. A separate complete three-matrix repeat passed with zero proxy
+kernel drops and zero unrecovered objects across all 2700 frames at
+0/0.5/1/3/5% injected loss, with 6.049–8.382 ms per-phase p95 delivery.
+The initial proxy-drop result is retained rather than hidden by the repeat.
+Formatting, shell syntax and diff checks pass; the lockfile is unchanged.
+
+This fix is included in the checkpoint above. Existing 1.0.153 artifacts
+contain none of fixes #2–7. Use a new candidate version when packaging is
+requested; no new package, deployment or merge has been performed.
+
+PR status rechecked: root #10, Client #6 and Linux Host #9 remain open drafts.
+They were integrated into the 1.0.152 candidate, not merged into their respective
+`main` branches. GitHub comparison confirms their current heads are ahead of
+main; do not close them as already merged. No PR state was changed.
+
+## Checkpointed: malformed FEC receive hardening
+
+Review fix #6 is implemented in the same root/Kymux `code-review-fixes`
+worktrees, preserving all other fixes below. The active audio FEC receiver
+had the same defect as video; both now share `kyproto/.../av/fec.rs` validation.
+It rejects truncated headers, invalid/oversized RaptorQ partitions, wrong
+symbol lengths/IDs, changing object/group metadata and invalid reconstructed
+media headers before unsafe parsing/decoder operations. Pending object,
+group, byte-reservation and distinct-symbol bounds prevent unbounded decoder
+state. Companion reliable config records have a pre-allocation size/type check.
+Errors now reach the receive caller and cancel companion readers instead of
+panicking or leaving a half-alive endpoint. No panic-catching workaround,
+wire/ABI/feature change, FEC repair-policy or sender-pacing change.
+Bounds and their distinction from total RSS are documented in the transport
+README; the maximum video envelope includes PLANK's 16-byte frame metadata.
+
+Validation uses pinned Rust 1.89.0 and the unchanged product lockfile/offline
+cache on the Linux Host builder. Nineteen new regression tests plus six existing
+media tests pass. They cover malformed headers/OTIs, consistency, deduplication,
+multi-block/sub-block repair, budget admission/release, forged media headers,
+parser errors and task cancellation. These dependency tests are now explicitly
+run by the native loopback/package gate, not silently omitted by product tests.
+Product tests also pass (47 unit + 4 telemetry + 6 reliable-data parser).
+Production-library Clippy with warnings denied passes. All three required
+150 Mbps / 60 fps matrices pass at 0/0.5/1/3/5% loss: 2700 frames, zero
+unrecovered objects, zero proxy kernel drops; per-phase p95 delivery
+5.711–8.138 ms. Typed encrypted round trip, reliable-data flood and both C ABI
+trust-mode loopbacks pass, including queued control before peer close.
+The macOS-source-first feature selection also passes 26 media tests compiled
+on Linux (including the existing source-first test); this is not native macOS
+hardware or package qualification.
+
+Included in the Kymux/root checkpoint above. The 1.0.153 artifacts still contain
+none of fixes #2–6. Use a new candidate version when packaging is requested.
+
+## Checkpointed: atomic media/input receive claims
+
+The requested video/audio overflow race is fixed in the root
+`code-review-fixes` worktree, preserving all earlier fixes below.
+`native_ffi.rs` now validates destination capacity and moves the exact front
+item out under the queue mutex, before copying its bytes/metadata outside the
+lock. Video/audio overflow can only evict unclaimed items; there is no second
+dequeue after copying. Input had the same split peek/remove pattern and now
+shares the claim helper, preventing duplication/skips with overlapping readers.
+The internal packet structs no longer implement Clone. Short/invalid output
+buffers leave items queued; zero-byte audio holes and failure/timeout drain
+behavior are preserved. Reliable-data's previous atomic copy/accounting remains
+unchanged. No queue-limit, wire/ABI, FEC, rate-policy or feature-bit change.
+
+Seven new tests exercise the actual C receive functions, including forced
+overflow at the unlocked copy boundary, nested and concurrent readers, exact
+drop counts, payload/metadata pairing, output canaries, buffer errors and audio
+holes. The one-shot interleaving hook is test-only/thread-local. The existing
+Host transport package gate runs these tests automatically. Contracts are in
+`protocol/plank-transport/README.md` and the public C header.
+
+Validation on the Linux Host builder uses pinned Rust 1.89.0, the unchanged
+lockfile and retained offline cache. The shipping Linux transport feature set
+`quinn-telemetry,linux-fast-send` passes 47 unit + 4 telemetry + 6 parser tests
+and production-library Clippy with warnings denied. Both real encrypted C ABI
+trust-mode loopbacks pass, including setup/promotion, video/audio/input/data,
+queued-control preservation and peer close. All three required 150 Mbps/60 fps
+loss matrices pass at 0/0.5/1/3/5% loss: 2700 frames, zero unrecovered objects
+and zero proxy kernel drops, with per-phase p95 delivery 5.810–10.226 ms.
+The seven focused receive tests also pass with default features and with
+`quinn-telemetry,macos-source-first` compiled on Linux, exercising conditional
+sender-timing fields. Native macOS compilation was not performed. These are
+local transport tests, not hardware playback or a WAN soak. Formatting and
+diff checks pass.
+Included in the root checkpoint above. The existing 1.0.153 artifacts do not
+contain this fix. A newly versioned build remains a separate package step.
+
+## Checkpointed: Client render shutdown synchronization
+
+The next requested review fix is implemented in the same root/Client
+`code-review-fixes` worktree, based on Client
+`4e98452559d1c679fcce607dbde3e5b0f2e8c035`, now committed in the checkpoint above.
+No package, install, push or merge was performed for this fix; existing 1.0.153
+artifacts do not include it.
+
+Pacer shutdown now publishes its stop predicate and wakes all three conditions
+under the frame-queue mutex, then releases that mutex before joining workers.
+The predicate is also atomic for existing render/V-sync loop checks outside
+the mutex; atomic alone is deliberately not the lost-wakeup solution. V-sync
+checks shutdown before entering its waits, and rechecks queue emptiness after
+a wake. Thread-affine renderer cleanup and queued AVFrame disposal are retained.
+An adjacent SDL3 64-bit tick / `%u` logging mismatch was corrected so the actual
+Pacer translation unit passes warnings-as-errors. No pacing policy, transport,
+Host, decoder selection or GPU presentation behavior changes are intended.
+
+The new Client `tests/pacershutdown` compiles the actual Pacer with controlled
+GPU callbacks and a fixed test display-refresh query. Both Linux and macOS
+package builders now invoke it. On the qualified Ubuntu Client builder, nine
+scenarios (11 QtTest results including setup/cleanup) pass, including 300 idle
+render-thread lifetimes, 100 asynchronous V-sync lifetimes, all three forced
+check/wait boundaries, active-render stop and queued-buffer cleanup. GCC 15,
+Qt 6.10.2, SDL 3.4.2 and retained FFmpeg 9.0.1 were used, without installing a
+Client or changing any live session. AddressSanitizer/UndefinedBehaviorSanitizer
+pass. A negative-control build retaining the atomic flag but removing the
+shutdown mutex fails all three boundary cases as expected; fixed source was
+restored and hash-verified afterward. The full fixed suite also passed twenty
+consecutive runs. Client source-gate tests and shell syntax checks pass.
+
+ThreadSanitizer is not a pass: installed Qt has inline mutex TSan annotations
+but its prebuilt wait-condition implementation is uninstrumented. A standalone
+Qt mutex/condition program with no PLANK code reproduces the same double-lock
+report. No suppression or production workaround was added. Native macOS
+compilation and real GPU/session shutdown acceptance remain untested; this
+fix addresses queue synchronization, not an independently hung GPU driver call.
+The isolated source/test builds live under the Client builder's
+`$PLANK_WORK_ROOT/code-review-render-shutdown`, seeded from the exact retained
+Client Git commit plus the reviewed dirty files, with pinned common-C headers
+`060f6179f88343327b44d915007f1fb4cede71f1`. Do not use the builder's historical
+primary checkout as current source. The root checkpoint now pins the committed
+Client implementation; assign a new candidate version before packaging.
+
+## Checkpointed: Linux PAM isolation, deadlines and cancellation
+
+The operator requested the shared-authentication-mutex/PAM-stall review fix.
+Work remains in root and Linux Host `code-review-fixes` worktrees, based on
+root `74ff47e` and Host `ebf63ac9347e461a1eaff5adc83a77724187002a`.
+Changes are now included in the Host/root checkpoint above alongside the
+reliable-data changes. No merge, package build or installation was requested.
+
+PAM operations now run outside the manager state mutex and outside the HTTPS
+event loop. A four-worker executor counts running and queued requests together,
+with no additional backlog; a small in-process monitor cancels requests on
+TCP disconnect without consuming TLS data. The Client's existing five-second
+HTTP abort therefore cancels abandoned work. Each PAM operation also has a
+30-second absolute deadline across delegation, writes and framed reads.
+Descriptor delegation retains its three-second cap and drains already-issued
+replies on cancellation rather than contaminating the next request.
+
+In-flight entries remain counted against the 32-entry manager limit even when
+revoked. Duplicate responses and late success after cancellation/expiry fail
+closed. Cancellation and object destruction happen outside the state lock.
+The broker parent watches caller EOF, allows two seconds of normal PAM cleanup,
+then kills a stuck child; shutdown no longer waits indefinitely in waitpid.
+Healthy authenticated session lifetimes, peer binding, account policy and
+claimed-stream ownership are preserved. No new daemon, privilege, config key,
+wire version, Client change or macOS authentication change.
+
+The product HTTPS server class moved from `nvhttp.cpp` into `nvhttp.h` so its
+actual TLS implementation and disconnect lookup are exercised by the isolated
+test, not a substitute server. See `protocol/authentication.md` for contracts.
+The new `tests/session/pam` CMake gate is invoked by the Host package-binary
+builder even though the shipped payload remains `BUILD_TESTS=OFF`. It uses
+the Host-pinned GoogleTest `52eb8108`, Simple-Web-Server `546895a` and retained
+Boost 1.89.0. These dependencies were seeded at their exact pins from local Git.
+
+Validation on the Linux Host builder: GCC 14 C++23 with warnings treated as
+errors compiles the actual manager, PAM client, broker and HTTPS implementation.
+All 29 focused unit tests, the real TLS status/abort test and unprivileged Unix
+delegation/framing checks pass. AddressSanitizer + UndefinedBehaviorSanitizer
+pass all three CTest targets, including TLS. ThreadSanitizer could not link
+because this builder lacks its runtime; do not claim a TSan pass. The optional
+root-to-unprivileged delegation test reports a skip without root privileges.
+No real PAM/SSSD account, live login/logout, or hardware acceptance was exercised.
+The final non-sanitized three-target suite also passed ten consecutive runs.
+The older standalone `test-host-supervisor-package.sh` stops at its pre-existing
+two-argument `layout_arguments(request.mode_1, request.mode_2)` source grep;
+the pinned virtual-primary Host already changed that call before this work.
+That unrelated stale assertion was not changed and is not an authentication
+test pass. Full product/package compilation remains a separate gate.
+
+To repeat locally, use `cmake -S tests/session/pam` with a
+`cmake-build-*` binary directory, the qualified GCC 14 compiler and
+`-DPLANK_BOOST_SOURCE_DIR="$PLANK_BOOST_SOURCE_DIR"`, then build and run CTest.
+The HTTPS fixture creates and removes a private ephemeral test certificate;
+no deployed key or credentials are used. Host and Kymux changes are now committed
+before their parent gitlinks; assign a new candidate version before packaging.
+The existing 1.0.153 packages contain neither of these additional security fixes.
+
+## Checkpointed: reliable-data allocation bounds
+
+The operator accepted the automatic Host identity-trust behavior below and
+requested the next code-review fix: oversized incoming reliable-data lengths.
+Work remains on `code-review-fixes` in the same root worktree. No merge,
+deployment or new candidate package is part of this change.
+
+The Kymux worktree is now initialized at `third_party/kyber-kymux`, on its own
+`code-review-fixes` branch based on the pinned `158719b6`. Its parser/writer
+share a 1 MiB payload cap, checked before payload allocation; partial headers
+are errors rather than clean EOF. Root imports that cap and bounds reliable
+send/receive queues to 8 MiB AND 64 records each, in setup and active sessions.
+Send overflow remains retryable; receive overflow fails explicitly. C ABI
+receive retains the byte charge on short buffers and copies/removes under one
+queue lock. No media/FEC, clipboard-limit, input or wire-format change.
+
+Changes are committed in root and Kymux as part of the checkpoint above.
+Existing 1.0.153 artifacts do NOT contain this additional fix: assign
+a new candidate version before producing packages; never overwrite/relabel them.
+See `protocol/plank-transport/README.md` for the memory budget and tests.
+
+Validation uses pinned Rust 1.89.0 and the unchanged product lockfile on the
+Linux Host builder. The retained cache needed its already-pinned Rustls 0.23.45
+downloaded; dependencies were not upgraded. Release unit/integration tests pass
+(40 + 4 telemetry + 6 parser); the three explicitly ignored network tests run
+through the native loopback script. Encrypted data flooding verifies bounded
+failure in both directions; the C ABI loopback verifies setup/promotion,
+media/input/control, short-lived peer closure and queued-control preservation.
+The final-source optimized loopback run passed all three 150 Mbps / 60 fps
+loss matrices at 0/0.5/1/3/5% loss (2700 frames total), zero unrecovered objects
+and zero proxy kernel drops; per-phase p95 delivery was 5.673–7.617 ms. This
+is local transport qualification, not an Internet or hardware-video soak.
+Production-library Clippy with warnings denied passes. All-target Clippy still
+reports two pre-existing test-style findings (`collapsible_if` in `native.rs`,
+`items_after_test_module` for `completion_tests`); allowing only those in the
+diagnostic command yields a pass. No source-level lint suppression was added.
+Native macOS compilation and live device acceptance are not claimed here.
+
+## Accepted: automatic Host identity trust
 
 Work is isolated in `build/worktrees/code-review-fixes`, root and Client branches
 `code-review-fixes`, based on root `9c9d6bd` and Client `6580f794` below. It retains
@@ -17,7 +306,9 @@ using the existing authenticated coordinator without sharing its private key.
 See `docs/development/plans/host-identity-trust.plan` and
 `docs/security/host-identity-trust.md` for the residual TOFU risk and design.
 
-Implementation and automated build gates pass; live acceptance is outstanding.
+Implementation and automated build gates pass; the operator subsequently
+reported that the behavior works. The automated deployment evidence and
+untested individual scenarios are retained separately below.
 Root implementation through `984b80c3147cf498574ff97543863d5d20907246` and Client
 `4e98452559d1c679fcce607dbde3e5b0f2e8c035` are pushed. Candidate version is
 `1.0.153-code-review-fixes`. Linux Host remains
@@ -86,9 +377,10 @@ Temporary diagnostic jobs/files and the privileged SSH session were removed.
 
 The Development NUC remains unreachable at its recorded endpoint. The operator
 has been asked to confirm power/address; no Client package was installed and no
-other target was substituted. Login/logout, cross-user handoff, media/input and
-replacement-dialog acceptance remain outstanding. Resume there once reachable;
-do not mistake successful Host installation for complete live acceptance. No
+other target was substituted. The operator subsequently accepted the behavior;
+we did not independently perform the remaining login/logout, cross-user handoff,
+media/input or replacement-dialog matrix. Do not mistake successful Host
+installation for an automated pass of those individual scenarios. No
 merge or release occurred. Machine-specific evidence is in the private notes.
 
 The previous candidate and package provenance below remain valid and untouched.
