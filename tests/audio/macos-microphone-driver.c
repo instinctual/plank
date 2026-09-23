@@ -74,7 +74,7 @@ int main(void) {
     assert(!startIO(DRIVER, MicDevice, first.mClientID));
     assert(!startIO(DRIVER, MicDevice, first.mClientID));
     assert(!startIO(DRIVER, MicDevice, second.mClientID));
-    assert(atomic_load(&running) == 2 && notifications == 1);
+    assert(atomic_load(&running) == 2 && notifications == 0);
     Boolean will = false, inPlace = false;
     assert(!willIO(DRIVER, MicDevice, 10, kAudioServerPlugInIOOperationReadInput, &will, &inPlace));
     assert(will && inPlace);
@@ -113,7 +113,7 @@ int main(void) {
                      PLANKMicMaxIO + 1, &cycle, received, NULL));
     assert(!stopIO(DRIVER, MicDevice, 10) && atomic_load(&running) == 1);
     assert(!removeClient(DRIVER, MicDevice, &second) && !atomic_load(&running));
-    assert(notifications == 2);
+    assert(notifications == 0);
     assert(!startIO(DRIVER, MicDevice, 10));
     assert(!timestamp(DRIVER, MicDevice, 10, &after, &time, &laterSeed) && laterSeed != seed);
     cycle.mInputTime.mSampleTime = 0;

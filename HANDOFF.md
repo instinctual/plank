@@ -20,14 +20,31 @@ ownership and packaging are **not implemented yet**. No feature is advertised.
 
 Validation: buffer tests pass optimized, ASan/UBSan and TSan runs (one million
 samples/two readers). Native macOS 27/SDK 27 component/harness builds pass
-`-Werror`, property/lifecycle/clock tests and ad-hoc bundle verification. The
-temporary synthetic device loaded into Core Audio and enumerated at 48 kHz.
-However, live reads returned silence without microphone permission; the GUI
-reader then timed out waiting for normal OS consent. This is **not** a live
-audio acceptance pass. No TCC or SIP changes were made. The test driver has
-been removed, Core Audio restarted, probe absence and the original no-input
-state verified. The production Host and output-device selection were unchanged.
-Latest non-installing probe rebuild also passes after cleanup.
+`-Werror`, property/lifecycle/clock tests and ad-hoc bundle verification.
+The operator granted ordinary microphone permission to the GUI reader.
+The real synthetic input passes single/concurrent readers and four consecutive
+open/read/close cycles at 48 kHz, with the expected tone amplitude and no invalid
+samples. The component no longer sends redundant synchronous running-state
+notifications back to the HAL from HAL-initiated IO callbacks. No TCC database,
+SIP or production Host changes were made. Permission is no longer a blocker.
+
+Local injection remains **unqualified**. Native XPC accepts the Apple-signed
+isolated Core Audio driver helper without sandbox exceptions. Per-block RPC
+was rejected for gaps; fixed-size shared-memory delivery has a successful
+two-reader interval with zero missing/disabled samples after startup, and
+source loss produces silence. However, repeated reads with that IPC fixture
+also exposed Core Audio enumeration stalls/high CPU and later audio gaps.
+Removing synchronous running-state notifications alone did not fix that IPC
+lifecycle problem. The final direct-tone control (without IPC) passes all four
+reopens and leaves Core Audio near idle. Do not mistake the reader's basic
+tone-presence threshold or the one clean interval for IPC acceptance. The
+XPC files are test-only, not a shipping injection path or a new product daemon.
+
+All temporary drivers and the root test service are removed/unregistered;
+Core Audio was restarted, probe absence and the original no-input state verified.
+Existing output devices/production Host binaries were unchanged. Reuse the
+already-approved exact reader app for further live tests: rebuilding an ad-hoc
+signed reader changes its code hash and can require fresh consent.
 
 Transport validation: fixed vectors/bounds pass under Linux and Mac source-first
 feature selections; Linux library suite has 52 passes/5 explicit integration
@@ -37,11 +54,11 @@ checks, and three 150 Mbps/60 fps loss matrices (0/0.5/1/3/5%, 2700 frames,
 zero unrecovered objects or unintended proxy kernel drops). This tests transport
 records, not Opus capture/decode, physical microphone latency or WAN playback.
 
-Next gate: operator available at the dedicated development Mac for the normal
-microphone consent prompt; re-install only the distinct synthetic probe,
-obtain consent and prove nonzero tone delivery, then remove/restore it again.
-Machine-only staging and cleanup details are outside Git in private notes.
-Do not wire a real Client microphone or ship the driver before this gate.
+Next gate: isolate the local IPC fixture's reopen/lifetime issue before
+promoting it into the existing coordinator's authenticated producer lifecycle.
+Then implement negotiated activation, real Client capture/UI and Host input
+ownership. Machine-only staging and cleanup details are outside Git in private
+notes. Do not advertise or ship the microphone capability before these gates.
 No new package, main merge or release occurred.
 
 ## Preserved base: RaptorQ 2 upgrade and application datagram pacer removal

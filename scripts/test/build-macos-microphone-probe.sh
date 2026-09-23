@@ -17,6 +17,7 @@ cd "$source_root"
 shasum -a 256 apps/host/macos/audio-device/microphone-{buffer.h,driver.c} \
     tests/audio/macos-microphone-{buffer,driver}.c packaging/host/macos/microphone-info.plist \
     probes/macos/microphone-{tone-driver.c,read.m,reader-info.plist} \
+    probes/macos/microphone-xpc-{driver.c,source.c,shared.h} \
     scripts/test/build-macos-microphone-probe.sh
 flags=(-std=c11 -O2 -g -mmacosx-version-min=27.0 -Wall -Wextra -Werror
        -Iapps/host/macos/audio-device)
@@ -55,4 +56,16 @@ cp "$output/microphone-read" "$app/Contents/MacOS/"
 cp probes/macos/microphone-reader-info.plist "$app/Contents/Info.plist"
 codesign --force --sign - "$app"
 codesign --verify --strict "$app"
+xpc_probe="$output/PLANK Microphone XPC Probe.driver"
+mkdir -p "$xpc_probe/Contents/MacOS"
+cp "$probe/Contents/Info.plist" "$xpc_probe/Contents/Info.plist"
+/usr/libexec/PlistBuddy -c 'Add :AudioServerPlugIn_MachServices array' "$xpc_probe/Contents/Info.plist"
+/usr/libexec/PlistBuddy -c 'Add :AudioServerPlugIn_MachServices:0 string la.instinctual.PLANK.Microphone.probe' "$xpc_probe/Contents/Info.plist"
+xcrun --sdk macosx clang "${flags[@]}" -fblocks -fvisibility=hidden -bundle \
+    probes/macos/microphone-xpc-driver.c -framework CoreAudio -framework CoreFoundation \
+    -o "$xpc_probe/Contents/MacOS/plank-microphone"
+codesign --force --sign - "$xpc_probe"
+codesign --verify --strict "$xpc_probe"
+xcrun --sdk macosx clang "${flags[@]}" -fblocks probes/macos/microphone-xpc-source.c \
+    -framework CoreFoundation -o "$output/microphone-xpc-source"
 echo "microphone_component_gate=pass installed=no production_injection=not-implemented"

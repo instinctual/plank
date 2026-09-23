@@ -102,24 +102,17 @@ static OSStatus addClient(AudioServerPlugInDriverRef driver, AudioObjectID devic
     pthread_mutex_unlock(&stateLock);
     return status;
 }
-static void runningChanged(void) {
-    AudioObjectPropertyAddress property = {kAudioDevicePropertyDeviceIsRunning,
-        kAudioObjectPropertyScopeGlobal, kAudioObjectPropertyElementMain};
-    if (host) host->PropertiesChanged(host, MicDevice, 1, &property);
-}
 static OSStatus removeClient(AudioServerPlugInDriverRef driver, AudioObjectID device,
                              const AudioServerPlugInClientInfo *info) {
     if (driver != DRIVER || device != MicDevice || !info) return kAudioHardwareBadObjectError;
-    bool changed = false;
     pthread_mutex_lock(&stateLock);
     for (unsigned i = 0; i < MicMaxClients; i++) {
         if (clients[i].used && clients[i].id == info->mClientID) {
-            if (clients[i].running) changed = atomic_fetch_sub(&running, 1) == 1;
+            if (clients[i].running) atomic_fetch_sub(&running, 1);
             clients[i].used = clients[i].running = false; break;
         }
     }
     pthread_mutex_unlock(&stateLock);
-    if (changed) runningChanged();
     return noErr;
 }
 static OSStatus configuration(AudioServerPlugInDriverRef driver, AudioObjectID device,
@@ -311,7 +304,6 @@ static OSStatus set(AudioServerPlugInDriverRef driver, AudioObjectID object, pid
 static OSStatus changeIO(AudioServerPlugInDriverRef driver, AudioObjectID device, UInt32 client, bool start) {
     if (driver != DRIVER || device != MicDevice || !host) return kAudioHardwareBadObjectError;
     OSStatus result = kAudioHardwareIllegalOperationError;
-    bool changed = false;
     pthread_mutex_lock(&stateLock);
     for (unsigned i = 0; i < MicMaxClients; i++) if (clients[i].used && clients[i].id == client) {
         result = noErr;
@@ -322,15 +314,15 @@ static OSStatus changeIO(AudioServerPlugInDriverRef driver, AudioObjectID device
                     PLANKMicBufferReset(&micBuffer, 0);
                     atomic_store(&anchor, mach_absolute_time());
                     atomic_fetch_add(&clockSeed, 1);
-                    changed = true;
                 }
                 atomic_fetch_add(&running, 1);
-            } else changed = atomic_fetch_sub(&running, 1) == 1;
+            } else atomic_fetch_sub(&running, 1);
         }
         break;
     }
     pthread_mutex_unlock(&stateLock);
-    if (changed) runningChanged();
+    // Core Audio initiates these IO changes and owns their notifications.
+    // Do not call back into HAL synchronously from its own StartIO/StopIO.
     return result;
 }
 static OSStatus startIO(AudioServerPlugInDriverRef driver, AudioObjectID device, UInt32 client) {
