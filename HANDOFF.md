@@ -161,6 +161,14 @@ is merged, and no release is published by this candidate-build task.
 
 ## Client label cleanup
 
+Checkpointed source-only change after candidate 1.0.154: removed `(Preview)` from
+both Apple VideoToolbox encoding profiles (HEVC 10-bit 4:2:0 and 4:4:4) in
+both Add and Edit Bookmark dialogs. Profile IDs, selection and codec behavior
+are unchanged. Source checks cover all four labels and their existing IDs;
+no new Client package or live UI validation for this text change yet. Client
+checkpoint: `5132482f`. Preserve this with the integration base for microphone
+forwarding; existing 1.0.154 packages retain the earlier labels.
+
 Removed the macOS Experimental qualifier from the shared Add/Edit capture
 selector (`ScreenCaptureKit — macOS`) and on-screen capture-source stats
 (`ScreenCaptureKit`). Native X11/XShm keeps its existing Experimental label;
