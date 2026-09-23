@@ -14,14 +14,21 @@ The non-realtime control queue owns XPC/mapping retirement. Input selection is
 owned by the broker lease so a crashed desktop producer is revoked as well.
 Matching macOS launch schema is 4; Linux Hosts do not advertise microphone input.
 
-Candidate version is 1.0.155-microphone-forwarding. Root integration is
+Candidate version is 1.0.156-microphone-forwarding. Initial root integration is
 a3fa67cb263a3329039399ff220c4cc1b4e3b7fb, Client b6732d97. Both are pushed.
 Hosted run35925971227 passed Ubuntu Client packaging; the other platforms
-are still being qualified. The first Mac Host attempt failed its existing
-certificate-request fixture. The fixture is being aligned with the actual
-one-shot caller's XPC lifetime, with a repeated-request gate and diagnostics;
-this does not change production authentication. Dedicated-Mac tests pass.
-Linux Host and Kymux remain at the pins recorded in the preserved base below.
+exposed validation issues. Signed Mac Client35927339824 passed from256bc3a
+after adding the existing Qt ARM header flag to the new standalone test.
+Signed Host35927337280 exposed a real certificate-reply cancellation race in
+the repeated-request gate. The service now leaves that bounded one-shot link
+open until its caller consumes the reply and closes; no additional request can
+claim a graphical lease. Dedicated-Mac scope and100-request tests pass.
+Linux Host's three loss matrices passed, but its C-API audio receive check
+exposed a buffered-completion bug. KyProto audio and video now drain already
+completed packets after a late config instead of waiting for another arrival.
+Both deterministic regression tests fail before and pass after the fix; no
+wire, FEC redundancy or sender policy changes. Kymux is now on its matching
+microphone-forwarding branch; Linux Host's source pin remains unchanged.
 No main merge or production rollout is authorized.
 
 The managed synthetic fixture now passes repeated reader opens and leaves
@@ -45,10 +52,11 @@ installation/reload timing is not yet qualified. The production Host is unchange
 Exact staging and evidence belong in the private microphone note, not Git.
 
 The encrypted microphone FFI test passes setup/direct entry points and mute/
-generation/bounds. The latest full loss runner passed its first matrix but
-failed the second on an in-order PTS assertion with zero reported kernel drops;
-retain and investigate that failure, do not retry it away or claim the full
-gate passed. Full Host/Client builds, driver installation/upgrade, selection
+generation/bounds. An earlier full loss runner failed its second matrix on an
+in-order PTS assertion with zero kernel drops. A diagnostic repeat passed three
+matrices unchanged; retain the original failure as unresolved, not erased by
+that repeat. Post-drain-fix suites are being qualified independently. Full
+Host/Client builds, driver installation/upgrade, selection
 restoration/user override, crash/mute/takeover and physical input acceptance
 remain gates. The Development NUC was unreachable; do not substitute an
 End-User target without authorization. Continue until candidate validation is complete or user testing

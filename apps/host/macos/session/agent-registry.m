@@ -127,6 +127,8 @@ static BOOL word(xpc_object_t message, const char *key, uint64_t *value) {
 
 - (void)receive:(xpc_object_t)message link:(PLANKMacAgentLink *)link {
     if (link.closed || _stopped) return;
+    // A certificate request is one-shot, never a route into a graphical lease.
+    if (link.identityRequested) { [self close:link]; return; }
     if (xpc_get_type(message) != XPC_TYPE_DICTIONARY) { [self close:link]; return; }
     // Reject one-way calls before claiming an exclusive slot or mutating it.
     xpc_object_t response = xpc_dictionary_create_reply(message);
@@ -166,9 +168,10 @@ static BOOL word(xpc_object_t message, const char *key, uint64_t *value) {
                 xpc_dictionary_set_uint64(response, "version", 1);
                 xpc_dictionary_set_uint64(response, "status", 0);
                 xpc_connection_send_message(link.connection, response);
-                link.closed = YES;
-                [self->_links removeObject:link];
-                xpc_connection_send_barrier(link.connection, ^{ xpc_connection_cancel(link.connection); });
+                // A send barrier drains this sender, not the receiving client's
+                // reply handler. Cancelling here can race a valid reply into an
+                // XPC error. The caller closes after consuming it; abandoned
+                // one-shot links retain the existing five-second expiry.
             });
         });
         return;

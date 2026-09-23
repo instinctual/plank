@@ -27,7 +27,7 @@ static BOOL micNumber(xpc_object_t message, const char *name, uint64_t *value) {
 }
 
 @implementation PLANKMacMicrophoneBroker {
-    dispatch_queue_t _queue;
+    dispatch_queue_t _queue, _selectionQueue;
     NSString *_requirement;
     BOOL (^_authorize)(PLANKMacAgentPeer, uint64_t);
     uid_t _audioUID;
@@ -48,6 +48,9 @@ static BOOL micNumber(xpc_object_t message, const char *name, uint64_t *value) {
     self = [super init];
     if (self) {
         _queue = queue; _requirement = [requirement copy]; _authorize = [authorize copy];
+        // HAL property calls are synchronous and may stall while an audio
+        // service restarts. Never hold up authentication/lease revocation.
+        _selectionQueue = dispatch_queue_create("la.instinctual.PLANK.Microphone.selection", DISPATCH_QUEUE_SERIAL);
         _audioUID = account->pw_uid; _bytes = PLANKMicLinkBytes((size_t)page);
         _peers = [NSMutableArray array];
     }
@@ -59,7 +62,8 @@ static BOOL micNumber(xpc_object_t message, const char *name, uint64_t *value) {
     xpc_connection_cancel(peer.connection); [_peers removeObject:peer];
     if (peer == _producer) {
         _producer = nil;
-        [peer.selection restore]; peer.selection = nil;
+        PLANKMacMicrophoneSelection *selection = peer.selection; peer.selection = nil;
+        dispatch_async(_selectionQueue, ^{ [selection restore]; });
         if (_driver) [self driverOperation:3 lease:peer.lease memory:NULL completion:^(BOOL accepted) { (void)accepted; }];
     }
     if (peer == _driver) { _driver = nil; [self close:_producer]; }
@@ -136,14 +140,23 @@ static BOOL micNumber(xpc_object_t message, const char *name, uint64_t *value) {
         if (!ok || owner->_producer != peer || !owner->_authorize(peer.identity, generation)) {
             [owner close:peer]; return;
         }
-        if (peer.automaticInput) {
-            peer.selection = [PLANKMacMicrophoneSelection new];
-            if (![peer.selection select]) { [owner close:peer]; return; }
-        }
-        peer.ready = YES;
-        xpc_dictionary_set_uint64(reply, "lease", lease);
-        xpc_dictionary_set_value(reply, "memory", peer.memory);
-        xpc_connection_send_message(peer.connection, reply);
+        PLANKMacMicrophoneSelection *selection = peer.automaticInput ? [PLANKMacMicrophoneSelection new] : nil;
+        peer.selection = selection;
+        dispatch_async(owner->_selectionQueue, ^{
+            BOOL selected = !selection || [selection select];
+            dispatch_async(owner->_queue, ^{
+                // The worker may have gone away while HAL was unavailable.
+                // close: has already queued restoration on the same serial
+                // selection queue, ahead of any replacement's selection.
+                if (peer.closed) return;
+                if (!selected || owner->_stopped || owner->_producer != peer ||
+                    !owner->_authorize(peer.identity, generation)) { [owner close:peer]; return; }
+                peer.ready = YES;
+                xpc_dictionary_set_uint64(reply, "lease", lease);
+                xpc_dictionary_set_value(reply, "memory", peer.memory);
+                xpc_connection_send_message(peer.connection, reply);
+            });
+        });
     }];
 }
 - (void)accept:(xpc_connection_t)connection driver:(BOOL)driver {

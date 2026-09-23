@@ -16,7 +16,9 @@ or replace the matching 1.0.154 rollback candidates during development.
 - Automatic activation starts only with an authenticated, microphone-capable
   session and OS consent. Manual starts off until the toolbar button is used.
 - One compact toolbar microphone button displays active/off/unavailable state,
-  provides enable/mute and an accessible label/tooltip. Never imply recording
+  provides enable/mute and a visible state/hover hint. Settings expose accessible
+  labels; the existing native painted toolbar is not a screen-reader control tree.
+  Never imply recording
   succeeded when permission, device access or Host delivery failed.
 - Off means no Client microphone capture. Disconnect ends capture. Temporary
   reconnects and login/desktop transitions preserve the user's mute choice.
@@ -91,12 +93,12 @@ applications; permission is no longer a blocker. No physical microphone is
 recorded by these probes. See HANDOFF for the local IPC and lifecycle results;
 this is not end-to-end Client microphone acceptance.
 
-Gate B is partial: optional reverse endpoint ID 1 works with existing KyProto
-APIs over the same authenticated connection, without dependency changes. The
-bounded 24-byte envelope and Opus payload limits have wire-vector/malformed-input
-tests. Existing concurrent lanes, cancellation and three optimized 150 Mbps
-loss-matrix runs pass. Capability/activation control, real Opus decoding,
-generation rejection, jitter/drift and session-bound queue policy remain open.
+Gate B: optional reverse endpoint ID 1 uses existing KyProto APIs over the same
+authenticated connection. Envelope validation, cancellation, bounded queues,
+generation changes and encrypted setup/direct round trips pass. Complete builds
+exposed an existing receive-drain bug: when config arrived last, completed audio
+or video could wait for another packet. Deterministic tests fail before the fix
+and pass afterward. Neither FEC policy, sender pacing nor wire format changes.
 
 The non-installing component command on the authorized development Mac is:
 
@@ -112,11 +114,11 @@ audio. Live load/unload needs explicit machine authorization and normal OS
 microphone consent for the reader app. Do not grant SSH broad microphone access
 or confuse the ad-hoc test signature with distribution signing/notarization.
 
-Next: finish the authenticated local producer boundary, then connect it to
-negotiated reverse audio and Client controls. Neither a successful build nor a
-visible device proves applications receive the intended samples.
+Next: complete signed candidate validation and application-level testing.
+Neither a successful build nor a visible device proves applications receive
+the intended samples. See HANDOFF for exact current versions and open gates.
 
-## Local IPC investigation (not qualified)
+## Local IPC design and qualification boundary
 
 macOS 27 hosts the Mach-service-enabled plug-in in Apple's isolated Core Audio
 driver helper. The plug-in sandbox cannot inspect arbitrary process identity
@@ -130,28 +132,22 @@ access files or acquire a policy lock. A bounded non-realtime control queue
 publishes clock state; the producer fills timestamped sample slots. Underflow,
 expired producer heartbeat and disconnected control channels supply silence.
 
-The test-only microphone-xpc-source process generates a fixed tone and exits
-after 30 seconds. Its temporary root launchd service accepts only the live
-Apple-signed Core Audio driver helper running as the audio-service account.
-Use ProcessType=Interactive for that audio fixture, matching the existing
-product desktop worker; changing queue QoS alone did not qualify delivery.
-These fixtures are not a shipping daemon or production authentication design.
-Shared-memory tone delivery has passed a short simultaneous-reader interval
-without steady-state missing samples, but repeat-open/source-lifetime testing
-also exposed Core Audio enumeration stalls, high CPU and delivery gaps. Removing
-redundant synchronous running-state notifications did not resolve that IPC
-failure; the direct-tone control passes four successive opens. Resolve the
-fixture lifecycle issue before adopting this boundary in production.
+Production admission lives in the existing coordinator and authenticated
+desktop-worker lifecycle. Only the current signed worker and Apple-signed HAL
+helper may join. Each producer lease gets a fresh mapping; activation changes
+clear samples without granting old writers access to a new session's mapping.
+Root admission expires independently of producer-written data. The driver
+copies sanitized bounded blocks into private sample history outside realtime IO.
+Host input selection/restoration uses a separate serial queue, so synchronous
+HAL calls cannot block coordinator authentication or lease revocation.
 
-Production admission belongs in the existing root coordinator and authenticated
-graphical-worker lifecycle, not a new root audio process. Each session/mute
-generation needs a fresh, revocable producer lease. A retired producer must
-never retain write access to a region used by the next session; bound and test
-mapping retirement while readers run. Keep producer-writable PCM separate from
-trusted admission state, validate all shared metadata, and fail to silence.
-Test unauthorized producers, worker crash, source loss, restart, takeover and
-user switch before exposing the microphone capability. The current synthetic
-shared region is intentionally not that production security boundary.
+Managed synthetic tests pass repeated readers, invalid/duplicate producers,
+crash-to-silence and replacement production. Selection restoration, user override,
+missing previous input and failure are covered by a fake HAL. Physical input,
+real application lifetime and multi-hour drift still require acceptance.
+The temporary fixture is removed; no product deployment is implied. Enumeration
+briefly stalled after fixture removal/Core Audio restart, then recovered; package
+installation/reload behavior remains an explicit gate rather than a claimed pass.
 
 ## References
 

@@ -145,15 +145,15 @@ static void identityTests(NSString *requirement) {
         CHECK(!xpc_connection_set_peer_code_signing_requirement(peer, requirement.UTF8String));
         xpc_connection_set_event_handler(peer, ^(xpc_object_t event) { (void)event; });
         xpc_connection_activate(peer);
-        xpc_object_t message = xpc_dictionary_create(NULL, NULL, 0);
-        xpc_dictionary_set_uint64(message, "version", 1);
-        xpc_dictionary_set_uint64(message, "operation", 5);
+        xpc_object_t csrRequest = xpc_dictionary_create(NULL, NULL, 0);
+        xpc_dictionary_set_uint64(csrRequest, "version", 1);
+        xpc_dictionary_set_uint64(csrRequest, "operation", 5);
         NSData *csr = [@"synthetic-public-csr" dataUsingEncoding:NSUTF8StringEncoding];
-        xpc_dictionary_set_data(message, "csr", csr.bytes, csr.length);
-        if (scenario == 1) xpc_dictionary_set_uint64(message, "uid", getuid());
-        if (scenario == 2) xpc_dictionary_set_string(message, "csr", "wrong-type");
+        xpc_dictionary_set_data(csrRequest, "csr", csr.bytes, csr.length);
+        if (scenario == 1) xpc_dictionary_set_uint64(csrRequest, "uid", getuid());
+        if (scenario == 2) xpc_dictionary_set_string(csrRequest, "csr", "wrong-type");
         if (scenario == 4) dispatch_sync(fixture.queue, ^{ fixture.allowed = NO; });
-        xpc_object_t reply = request(peer, message);
+        xpc_object_t reply = request(peer, csrRequest);
         if (status(reply, 0) != (scenario == 0 && getuid() != 0))
             fprintf(stderr, "identity scenario=%u reply=%s\n", scenario,
                 !reply ? "timeout" : xpc_get_type(reply) == XPC_TYPE_ERROR ? "xpc-error" : "dictionary");
@@ -162,6 +162,7 @@ static void identityTests(NSString *requirement) {
             CHECK(xpc_dictionary_get_count(reply) == 5);
             CHECK(!xpc_dictionary_get_value(reply, "generation"));
             CHECK(!xpc_dictionary_get_value(reply, "key"));
+            CHECK(!status(request(peer, message(1, 0, 0)), 0));
         }
         CHECK(until(fixture, ^BOOL { return fixture.attached == 0; }));
         dispatch_sync(fixture.queue, ^{

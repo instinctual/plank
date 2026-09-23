@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
-//! Optional reverse audio lane. Not activated by the product yet: callers must
+//! Optional reverse audio lane. Callers must
 //! negotiate microphone support and bind activation to the authenticated lease.
 //! KyProto's server/client audio types mean source/sink, not QUIC server/client.
 use anyhow::{Context, Result, bail, ensure};
