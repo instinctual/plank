@@ -19,4 +19,4 @@ qmake6 "$root_source/tests/protocol/macos-preview-launch.pro" \
     "PLANK_CLIENT_SOURCE=$client_source" "PLANK_COMMON_SOURCE=$common_source"
 make -j2
 ./macos-preview-launch "$root_source/tests/protocol/fixed-capture-v13.json" \
-    "$root_source/tests/protocol/macos-preview-launch-v3.json"
+    "$root_source/tests/protocol/macos-preview-launch-v4.json"

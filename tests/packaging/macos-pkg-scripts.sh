@@ -21,11 +21,12 @@ done
     stop_roles() { calls="$calls|stop"; }
     present() { return 0; }
     verify_app() { [[ $1 = yes ]]; calls="$calls|verify"; }
+    verify_microphone_driver() { calls="$calls|verify-microphone"; }
     remove_cmd() { calls="$calls|remove:$*"; }
     receipt_cmd() { calls="$calls|receipt:$*"; }
     reject uninstall_host unexpected-argument
     uninstall_host >/dev/null
-    [[ $calls = "|preflight|stop|remove:/Library/LaunchDaemons/$machine.plist|remove:/Library/LaunchAgents/$desktop.plist|remove:/Library/LaunchAgents/$signin.plist|verify|remove:-rf /Applications/PLANK Host.app|receipt:--pkg-info la.instinctual.PLANK.Host|receipt:--forget la.instinctual.PLANK.Host" ]]
+    [[ $calls = "|preflight|stop|verify-microphone|remove:-rf /Library/Audio/Plug-Ins/HAL/PLANK Microphone.driver|remove:/Library/LaunchDaemons/$machine.plist|remove:/Library/LaunchAgents/$desktop.plist|remove:/Library/LaunchAgents/$signin.plist|verify|remove:-rf /Applications/PLANK Host.app|receipt:--pkg-info la.instinctual.PLANK.Host|receipt:--forget la.instinctual.PLANK.Host" ]]
     # Never remove anything when preflight or bounded shutdown fails.
     remove_cmd() { echo 'unexpected removal'; exit 90; }
     preflight() { fail 'fixture unsafe metadata'; }

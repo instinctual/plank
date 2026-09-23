@@ -72,7 +72,8 @@ while IFS= read -r -d '' framework; do
 done < <(find "$app" -depth -type d -name '*.framework' -print0)
 python3 "$source_root/scripts/test/check-macos-client-target.py" \
     "$app" --target "$PLANK_MAC_CLIENT_MIN_MACOS" > "$output/client-targets.json"
-codesign --force --options runtime --timestamp --sign "$PLANK_MACOS_SIGNING_IDENTITY" "$app"
+codesign --force --options runtime --timestamp --sign "$PLANK_MACOS_SIGNING_IDENTITY" \
+    --entitlements "$source_root/packaging/client/macos/entitlements.plist" "$app"
 codesign --verify --deep --strict "$app"
 if ! app_version=$(QT_QPA_PLATFORM=offscreen "$app/Contents/MacOS/plank-client" --version); then
     echo 'Packaged Client failed offscreen launch; inspect ~/Library/Logs/PLANK/Client' >&2

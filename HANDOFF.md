@@ -2,6 +2,50 @@
 
 ## Current task: microphone forwarding
 
+### Live implementation checkpoint (supersedes the foundation status below)
+
+The current uncommitted integration adds negotiated reverse audio, Client
+Automatic/Manual preferences and toolbar state/mute, native Host Opus decoding,
+and a broker-owned virtual-input lease. Both choices default Automatic. The
+existing machine coordinator authenticates the active desktop worker and the
+Apple-signed isolated HAL helper; no new daemon or network port is added.
+The driver reads only its private bounded PCM history from the realtime callback.
+The non-realtime control queue owns XPC/mapping retirement. Input selection is
+owned by the broker lease so a crashed desktop producer is revoked as well.
+Matching macOS launch schema is 4; Linux Hosts do not advertise microphone input.
+
+Candidate version is 1.0.155-microphone-forwarding, not built or installed yet.
+Root foundation is 7574025; Client remains 5132482f plus current working changes.
+Linux Host and Kymux remain at the pins recorded in the preserved base below.
+No main merge or production rollout is authorized.
+
+The managed synthetic fixture now passes repeated reader opens and leaves
+Core Audio idle afterward. Constant-value diagnostics show startup silence,
+then no steady-state missing/disabled/zero samples in the measured intervals;
+the coarse tone-presence threshold alone is not the acceptance criterion.
+Unauthorized worker generation is rejected. Native AudioConverter decodes
+300 real libopus tone packets with the expected amplitude and passes silence,
+duration/channel/bounds/reset tests. The Client's actual capture worker passes
+dummy-SDL capture, immediate mute under control-queue pressure, reopen, dropped
+send handling, transport failure and joined shutdown. No physical microphone
+recording or complete application-to-application qualification has occurred.
+
+Temporary probe driver and broker are CURRENTLY INSTALLED on the dedicated
+development Mac. They must be removed before product installation, preserving
+the original input/output state. The existing production Host is unchanged.
+Exact staging and evidence belong in the private microphone note, not Git.
+
+The encrypted microphone FFI test passes setup/direct entry points and mute/
+generation/bounds. The latest full loss runner passed its first matrix but
+failed the second on an in-order PTS assertion with zero reported kernel drops;
+retain and investigate that failure, do not retry it away or claim the full
+gate passed. Full Host/Client builds, driver installation/upgrade, selection
+restoration/user override, crash/mute/takeover and physical input acceptance
+remain gates. Continue until candidate validation is complete or user testing
+is genuinely needed; do not stop merely at a component checkpoint.
+
+### Historical foundation results (before the live integration above)
+
 Root and Client are on `microphone-forwarding`, created from the complete
 `raptorq-upgrade` checkpoint: root `aee9431`, Client `5132482f`. The active
 worktree directory remains `build/worktrees/code-review-fixes`; its directory

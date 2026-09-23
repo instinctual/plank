@@ -28,7 +28,17 @@ typedef enum PlankTransportControlType {
     PLANK_TRANSPORT_CONTROL_VIDEO_BITRATE_APPLIED = 6,
     /* Host-only, zero payload; advisory, never authentication or launch authority. */
     PLANK_TRANSPORT_CONTROL_HOST_DESKTOP_HANDOFF = 7,
+    /* Capability-gated: u64 generation (high/low u32), then flags or state. */
+    PLANK_TRANSPORT_CONTROL_SET_MICROPHONE = 8,
+    PLANK_TRANSPORT_CONTROL_MICROPHONE_APPLIED = 9,
 } PlankTransportControlType;
+
+#define PLANK_TRANSPORT_MICROPHONE_ENABLED 1u
+#define PLANK_TRANSPORT_MICROPHONE_AUTO_INPUT 2u
+#define PLANK_TRANSPORT_MICROPHONE_OFF 0u
+#define PLANK_TRANSPORT_MICROPHONE_PENDING 1u
+#define PLANK_TRANSPORT_MICROPHONE_ACTIVE 2u
+#define PLANK_TRANSPORT_MICROPHONE_UNAVAILABLE 3u
 
 typedef struct PlankTransportControlPacket {
     uint16_t type;

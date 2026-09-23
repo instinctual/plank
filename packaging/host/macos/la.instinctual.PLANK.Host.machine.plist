@@ -4,7 +4,11 @@
 <key>Label</key><string>la.instinctual.PLANK.Host.machine</string>
 <key>AssociatedBundleIdentifiers</key><array><string>la.instinctual.PLANK.Host</string></array>
 <key>ProgramArguments</key><array><string>/Applications/PLANK Host.app/Contents/MacOS/plank-host</string><string>--machine</string><string>la.instinctual.PLANK.Host.machine</string></array>
-<key>MachServices</key><dict><key>la.instinctual.PLANK.Host.machine</key><true/></dict>
+<key>MachServices</key><dict>
+<key>la.instinctual.PLANK.Host.machine</key><true/>
+<key>la.instinctual.PLANK.Host.microphone-driver</key><true/>
+<key>la.instinctual.PLANK.Host.microphone-producer</key><true/>
+</dict>
 <key>RunAtLoad</key><true/>
 <key>StandardOutPath</key><string>/Library/Logs/PLANK/host-machine.log</string>
 <key>StandardErrorPath</key><string>/Library/Logs/PLANK/host-machine.log</string>

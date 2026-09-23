@@ -45,6 +45,9 @@ typedef NS_ENUM(unsigned, PLANKMacAgentEvent) {
 - (void)revoke;
 // Recheck current OS scope. Scope loss latches; it never re-arms a lease.
 - (void)refresh;
+// Exact currently admitted desktop worker, for the local microphone broker.
+// This does not authenticate a remote stream; the worker enforces that lease.
+- (BOOL)admitsDesktopPeer:(PLANKMacAgentPeer)peer generation:(uint64_t)generation;
 // Authentication-lane snapshot of this exact admitted agent, on the owner
 // queue. Rechecks machine scope and resolves desktop identity through the OS.
 // Registration is still not remote authorization or permission to post input;

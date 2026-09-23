@@ -70,7 +70,7 @@ int main(int argc, char **argv) {
             connected = true;
             xpc_dictionary_set_bool(reply, "accepted", true);
             xpc_connection_send_message(peer, reply); xpc_release(reply);
-            puts("microphone_xpc_driver_authenticated=1");
+            printf("microphone_xpc_driver_authenticated=1 pid=%d\n", xpc_connection_get_pid(peer));
         });
         xpc_connection_activate(peer);
     });

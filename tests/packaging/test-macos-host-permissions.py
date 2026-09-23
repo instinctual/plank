@@ -44,11 +44,16 @@ class Permissions(unittest.TestCase):
                 path = self.root / "Library" / folder / f"la.instinctual.PLANK.Host.{role}.plist"
                 path.parent.mkdir(parents=True, exist_ok=True)
                 path.write_text("synthetic fixture\n")
+            for name in ("Contents/Info.plist", "Contents/MacOS/plank-microphone", "Contents/_CodeSignature/CodeResources"):
+                path = self.root / gate.DRIVER / name
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_text("synthetic fixture\n")
         finally:
             os.umask(previous)
         for path in [self.root, *self.root.rglob("*")]:
             relative = path.relative_to(self.app).as_posix() if path.is_relative_to(self.app) else ""
-            path.chmod(0o755 if path.is_dir() or relative in gate.EXECUTABLES else 0o644)
+            driver_binary = path == self.root / gate.DRIVER / "Contents/MacOS/plank-microphone"
+            path.chmod(0o755 if path.is_dir() or relative in gate.EXECUTABLES or driver_binary else 0o644)
 
     def bom(self):
         return "\n".join(

@@ -1,5 +1,5 @@
 {
-  "schema_version": 3,
+  "schema_version": 4,
   "capture_generation": "98454815-80ab-4a88-b187-92f59353afca",
   "capture_id": "cgdisplay:42",
   "width": 3840,
@@ -8,5 +8,6 @@
   "frame_rate": 60,
   "bitrate_kbps": 50000,
   "max_udp_payload_size": 1200,
-  "clipboard": false
+  "clipboard": false,
+  "microphone": true
 }

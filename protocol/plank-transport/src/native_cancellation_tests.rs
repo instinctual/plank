@@ -17,7 +17,7 @@ fn options() -> super::super::RuntimeOptions {
     }
 }
 
-fn endpoint(address: SocketAddr, host: bool, setup: bool) -> Box<PlankTransportNativeEndpoint> {
+pub(super) fn endpoint(address: SocketAddr, host: bool, setup: bool) -> Box<PlankTransportNativeEndpoint> {
     let config = if host {
         EndpointConfig::Server {
             bind_address: address,
@@ -240,7 +240,7 @@ fn unused_address() -> SocketAddr {
         .unwrap()
 }
 
-async fn wait_state(endpoint: &PlankTransportNativeEndpoint, expected: EndpointState) {
+pub(super) async fn wait_state(endpoint: &PlankTransportNativeEndpoint, expected: EndpointState) {
     tokio::time::timeout(Duration::from_secs(5), async {
         loop {
             let state = endpoint.shared.state();
@@ -260,7 +260,7 @@ async fn wait_state(endpoint: &PlankTransportNativeEndpoint, expected: EndpointS
     .expect("expected endpoint phase was not reached");
 }
 
-async fn wait_bound(address: SocketAddr, endpoint: &PlankTransportNativeEndpoint) {
+pub(super) async fn wait_bound(address: SocketAddr, endpoint: &PlankTransportNativeEndpoint) {
     tokio::time::timeout(Duration::from_secs(5), async {
         while UdpSocket::bind(address).is_ok() {
             assert_ne!(endpoint.shared.state(), EndpointState::Failed);

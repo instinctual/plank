@@ -60,7 +60,7 @@ done < <(find "$app" -depth -type d -name '*.framework' -print0)
 python3 "$source_root/scripts/test/check-macos-client-target.py" \
     "$app" --target "$PLANK_MAC_CLIENT_MIN_MACOS" > "$output/client-targets.json"
 python3 "$source_root/scripts/test/check-package-build-paths.py" "$app"
-codesign "${signing_flags[@]}" "$app"
+codesign "${signing_flags[@]}" --entitlements "$source_root/packaging/client/macos/entitlements.plist" "$app"
 codesign --verify --deep --strict "$app"
 if [[ $signing_identity != - ]]; then
     requirement=$(codesign -d -r- "$app" 2>&1)

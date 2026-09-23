@@ -6,4 +6,10 @@
 <key>BundleIsVersionChecked</key><false/>
 <key>BundleHasStrictIdentifier</key><true/>
 <key>BundleOverwriteAction</key><string>upgrade</string>
+</dict><dict>
+<key>RootRelativeBundlePath</key><string>Library/Audio/Plug-Ins/HAL/PLANK Microphone.driver</string>
+<key>BundleIsRelocatable</key><false/>
+<key>BundleIsVersionChecked</key><false/>
+<key>BundleHasStrictIdentifier</key><true/>
+<key>BundleOverwriteAction</key><string>upgrade</string>
 </dict></array></plist>

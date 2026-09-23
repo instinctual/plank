@@ -40,12 +40,14 @@ typedef NS_ENUM(unsigned, PLANKMacPreviewState) {
                         topology:(NSDictionary *(^)(void))topology
                           config:(const PlankTransportConfig *)config
                          capture:(id<PLANKMacPreviewCapture>)capture
-                           input:(id<PLANKMacInputDevice>)input;
+                           input:(id<PLANKMacInputDevice>)input
+             microphoneGeneration:(uint64_t)microphoneGeneration;
 @property(atomic, readonly) PLANKMacPreviewState state;
 // First terminal cause, made only from internal labels/numeric status codes.
 // Never contains credentials, clipboard contents or input payload values.
 @property(atomic, readonly, copy) NSString *stopReason;
 @property(readonly) BOOL clipboardEnabled;
+@property(readonly) BOOL microphoneEnabled;
 // Non-secret identity used to bind explicit takeover consent to this stream.
 @property(readonly, copy) NSString *sessionID;
 // Secret for the authenticated HTTPS launch reply only; never log/persist.

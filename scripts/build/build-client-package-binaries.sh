@@ -1749,6 +1749,14 @@ mkdir -p "$build_dir/tests/pacershutdown"
 )
 echo "client_render_shutdown_gate=pass"
 
+mkdir -p "$build_dir/tests/client-microphone"
+(
+  cd "$build_dir/tests/client-microphone"
+  qmake6 "$repo_dir/tests/audio/client-microphone.pro" "PLANK_CLIENT_SOURCE=$source_dir" CONFIG+=release
+  make -j2
+  timeout 30 ./client-microphone
+)
+
 mkdir -p "$build_dir"
 (
   cd "$build_dir"

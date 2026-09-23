@@ -111,11 +111,11 @@ def main():
                     if self.path != "/plank/launch" or self.headers.get("Authorization") != "Bearer " + token:
                         faults.append("unexpected launch target or authorization")
                     body = json.loads(self.rfile.read(int(self.headers.get("Content-Length", "0"))))
-                    expected = {"schema_version": 3, "capture_generation": topology["generation"],
+                    expected = {"schema_version": 4, "capture_generation": topology["generation"],
                                 "capture_id": topology["capture"]["id"], "width": topology["capture"]["width"],
                                 "height": topology["capture"]["height"], "encoding_mode": "hevc-10-420-videotoolbox",
                                 "frame_rate": 60, "bitrate_kbps": 50000, "max_udp_payload_size": 1200,
-                                "clipboard": sys.platform == "darwin"}
+                                "clipboard": sys.platform == "darwin", "microphone": True}
                     if body != expected:
                         faults.append("launch tuple mismatch")
                     if mode == "redirect":
@@ -132,11 +132,11 @@ def main():
                     if mode in ("oversized", "malformed"):
                         self.respond(200, b"x" * (40000 if mode == "oversized" else 1))
                         return
-                    response = {"schema_version": 3, "state": "connecting",
+                    response = {"schema_version": 4, "state": "connecting",
                                 "udp_port": self.server.server_port,
                                 "max_udp_payload_size": 1200, "capture": topology["capture"],
                                 "transport_token": base64.b64encode(b"x" * 32).decode(),
-                                "services": {"audio": True, "input": True, "pen": "normalized", "cursor": "embedded", "clipboard": False}}
+                                "services": {"audio": True, "input": True, "pen": "normalized", "cursor": "embedded", "clipboard": False, "microphone": False}}
                     if mode == "wrong-port":
                         response["udp_port"] = 1
                     if mode == "audio":

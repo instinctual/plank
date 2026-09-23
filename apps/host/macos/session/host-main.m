@@ -2,6 +2,7 @@
 // Experimental native Host entry point. No fixture verifier, expiry alarm or
 // loopback-only replacement server. Installation/signing remains a release gate.
 #import "host-runtime.h"
+#import "../audio-device/microphone-broker.h"
 #import "agent-connection.h"
 #import "graphical-authority.h"
 #import "fixed-capture.h"
@@ -139,18 +140,24 @@ static int machine(const char *service) {
         return PLANKMacIssueWorkerIdentity(csr, @"/Library/Application Support/PLANK/SignIn");
     };
     weakRegistry = registry;
+    PLANKMacMicrophoneBroker *microphone = [[PLANKMacMicrophoneBroker alloc]
+        initWithQueue:dispatch_get_main_queue() requirement:requirement
+        authorize:^BOOL(PLANKMacAgentPeer peer, uint64_t generation) {
+            return [weakRegistry admitsDesktopPeer:peer generation:generation];
+        }];
+    if (![microphone start]) { [registry stop]; return startupFailure("microphone-broker"); }
     xpc_connection_t listener = xpc_connection_create_mach_service(service, dispatch_get_main_queue(),
         XPC_CONNECTION_MACH_SERVICE_LISTENER);
-    if (!listener) return 2;
+    if (!listener) { [microphone stop]; [registry stop]; return 2; }
     xpc_connection_set_event_handler(listener, ^(xpc_object_t peer) {
         if (xpc_get_type(peer) == XPC_TYPE_CONNECTION) [registry accept:peer];
     });
     xpc_connection_activate(listener);
     if (![desktopStart start]) {
-        [registry stop]; xpc_connection_cancel(listener);
+        [microphone stop]; [registry stop]; xpc_connection_cancel(listener);
         return startupFailure("desktop-start-observer");
     }
-    signals(^{ [desktopStart stop]; [registry stop]; xpc_connection_cancel(listener); exit(0); });
+    signals(^{ [microphone stop]; [desktopStart stop]; [registry stop]; xpc_connection_cancel(listener); exit(0); });
     NSLog(@"PLANK Host machine coordinator started");
     [[NSRunLoop mainRunLoop] run]; return 0;
 }

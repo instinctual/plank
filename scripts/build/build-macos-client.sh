@@ -70,6 +70,15 @@ mkdir -p "$build/tests/$suite"
         PLANK_REPO_ROOT="$source_root" QT_QPA_PLATFORM=offscreen QT_QUICK_BACKEND=software "./$suite"
 )
 done
+# Dummy input only: no microphone permission or physical recording on builders.
+mkdir -p "$build/tests/client-microphone"
+(
+    cd "$build/tests/client-microphone"
+    qmake "$source_root/tests/audio/client-microphone.pro" "PLANK_CLIENT_SOURCE=$client" \
+        CONFIG+=release QMAKE_MACOSX_DEPLOYMENT_TARGET="$MACOSX_DEPLOYMENT_TARGET" QMAKE_APPLE_DEVICE_ARCHS=arm64
+    make -j2
+    ./client-microphone
+)
 # Exercise the actual input worker with a queued drag, without a host or UI.
 cc -std=gnu11 -Wall -Wextra -Werror -Wno-unused-parameter -DNDEBUG \
     -arch arm64 -mmacosx-version-min="$MACOSX_DEPLOYMENT_TARGET" \

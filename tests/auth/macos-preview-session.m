@@ -147,8 +147,8 @@ int main(int argc, const char **argv) {
             CHECK(!PLANKMacPreviewRequestMatchesTopology(bad, topology));
             for (id value in @[[NSNull null], @[], @{}, @YES, @"invalid"]) {
                 bad[field] = value;
-                // Clipboard is the one Boolean field in launch schema3.
-                BOOL validBoolean = [field isEqual:@"clipboard"] && value == (__bridge id)kCFBooleanTrue;
+                BOOL validBoolean = ([field isEqual:@"clipboard"] || [field isEqual:@"microphone"]) &&
+                    value == (__bridge id)kCFBooleanTrue;
                 CHECK(PLANKMacPreviewRequestMatchesTopology(bad, topology) == validBoolean);
             }
         }
@@ -175,9 +175,9 @@ int main(int argc, const char **argv) {
         PLANKFakeCapture *source = [PLANKFakeCapture new];
         PLANKFakeInput *input = [PLANKFakeInput new];
         CHECK(![[PLANKMacPreviewSession alloc] initWithSessions:auth token:token peer:wrongPeer request:request
-            topology:snapshot config:&cfg capture:source input:input]);
+            topology:snapshot config:&cfg capture:source input:input microphoneGeneration:0]);
         CHECK(![[PLANKMacPreviewSession alloc] initWithSessions:auth token:token peer:peer request:extra
-            topology:snapshot config:&cfg capture:source input:input]);
+            topology:snapshot config:&cfg capture:source input:input microphoneGeneration:0]);
         PLANKMacAccountIdentity identity = {0};
         CHECK([auth authorizeToken:token peer:peer identity:&identity]);
         for (unsigned scenario = 0; scenario < 24; ++scenario) {
@@ -196,7 +196,7 @@ int main(int argc, const char **argv) {
             source.deferBitrate = scenario == 16 || scenario == 18;
             source.failBitrate = scenario == 17;
             PLANKMacPreviewSession *session = [[PLANKMacPreviewSession alloc] initWithSessions:auth token:token peer:peer
-                request:request topology:snapshot config:&cfg capture:source input:input];
+                request:request topology:snapshot config:&cfg capture:source input:input microphoneGeneration:0];
             CHECK(session && session.state == PLANKMacPreviewPrepared);
             CHECK(![auth authorizeToken:token peer:peer identity:&identity]);
             NSString *transportToken = session.transportToken;

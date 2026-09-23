@@ -31,10 +31,10 @@ int main(int argc, char** argv)
     CHECK(!MacPreviewLaunch::request(topology, 150000, 65527).isEmpty());
     CHECK(MacPreviewLaunch::request({}, 10000, 1200).isEmpty());
     const QJsonObject valid {
-        {"schema_version", 3}, {"state", "connecting"}, {"udp_port", 28989},
+        {"schema_version", 4}, {"state", "connecting"}, {"udp_port", 28989},
         {"max_udp_payload_size", 1200}, {"capture", rawTopology.value("capture")},
         {"transport_token", QString::fromLatin1(QByteArray(32, 'x').toBase64())},
-        {"services", QJsonObject {{"audio", true}, {"input", true}, {"pen", "normalized"}, {"cursor", "embedded"}, {"clipboard", false}}}
+        {"services", QJsonObject {{"audio", true}, {"input", true}, {"pen", "normalized"}, {"cursor", "embedded"}, {"clipboard", false}, {"microphone", false}}}
     };
     MacPreviewLaunch::Reply parsed;
     CHECK(MacPreviewLaunch::parseReply(valid, topology, 28989, 1200, parsed));
@@ -50,6 +50,13 @@ int main(int argc, char** argv)
     CHECK(parsed.configuration.negotiatedVideoFormat == VIDEO_FORMAT_H265_MAIN10);
     CHECK(parsed.configuration.sessionPort == 28989);
     CHECK(!parsed.clipboard);
+    CHECK(!parsed.microphone);
+    auto microphoneReply = valid;
+    auto microphoneServices = valid.value("services").toObject();
+    microphoneServices["microphone"] = true;
+    microphoneReply["services"] = microphoneServices;
+    CHECK(MacPreviewLaunch::parseReply(microphoneReply, topology, 28989, 1200, parsed));
+    CHECK(parsed.microphone);
     auto clipboardReply = valid;
     auto clipboardServices = valid.value("services").toObject();
     clipboardServices["clipboard"] = true;
@@ -71,6 +78,11 @@ int main(int argc, char** argv)
         bad[key] = valid.value(key).toDouble() + 0.5; reject(bad);
     }
     auto bad = valid; bad["udp_port"] = 443; reject(bad);
+    bad = valid; bad["schema_version"] = 3; reject(bad);
+    auto invalidServices = valid.value("services").toObject(); invalidServices.remove("microphone");
+    bad = valid; bad["services"] = invalidServices; reject(bad);
+    invalidServices["microphone"] = 1;
+    bad["services"] = invalidServices; reject(bad);
     bad = valid; bad["max_udp_payload_size"] = 1500; reject(bad);
     bad = valid; bad["remote_address"] = "another-host"; reject(bad);
     bad = valid; bad["certificate_sha256"] = "another-certificate"; reject(bad);
@@ -80,7 +92,7 @@ int main(int argc, char** argv)
         auto services = valid.value("services").toObject(); services[service] = false;
         bad = valid; bad["services"] = services; reject(bad);
     }
-    for (const QJsonValue value : {QJsonValue(), QJsonValue(1), QJsonValue("true")}) {
+    for (const QJsonValue& value : {QJsonValue(), QJsonValue(1), QJsonValue("true")}) {
         auto services = valid.value("services").toObject(); services["clipboard"] = value;
         bad = valid; bad["services"] = services; reject(bad);
     }

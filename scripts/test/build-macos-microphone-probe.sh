@@ -15,9 +15,11 @@ output=$2
 mkdir "$output"
 cd "$source_root"
 shasum -a 256 apps/host/macos/audio-device/microphone-{buffer.h,driver.c} \
+    apps/host/macos/audio-device/microphone-{link.h,driver-ipc.h,broker.h,broker.m,producer.h,producer.m,selection.h,selection.m} \
     tests/audio/macos-microphone-{buffer,driver}.c packaging/host/macos/microphone-info.plist \
     probes/macos/microphone-{tone-driver.c,read.m,reader-info.plist} \
     probes/macos/microphone-xpc-{driver.c,source.c,shared.h} \
+    probes/macos/microphone-managed{.m,-config.h} \
     scripts/test/build-macos-microphone-probe.sh
 flags=(-std=c11 -O2 -g -mmacosx-version-min=27.0 -Wall -Wextra -Werror
        -Iapps/host/macos/audio-device)
@@ -68,4 +70,19 @@ codesign --force --sign - "$xpc_probe"
 codesign --verify --strict "$xpc_probe"
 xcrun --sdk macosx clang "${flags[@]}" -fblocks probes/macos/microphone-xpc-source.c \
     -framework CoreFoundation -o "$output/microphone-xpc-source"
+managed="$output/PLANK Microphone Managed Probe.driver"
+mkdir -p "$managed/Contents/MacOS"
+cp "$probe/Contents/Info.plist" "$managed/Contents/Info.plist"
+/usr/libexec/PlistBuddy -c 'Add :AudioServerPlugIn_MachServices array' "$managed/Contents/Info.plist"
+/usr/libexec/PlistBuddy -c 'Add :AudioServerPlugIn_MachServices:0 string la.instinctual.PLANK.Microphone.probe-driver' "$managed/Contents/Info.plist"
+xcrun --sdk macosx clang "${flags[@]}" -fblocks -fvisibility=hidden -bundle \
+    -include probes/macos/microphone-managed-config.h apps/host/macos/audio-device/microphone-driver.c \
+    -framework CoreAudio -framework CoreFoundation -o "$managed/Contents/MacOS/plank-microphone"
+codesign --force --sign - "$managed"
+codesign --verify --strict "$managed"
+xcrun --sdk macosx clang -O2 -g -fobjc-arc -mmacosx-version-min=27.0 -Wall -Wextra -Werror \
+    -include probes/macos/microphone-managed-config.h probes/macos/microphone-managed.m \
+    apps/host/macos/audio-device/microphone-{broker,producer,selection}.m \
+    -framework Foundation -framework Security -framework CoreAudio -o "$output/microphone-managed"
+codesign --force --sign - --identifier la.instinctual.PLANK.Microphone.Probe.Managed "$output/microphone-managed"
 echo "microphone_component_gate=pass installed=no production_injection=not-implemented"

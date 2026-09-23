@@ -199,7 +199,8 @@
         config.private_key_path = _privateKey.UTF8String;
         config.idle_timeout_ms = 10000; config.keep_alive_interval_ms = 1000;
         _stream = [[PLANKMacPreviewSession alloc] initWithSessions:_sessions token:token peer:peer
-            request:request topology:_topology config:&config capture:_capture() input:_input()];
+            request:request topology:_topology config:&config capture:_capture() input:_input()
+            microphoneGeneration:_snapshot().generation];
         if (!_stream) { *status = 503; return nil; }
         _takeoverToken = nil; _takeoverPeer = nil;
         // Snapshot after endpoint creation as well. Do not put a later display
@@ -209,11 +210,11 @@
             !plank_macos_graphical_identity_valid(_snapshot())) {
             [_stream stopWithCompletion:nil]; *status = 503; return nil;
         }
-        NSDictionary *reply = @{@"schema_version": @3, @"state": @"connecting",
+        NSDictionary *reply = @{@"schema_version": @4, @"state": @"connecting",
             @"transport_token": transportToken, @"udp_port": @(port),
             @"max_udp_payload_size": request[@"max_udp_payload_size"], @"capture": selected[@"capture"],
             @"services": @{@"audio": @YES, @"input": @YES, @"pen": @"normalized", @"cursor": @"embedded",
-                @"clipboard": @(_stream.clipboardEnabled)}};
+                @"clipboard": @(_stream.clipboardEnabled), @"microphone": @(_stream.microphoneEnabled)}};
         [_stream start]; *status = 200; return reply;
     }
 }

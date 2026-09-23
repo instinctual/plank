@@ -52,6 +52,10 @@ cargo test "${cargo_profile_args[@]}" --locked --offline --manifest-path "$crate
   native_ffi::cancellation_tests::cancellation_interrupts_real_auth_endpoints_and_promotion \
   -- --ignored --exact --nocapture
 
+cargo test "${cargo_profile_args[@]}" --locked --offline --manifest-path "$crate_dir/Cargo.toml" \
+  native_ffi::microphone_lane::tests::encrypted_ffi_microphone_mute_reopen_and_bounds \
+  -- --ignored --exact --nocapture
+
 # Three required passes, not retries: set -e stops on the first failure.
 for loss_trial in 1 2 3; do
   echo "native_loss_matrix_trial=$loss_trial"

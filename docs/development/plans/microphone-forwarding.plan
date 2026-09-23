@@ -1,6 +1,7 @@
 # Microphone forwarding
 
-Status: implementation in progress; not advertised, packaged or qualified yet.
+Status: implementation in progress; candidate integration exists, full builds
+and end-to-end qualification remain. Not released or production-installed.
 Branch: microphone-forwarding, based on raptorq-upgrade root aee9431 and
 Client 5132482f. This retains all security/lifecycle fixes, RaptorQ 2.0.1,
 datagram-pacer removal and macOS profile-label cleanup. Do not merge to main
@@ -58,7 +59,7 @@ or replace the matching 1.0.154 rollback candidates during development.
        Prove silence, buffer bounds, timing, invalid requests and lifecycle.
        Exercise a synthetic tone on the dedicated development Mac before
        wiring a real Client microphone. No change to working audio output.
-[ ] B: Add negotiated reverse transport, wire vectors, malformed-peer and
+[x] B: Add negotiated reverse transport, wire vectors, malformed-peer and
        cancellation/queue bounds tests. Test both directions simultaneously.
 [ ] C: Add Host injection/selection owner and Client capture/settings/toolbar;
        install/uninstall support and explicit failure reporting.
@@ -71,6 +72,17 @@ or replace the matching 1.0.154 rollback candidates during development.
        first; speaker echo cancellation is separate qualification, not assumed.
 
 ## Current component checkpoint
+
+September 23 integration: schema4 negotiates microphone availability, PLD1
+activation/ack controls enforce increasing generations, SDL captures only after
+consent plus Host acknowledgement, and Host AudioConverter supplies a bounded
+authenticated producer. Both preferences and toolbar mute/state are wired.
+Driver signing/receipt ownership/uninstall are implemented but not yet package
+qualified. Read the top HANDOFF section for current live fixture state, passing
+component tests and the outstanding full loss-matrix failure. The older fixture
+investigation below is historical; do not treat its cleanup or missing-feature
+claims as current. Gate C needs full application tests, input ownership and
+lifecycle acceptance; Gate D builds follow that verification.
 
 Gate A: optimized/sanitized portable buffer tests and the native macOS 27 HAL
 harness pass. The operator granted normal microphone consent to the distinct

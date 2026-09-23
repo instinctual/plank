@@ -702,7 +702,7 @@ Current expectation is 403 checks/15 scenarios. Include `apps/host/macos/session
 sources as well as the `apps/host/macos/input`
 headers/sources, `tests/input/macos-fake-input.{h,m}`, `plank_transport_input.h`,
 `plank_transport_control.h`, both media modules and
-`tests/protocol/macos-preview-launch-v3.json` in standalone staged inputs.
+`tests/protocol/macos-preview-launch-v4.json` in standalone staged inputs.
 This is not a new transport-library build. Each lifecycle test remains bounded.
 
 The four added scenarios connect real anonymous XPC admission to the actual

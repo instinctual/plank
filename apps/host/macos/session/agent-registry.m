@@ -256,6 +256,15 @@ static BOOL word(xpc_object_t message, const char *key, uint64_t *value) {
     dispatch_assert_queue(_queue);
     if (_current.lease.active && _scope(_current.lease.peer) != _current.lease.phase) [self revoke];
 }
+- (BOOL)admitsDesktopPeer:(PLANKMacAgentPeer)peer generation:(uint64_t)generation {
+    dispatch_assert_queue(_queue);
+    [self refresh];
+    PLANKMacAgentLease *lease = _current.lease;
+    return !_stopped && lease.active && lease.phase == PLANKMacAgentDesktop &&
+        generation && lease.generation == generation && peer.uid != 0 &&
+        lease.peer.uid == peer.uid && lease.peer.pid == peer.pid &&
+        lease.peer.auditSession == peer.auditSession;
+}
 - (void)revoke {
     dispatch_assert_queue(_queue);
     if (!_current.lease.active) return;

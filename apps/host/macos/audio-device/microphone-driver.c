@@ -29,6 +29,15 @@ static _Atomic ULONG references = 1;
 static AudioServerPlugInDriverInterface interface;
 static AudioServerPlugInDriverInterface *interfacePointer = &interface;
 #define DRIVER (&interfacePointer)
+#ifndef PLANK_MIC_DEVICE_NAME
+#define PLANK_MIC_DEVICE_NAME "PLANK Microphone"
+#define PLANK_MIC_DEVICE_UID "la.instinctual.PLANK.Microphone"
+#define PLANK_MIC_MODEL_UID "la.instinctual.PLANK.Microphone.Model"
+#endif
+
+#ifdef PLANK_MICROPHONE_IPC
+#include "microphone-driver-ipc.h"
+#endif
 
 static bool objectExists(AudioObjectID object) {
     return object == kAudioObjectPlugInObject || object == MicDevice || object == MicStream;
@@ -70,6 +79,9 @@ static OSStatus initialize(AudioServerPlugInDriverRef driver, AudioServerPlugInH
         atomic_store(&anchor, mach_absolute_time());
         atomic_store(&clockSeed, 1);
         host = owner;
+#ifdef PLANK_MICROPHONE_IPC
+        micIPCInitialize();
+#endif
     }
     pthread_mutex_unlock(&stateLock);
     return noErr;
@@ -230,7 +242,7 @@ static OSStatus get(AudioServerPlugInDriverRef driver, AudioObjectID object, pid
             object == MicStream ? kAudioStreamClassID : kAudioPlugInClassID; break;
         case kAudioObjectPropertyOwner: value = object == MicDevice ? kAudioObjectPlugInObject :
             object == MicStream ? MicDevice : kAudioObjectUnknown; break;
-        case kAudioObjectPropertyName: string = CFSTR("PLANK Microphone"); break;
+        case kAudioObjectPropertyName: string = CFSTR(PLANK_MIC_DEVICE_NAME); break;
         case kAudioObjectPropertyManufacturer: string = CFSTR("PLANK"); break;
         case kAudioObjectPropertyOwnedObjects: value = object == MicDevice ? MicStream : MicDevice; break;
         case kAudioPlugInPropertyDeviceList: case kAudioDevicePropertyRelatedDevices: value = MicDevice; break;
@@ -238,12 +250,12 @@ static OSStatus get(AudioServerPlugInDriverRef driver, AudioObjectID object, pid
             if (qualifierSize != sizeof(CFStringRef) || !qualifier) return kAudioHardwareBadPropertySizeError;
             CFStringRef uid; memcpy(&uid, qualifier, sizeof(uid));
             value = uid && CFGetTypeID(uid) == CFStringGetTypeID() &&
-                CFEqual(uid, CFSTR("la.instinctual.PLANK.Microphone")) ? MicDevice : kAudioObjectUnknown;
+                CFEqual(uid, CFSTR(PLANK_MIC_DEVICE_UID)) ? MicDevice : kAudioObjectUnknown;
             break;
         }
         case kAudioPlugInPropertyResourceBundle: string = CFSTR(""); break;
-        case kAudioDevicePropertyDeviceUID: string = CFSTR("la.instinctual.PLANK.Microphone"); break;
-        case kAudioDevicePropertyModelUID: string = CFSTR("la.instinctual.PLANK.Microphone.Model"); break;
+        case kAudioDevicePropertyDeviceUID: string = CFSTR(PLANK_MIC_DEVICE_UID); break;
+        case kAudioDevicePropertyModelUID: string = CFSTR(PLANK_MIC_MODEL_UID); break;
         case kAudioDevicePropertyTransportType: value = kAudioDeviceTransportTypeVirtual; break;
         case kAudioDevicePropertyClockDomain: case kAudioDevicePropertyIsHidden:
         case kAudioDevicePropertyLatency: case kAudioDevicePropertySafetyOffset:
@@ -368,7 +380,11 @@ static OSStatus performIO(AudioServerPlugInDriverRef driver, AudioObjectID devic
     double position = cycle->mInputTime.mSampleTime;
     if (!(cycle->mInputTime.mFlags & kAudioTimeStampSampleTimeValid) || !isfinite(position) ||
         position < 0 || position > (double)(UINT64_MAX / 2) || !atomic_load(&running)) return noErr;
+#ifdef PLANK_MICROPHONE_IPC
+    micIPCRead((uint64_t)position, main, frames);
+#else
     PLANKMicBufferRead(&micBuffer, (uint64_t)position, main, frames);
+#endif
     return noErr;
 }
 static AudioServerPlugInDriverInterface interface = {

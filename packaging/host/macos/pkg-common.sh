@@ -8,6 +8,7 @@ umask 077
 ulimit -c 0
 
 app='/Applications/PLANK Host.app'
+microphone_driver='/Library/Audio/Plug-Ins/HAL/PLANK Microphone.driver'
 executable="$app/Contents/MacOS/plank-host"
 state='/Library/Application Support/PLANK'
 logs='/Library/Logs/PLANK'
@@ -59,6 +60,15 @@ verify_app() {
         requirement+=' or certificate leaf[field.1.2.840.113635.100.6.1.12] exists'
     fi
     /usr/bin/codesign --verify --strict --all-architectures -R "=$requirement)" "$app"
+}
+
+verify_microphone_driver() {
+    safe_directory "$microphone_driver"
+    safe_file "$microphone_driver/Contents/Info.plist" 644
+    safe_file "$microphone_driver/Contents/MacOS/plank-microphone" 755
+    /usr/bin/codesign --verify --strict --all-architectures \
+        -R "=identifier \"la.instinctual.PLANK.Microphone\" and anchor apple generic and certificate leaf[subject.OU] = \"$team\" and certificate leaf[field.1.2.840.113635.100.6.1.13] exists" \
+        "$microphone_driver"
 }
 
 job_path() {
@@ -198,6 +208,7 @@ preflight() {
     safe_directory /Library/LaunchAgents
     verify_jobs
     if present "$app"; then verify_app yes; fi
+    if present "$microphone_driver"; then verify_microphone_driver; fi
     if present "$state"; then safe_directory "$state"; check_configuration; fi
 }
 
