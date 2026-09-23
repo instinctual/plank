@@ -1,9 +1,53 @@
 # PLANK handoff
 
-## Current: RaptorQ 2 upgrade and application datagram pacer removal
+## Current task: microphone forwarding
 
-The root, Client, Linux Host and Kymux repositories are now on
-`raptorq-upgrade`, created from their complete `code-review-fixes` checkpoints,
+Root and Client are on `microphone-forwarding`, created from the complete
+`raptorq-upgrade` checkpoint: root `aee9431`, Client `5132482f`. The active
+worktree directory remains `build/worktrees/code-review-fixes`; its directory
+name is not its branch. Main and the unrelated primary research checkout
+remain untouched. Host/Kymux pins retain the qualified RaptorQ baseline.
+See `docs/development/plans/microphone-forwarding.plan` for the approved
+Linux/macOS Client to macOS Host scope, both Automatic defaults, toolbar
+mute/indicator, session-bound default-input selection/restoration and test gates.
+The foundation now includes an input-only 48 kHz mono AudioServerPlugIn,
+timestamp-addressed multi-reader sample storage, a non-installing HAL harness,
+and distinct synthetic-tone/reader probes. Production injection is deliberately
+not exposed. An optional reverse KyProto audio endpoint and bounded microphone
+envelope are tested over the existing encrypted connection; capability/control
+negotiation, Client capture/preferences/toolbar, Host injection/default-input
+ownership and packaging are **not implemented yet**. No feature is advertised.
+
+Validation: buffer tests pass optimized, ASan/UBSan and TSan runs (one million
+samples/two readers). Native macOS 27/SDK 27 component/harness builds pass
+`-Werror`, property/lifecycle/clock tests and ad-hoc bundle verification. The
+temporary synthetic device loaded into Core Audio and enumerated at 48 kHz.
+However, live reads returned silence without microphone permission; the GUI
+reader then timed out waiting for normal OS consent. This is **not** a live
+audio acceptance pass. No TCC or SIP changes were made. The test driver has
+been removed, Core Audio restarted, probe absence and the original no-input
+state verified. The production Host and output-device selection were unchanged.
+Latest non-installing probe rebuild also passes after cleanup.
+
+Transport validation: fixed vectors/bounds pass under Linux and Mac source-first
+feature selections; Linux library suite has 52 passes/5 explicit integration
+tests. Clippy passes with warnings denied. The full encrypted loopback runner
+passes reverse audio alongside existing lanes, authentication/cancellation/data
+checks, and three 150 Mbps/60 fps loss matrices (0/0.5/1/3/5%, 2700 frames,
+zero unrecovered objects or unintended proxy kernel drops). This tests transport
+records, not Opus capture/decode, physical microphone latency or WAN playback.
+
+Next gate: operator available at the dedicated development Mac for the normal
+microphone consent prompt; re-install only the distinct synthetic probe,
+obtain consent and prove nonzero tone delivery, then remove/restore it again.
+Machine-only staging and cleanup details are outside Git in private notes.
+Do not wire a real Client microphone or ship the driver before this gate.
+No new package, main merge or release occurred.
+
+## Preserved base: RaptorQ 2 upgrade and application datagram pacer removal
+
+The preserved root, Client, Linux Host and Kymux `raptorq-upgrade` branches
+were created from their complete `code-review-fixes` checkpoints,
 not main. The root baseline is `91eba02d39c0923008a3f7c9595636aa2b891d09`.
 The active worktree remains at `build/worktrees/code-review-fixes`; its directory
 name is not its current branch. Do not switch or modify the unrelated primary

@@ -571,6 +571,77 @@ mod tests {
             peer_certificate_der: _,
         } = client_protocols.expect("native KyProto client handshake failed");
 
+        // A Client-created audio source works over the same authenticated QUIC
+        // connection alongside the ordinary Host-created media/input lanes.
+        let (microphone_source, microphone_sink) = tokio::join!(
+            crate::microphone::open_source(&client_connection, options.handshake_timeout),
+            crate::microphone::open_sink(&server_connection, options.handshake_timeout),
+        );
+        let mut microphone_source = microphone_source.expect("reverse audio source");
+        let mut microphone_sink = microphone_sink.expect("reverse audio sink");
+        let microphone_packet = crate::microphone::Packet {
+            generation: 42,
+            sample_time: 0,
+            opus: Bytes::from_static(&[0xF0, 0xFF, 0xFE]),
+        };
+        let microphone_payload = microphone_packet.encode().unwrap();
+        microphone_source
+            .send
+            .send(AVPacket::Codec(CodecPacket {
+                header: CodecPacketHeader {
+                    codec: u32::from_be_bytes(*b"OPUS"),
+                    rotation: 0,
+                    frame_size: 480,
+                },
+            }))
+            .await
+            .unwrap();
+        microphone_source
+            .send
+            .send(AVPacket::Media(MediaPacket {
+                header: MediaPacketHeader {
+                    is_config: true,
+                    is_key: true,
+                    pts: 0,
+                    size: 0,
+                },
+                payload: Bytes::new(),
+            }))
+            .await
+            .unwrap();
+        microphone_source
+            .send
+            .send(AVPacket::Media(MediaPacket {
+                header: MediaPacketHeader {
+                    is_config: false,
+                    is_key: false,
+                    pts: 0,
+                    size: microphone_payload.len() as u32,
+                },
+                payload: microphone_payload,
+            }))
+            .await
+            .unwrap();
+        tokio::time::timeout(options.handshake_timeout, async {
+            assert!(matches!(
+                microphone_sink.recv.recv().await.unwrap(),
+                Some(AVPacket::Codec(_))
+            ));
+            assert!(matches!(
+                microphone_sink.recv.recv().await.unwrap(),
+                Some(AVPacket::Media(packet)) if packet.header.is_config
+            ));
+            let Some(AVPacket::Media(packet)) = microphone_sink.recv.recv().await.unwrap() else {
+                panic!("missing reverse audio packet");
+            };
+            assert_eq!(
+                crate::microphone::Packet::decode(packet.payload).unwrap(),
+                microphone_packet
+            );
+        })
+        .await
+        .expect("reverse audio delivery timeout");
+
         server_video
             .send
             .send(AVPacket::Codec(CodecPacket {

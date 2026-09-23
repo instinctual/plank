@@ -1,0 +1,116 @@
+# Microphone forwarding
+
+Status: implementation in progress; not advertised, packaged or qualified yet.
+Branch: microphone-forwarding, based on raptorq-upgrade root aee9431 and
+Client 5132482f. This retains all security/lifecycle fixes, RaptorQ 2.0.1,
+datagram-pacer removal and macOS profile-label cleanup. Do not merge to main
+or replace the matching 1.0.154 rollback candidates during development.
+
+## Agreed product behavior
+
+- Linux and macOS Clients send the OS-selected microphone to a macOS Host.
+  Linux Host microphone injection is not part of this phase.
+- Audio Settings has two independent Automatic/Manual choices, both default
+  Automatic: Microphone activation; Select PLANK Microphone as Host sound input.
+- Automatic activation starts only with an authenticated, microphone-capable
+  session and OS consent. Manual starts off until the toolbar button is used.
+- One compact toolbar microphone button displays active/off/unavailable state,
+  provides enable/mute and an accessible label/tooltip. Never imply recording
+  succeeded when permission, device access or Host delivery failed.
+- Off means no Client microphone capture. Disconnect ends capture. Temporary
+  reconnects and login/desktop transitions preserve the user's mute choice.
+- Automatic input selection saves the previous Host input device UID, selects
+  PLANK Microphone while the session owns it, and restores on final teardown
+  only if PLANK Microphone is still selected. Do not override later user changes.
+  Mute supplies silence; it must never switch to the physical Host microphone.
+- Manual selection publishes the virtual device without changing the default.
+  An application's explicit input selection remains under that application's
+  control. Device-unplug/crash/worker-replacement cleanup must be bounded.
+- Existing Host-to-Client audio is independent and must continue unchanged.
+
+## Architecture and constraints
+
+1. Client captures through SDL3 (PipeWire on Linux, Core Audio on macOS), using
+   the OS-selected recording source. Permission requests remain normal OS UI;
+   never grant or modify TCC databases. Capture begins only after authorization.
+2. Mono float PCM at 48 kHz is encoded as bounded short Opus packets. Carry
+   sequence/timestamps and explicit activation generations; late pre-mute audio
+   cannot play after unmute, reconnect, takeover or user switch.
+3. Negotiate a reverse KyProto audio endpoint on the existing authenticated
+   QUIC connection. No new port, tunnel, legacy transport or reliable media
+   backlog. Keep control messages bounded and capability-gate the feature.
+4. Host decodes outside Core Audio's real-time callback. Bound packet sizes,
+   queue duration, jitter and clock drift. Silence on starvation, stale producer,
+   teardown or invalid state; no delayed playback of old captured speech.
+5. Publish a minimal AudioServerPlugIn input-only device named PLANK Microphone.
+   Do not use a kernel extension or a DriverKit physical-device abstraction.
+   Keep network/Opus/authentication/default-device policy out of coreaudiod.
+   The authenticated session owner feeds an explicit bounded local IPC boundary;
+   reject other users/producers, and revoke it before handing over the session.
+6. Package/sign the plug-in with the Host and remove it through the normal
+   uninstaller. Qualify load/upgrade/removal on macOS27; do not assume a reboot
+   or audio-service restart is unnecessary. Never restart audio services on an
+   active production machine for this experiment.
+
+## Implementation gates
+
+[ ] A: Build a minimal virtual input and non-installing property/IO harness.
+       Prove silence, buffer bounds, timing, invalid requests and lifecycle.
+       Exercise a synthetic tone on the dedicated development Mac before
+       wiring a real Client microphone. No change to working audio output.
+[ ] B: Add negotiated reverse transport, wire vectors, malformed-peer and
+       cancellation/queue bounds tests. Test both directions simultaneously.
+[ ] C: Add Host injection/selection owner and Client capture/settings/toolbar;
+       install/uninstall support and explicit failure reporting.
+[ ] D: Build matching candidates on approved hosted builders, sign through the
+       protected environment, collect checksums and source provenance.
+[ ] E: Operator acceptance: Linux/Mac microphones, normal applications, both
+       defaults and Manual choices, mute, disconnect/reconnect, logout/login,
+       takeover, new-user permissions, microphone unplug/default change,
+       crash recovery, packet loss and multi-hour drift/latency. Headphones
+       first; speaker echo cancellation is separate qualification, not assumed.
+
+## Current component checkpoint
+
+Gate A is partial: optimized/sanitized portable buffer tests and the native
+macOS 27 HAL harness pass. A distinctly named synthetic-tone device successfully
+loads into Core Audio at 48 kHz. End-to-end reads remain unqualified: without
+microphone consent they returned silence; the GUI reader timed out waiting for
+consent. The temporary driver was removed and Core Audio restarted; the original
+no-input state was verified. No TCC/SIP changes or product installation occurred.
+
+Gate B is partial: optional reverse endpoint ID 1 works with existing KyProto
+APIs over the same authenticated connection, without dependency changes. The
+bounded 24-byte envelope and Opus payload limits have wire-vector/malformed-input
+tests. Existing concurrent lanes, cancellation and three optimized 150 Mbps
+loss-matrix runs pass. Capability/activation control, real Opus decoding,
+generation rejection, jitter/drift and session-bound queue policy remain open.
+
+The non-installing component command on the authorized development Mac is:
+
+```bash
+bash scripts/test/build-macos-microphone-probe.sh "$PWD" "$PLANK_MICROPHONE_PROBE_OUTPUT"
+```
+
+The output path must be absolute and not exist. This builds tests, an inert
+product component, a separate synthetic-tone driver and a reader app, all
+ad-hoc signed only for component qualification. It does not install/load either
+driver, record a physical microphone, alter defaults/permissions or restart
+audio. Live load/unload needs explicit machine authorization and normal OS
+microphone consent for the reader app. Do not grant SSH broad microphone access
+or confuse the ad-hoc test signature with distribution signing/notarization.
+
+Next: finish that live synthetic-tone gate with operator permission approval,
+then implement the authenticated local producer boundary. Neither a successful
+build nor a visible device proves applications receive the intended samples.
+
+## References
+
+- Apple: https://developer.apple.com/documentation/coreaudio/creating-an-audio-server-driver-plug-in
+- Apple: https://developer.apple.com/documentation/audiodriverkit/creating-an-audio-device-driver
+- SDL: https://wiki.libsdl.org/SDL3/SDL_OpenAudioDeviceStream
+
+Apple recommends Audio Server plug-ins for software-only virtual devices.
+ScreenCaptureKit microphone capture is not a virtual audio-input publisher.
+Prefer the established KyProto endpoint APIs; extend no dependency unless its
+existing reverse registration genuinely cannot meet the contract.
