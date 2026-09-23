@@ -14,22 +14,47 @@ The non-realtime control queue owns XPC/mapping retirement. Input selection is
 owned by the broker lease so a crashed desktop producer is revoked as well.
 Matching macOS launch schema is 4; Linux Hosts do not advertise microphone input.
 
-Candidate version is 1.0.156-microphone-forwarding. Initial root integration is
-a3fa67cb263a3329039399ff220c4cc1b4e3b7fb, Client b6732d97. Both are pushed.
-Hosted run35925971227 passed Ubuntu Client packaging; the other platforms
-exposed validation issues. Signed Mac Client35927339824 passed from256bc3a
-after adding the existing Qt ARM header flag to the new standalone test.
-Signed Host35927337280 exposed a real certificate-reply cancellation race in
-the repeated-request gate. The service now leaves that bounded one-shot link
-open until its caller consumes the reply and closes; no additional request can
-claim a graphical lease. Dedicated-Mac scope and100-request tests pass.
-Linux Host's three loss matrices passed, but its C-API audio receive check
-exposed a buffered-completion bug. KyProto audio and video now drain already
-completed packets after a late config instead of waiting for another arrival.
-Both deterministic regression tests fail before and pass after the fix; no
-wire, FEC redundancy or sender policy changes. Kymux is now on its matching
-microphone-forwarding branch; Linux Host's source pin remains unchanged.
-No main merge or production rollout is authorized.
+Candidate version is **1.0.156-microphone-forwarding**. Source is pushed:
+
+- Runtime integration root: `9a33735abde39d0575e3cf5172f5bc98e1be7f2c`.
+- Mac preview-test link correction: `b2d13660ffe6556575ce5faa54a98d47c49cd80f`.
+  This adds its missing signing-identity source, a source-wiring regression
+  check and a documentation link; application sources/pins are unchanged.
+- Client: `91d89ea4afe310f87eec7bec45b4f62d38c4ad3b`.
+- Kymux: `3f7a9d8618978287186e5d6ce0eaa067743cb06c`.
+- Linux Host: `5829bf7c335440a8b25c3330643eacb4d914f00a` (unchanged).
+
+Client and Kymux have matching `microphone-forwarding` branches. Recursive
+pins remain those listed in the preserved base below. The unrelated primary
+checkout is untouched. No main merge or production rollout is authorized.
+
+Hosted Linux Host `35928569298`, Ubuntu Client `35928572085` and signed Mac
+Client `35928578495` passed at `9a33735`; signed Mac Host `35929409181` passed
+at `b2d1366`.
+Mac packages pass Developer ID signing, notarization and stapling. The temporary
+branch signing policy has been removed; only the existing main policy remains.
+The Host PKG also passes Gatekeeper/staple verification on the dedicated Mac,
+without installation. Collected packages and exact source/hash manifests are in
+`artifacts/packages/candidates/1.0.156-microphone-forwarding/` in the canonical
+checkout. All four transferred packages pass SHA-256 verification. Linux Host
+also passes its three controlled-loss matrices and both native C-ABI trust modes.
+
+| Candidate package | SHA-256 |
+| --- | --- |
+| Linux Host RPM | `d0ca8b98198f67aae6c3bc9ccdbe9456005f7821e2c0b19396784f724f6ed02d` |
+| Linux Client DEB | `2a0297fe1fa3f187ef259a2210a9d3e2d2204cec5197e40fe5017ba59c77f500` |
+| macOS Host PKG | `ebd4168473c92b809c79d6f598b4f9205a7179a37feb1c6f6b679f61352dcde7` |
+| macOS Client DMG | `d763c85aa1be72b5a6a18b66a42159c06e7385ff06582c2880d754970609d3a7` |
+
+Build validation exposed and fixed two real startup issues. The certificate
+service now leaves a bounded one-shot link open until its caller consumes the
+reply; sender-barrier cancellation could discard it. No additional request can
+claim a graphical lease. Dedicated-Mac scope and 100-request tests pass.
+KyProto audio/video now drain already completed packets after a late config
+instead of waiting for another arrival. Both deterministic regressions fail
+before and pass after the fix. Wire/FEC policy and sender settings are unchanged.
+Initial failures and the test-only link/Qt-header corrections remain recorded
+in private evidence; no gate was disabled to produce these candidates.
 
 The managed synthetic fixture now passes repeated reader opens and leaves
 Core Audio idle afterward. Constant-value diagnostics show startup silence,
@@ -52,15 +77,24 @@ installation/reload timing is not yet qualified. The production Host is unchange
 Exact staging and evidence belong in the private microphone note, not Git.
 
 The encrypted microphone FFI test passes setup/direct entry points and mute/
-generation/bounds. An earlier full loss runner failed its second matrix on an
-in-order PTS assertion with zero kernel drops. A diagnostic repeat passed three
-matrices unchanged; retain the original failure as unresolved, not erased by
-that repeat. Post-drain-fix suites are being qualified independently. Full
-Host/Client builds, driver installation/upgrade, selection
-restoration/user override, crash/mute/takeover and physical input acceptance
-remain gates. The Development NUC was unreachable; do not substitute an
-End-User target without authorization. Continue until candidate validation is complete or user testing
-is genuinely needed; do not stop merely at a component checkpoint.
+generation/bounds. Post-drain-fix loss qualification passes three consecutive
+matrices for each sender selection at 150 Mbps / 60 fps, with 0/0.5/1/3/5%
+injected loss: 5400 frames, zero unrecovered objects and zero proxy kernel drops.
+Both native C-ABI round trips and strict production Clippy pass. An earlier
+runner failed an in-order PTS assertion with zero kernel drops; a diagnostic
+repeat passed unchanged. That original failure remains retained/unresolved,
+not retrospectively attributed to the independently demonstrated drain bug.
+
+Next: install matching candidates on authorized hardware and follow
+`docs/user/microphone.md`. Implementation and candidate-build work are complete;
+no package has been installed by this microphone task.
+Driver installation/upgrade, real input restoration/user override, full-app
+mute/reconnect/takeover, physical speech and long-call drift remain acceptance
+gates. The Development NUC is unreachable and the dedicated Mac has no physical
+input device; the operator has been asked to bring the NUC/microphone online.
+Administrative installation also needs normal authorization on the dedicated
+Mac. Do not substitute an End-User target or bypass OS consent. The synthetic
+reader approval is not permission granted to the real Client application.
 
 ## Preserved base: RaptorQ 2 upgrade and application datagram pacer removal
 

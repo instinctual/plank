@@ -85,4 +85,4 @@ xcrun --sdk macosx clang -O2 -g -fobjc-arc -mmacosx-version-min=27.0 -Wall -Wext
     apps/host/macos/audio-device/microphone-{broker,producer,selection}.m \
     -framework Foundation -framework Security -framework CoreAudio -o "$output/microphone-managed"
 codesign --force --sign - --identifier la.instinctual.PLANK.Microphone.Probe.Managed "$output/microphone-managed"
-echo "microphone_component_gate=pass installed=no production_injection=not-implemented"
+echo "microphone_component_gate=pass installed=no production_injection=not-qualified"

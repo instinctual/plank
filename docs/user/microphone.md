@@ -31,3 +31,19 @@ Start testing with headphones. Echo cancellation and conferencing-application
 compatibility are not yet qualified. Audio is mono, 48 kHz Opus; no extra firewall
 port is needed, and normal Host-to-Client sound remains separate. Captured speech
 is not written to PLANK logs.
+
+## Candidate test
+
+1. Use headphones and confirm the Client OS input meter responds to speech.
+   Connect to the macOS Host with both microphone choices set to Automatic.
+2. Confirm the toolbar shows **On**, then check the Host's Sound → Input meter
+   for **PLANK Microphone**. Test a recording in an application with its normal
+   microphone permission granted.
+3. Mute from the toolbar: the Host input should become silent without switching
+   to another input. Unmute and confirm speech returns.
+4. Disconnect and check that the previous Host input is restored. Repeat with
+   Manual activation, then with Manual input selection. A Host input change you
+   make yourself during the session should not be undone at disconnect.
+
+Login/logout, takeover, device changes and longer calls remain separate
+acceptance checks; a moving input meter alone does not qualify those cases.
