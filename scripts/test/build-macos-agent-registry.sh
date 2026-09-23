@@ -25,6 +25,7 @@ xcrun --sdk macosx clang -mmacosx-version-min=27.0 -fobjc-arc -Wall -Wextra -Wer
 codesign --force --sign - --identifier la.instinctual.PLANK.AgentRegistryTest "$output/agent-registry"
 codesign --verify --strict "$output/agent-registry"
 "$output/agent-registry" --synthetic
+"$output/agent-registry" --identity-only
 xcrun --sdk macosx clang -mmacosx-version-min=27.0 -fobjc-arc -Wall -Wextra -Werror \
     -Iapps/host/macos/session -Iapps/host/macos/auth apps/host/macos/session/agent-registry.m \
     apps/host/macos/session/agent-connection.m apps/host/macos/auth/authentication-session.m \

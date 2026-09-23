@@ -2,9 +2,9 @@
 
 ## Current task: microphone forwarding
 
-### Live implementation checkpoint (supersedes the foundation status below)
+### Integration and candidate validation
 
-The current uncommitted integration adds negotiated reverse audio, Client
+The current integration adds negotiated reverse audio, Client
 Automatic/Manual preferences and toolbar state/mute, native Host Opus decoding,
 and a broker-owned virtual-input lease. Both choices default Automatic. The
 existing machine coordinator authenticates the active desktop worker and the
@@ -14,8 +14,13 @@ The non-realtime control queue owns XPC/mapping retirement. Input selection is
 owned by the broker lease so a crashed desktop producer is revoked as well.
 Matching macOS launch schema is 4; Linux Hosts do not advertise microphone input.
 
-Candidate version is 1.0.155-microphone-forwarding, not built or installed yet.
-Root foundation is 7574025; Client remains 5132482f plus current working changes.
+Candidate version is 1.0.155-microphone-forwarding. Root integration is
+a3fa67cb263a3329039399ff220c4cc1b4e3b7fb, Client b6732d97. Both are pushed.
+Hosted run35925971227 passed Ubuntu Client packaging; the other platforms
+are still being qualified. The first Mac Host attempt failed its existing
+certificate-request fixture. The fixture is being aligned with the actual
+one-shot caller's XPC lifetime, with a repeated-request gate and diagnostics;
+this does not change production authentication. Dedicated-Mac tests pass.
 Linux Host and Kymux remain at the pins recorded in the preserved base below.
 No main merge or production rollout is authorized.
 
@@ -30,9 +35,13 @@ dummy-SDL capture, immediate mute under control-queue pressure, reopen, dropped
 send handling, transport failure and joined shutdown. No physical microphone
 recording or complete application-to-application qualification has occurred.
 
-Temporary probe driver and broker are CURRENTLY INSTALLED on the dedicated
-development Mac. They must be removed before product installation, preserving
-the original input/output state. The existing production Host is unchanged.
+The temporary probe driver and broker have been removed from the dedicated
+development Mac; its original no-input state is restored. Duplicate producer
+rejection, SIGKILL-to-silence and replacement producer tests pass. Previous
+default-device restoration/user override passes the fake-HAL tests, but no
+physical input device was available for that live check. Core Audio briefly
+stalled during post-removal enumeration after restart, then returned idle;
+installation/reload timing is not yet qualified. The production Host is unchanged.
 Exact staging and evidence belong in the private microphone note, not Git.
 
 The encrypted microphone FFI test passes setup/direct entry points and mute/
@@ -41,69 +50,9 @@ failed the second on an in-order PTS assertion with zero reported kernel drops;
 retain and investigate that failure, do not retry it away or claim the full
 gate passed. Full Host/Client builds, driver installation/upgrade, selection
 restoration/user override, crash/mute/takeover and physical input acceptance
-remain gates. Continue until candidate validation is complete or user testing
+remain gates. The Development NUC was unreachable; do not substitute an
+End-User target without authorization. Continue until candidate validation is complete or user testing
 is genuinely needed; do not stop merely at a component checkpoint.
-
-### Historical foundation results (before the live integration above)
-
-Root and Client are on `microphone-forwarding`, created from the complete
-`raptorq-upgrade` checkpoint: root `aee9431`, Client `5132482f`. The active
-worktree directory remains `build/worktrees/code-review-fixes`; its directory
-name is not its branch. Main and the unrelated primary research checkout
-remain untouched. Host/Kymux pins retain the qualified RaptorQ baseline.
-See `docs/development/plans/microphone-forwarding.plan` for the approved
-Linux/macOS Client to macOS Host scope, both Automatic defaults, toolbar
-mute/indicator, session-bound default-input selection/restoration and test gates.
-The foundation now includes an input-only 48 kHz mono AudioServerPlugIn,
-timestamp-addressed multi-reader sample storage, a non-installing HAL harness,
-and distinct synthetic-tone/reader probes. Production injection is deliberately
-not exposed. An optional reverse KyProto audio endpoint and bounded microphone
-envelope are tested over the existing encrypted connection; capability/control
-negotiation, Client capture/preferences/toolbar, Host injection/default-input
-ownership and packaging are **not implemented yet**. No feature is advertised.
-
-Validation: buffer tests pass optimized, ASan/UBSan and TSan runs (one million
-samples/two readers). Native macOS 27/SDK 27 component/harness builds pass
-`-Werror`, property/lifecycle/clock tests and ad-hoc bundle verification.
-The operator granted ordinary microphone permission to the GUI reader.
-The real synthetic input passes single/concurrent readers and four consecutive
-open/read/close cycles at 48 kHz, with the expected tone amplitude and no invalid
-samples. The component no longer sends redundant synchronous running-state
-notifications back to the HAL from HAL-initiated IO callbacks. No TCC database,
-SIP or production Host changes were made. Permission is no longer a blocker.
-
-Local injection remains **unqualified**. Native XPC accepts the Apple-signed
-isolated Core Audio driver helper without sandbox exceptions. Per-block RPC
-was rejected for gaps; fixed-size shared-memory delivery has a successful
-two-reader interval with zero missing/disabled samples after startup, and
-source loss produces silence. However, repeated reads with that IPC fixture
-also exposed Core Audio enumeration stalls/high CPU and later audio gaps.
-Removing synchronous running-state notifications alone did not fix that IPC
-lifecycle problem. The final direct-tone control (without IPC) passes all four
-reopens and leaves Core Audio near idle. Do not mistake the reader's basic
-tone-presence threshold or the one clean interval for IPC acceptance. The
-XPC files are test-only, not a shipping injection path or a new product daemon.
-
-All temporary drivers and the root test service are removed/unregistered;
-Core Audio was restarted, probe absence and the original no-input state verified.
-Existing output devices/production Host binaries were unchanged. Reuse the
-already-approved exact reader app for further live tests: rebuilding an ad-hoc
-signed reader changes its code hash and can require fresh consent.
-
-Transport validation: fixed vectors/bounds pass under Linux and Mac source-first
-feature selections; Linux library suite has 52 passes/5 explicit integration
-tests. Clippy passes with warnings denied. The full encrypted loopback runner
-passes reverse audio alongside existing lanes, authentication/cancellation/data
-checks, and three 150 Mbps/60 fps loss matrices (0/0.5/1/3/5%, 2700 frames,
-zero unrecovered objects or unintended proxy kernel drops). This tests transport
-records, not Opus capture/decode, physical microphone latency or WAN playback.
-
-Next gate: isolate the local IPC fixture's reopen/lifetime issue before
-promoting it into the existing coordinator's authenticated producer lifecycle.
-Then implement negotiated activation, real Client capture/UI and Host input
-ownership. Machine-only staging and cleanup details are outside Git in private
-notes. Do not advertise or ship the microphone capability before these gates.
-No new package, main merge or release occurred.
 
 ## Preserved base: RaptorQ 2 upgrade and application datagram pacer removal
 

@@ -123,7 +123,7 @@ static BOOL until(Fixture *f, BOOL (^predicate)(void)) {
     return NO;
 }
 
-static void connectionTests(NSString *requirement) {
+static void identityTests(NSString *requirement) {
     // Certificate issuance is independent of the exclusive graphical lease.
     // Use signed anonymous XPC and synthetic scope; never create machine keys.
     for (unsigned scenario = 0; scenario < 5; ++scenario) {
@@ -138,7 +138,13 @@ static void connectionTests(NSString *requirement) {
                 return @{@"certificate": csr, @"der": csr, @"authority": csr};
             };
         });
-        xpc_connection_t peer = [fixture client];
+        // Match PLANKMacAuthorizeDesktopIdentity: this is a one-shot request,
+        // not a graphical lease. An interruption may race the queued reply;
+        // leave cancellation to the caller after consuming that reply.
+        xpc_connection_t peer = [fixture inactiveClient];
+        CHECK(!xpc_connection_set_peer_code_signing_requirement(peer, requirement.UTF8String));
+        xpc_connection_set_event_handler(peer, ^(xpc_object_t event) { (void)event; });
+        xpc_connection_activate(peer);
         xpc_object_t message = xpc_dictionary_create(NULL, NULL, 0);
         xpc_dictionary_set_uint64(message, "version", 1);
         xpc_dictionary_set_uint64(message, "operation", 5);
@@ -148,6 +154,9 @@ static void connectionTests(NSString *requirement) {
         if (scenario == 2) xpc_dictionary_set_string(message, "csr", "wrong-type");
         if (scenario == 4) dispatch_sync(fixture.queue, ^{ fixture.allowed = NO; });
         xpc_object_t reply = request(peer, message);
+        if (status(reply, 0) != (scenario == 0 && getuid() != 0))
+            fprintf(stderr, "identity scenario=%u reply=%s\n", scenario,
+                !reply ? "timeout" : xpc_get_type(reply) == XPC_TYPE_ERROR ? "xpc-error" : "dictionary");
         CHECK(status(reply, 0) == (scenario == 0 && getuid() != 0));
         if (status(reply, 0)) {
             CHECK(xpc_dictionary_get_count(reply) == 5);
@@ -161,6 +170,10 @@ static void connectionTests(NSString *requirement) {
         });
         [fixture close]; xpc_connection_cancel(peer);
     }
+}
+
+static void connectionTests(NSString *requirement) {
+    identityTests(requirement);
     @autoreleasepool {
         Fixture *f = [[Fixture alloc] initWithNative:NO requirement:requirement];
         for (unsigned invalid = 0; invalid < 3; ++invalid) {
@@ -251,10 +264,16 @@ static void connectionTests(NSString *requirement) {
 
 int main(int argc, const char **argv) {
     BOOL native = argc == 1;
-    if (argc != 1 && (argc != 2 || strcmp(argv[1], "--synthetic"))) return 2;
+    BOOL identityOnly = argc == 2 && !strcmp(argv[1], "--identity-only");
+    if (argc != 1 && !identityOnly && (argc != 2 || strcmp(argv[1], "--synthetic"))) return 2;
     alarm(60); setbuf(stdout, NULL);
     @autoreleasepool {
         NSString *requirement = PLANKMacOwnSigningRequirement(); CHECK(requirement.length > 0);
+        if (identityOnly) {
+            for (unsigned i = 0; i < 100; ++i) identityTests(requirement);
+            printf("agent_identity_checks=%u result=0\n", checks);
+            return 0;
+        }
         CHECK(PLANKMacObserveAgentScope((PLANKMacAgentPeer){0}) == PLANKMacAgentUnavailable);
         CHECK(PLANKMacObserveAgentScope((PLANKMacAgentPeer){(uid_t)-1, getpid(), 1}) == PLANKMacAgentUnavailable);
         CHECK(PLANKMacObserveAgentScope((PLANKMacAgentPeer){getuid(), getpid(), UINT32_MAX}) == PLANKMacAgentUnavailable);
@@ -294,12 +313,25 @@ int main(int argc, const char **argv) {
         xpc_connection_t peer = [f client]; xpc_object_t reply = request(peer, message(1, 0, 0));
         CHECK(status(reply, 0)); uint64_t generation = xpc_dictionary_get_uint64(reply, "generation"); CHECK(generation != 0);
         CHECK(until(f, ^BOOL { return f.attached == 1; }));
+        dispatch_sync(f.queue, ^{
+            PLANKMacAgentPeer actual = f.lease.peer;
+            CHECK([f.registry admitsDesktopPeer:actual generation:generation] == (actual.uid != 0));
+            CHECK(![f.registry admitsDesktopPeer:actual generation:0]);
+            CHECK(![f.registry admitsDesktopPeer:actual generation:generation ^ 1]);
+            PLANKMacAgentPeer other = actual; other.pid++;
+            CHECK(![f.registry admitsDesktopPeer:other generation:generation]);
+            other = actual; other.auditSession++;
+            CHECK(![f.registry admitsDesktopPeer:other generation:generation]);
+            other = actual; other.uid++;
+            CHECK(![f.registry admitsDesktopPeer:other generation:generation]);
+        });
         CHECK(status(request(peer, message(2, generation, 1)), 0));
         __block BOOL completed;
         dispatch_sync(f.queue, ^{ completed = [f.registry completeRetirement:f.lease]; }); CHECK(!completed);
         xpc_connection_t contender = [f client]; CHECK(status(request(contender, message(1, 0, 0)), 1));
         dispatch_sync(f.queue, ^{ f.allowed = NO; [f.registry refresh]; f.allowed = YES; [f.registry refresh]; });
         CHECK(until(f, ^BOOL { return f.revoked == 1 && !f.lease.active; }));
+        dispatch_sync(f.queue, ^{ CHECK(![f.registry admitsDesktopPeer:f.lease.peer generation:generation]); });
         CHECK(status(request(peer, message(2, generation, 2)), 2));
         CHECK(status(request(contender, message(1, 0, 0)), 1)); // Scope recovery cannot revive or replace.
         CHECK(status(request(peer, message(3, generation, 3)), 2));

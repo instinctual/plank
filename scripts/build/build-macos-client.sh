@@ -75,6 +75,7 @@ mkdir -p "$build/tests/client-microphone"
 (
     cd "$build/tests/client-microphone"
     qmake "$source_root/tests/audio/client-microphone.pro" "PLANK_CLIENT_SOURCE=$client" \
+        "QMAKE_CXXFLAGS+=-include arm_acle.h" \
         CONFIG+=release QMAKE_MACOSX_DEPLOYMENT_TARGET="$MACOSX_DEPLOYMENT_TARGET" QMAKE_APPLE_DEVICE_ARCHS=arm64
     make -j2
     ./client-microphone
