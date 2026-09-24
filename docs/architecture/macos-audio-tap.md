@@ -3,6 +3,17 @@
 Current desktop capture is restricted to PLANK Output with `CATapUnmuted`,
 preserving the non-root process allowlist and verified system-alert membership.
 Physical outputs play locally. See [PLANK Output](../development/plans/macos-output-device.plan).
+ScreenCaptureKit continues to capture desktop video, with its audio output
+disabled. Its [stream configuration](https://developer.apple.com/documentation/screencapturekit/scstreamconfiguration)
+has no playback-output device selector in the macOS27 SDK; microphone device
+selection is a separate input capability. The Core Audio
+[device/stream tap](https://developer.apple.com/documentation/coreaudio/catapdescription/init%28processes%3Adeviceuid%3Astream%3A%29)
+restricts capture to audio destined for PLANK Output. This requires separate
+audio lifecycle and buffering, but preserves the distinction between local and
+remote playback. ScreenCaptureKit itself does not route audio to speakers.
+The root LoginWindow worker retains its separate ScreenCaptureKit audio path;
+the desktop process tap is never broadened to a global root tap.
+
 The earlier suppression investigation and qualification below describe the
 preceding implementation, whose global output scope is superseded.
 

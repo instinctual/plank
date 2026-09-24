@@ -24,87 +24,82 @@ application-delivery results; the current implementation adds stereo audio. Main
 Client gitlink are retained. The separate startup-fix worktree, main worktree
 and primary RK3576 research are untouched.
 
-### Current checkpoint: camera setup fix packaged and staged
+### Current checkpoint: PLANK Output routing fix packaged and staged
 
-The operator reported that Host setup offered Enable Camera again after an
-upgrade. Installed system logs confirm that macOS inherited the previous
-camera-extension approval; the redundant prompt came from PLANK's setup UI.
-Host1.1.008 queries the extension's actual properties, reconciles an already
-enabled extension with the bundled version, and shows Camera enabled without
-another enable button. First-time or disabled cameras retain explicit setup.
-Query failures never imply approval; genuine approval, failure and restart
-responses remain visible. Retired extension copies cannot override a disabled
-camera. Neither setup nor the status query starts camera capture.
+The operator confirmed that PLANK Output works when selected manually, requested
+normal local playback through physical outputs, and reported that Ubuntu
+Client1.1.006 did not select PLANK Output automatically. Read-only installed
+inspection confirms Host1.1.008, a compatible loaded output driver, both defaults
+manually selected, and the missing private routing directory. All four installed
+Host1.1.008 component hashes match its signed package. The Client's installed
+version is1.1.006-native-media-investigation.
 
-Exact signed source: `cecfc6594f57621b423c06b2e7be79fa0d908f62`;
-Client `a5d2871d9cb5` changes only bundled release notes. Other gitlinks remain
-as recorded below. Hosted run
-[36052047214](https://github.com/instinctual/plank/actions/runs/36052047214)
-passes the full Host build, tests, signing, notarization and packaging gates.
-The new SDK27 ASan/UBSan setup regression exercises enabled/upgrade, disabled,
-first-use, retired copies, query errors, actual approval, reboot and timeout
-callbacks through the production flow, with OS submission and modal UI replaced
-by fixtures. It passes on the dedicated development Mac and hosted builder.
+Host1.1.009 restricts desktop capture to the PLANK Output UID and stream0, with
+an inclusive verified-process allowlist and CATapUnmuted. Volume and mute follow
+that device independently of the physical default. Missing PLANK Output does not
+fall back to capturing physical outputs. Desktop ScreenCaptureKit still captures
+video, with its audio output disabled; it has no playback-device selector in the
+macOS27 SDK. Root LoginWindow retains its separate ScreenCaptureKit audio path.
+See [the audio architecture](docs/architecture/macos-audio-tap.md).
 
-Package1.1.008 is collected in the candidate catalog and staged in the authorized
-Mac Host test target's Downloads. SHA-256:
-`eed5fd01b8899aed869f6e44b17231da115050016f0173da779437b0ee2fe646`.
+Automatic selection failed because the recovery journal requires a root-owned
+0700 directory, while the shared settings directory is intentionally0755. The
+installer now creates a dedicated OutputRouting directory with0700 permissions
+before starting roles. Shared settings remain0755; unsafe directories and
+symlinks are rejected. Prior-device recovery and manual-selection ownership are
+preserved. Existing compatible Clients use the unchanged Opus/Kymux transport.
+
+Exact signed source: `bc47e99e47dc7493d0fb69aa3eab1cc5c505c8a3`;
+Client `d80645162b700b01b6228c7bfaa591bb64fdfe9d` changes only release notes.
+Other gitlinks remain as recorded below. Hosted run
+[36055041948](https://github.com/instinctual/plank/actions/runs/36055041948)
+passes the full Host build, tests, signing, notarization and package gates.
+SDK27 ASan/UBSan output driver, tap, journal and broker checks also pass on the
+dedicated development Mac. The tap fixture verifies the real CATapDescription
+and production device/volume logic, with HAL boundaries replaced; it is not
+physical playback acceptance. Audio ring, lifecycle, volume and recovery checks
+pass. Hosted packaging passes9 tests,29 lifecycle checks and70 isolated root
+filesystem checks, including private-directory creation and unsafe-state rejection.
+
+Package1.1.009 is collected under
+`artifacts/packages/candidates/1.1.009-native-media-investigation/macos/`
+and staged in the authorized Mac Host test target's Downloads. SHA-256:
+`40794369dccd460757b4e15e35d5b27d5b8944e36a1d63e0e9192e9f7d683d18`.
 Transfer checksum, package signature, Gatekeeper, version, RecommendRestart and
 all four payload signatures pass on the target. Temporary signing permission
-is removed; only main remains allowed. No1.1.008 installation is claimed.
-Next: administrator installation and confirmation that the enabled-camera setup
-window has only Close. Existing compatible Clients can remain installed.
+is removed; only main remains allowed. Host1.1.009 is not installed. The active
+session was preserved; no Core Audio restart or reboot was performed.
 
-### PLANK Output candidate1.1.007
+Next: administrator installation, then confirm automatic selection on connection,
+remote audio/volume/mute, local playback from apps pinned to physical outputs,
+and restoration/manual override on disconnect. Crash, unplug and A/V soak remain
+live gates. Existing Ubuntu Client1.1.006 can remain installed. See
+[the output plan](docs/development/plans/macos-output-device.plan) and
+[user instructions](docs/user/macos-audio-output.md).
 
-The operator approved adding PLANK Output as the Mac's remote playback device.
-Signed candidate1.1.007 is collected and staged for administrator installation.
-Exact source: `d844c5af0b2b02a42f97c9452dd8688ccefbd430`, changelog-only Client
-`02e2663f5354f53166681fb37a58b7cf43481053`; other gitlinks are unchanged.
-Hosted run [36049265020](https://github.com/instinctual/plank/actions/runs/36049265020)
-passes the full Mac Host build, tests, signing, notarization and package gates.
-PKG SHA-256:
-`4e8b69ba930482b9b3309a708f17ae6d628eb3a2dd633303a297f6f50492d886`.
-The package is in the1.1.007 candidate catalog and the authorized Mac Host test
-target's Downloads. Transfer checksum, package signature/notarization,
-Gatekeeper, all four component signatures, and the actual signed package's
-`RecommendRestart` action pass on the target. Temporary signing permission is
-removed; only main remains allowed. The target now has1.1.007 installed, and all
-four installed component hashes match this package. Its camera extension is
-enabled and retained approval when replacing1.1.006.
+### Installed camera setup fix
 
-PLANK Output is a real output-only HAL sink with48kHz stereo Float32, volume
-and mute controls. The existing owned-process tap captures upstream PCM,
-retaining active-user isolation, system-alert validation, and applications
-pinned to another device. The same Opus/Kymux path is used. An admitted worker
-requests routing only after audio starts. Root records previous playback/alert
-UIDs privately before selection, restores only owned defaults, and retries
-failed restoration. An unplugged original falls back only to a built-in output.
-Coordinator crash restart recovers its journal. No Client protocol changes.
+Host1.1.008 fixed PLANK's redundant Enable Camera dialog after upgrades. The OS
+had retained camera approval. Setup now queries actual extension properties,
+reconciles an enabled extension with the bundled version, and shows Camera
+enabled without another enable button. Disabled/first-use, genuine approval,
+error and reboot responses remain explicit. Neither status queries nor setup
+start capture. Installed hashes are verified; ready-window confirmation remains
+pending. The fix is retained in1.1.009.
 
-SDK27 ASan/UBSan driver, journal and anonymous-XPC broker tests pass, including
-control values, buffer bounds, manual override, crash recovery, partial failure,
-unsafe journals, malformed requests, ownership, generation rejection and lease
-expiry. The broker fixture waits for actual queued restoration after XPC
-rejection and passes20 consecutive local runs plus the hosted gate. Its root
-and signature admission are fixture boundaries; installed authorization remains
-a live gate. Capture recovery passes route-before-tap teardown and denied-start
-checks. Hosted packaging passes9 package tests,29 lifecycle checks and65 checks
-with the isolated root filesystem fixture. All62 CI-policy tests pass.
+Its exact signed source was `cecfc6594f57621b423c06b2e7be79fa0d908f62`, with
+Client `a5d2871d9cb5c13a51b76f3b7b19731835b4f5a9`. Hosted run
+[36052047214](https://github.com/instinctual/plank/actions/runs/36052047214)
+passed the full Host gates and SDK27 setup regressions; OS submission and modal
+UI are fixture boundaries. The retained1.1.008 package SHA-256 is
+`eed5fd01b8899aed869f6e44b17231da115050016f0173da779437b0ee2fe646`.
 
-See [the output plan](docs/development/plans/macos-output-device.plan) and
-[user instructions](docs/user/macos-audio-output.md). Live qualification remains:
-confirm the loaded output driver after restart, then check Sound Settings selection, volume/mute,
-application/alert audio, pinned outputs, disconnect and crash recovery. The
-operator's active session was preserved. Existing compatible Clients can remain
-installed; Ubuntu Client1.1.006 is already staged separately.
-
-### Current checkpoint: installed camera tests and installer restart recommendation
+### Installed camera tests and earlier compatibility qualification
 
 The operator resumed office testing with the development Ubuntu Client and a
 newly authorized Mac Host test target. The dedicated development Mac remains
-the only local Mac compile/probe-build target. The new test target has signed
-Host1.1.006 installed; all three component hashes match the collected package.
+the only local Mac compile/probe-build target. The initial installed tests used signed
+Host1.1.006; all three component hashes matched the collected package.
 The latest Core Audio inventory now reports PLANK Microphone at48kHz with two
 input channels and selected as the default input. The earlier stale mono driver
 is no longer exposed; physical stereo routing remains unqualified.
@@ -133,21 +128,22 @@ Ubuntu Client1.1.006 was built at root
 The exact DEB is collected in the candidate catalog and staged in the Client's
 Downloads with matching SHA-256
 `8507874db51a15f25f05db6b2cf3581cb0dcffe90354a0e5267ed740c833bee6`.
-It is not installed; the operator's Client1.1.004 session was left running.
+The operator subsequently installed Client1.1.006; its installed version is now
+verified. The initial staging preserved the then-active Client1.1.004 session.
 
 Installer source `e6712b3f114bef6f0c23aeac35ce6ef03686f167` adds the native
 `RecommendRestart` conclusion, explains updated driver loading, and permits
 deferral. The final PKG build checks its actual Installer restart action.
 On the dedicated macOS27 Mac, all9 packaging tests and29 installer-script
 checks pass, including a real non-installing product-package fixture reporting
-`RecommendRestart`. Portable checks pass with2 Mac-only tests skipped. No new
-signed Host package was built: existing1.1.006 packages do not contain this
-change. Use a new version for the next Host candidate. Save work before the
-operator's reboot; do not reboot automatically or restart Core Audio.
+`RecommendRestart`. Portable checks pass with2 Mac-only tests skipped.
+Host1.1.007 and later signed packages include this change; existing1.1.006
+packages do not. Save work before the operator's reboot; do not reboot
+automatically or restart Core Audio.
 
 The operator authorized independent per-feature schemas and compatibility with
 older peers after a schema 4 Client could not connect to the schema 5 Host.
-The installed Host candidate is **1.1.006-native-media-investigation**. Implementation
+Host1.1.006 included that implementation, which
 adds authenticated feature negotiation, launch 7 and exact schema 4/5/6 adapters.
 Schema4 disables its incompatible mono microphone; schemas5/6 retain stereo
 microphone, and camera requires schema 6/7. New Clients bridge only known older
