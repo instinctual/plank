@@ -10,7 +10,7 @@ if [[ $(uname -s) != Darwin || $(uname -m) != arm64 ||
     echo 'Requires the authorized Apple Silicon macOS 27/SDK 27 development Mac.' >&2; exit 2
 fi
 identity=-
-sign_flags=()
+sign_flags=(--timestamp=none)
 if [[ $3 == --sign ]]; then
     if [[ ! ${PLANK_MACOS_SIGNING_IDENTITY:-} =~ ^[A-Fa-f0-9]{40}$ ]]; then
         echo 'Set PLANK_MACOS_SIGNING_IDENTITY to the authorized Developer ID identity SHA-1.' >&2; exit 2
