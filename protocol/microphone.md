@@ -45,8 +45,12 @@ selection policy is fixed for the session. Mute closes Client recording before
 waiting for the reliable command queue. Active capture waits for the matching
 Host acknowledgement and normal OS permission. Invalid controls fail closed.
 
-The source queue holds two packets (20 ms), the receiver eight (80 ms), and
-packets older than 100 ms are discarded. Overflow evicts the oldest packet;
+The source queue holds six packets (60 ms), the receiver eight (80 ms), and
+packets older than 100 ms are discarded. The source accepts one complete Client
+capture batch before its asynchronous sender must run; a two-packet queue
+dropped valid audio-server bursts in physical camera/microphone tests. Capacity
+does not add a wait: the sender drains available packets immediately.
+Overflow evicts the oldest packet;
 generation changes clear both queues. Late or out-of-order microphone media is
 discarded without terminating video. Endpoint creation/failure is bounded and
 does not stop otherwise healthy output audio/video. All endpoint futures share

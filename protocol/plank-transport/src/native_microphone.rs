@@ -3,7 +3,11 @@
 use super::*;
 use crate::microphone::{self, FRAME_SAMPLES, MAX_OPUS_BYTES, Packet};
 
-const SEND_PACKETS: usize = 2;
+// SDL/PipeWire can deliver several 10 ms packets in one capture callback. The
+// Client drains at most six per batch; accept that complete batch without
+// requiring the async sender to be scheduled between adjacent FFI calls.
+// This is capacity, not a playout delay: the sender drains immediately.
+const SEND_PACKETS: usize = 6;
 const RECEIVE_PACKETS: usize = 8;
 const MAX_AGE: Duration = Duration::from_millis(100);
 
@@ -375,6 +379,32 @@ mod tests {
             sample_time: n * 480,
             opus: Bytes::from_static(&[1]),
         }
+    }
+    #[test]
+    fn capture_batch_survives_sender_scheduling_delay() {
+        let microphone = Microphone::default();
+        {
+            let mut state = microphone.state.lock().unwrap();
+            state.enabled = true;
+            state.status = 2;
+        }
+        assert!(microphone.activate(1));
+        // Match one maximum Client capture drain, with no sender scheduled yet.
+        for index in 0..6 {
+            assert_eq!(microphone.push(packet(1, index), SEND_PACKETS), PLANK_TRANSPORT_OK);
+        }
+        for index in 0..6 {
+            assert_eq!(microphone.pop().unwrap().sample_time, index * 480);
+        }
+        assert!(microphone.pop().is_none());
+        // A genuine stall still bounds memory and discards the oldest audio.
+        for index in 6..12 {
+            assert_eq!(microphone.push(packet(1, index), SEND_PACKETS), PLANK_TRANSPORT_OK);
+        }
+        assert_eq!(microphone.push(packet(1, 12), SEND_PACKETS), PLANK_TRANSPORT_DROPPED);
+        assert_eq!(microphone.pop().unwrap().sample_time, 7 * 480);
+        assert!(microphone.activate(0));
+        assert!(microphone.pop().is_none());
     }
     #[test]
     fn bounded_queues_mute_generation_order_and_age() {
