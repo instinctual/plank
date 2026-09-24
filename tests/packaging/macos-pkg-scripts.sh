@@ -15,6 +15,7 @@ done
     # Bash 3.2 on macOS can return early when sourcing a process-substitution
     # pipe. Read the complete trusted fixture before defining its function.
     eval "$(/usr/bin/sed -e '$d' -e 's|/bin/rm|remove_cmd|g' \
+        -e 's|/usr/bin/systemextensionsctl|extension_cmd|g' \
         -e 's|/usr/sbin/pkgutil|receipt_cmd|g' "$root/packaging/host/macos/uninstall.sh")"
     calls=''
     preflight() { [[ $1 = / ]]; calls="$calls|preflight"; }
@@ -24,11 +25,17 @@ done
     verify_microphone_driver() { calls="$calls|verify-microphone"; }
     remove_cmd() { calls="$calls|remove:$*"; }
     receipt_cmd() { calls="$calls|receipt:$*"; }
+    extension_cmd() { [[ $1 = list ]]; }
     reject uninstall_host unexpected-argument
     uninstall_host >/dev/null
     [[ $calls = "|preflight|stop|verify-microphone|remove:-rf /Library/Audio/Plug-Ins/HAL/PLANK Microphone.driver|remove:/Library/LaunchDaemons/$machine.plist|remove:/Library/LaunchAgents/$desktop.plist|remove:/Library/LaunchAgents/$signin.plist|verify|remove:-rf /Applications/PLANK Host.app|receipt:--pkg-info la.instinctual.PLANK.Host|receipt:--forget la.instinctual.PLANK.Host" ]]
     # Never remove anything when preflight or bounded shutdown fails.
     remove_cmd() { echo 'unexpected removal'; exit 90; }
+    extension_cmd() { echo 'la.instinctual.PLANK.Host.Camera'; }
+    reject uninstall_host
+    extension_cmd() { return 1; }
+    reject uninstall_host
+    extension_cmd() { :; }
     preflight() { fail 'fixture unsafe metadata'; }
     [[ $(uninstall_host 2>&1 || true) = 'PLANK: fixture unsafe metadata' ]]
     preflight() { :; }

@@ -3,12 +3,13 @@
 # signing the application. No sourced helper, Python or separate PKG required.
 # Parse the entire function before removing the app containing this script.
 uninstall_host() {
-    local label path
+    local label path extensions
     [[ $# = 0 ]] || fail 'Usage: sudo "/Applications/PLANK Host.app/Contents/Resources/uninstall.sh"'
     preflight /
     # The OS owns registered system extensions. Keep the signed containing app
     # available until the user-authorized deactivation is complete.
-    if /usr/bin/systemextensionsctl list | /usr/bin/grep -Fq 'la.instinctual.PLANK.Host.Camera'; then
+    extensions=$(/usr/bin/systemextensionsctl list) || fail 'Cannot inspect installed camera extensions; Host was not removed.'
+    if [[ $extensions = *'la.instinctual.PLANK.Host.Camera'* ]]; then
         fail 'Disable PLANK Camera with the installed Host --disable-camera command in your desktop session, then restart if requested and run uninstall again.'
     fi
     stop_roles
