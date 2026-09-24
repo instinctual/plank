@@ -127,7 +127,7 @@ static NSError *cameraError(NSInteger code) {
     PLANKMacCameraConsumer *_consumer;
     PLANKCameraDevice *_device;
     dispatch_queue_t _media;
-    uint64_t _activation, _epoch, _revision;
+    uint64_t _activation, _epoch, _revision, _lastGoodAt;
     BOOL _busy, _gap;
     // Accessed exclusively on _media. One submitted frame at a time; no
     // accumulation of frame-sized dispatch blocks behind a stalled decoder.
@@ -153,7 +153,7 @@ static NSError *cameraError(NSInteger code) {
 - (void)admitted:(uint64_t)activation {
     // This runs on the main control queue, independent of VideoToolbox. A
     // decoder completion from any retired epoch can never republish a device.
-    _epoch++; _activation = activation; [self changed];
+    _epoch++; _activation = activation; _lastGoodAt = PLANKCameraHostTimeNanos(); [self changed];
     if (_device) {
         [_device.source retire];
         [_provider removeDevice:_device.device error:NULL]; _device = nil;
@@ -165,6 +165,7 @@ static NSError *cameraError(NSInteger code) {
 }
 - (void)receive:(const uint8_t *)record size:(size_t)size time:(uint64_t)time {
     if (!_activation || size > PLANKCameraRecordBytes) return;
+    if (PLANKCameraHostTimeNanos() - _lastGoodAt >= 3 * NSEC_PER_SEC) { [_consumer rejectLease]; return; }
     if (_busy) { [self changed]; return; }
     _busy = YES;
     NSData *data = [NSData dataWithBytes:record length:size];
@@ -191,10 +192,14 @@ static NSError *cameraError(NSInteger code) {
                     if (device && [self->_provider addDevice:device.device error:NULL]) {
                         self->_device = device;
                         __weak typeof(self) weakSelf = self;
-                        device.source.changed = ^{ [weakSelf changed]; };
+                        device.source.changed = ^{
+                            typeof(self) owner = weakSelf; if (!owner) return;
+                            owner->_lastGoodAt = PLANKCameraHostTimeNanos(); [owner changed];
+                        };
                     }
                 }
                 uint64_t now = PLANKCameraHostTimeNanos();
+                if (native && (!running || output)) self->_lastGoodAt = now;
                 if (output && self->_revision == revision && self->_device.source.clients &&
                     now >= time && now - time <= PLANK_CAMERA_MAX_AGE_NS) {
                     [self->_device.source.stream sendSampleBuffer:output

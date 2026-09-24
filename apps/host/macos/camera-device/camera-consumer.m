@@ -99,6 +99,7 @@ static BOOL cameraWord(xpc_object_t object, const char *name, uint64_t *value) {
     xpc_dictionary_set_uint64(hello, "version", PLANKCameraLinkVersion);
     xpc_connection_send_message(_peer, hello);
 }
+- (void)rejectLease { dispatch_assert_queue(_queue); [self disconnect]; }
 - (void)requestKeyframe {
     dispatch_assert_queue(_queue);
     uint64_t now = cameraNow();

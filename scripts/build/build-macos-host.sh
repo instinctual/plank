@@ -48,6 +48,7 @@ xcrun clang -std=c11 -mmacosx-version-min=27.0 -Wall -Wextra -Werror \
     -Iapps/host/macos/media tests/auth/macos-stream-diagnostics.c -o "$output/stream-diagnostics-test"
 "$output/stream-diagnostics-test"
 python3 "$source_root/tests/packaging/test-macos-host-permissions.py"
+python3 "$source_root/tests/packaging/test-macos-camera-profile.py"
 xcrun clang -mmacosx-version-min=27.0 -fobjc-arc -Wall -Wextra -Werror \
     -DPLANK_CLIPBOARD_TEST_PASTEBOARD -Iapps/host/macos/media -Iprotocol/plank-transport/include \
     apps/host/macos/media/clipboard-sync.m tests/input/macos-clipboard.m \
@@ -125,7 +126,7 @@ common=("${PLANK_FILE_FLAGS[@]}" -mmacosx-version-min=27.0 -fobjc-arc -Wall -Wex
     -framework Foundation -framework Security -framework SystemConfiguration -framework CoreFoundation
     -framework CoreGraphics -framework AppKit -framework Network -framework CoreMedia
     -framework CoreVideo -framework ScreenCaptureKit -framework VideoToolbox -framework AudioToolbox -framework CoreAudio
-    -framework Carbon -framework ApplicationServices -framework OpenDirectory -framework IOKit
+    -framework Carbon -framework ApplicationServices -framework OpenDirectory -framework IOKit -framework SystemExtensions
     -Wl,-sectcreate,__CGPreLoginApp,__cgpreloginapp,/dev/null)
 sources=(apps/host/macos/auth/authentication-session.m apps/host/macos/auth/graphical-authority.m
     apps/host/macos/auth/account-verifier.m apps/host/macos/auth/account-channel.m
@@ -134,7 +135,7 @@ sources=(apps/host/macos/auth/authentication-session.m apps/host/macos/auth/grap
     apps/host/macos/media/native-video.m apps/host/macos/media/preview-session.m apps/host/macos/media/clipboard-sync.m apps/host/macos/media/screen-capture.m
     apps/host/macos/media/native-audio.m apps/host/macos/media/opus-encoder.m apps/host/macos/media/audio-tap.m
     apps/host/macos/media/camera-session.m apps/host/macos/camera-device/camera-producer.m apps/host/macos/camera-device/camera-signing.m
-    apps/host/macos/camera-device/camera-broker.m
+    apps/host/macos/camera-device/camera-broker.m apps/host/macos/camera-device/camera-activation.m
     apps/host/macos/media/microphone-session.m
     apps/host/macos/media/native-camera-sample.m
     apps/host/macos/media/native-camera-output.m
@@ -193,8 +194,27 @@ shasum -a 256 "$archive" "$output/plank-host"
     /usr/libexec/PlistBuddy -c "Add :PLANKVersion string $PLANK_MACOS_HOST_VERSION" "$app/Contents/Info.plist"
     /usr/libexec/PlistBuddy -c "Set :CFBundleVersion ${PLANK_MACOS_HOST_VERSION%%-*}" "$app/Contents/Info.plist"
     /usr/libexec/PlistBuddy -c "Add :CFBundleShortVersionString string ${PLANK_MACOS_HOST_VERSION%%-*}" "$app/Contents/Info.plist"
+    camera_metadata=(--app "$app" --output "$output" --version "${PLANK_MACOS_HOST_VERSION%%-*}"
+        --team "${PLANK_MACOS_TEAM_ID:-PLANKTEST0}" --identity "$signing_identity")
+    if [[ $signing_identity != - ]]; then
+        : "${PLANK_MACOS_APP_PROVISION_PROFILE:?Production Host system-extension installation profile required}"
+        camera_metadata+=(--profile "$PLANK_MACOS_APP_PROVISION_PROFILE")
+    fi
+    python3 scripts/package/prepare-macos-camera.py "${camera_metadata[@]}"
+    extension="$app/Contents/Library/SystemExtensions/la.instinctual.PLANK.Host.Camera.systemextension"
+    xcrun clang "${PLANK_FILE_FLAGS[@]}" -O2 -mmacosx-version-min=27.0 -fobjc-arc -Wall -Wextra -Werror \
+        -Iapps/host/macos/media -Iprotocol/plank-transport/include \
+        apps/host/macos/camera-device/camera-{extension,consumer,signing}.m \
+        apps/host/macos/media/native-camera-{sample,output}.m \
+        -framework Foundation -framework Security -framework CoreMediaIO -framework CoreMedia \
+        -framework CoreVideo -framework VideoToolbox -framework CoreGraphics \
+        -o "$extension/Contents/MacOS/plank-camera"
+    strip -S "$extension/Contents/MacOS/plank-camera"
     codesign --force --sign "$signing_identity" "${signing_flags[@]}" \
-        --identifier la.instinctual.PLANK.Host "$app"
+        --entitlements "$output/camera-extension-entitlements.plist" "$extension"
+    codesign --verify --strict "$extension"
+    codesign --force --sign "$signing_identity" "${signing_flags[@]}" \
+        --entitlements "$output/camera-host-entitlements.plist" --identifier la.instinctual.PLANK.Host "$app"
     codesign --verify --strict "$app"
     driver="$output/PLANK Microphone.driver"
     mkdir -p "$driver/Contents/MacOS"

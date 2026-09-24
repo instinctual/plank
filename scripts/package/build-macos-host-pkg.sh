@@ -8,6 +8,7 @@ source_root=$1; output=$2; archive=$3
 : "${PLANK_MACOS_SIGNING_IDENTITY:?Developer ID Application SHA1 required}"
 : "${PLANK_MACOS_INSTALLER_IDENTITY:?Developer ID Installer SHA1 required}"
 : "${PLANK_MACOS_TEAM_ID:?Developer Team ID required}"
+: "${PLANK_MACOS_APP_PROVISION_PROFILE:?Production Host system-extension installation profile required}"
 : "${PLANK_NOTARY_PROFILE:?Keychain profile required}"
 [[ $PLANK_MACOS_SIGNING_IDENTITY =~ ^[[:xdigit:]]{40}$ && $PLANK_MACOS_INSTALLER_IDENTITY =~ ^[[:xdigit:]]{40}$ ]]
 [[ $PLANK_MACOS_TEAM_ID =~ ^[A-Z0-9]{10}$ ]]
@@ -35,6 +36,8 @@ driver="$output/payload/Library/Audio/Plug-Ins/HAL/PLANK Microphone.driver"
 ditto "$output/host/PLANK Microphone.driver" "$driver"
 codesign --verify --strict -R "=identifier \"la.instinctual.PLANK.Microphone\" and anchor apple generic and certificate leaf[subject.OU] = \"$PLANK_MACOS_TEAM_ID\" and certificate leaf[field.1.2.840.113635.100.6.1.13] exists" "$driver"
 codesign --verify --strict -R "=identifier \"la.instinctual.PLANK.Host\" and anchor apple generic and certificate leaf[subject.OU] = \"$PLANK_MACOS_TEAM_ID\" and certificate leaf[field.1.2.840.113635.100.6.1.13] exists" "$app"
+camera="$app/Contents/Library/SystemExtensions/la.instinctual.PLANK.Host.Camera.systemextension"
+codesign --verify --strict -R "=identifier \"la.instinctual.PLANK.Host.Camera\" and anchor apple generic and certificate leaf[subject.OU] = \"$PLANK_MACOS_TEAM_ID\" and certificate leaf[field.1.2.840.113635.100.6.1.13] exists" "$camera"
 test "$(/usr/libexec/PlistBuddy -c 'Print :PLANKVersion' "$app/Contents/Info.plist")" = "$PLANK_PACKAGE_VERSION"
 test -z "$(find "$output/payload" -name '*.py' -print)"
 codesign -d --verbose=4 "$app" 2>&1 | grep 'flags=.*runtime'

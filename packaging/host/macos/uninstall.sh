@@ -6,6 +6,11 @@ uninstall_host() {
     local label path
     [[ $# = 0 ]] || fail 'Usage: sudo "/Applications/PLANK Host.app/Contents/Resources/uninstall.sh"'
     preflight /
+    # The OS owns registered system extensions. Keep the signed containing app
+    # available until the user-authorized deactivation is complete.
+    if /usr/bin/systemextensionsctl list | /usr/bin/grep -Fq 'la.instinctual.PLANK.Host.Camera'; then
+        fail 'Disable PLANK Camera with the installed Host --disable-camera command in your desktop session, then restart if requested and run uninstall again.'
+    fi
     stop_roles
     if present "$microphone_driver"; then
         verify_microphone_driver

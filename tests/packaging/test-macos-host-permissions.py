@@ -28,7 +28,8 @@ class Permissions(unittest.TestCase):
         previous = os.umask(0o077)
         try:
             self.app.mkdir(parents=True)
-            for directory in ("Contents/MacOS", "Contents/Resources", "Contents/_CodeSignature"):
+            for directory in ("Contents/MacOS", "Contents/Resources", "Contents/_CodeSignature",
+                              gate.CAMERA + "/Contents/MacOS", gate.CAMERA + "/Contents/_CodeSignature"):
                 (self.app / directory).mkdir(parents=True)
             for name in gate.REQUIRED_APP | gate.EXECUTABLES:
                 path = self.app / name

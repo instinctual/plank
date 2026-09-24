@@ -13,5 +13,6 @@
 - (void)start;
 - (void)stop;
 - (void)requestKeyframe;
+- (void)rejectLease;
 @property(nonatomic, readonly) BOOL available;
 @end

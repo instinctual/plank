@@ -80,6 +80,10 @@ Environment secrets (never repository files):
   base64-encoded encrypted exports including the matching private keys.
 - `PLANK_DEVELOPER_ID_APPLICATION_PASSWORD`,
   `PLANK_DEVELOPER_ID_INSTALLER_PASSWORD`: the respective export passwords.
+- `PLANK_MACOS_HOST_PROVISION_PROFILE`: base64 Developer ID provisioning profile
+  for `la.instinctual.PLANK.Host`, authorizing system-extension installation and
+  the selected application signing identity. Required only for signed Host
+  builds; the earlier camera probe profile cannot be reused.
 - `PLANK_APPLE_ID`, `PLANK_APPLE_APP_PASSWORD`: notarization account and its
   Apple app-specific password, not its ordinary login password.
 

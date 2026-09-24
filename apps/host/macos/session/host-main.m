@@ -5,6 +5,7 @@
 #import "../audio-device/microphone-broker.h"
 #import "../camera-device/camera-broker.h"
 #import "../camera-device/camera-signing.h"
+#import "../camera-device/camera-activation.h"
 #import "agent-connection.h"
 #import "graphical-authority.h"
 #import "fixed-capture.h"
@@ -351,6 +352,15 @@ int main(int argc, const char **argv) {
             puts("PLANK Host " PLANK_MACOS_HOST_VERSION); return 0;
         }
         if (argc == 2 && !strcmp(argv[1], "--check-permissions")) return checkPermissions();
+        if (argc == 2 && (!strcmp(argv[1], "--enable-camera") || !strcmp(argv[1], "--disable-camera"))) {
+            NSApplication *app = NSApplication.sharedApplication;
+            [app setActivationPolicy:NSApplicationActivationPolicyRegular];
+            BOOL enable = !strcmp(argv[1], "--enable-camera");
+            dispatch_async(dispatch_get_main_queue(), ^{
+                PLANKMacRequestCameraExtension(enable, ^(BOOL success) { (void)success; [app terminate:nil]; });
+            });
+            [app run]; return 0;
+        }
         if (argc == 1 || (argc == 2 && !strcmp(argv[1], "--request-permissions"))) {
             NSApplication *app = NSApplication.sharedApplication;
             [app setActivationPolicy:NSApplicationActivationPolicyRegular];
@@ -359,8 +369,13 @@ int main(int argc, const char **argv) {
                 BOOL input = AXIsProcessTrusted();
                 BOOL post = CGPreflightPostEventAccess();
                 if (screen && input && post) {
-                    puts("PLANK Host screen/input permissions ready; audio-tap consent requires a separate live check");
-                    [app terminate:nil];
+                    NSAlert *ready = [NSAlert new]; ready.messageText = @"PLANK Host is ready";
+                    ready.informativeText = @"Screen and input permissions are enabled. You can also enable PLANK Camera for webcam forwarding. Camera capture starts only from the Client toolbar.";
+                    [ready addButtonWithTitle:@"Close"]; [ready addButtonWithTitle:@"Enable Camera"];
+                    [app activate];
+                    if ([ready runModal] == NSAlertSecondButtonReturn)
+                        PLANKMacRequestCameraExtension(YES, ^(BOOL success) { (void)success; [app terminate:nil]; });
+                    else [app terminate:nil];
                     return;
                 }
                 if (!screen) screen = CGRequestScreenCaptureAccess();
@@ -375,8 +390,13 @@ int main(int argc, const char **argv) {
                 input = AXIsProcessTrusted();
                 post = CGPreflightPostEventAccess();
                 if (screen && input && post) {
-                    puts("PLANK Host screen/input permissions ready; audio-tap consent requires a separate live check");
-                    [app terminate:nil];
+                    NSAlert *ready = [NSAlert new]; ready.messageText = @"PLANK Host is ready";
+                    ready.informativeText = @"Screen and input permissions are enabled. You can also enable PLANK Camera for webcam forwarding. Camera capture starts only from the Client toolbar.";
+                    [ready addButtonWithTitle:@"Close"]; [ready addButtonWithTitle:@"Enable Camera"];
+                    [app activate];
+                    if ([ready runModal] == NSAlertSecondButtonReturn)
+                        PLANKMacRequestCameraExtension(YES, ^(BOOL success) { (void)success; [app terminate:nil]; });
+                    else [app terminate:nil];
                     return;
                 }
                 NSAlert *alert = [NSAlert new];
@@ -400,7 +420,7 @@ int main(int argc, const char **argv) {
             return graphical(argv[2], @"sign-in", @"/Library/Application Support/PLANK/SignIn", YES);
         if (argc == 5 && !strcmp(argv[1], "--graphical"))
             return graphical(argv[2], [NSString stringWithUTF8String:argv[3]], [NSString stringWithUTF8String:argv[4]], NO);
-        fprintf(stderr, "Usage: plank-host --check-permissions | --request-permissions | --machine MACH_SERVICE | --graphical MACH_SERVICE desktop|sign-in PRIVATE_DIRECTORY\n");
+        fprintf(stderr, "Usage: plank-host --enable-camera | --disable-camera | --check-permissions | --request-permissions | --machine MACH_SERVICE | --graphical MACH_SERVICE desktop|sign-in PRIVATE_DIRECTORY\n");
         return 2;
     }
 }

@@ -7,11 +7,14 @@ import subprocess
 import tempfile
 
 
-EXECUTABLES = {"Contents/MacOS/plank-host", "Contents/Resources/uninstall.sh"}
+CAMERA = "Contents/Library/SystemExtensions/la.instinctual.PLANK.Host.Camera.systemextension"
+EXECUTABLES = {"Contents/MacOS/plank-host", "Contents/Resources/uninstall.sh", CAMERA + "/Contents/MacOS/plank-camera"}
 REQUIRED_APP = {
     "Contents", "Contents/MacOS", "Contents/Resources", "Contents/_CodeSignature",
     "Contents/MacOS/plank-host", "Contents/Info.plist", "Contents/Resources/plank.icns",
     "Contents/_CodeSignature/CodeResources",
+    CAMERA, CAMERA + "/Contents/Info.plist", CAMERA + "/Contents/MacOS/plank-camera",
+    CAMERA + "/Contents/_CodeSignature/CodeResources",
 }
 APP = "Applications/PLANK Host.app"
 DRIVER = "Library/Audio/Plug-Ins/HAL/PLANK Microphone.driver"

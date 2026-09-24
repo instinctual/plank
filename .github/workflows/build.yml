@@ -226,6 +226,7 @@ jobs:
           PLANK_DEVELOPER_ID_INSTALLER_PASSWORD: ${{ secrets.PLANK_DEVELOPER_ID_INSTALLER_PASSWORD }}
           PLANK_APPLE_ID: ${{ secrets.PLANK_APPLE_ID }}
           PLANK_APPLE_APP_PASSWORD: ${{ secrets.PLANK_APPLE_APP_PASSWORD }}
+          PLANK_MACOS_HOST_PROVISION_PROFILE: ${{ secrets.PLANK_MACOS_HOST_PROVISION_PROFILE }}
           PLANK_MACOS_TEAM_ID: ${{ vars.PLANK_MACOS_TEAM_ID }}
         run: python3 scripts/ci/sign-macos.py
       - name: Remove temporary signing material

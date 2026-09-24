@@ -92,7 +92,7 @@ class ContextTests(unittest.TestCase):
         before, signing = workflow.split('      - name: Build, sign, notarize and verify\n')
         self.assertNotIn('secrets.', before)
         secret_step, after = signing.split('      - name: Remove temporary signing material\n')
-        self.assertEqual(secret_step.count('secrets.'), 6)
+        self.assertEqual(secret_step.count('secrets.'), 7)
         self.assertNotIn('secrets.', after)
         self.assertIn('if: always()', after)
         self.assertIn('path: ${{ env.PLANK_ARTIFACT_ROOT }}/', after)

@@ -15,7 +15,7 @@ import sys
 SECRET_NAMES = (
     "PLANK_DEVELOPER_ID_APPLICATION_P12", "PLANK_DEVELOPER_ID_INSTALLER_P12",
     "PLANK_DEVELOPER_ID_APPLICATION_PASSWORD", "PLANK_DEVELOPER_ID_INSTALLER_PASSWORD",
-    "PLANK_APPLE_ID", "PLANK_APPLE_APP_PASSWORD",
+    "PLANK_APPLE_ID", "PLANK_APPLE_APP_PASSWORD", "PLANK_MACOS_HOST_PROVISION_PROFILE",
 )
 
 
@@ -84,7 +84,8 @@ def main():
     if role not in ("macos-host", "macos-client", "macos-fullscreen-probe") or not re.fullmatch(r"[A-Z0-9]{10}", team):
         raise SigningError("Invalid product or Developer Team ID")
     material = {name: os.environ.pop(name, "") for name in SECRET_NAMES}
-    missing = [name for name, value in material.items() if not value]
+    missing = [name for name, value in material.items() if not value and
+               (role == "macos-host" or name != "PLANK_MACOS_HOST_PROVISION_PROFILE")]
     if missing:
         raise SigningError("Missing protected environment secrets: " + ", ".join(missing))
     # Exact one-shot path: refuse reuse rather than trusting stale credentials.
@@ -92,6 +93,19 @@ def main():
     signal.signal(signal.SIGTERM, interrupted)
     signal.signal(signal.SIGINT, interrupted)
     try:
+        profile = material.pop("PLANK_MACOS_HOST_PROVISION_PROFILE", "")
+        if role == "macos-host":
+            try:
+                data = base64.b64decode("".join(profile.split()), validate=True)
+            except ValueError:
+                raise SigningError("Invalid Host profile encoding") from None
+            if not data or len(data) > 1024 * 1024:
+                raise SigningError("Invalid Host profile size")
+            path = directory / "host.provisionprofile"
+            with path.open("xb") as stream:
+                os.fchmod(stream.fileno(), 0o600)
+                stream.write(data)
+            os.environ["PLANK_MACOS_APP_PROVISION_PROFILE"] = str(path)
         # Product dependencies were bootstrapped and cached by credential-free
         # workflow steps. Never repeat bootstrap after receiving signing inputs.
         # The standalone diagnostic probe has no dependency bootstrap/cache.
@@ -145,6 +159,7 @@ def main():
         if result.returncode:
             raise SigningError(f"Signed build/package gates failed (exit {result.returncode})")
     finally:
+        os.environ.pop("PLANK_MACOS_APP_PROVISION_PROFILE", None)
         material.clear()
         cleanup(directory)
     print("protected_signing_cleanup=pass", flush=True)

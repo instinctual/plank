@@ -106,6 +106,10 @@ class SigningTests(unittest.TestCase):
                     def run(args):
                         self.assertFalse(set(signing.SECRET_NAMES) & set(os.environ))
                         self.assertEqual(args, ['bash', '/example/source/scripts/ci/build.sh', role])
+                        if role == 'macos-host':
+                            profile = Path(os.environ['PLANK_MACOS_APP_PROVISION_PROFILE'])
+                            self.assertEqual(profile.read_bytes(), b'fixture')
+                            self.assertEqual(profile.stat().st_mode & 0o777, 0o600)
                         return subprocess.CompletedProcess(args, build_status)
 
                     def command(stage, args):
