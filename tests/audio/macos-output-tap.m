@@ -128,8 +128,8 @@ static void exercise(NSArray<NSNumber *> *allowed, BOOL present, BOOL matchingCl
         assert(!aggregate[@kAudioAggregateDeviceClockDeviceKey]); // no separate clock overrides the output
         assert([aggregate[@kAudioAggregateDeviceIsPrivateKey] boolValue]);
         assert(![aggregate[@kAudioAggregateDeviceTapAutoStartKey] boolValue]);
-        assert([aggregate[@kAudioAggregateDeviceTapListKey] isEqual:@[@{
-            @kAudioSubTapUIDKey: created.UUID.UUIDString, @kAudioSubTapDriftCompensationKey: @YES}]]);
+        assert(([aggregate[@kAudioAggregateDeviceTapListKey] isEqual:@[@{
+            @kAudioSubTapUIDKey: created.UUID.UUIDString, @kAudioSubTapDriftCompensationKey: @YES}]]));
         assert(clockReads == 1 && rateRequests == (matchingClock ? 1u : 0u));
         assert([[tap valueForKey:@"leftGain"] floatValue] == outputGain);
         assert([[tap valueForKey:@"rightGain"] floatValue] == outputGain);
