@@ -24,19 +24,21 @@ application-delivery results; the current implementation adds stereo audio. Main
 Client gitlink are retained. The separate startup-fix worktree, main worktree
 and primary RK3576 research are untouched.
 
-### Current checkpoint: PLANK Output candidate
+### Current checkpoint: signed PLANK Output candidate staged
 
 The operator approved adding PLANK Output as the Mac's remote playback device.
-Implementation and tests are saved and pushed; candidate source is
-`824cfc5d619a9242d923061a55626aff1334e3cc`, with changelog-only Client
-`02e2663f5354f53166681fb37a58b7cf43481053`. Other gitlinks are unchanged.
-Version1.1.007 includes both the output device and native Installer restart
-recommendation. Signed hosted run
-[36048823698](https://github.com/instinctual/plank/actions/runs/36048823698)
-is in progress; collect and verify the exact package before staging it.
-The preceding dispatch was cancelled because its supplied source revision was
-incorrect; it produced no candidate. The feature branch has temporary signing
-permission; remove that permission when this build finishes.
+Signed candidate1.1.007 is collected and staged for administrator installation.
+Exact source: `d844c5af0b2b02a42f97c9452dd8688ccefbd430`, changelog-only Client
+`02e2663f5354f53166681fb37a58b7cf43481053`; other gitlinks are unchanged.
+Hosted run [36049265020](https://github.com/instinctual/plank/actions/runs/36049265020)
+passes the full Mac Host build, tests, signing, notarization and package gates.
+PKG SHA-256:
+`4e8b69ba930482b9b3309a708f17ae6d628eb3a2dd633303a297f6f50492d886`.
+The package is in the1.1.007 candidate catalog and the authorized Mac Host test
+target's Downloads. Transfer checksum, package signature/notarization,
+Gatekeeper, all four component signatures, and the actual signed package's
+`RecommendRestart` action pass on the target. Temporary signing permission is
+removed; only main remains allowed. No1.1.007 installation is claimed.
 
 PLANK Output is a real output-only HAL sink with48kHz stereo Float32, volume
 and mute controls. The existing owned-process tap captures upstream PCM,
@@ -50,17 +52,20 @@ Coordinator crash restart recovers its journal. No Client protocol changes.
 SDK27 ASan/UBSan driver, journal and anonymous-XPC broker tests pass, including
 control values, buffer bounds, manual override, crash recovery, partial failure,
 unsafe journals, malformed requests, ownership, generation rejection and lease
-expiry. Broker signature/root admission is replaced only in that fixture;
-installed authorization remains a live gate. Existing capture recovery tests
-also pass with the new route-before-tap teardown check and denied-start check.
-Portable packaging/script checks and62 CI-policy tests pass. A local full Host
-build stopped at the existing synthetic handoff fixture's unavailable sudo;
-the hosted build must pass this gate before packaging acceptance.
+expiry. The broker fixture waits for actual queued restoration after XPC
+rejection and passes20 consecutive local runs plus the hosted gate. Its root
+and signature admission are fixture boundaries; installed authorization remains
+a live gate. Capture recovery passes route-before-tap teardown and denied-start
+checks. Hosted packaging passes9 package tests,29 lifecycle checks and65 checks
+with the isolated root filesystem fixture. All62 CI-policy tests pass.
 
-See [the output plan](docs/development/plans/macos-output-device.plan).
-No1.1.007 installation or live output acceptance is claimed. The operator's
-current session is preserved. Continue with the signed installer, loaded-driver
-verification after restart, and live output/volume/alert/disconnect checks.
+See [the output plan](docs/development/plans/macos-output-device.plan) and
+[user instructions](docs/user/macos-audio-output.md). Next: administrator install,
+restart to load the new output driver, verify all four installed binary hashes
+against this package, then check live Sound Settings selection, volume/mute,
+application/alert audio, pinned outputs, disconnect and crash recovery. The
+operator's active session was preserved. Existing compatible Clients can remain
+installed; Ubuntu Client1.1.006 is already staged separately.
 
 ### Current checkpoint: installed camera tests and installer restart recommendation
 
@@ -68,8 +73,9 @@ The operator resumed office testing with the development Ubuntu Client and a
 newly authorized Mac Host test target. The dedicated development Mac remains
 the only local Mac compile/probe-build target. The new test target has signed
 Host1.1.006 installed; all three component hashes match the collected package.
-Its old Core Audio driver process still exposes mono input. The operator plans
-to reboot after this work is saved; stereo routing must be rechecked afterward.
+The latest Core Audio inventory now reports PLANK Microphone at48kHz with two
+input channels and selected as the default input. The earlier stale mono driver
+is no longer exposed; physical stereo routing remains unqualified.
 
 Installed native H.264 application delivery passes317 frames at1920x1080 over
 10.522 seconds; separate decoded NV12 delivery passes310 frames over10.307

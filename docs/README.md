@@ -1,6 +1,8 @@
 # Documentation
 
 - [User documentation](user/): bookmark behavior and product configuration.
+  [Mac remote audio output](user/macos-audio-output.md) explains PLANK Output,
+  volume controls and restoration of local playback.
 - [Architecture](architecture/): media, input, authentication and lifecycle.
 - [Development](development/): platform matrix, acceptance, build runbooks and plans.
   [macOS 15 integration review](development/macos15-integration-review.md)
