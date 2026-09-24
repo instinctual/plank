@@ -40,16 +40,20 @@ failure, redirects, malformed replies and unknown older versions do not trigger
 fallback. These are synthetic component/session results, not installed acceptance. The operator installed the signed 1.1.004 Host. Installed Host, camera extension
 and microphone driver hashes match the package, and both Host roles restarted.
 The production camera extension is activated and enabled. The older macOS
-Client still returns to bookmarks after desktop preparation; installed backward
-compatibility acceptance is therefore **not passed**. Client diagnostics identify
+Client returned to bookmarks after desktop preparation; legacy-client installed
+compatibility acceptance remains **not passed**. Client diagnostics identify
 a separate display-discovery failure before stream launch: the OS mode list has
 no native flag, although the current backing-pixel mode is valid. The fatal check
 was added in Client `a5ad0e94` on September 15 and is already present in1.0.156.
 Prior successful connections do not establish which display modes were reported
 then; do not attribute the changed result to a specific OS/driver update without
 evidence. The installed1.1.005 Client uses current backing pixels when the native
-flag is absent and shows an error if display discovery really fails. Host1.1.004
-remains installed. Ubuntu Client remains on1.1.002. Never install superseded1.1.003.
+flag is absent and shows an error if display discovery really fails. The operator
+confirmed that Client1.1.005 now connects successfully to Host1.1.004. Logs confirm
+launch7 feature agreement and completed native QUIC negotiation, with microphone
+available and camera unavailable on the Mac Client. This validates the display
+repair and this installed version pair, not camera/audio application delivery or
+an older schema4 Client. Ubuntu Client remains on1.1.002. Never install superseded1.1.003.
 
 Camera integration includes Ubuntu device selection and toolbar activation,
 session-bound Host reception, root-brokered fresh shared mappings and a CMIO
@@ -149,8 +153,9 @@ Gatekeeper assessment and installed binary hash pass; the executable SHA-256 is
 `36d2845b13155845314c211d5a473311f4ed99be4c58f8185d943f72523f1560`.
 The old Client is retained as a verified private archive. The new Client's real
 startup log confirms current backing pixels are selected when the native flag
-is absent. A full authenticated connection retry is still pending; this does
-not establish installed session acceptance. Temporary signing permission is removed.
+is absent. The operator's authenticated connection retry succeeded. Actual stereo
+microphone routing and native camera delivery remain separate acceptance gates.
+Temporary signing permission is removed.
 
 ## Installed state and source provenance
 
@@ -229,9 +234,10 @@ preserve H.264. Configuration selection and consumer adaptation need explicit
 qualification. Its successful OS approval and subsequent removal do not approve
 the production Host extension.
 
-Required next steps: retry the installed1.1.005 Mac Client connection, then
-exercise the matching Ubuntu Client's
-physical camera/stereo microphone. Verify installed broker and
+Required next steps: update the development Ubuntu Client to the collected1.1.004
+candidate and exercise its physical camera/stereo microphone through an ordinary
+authenticated session. Do not interrupt the operator's active Mac Client session
+to take over the Host. Verify installed broker and
 extension admission, native/pixel application delivery, concurrent readers,
 sustained loss/keyframe recovery, unplug/reopen, cleanup and A/V synchronization.
 Current presentation uses arrival in the Core Media Host clock. Client capture
