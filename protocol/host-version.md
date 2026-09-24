@@ -36,7 +36,8 @@ does not replace PAM or active-desktop ownership.
 By default the response includes no account name, UID, or session id. A Linux
 Host administrator may opt in with `publish_session_user = true` in
 `/etc/plank/host.conf`. While that setting is true and a user desktop is
-active, `/serverinfo` may add the login name of that desktop:
+active, `/serverinfo` may add the login name of that desktop. A directory
+login is published as the name before `@`:
 
 ```xml
 <PlankSessionUser>Ernie.Armitage</PlankSessionUser>
