@@ -78,6 +78,27 @@ class CollectionTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             MODULE.collect(args)
 
+    def test_zero_padded_product_version(self):
+        (self.root / 'packaging/VERSION').write_text('1.1.001\n')
+        subprocess.run(['git', '-C', str(self.root), '-c', 'user.name=Fixture',
+                        '-c', 'user.email=fixture@example.invalid', 'commit', '-am', 'padded version'],
+                       check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        for branch in ('main', 'feature-one'):
+            version = '1.1.001' + ('' if branch == 'main' else '-' + branch)
+            values = subprocess.check_output(['bash', '-c',
+                'source "$1"; PLANK_BUILD_BRANCH="$2"; plank_load_package_version "$3"; '
+                'printf "%s\\n" "$PLANK_PACKAGE_VERSION" "$PLANK_RPM_VERSION"',
+                'version-test', str(ROOT / 'scripts/package/package-version.sh'), branch, str(self.root)], text=True)
+            self.assertEqual(values.splitlines(), [version, '1.1.001'])
+            args = self.arguments(branch)
+            args.package = args.package.rename(args.package.with_name('plank-client_' + version + '_arm64.dmg'))
+            MODULE.collect(args)
+            channel = 'releases' if branch == 'main' else 'candidates'
+            directory = self.root / 'artifacts/packages' / channel / version
+            manifest = json.loads((directory / 'manifest.json').read_text())
+            self.assertEqual(manifest['version'], version)
+            self.assertEqual(manifest['packages'][0]['path'], 'macos/' + args.package.name)
+
 
 if __name__ == '__main__':
     unittest.main()

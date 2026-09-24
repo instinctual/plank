@@ -1,10 +1,35 @@
 # PLANK handoff
 
-## Current task: post-reboot macOS desktop startup
+## Current state: merged to main; next version 1.1.001
+
+The operator authorized merging all accumulated integration work, but explicitly
+requested **no release**. Root, Client, Linux Host and Kymux main branches now
+contain the review fixes, automatic Host identity, RaptorQ 2.0.1, application
+datagram pacer removal and accepted microphone integration. The unrelated
+primary checkout's RK3576 research and other concurrent worktrees are untouched.
+No branches, tags or repositories were deleted.
+
+Runtime integration root: `af71d2b404486a9846bca464ddd646b5ab9c738a`.
+Main dependency pins:
+
+- Client: `cc511584c41c337569a1efd559a7c3362283d9cc` (1.1.001 changelog;
+  runtime is unchanged from the accepted microphone Client).
+- Linux Host: `5829bf7c335440a8b25c3330643eacb4d914f00a`.
+- Kymux: `3f7a9d8618978287186e5d6ce0eaa067743cb06c`.
+
+The operator subsequently set the next product version to **1.1.001**, followed
+by 1.1.002, etc. Preserve the padded patch component in package/visible versions.
+Host and Client must be upgraded together from the previous published release;
+see `docs/releases/1.1.001.md`. There is no 1.1.001 package or published release
+yet. Do not relabel existing artifacts or silently deploy them.
+Main/feature version-contract checks, padded-version collection tests and all
+62 CI-policy tests pass. These are metadata checks, not new product builds.
+
+## Post-reboot macOS desktop startup fix
 
 The operator accepted microphone forwarding and requested the login-startup
-reliability fix. Keep branch `microphone-forwarding`; no main merge or production
-installation is authorized. Candidate version is now **1.0.157**.
+reliability fix. This is included in main. No production installation is
+authorized. The pre-merge test candidate is **1.0.157-microphone-forwarding**.
 
 Read-only diagnosis found a certificate-helper timeout followed by desktop
 worker exit status 2 and a successful replacement a few seconds later. The
@@ -30,7 +55,18 @@ and passes against the repair. Client retry-policy and all 14 reconnect source
 checks pass. All 62 CI-policy tests and seven portable Mac permission tests
 pass (the native bundle gate is skipped on Linux, not a native pass).
 No installed application or live service was modified by these tests.
-Signed candidate build and post-reboot live acceptance are next.
+Signed hosted Mac Host run **35937730094** passed at runtime root `af71d2b`,
+including the new deadline tests, delayed XPC regression, preview lifecycle,
+Developer ID signing, notarization, stapling and package gates. The transferred
+package's hash and exact source manifest are verified in:
+`artifacts/packages/candidates/1.0.157-microphone-forwarding/macos/`.
+Package SHA-256:
+`2e7d7540b9a2159e0a721b046b3610a8f4d3afe9b1942b5af5129c1bc605f23f`.
+Temporary branch-signing permission is removed; main remains authorized.
+No package was installed. Post-reboot live acceptance is still pending.
+
+The sections below retain pre-merge qualification evidence; their historical
+no-merge restrictions are superseded by the explicit main merge above.
 
 ## Accepted: microphone forwarding
 
@@ -58,7 +94,8 @@ Candidate version is **1.0.156-microphone-forwarding**. Source is pushed:
 
 Client and Kymux have matching `microphone-forwarding` branches. Recursive
 pins remain those listed in the preserved base below. The unrelated primary
-checkout is untouched. No main merge or production rollout is authorized.
+checkout is untouched. The integration is now merged; no production rollout
+is authorized.
 
 Hosted Linux Host `35928569298`, Ubuntu Client `35928572085` and signed Mac
 Client `35928578495` passed at `9a33735`; signed Mac Host `35929409181` passed
