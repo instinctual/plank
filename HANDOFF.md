@@ -47,9 +47,9 @@ no native flag, although the current backing-pixel mode is valid. The fatal chec
 was added in Client `a5ad0e94` on September 15 and is already present in1.0.156.
 Prior successful connections do not establish which display modes were reported
 then; do not attribute the changed result to a specific OS/driver update without
-evidence. The pending1.1.005 Client uses current backing pixels when the native
+evidence. The installed1.1.005 Client uses current backing pixels when the native
 flag is absent and shows an error if display discovery really fails. Host1.1.004
-can remain installed. Ubuntu Client remains on1.1.002. Never install superseded1.1.003.
+remains installed. Ubuntu Client remains on1.1.002. Never install superseded1.1.003.
 
 Camera integration includes Ubuntu device selection and toolbar activation,
 session-bound Host reception, root-brokered fresh shared mappings and a CMIO
@@ -76,8 +76,9 @@ sanitizer tests pass. The headless CMIO source lifecycle test also passes
 native-format publication, fixed formats, stale generation and revocation before
 a queued media completion; it does not activate an OS extension or exercise
 root admission. Portable packaging lifecycle/profile/permission tests and
-62 CI policy tests pass. The dedicated Mac is at LoginWindow, where the broader session fixture cannot
-obtain a WindowServer event source. The hosted Mac fixture passes 744 checks
+62 CI policy tests pass. An earlier run on the dedicated Mac was at LoginWindow,
+where the broader session fixture could not obtain a WindowServer event source.
+The hosted Mac fixture passes 744 checks
 across 24 scenarios at the exact candidate source below; this resolves the
 fixture gate without claiming installed camera application acceptance.
 
@@ -137,8 +138,19 @@ The focused1.1.005 display regression passes on the dedicated SDK27 Mac with
 AddressSanitizer and UndefinedBehaviorSanitizer, including absent native flags,
 empty/unavailable mode lists, invalid dimensions and native/current ownership.
 The seven fullscreen checks pass on both development platforms; 62 CI-policy
-checks and release-version validation also pass. Client source is
-`b391c279`; the signed Client build and installed retry are pending.
+checks and release-version validation also pass. The signed Client build
+[`35975769184`](https://github.com/instinctual/plank/actions/runs/35975769184)
+passes at root `ad7f5ac0ce9bbcadb1cb68485f08cd85034059f1`, with Client
+`b391c2795902227a33e04de56cc447ff1f0d2b32` and the other gitlinks unchanged.
+The DMG SHA-256 is
+`728d32821d1b1323c282abf38677cd1bb4738317fc6b9219b8f11c85b2ac7da3`.
+It is collected and installed on the affected Mac Client. Signature, notarized
+Gatekeeper assessment and installed binary hash pass; the executable SHA-256 is
+`36d2845b13155845314c211d5a473311f4ed99be4c58f8185d943f72523f1560`.
+The old Client is retained as a verified private archive. The new Client's real
+startup log confirms current backing pixels are selected when the native flag
+is absent. A full authenticated connection retry is still pending; this does
+not establish installed session acceptance. Temporary signing permission is removed.
 
 ## Installed state and source provenance
 
@@ -217,8 +229,8 @@ preserve H.264. Configuration selection and consumer adaptation need explicit
 qualification. Its successful OS approval and subsequent removal do not approve
 the production Host extension.
 
-Required next steps: validate and package the1.1.005 Mac Client display fix,
-retry the installed connection, then exercise the matching Ubuntu Client's
+Required next steps: retry the installed1.1.005 Mac Client connection, then
+exercise the matching Ubuntu Client's
 physical camera/stereo microphone. Verify installed broker and
 extension admission, native/pixel application delivery, concurrent readers,
 sustained loss/keyframe recovery, unplug/reopen, cleanup and A/V synchronization.
