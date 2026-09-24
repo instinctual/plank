@@ -208,8 +208,18 @@ cover stalls, the expiry boundary, partial starvation tails, gaps, malformed
 PCM, overflow, mute/reopen, stereo separation and clock reversal. SDK27
 AddressSanitizer/UndefinedBehaviorSanitizer queue, shared-buffer and HAL-driver
 tests pass; the changed Objective-C producer compiles with warnings as errors.
-Candidate packaging and installed testing are pending. This code is not in the
-installed1.1.004 Host. Full camera/microphone clock alignment still needs a
+Removing either fix makes its corresponding regression test fail. Signed Host
+run [35981358310](https://github.com/instinctual/plank/actions/runs/35981358310)
+passes at root `582dd96ce27ba703dbc1defef78c78b303cddf61`, with changelog-only
+Client `b4af89a4649bc679514d7d85594200b5802db215`; other gitlinks are unchanged.
+The collected1.1.006 Host PKG SHA-256 is
+`278da4f0b229bc8cec6fbb3f6a5f8aea32255ebeffa84af67fa8a1cd321aac78`.
+It is staged on the development Mac. Package signature, stapled ticket,
+Gatekeeper assessment, Host/camera/microphone signatures and the system-extension
+installation entitlement pass verification there. Temporary signing permission
+is removed. Installation requires the operator's normal administrator prompt;
+installed testing remains pending. This code is not in the installed1.1.004 Host.
+Full camera/microphone clock alignment still needs a
 capture-time contract; activation-relative audio sample indices are not the
 camera's monotonic capture clock.
 
@@ -256,8 +266,9 @@ preserve H.264. Configuration selection and consumer adaptation need explicit
 qualification. Its successful OS approval and subsequent removal do not approve
 the production Host extension.
 
-Required next steps: update the development Ubuntu Client to the collected1.1.004
-candidate and exercise its physical camera/stereo microphone through an ordinary
+Required next steps: install the staged1.1.006 Host when the operator is ready,
+update the development Ubuntu Client to the staged1.1.004 candidate, and exercise
+its physical camera/stereo microphone through an ordinary
 authenticated session. Do not interrupt the operator's active Mac Client session
 to take over the Host. Verify installed broker and
 extension admission, native/pixel application delivery, concurrent readers,
