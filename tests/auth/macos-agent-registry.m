@@ -3,6 +3,7 @@
 // No media, input, credentials, persistent service or discoverable Mach endpoint.
 #import "agent-registry.h"
 #import "agent-connection.h"
+#import "machine-identity.h"
 #import <Security/AuthSession.h>
 #include <unistd.h>
 
@@ -20,14 +21,17 @@ static xpc_object_t message(uint64_t operation, uint64_t generation, uint64_t se
     }
     return value;
 }
-static xpc_object_t request(xpc_connection_t peer, xpc_object_t value) {
+static xpc_object_t timedRequest(xpc_connection_t peer, xpc_object_t value, uint64_t timeout) {
     dispatch_semaphore_t ready = dispatch_semaphore_create(0);
     __block xpc_object_t response = nil;
     xpc_connection_send_message_with_reply(peer, value, dispatch_get_global_queue(QOS_CLASS_DEFAULT, 0), ^(xpc_object_t reply) {
         response = reply; dispatch_semaphore_signal(ready);
     });
-    if (dispatch_semaphore_wait(ready, dispatch_time(DISPATCH_TIME_NOW, 3 * NSEC_PER_SEC))) return nil;
+    if (dispatch_semaphore_wait(ready, dispatch_time(DISPATCH_TIME_NOW, timeout))) return nil;
     return response;
+}
+static xpc_object_t request(xpc_connection_t peer, xpc_object_t value) {
+    return timedRequest(peer, value, 3 * NSEC_PER_SEC);
 }
 static BOOL status(xpc_object_t reply, uint64_t expected) {
     return reply && xpc_get_type(reply) == XPC_TYPE_DICTIONARY &&
@@ -263,15 +267,48 @@ static void connectionTests(NSString *requirement) {
     }
 }
 
+static void delayedIdentityTests(NSString *requirement) {
+    // Exercise the actual XPC registry beyond its former five-second idle
+    // expiry. No graphical lease or production identity files are involved.
+    if (!getuid()) return;
+    for (unsigned scenario = 0; scenario < 2; ++scenario) {
+        Fixture *fixture = [[Fixture alloc] initWithNative:NO requirement:requirement];
+        __weak Fixture *weakFixture = fixture;
+        dispatch_sync(fixture.queue, ^{
+            fixture.registry.issueIdentity = ^NSDictionary<NSString *, NSData *> *(NSData *csr) {
+                usleep(6000000);
+                // Scope lost during issuance must still fail closed.
+                if (scenario == 1) {
+                    Fixture *current = weakFixture;
+                    dispatch_sync(current.queue, ^{ current.allowed = NO; });
+                }
+                return @{@"certificate": csr, @"der": csr, @"authority": csr};
+            };
+        });
+        xpc_connection_t peer = [fixture client];
+        xpc_object_t value = xpc_dictionary_create(NULL, NULL, 0);
+        xpc_dictionary_set_uint64(value, "version", 1);
+        xpc_dictionary_set_uint64(value, "operation", 5);
+        xpc_dictionary_set_data(value, "csr", "fixture", 7);
+        xpc_object_t reply = timedRequest(peer, value, PLANK_MAC_IDENTITY_REPLY_NS);
+        CHECK(status(reply, 0) == (scenario == 0));
+        CHECK(until(fixture, ^BOOL { return fixture.attached == 0; }));
+        xpc_connection_cancel(peer);
+        [fixture close];
+    }
+    puts("agent_identity_delayed_reply=pass");
+}
+
 int main(int argc, const char **argv) {
     BOOL native = argc == 1;
     BOOL identityOnly = argc == 2 && !strcmp(argv[1], "--identity-only");
     if (argc != 1 && !identityOnly && (argc != 2 || strcmp(argv[1], "--synthetic"))) return 2;
-    alarm(60); setbuf(stdout, NULL);
+    alarm(90); setbuf(stdout, NULL);
     @autoreleasepool {
         NSString *requirement = PLANKMacOwnSigningRequirement(); CHECK(requirement.length > 0);
         if (identityOnly) {
             for (unsigned i = 0; i < 100; ++i) identityTests(requirement);
+            delayedIdentityTests(requirement);
             printf("agent_identity_checks=%u result=0\n", checks);
             return 0;
         }

@@ -2,6 +2,13 @@
 #pragma once
 #import <Foundation/Foundation.h>
 
+// Certificate helpers share one issuance budget, not a fresh timeout for
+// every subprocess. Leave time for XPC delivery before the one-shot link is
+// retired. Ordinary unregistered peers still have their shorter idle expiry.
+#define PLANK_MAC_IDENTITY_CRYPTO_NS (10ull * NSEC_PER_SEC)
+#define PLANK_MAC_IDENTITY_REPLY_NS (12ull * NSEC_PER_SEC)
+#define PLANK_MAC_IDENTITY_LINK_NS (15ull * NSEC_PER_SEC)
+
 // Called on a bounded background lane by the authenticated machine registry,
 // never directly by a network request. The CSR contains no paths or extensions
 // to copy. The directory is trusted coordinator configuration, NEVER an IPC

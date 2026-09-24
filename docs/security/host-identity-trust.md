@@ -53,6 +53,15 @@ bounded lane, not the coordinator's health/ownership queue. No extra service,
 network enrollment endpoint, global Keychain import or administrator action is
 introduced.
 
+The issuer's crypto subprocesses share one ten-second monotonic deadline.
+The worker allows twelve seconds for the authenticated reply, and an accepted
+one-shot certificate link expires after fifteen seconds; unrelated unregistered
+peers still expire after five seconds. The extra reply/cleanup margin avoids
+rejecting legitimate cold-start work after a reboot. Expired work is killed
+and reaped, late replies cannot install an identity, and desktop scope is
+rechecked before returning a certificate. These deadlines never authorize a
+listener without a verified identity or extend a graphical ownership lease.
+
 HTTPS presents the desktop leaf and machine authority. The Client verifies the
 signature/constraints and pins the authority's SubjectPublicKeyInfo SHA-256.
 LoginWindow and every desktop user therefore represent the same machine, while

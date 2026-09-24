@@ -5,6 +5,7 @@
 #include <fcntl.h>
 #include <signal.h>
 #include <sys/stat.h>
+#include <time.h>
 #include <unistd.h>
 
 static BOOL privateDirectory(NSString *path) {
@@ -42,28 +43,35 @@ static NSData *readPublicResult(NSString *path) {
     return count == data.length ? data : nil;
 }
 
-static BOOL crypto(NSString *directory, NSArray<NSString *> *arguments) {
+static BOOL runCryptoTask(NSTask *task, uint64_t deadline) {
+    if (clock_gettime_nsec_np(CLOCK_MONOTONIC) >= deadline) return NO;
+    dispatch_semaphore_t finished = dispatch_semaphore_create(0);
+    task.terminationHandler = ^(NSTask *ended) { (void)ended; dispatch_semaphore_signal(finished); };
+    if (![task launchAndReturnError:NULL]) {
+        NSLog(@"PLANK certificate crypto could not start (operation=%@)", task.arguments.firstObject); return NO;
+    }
+    uint64_t now = clock_gettime_nsec_np(CLOCK_MONOTONIC);
+    if (dispatch_semaphore_wait(finished, dispatch_time(DISPATCH_TIME_NOW,
+            now < deadline ? (int64_t)(deadline - now) : 0))) {
+        // Only this exact crypto child. No shell or user-controlled arguments.
+        kill(task.processIdentifier, SIGKILL);
+        [task waitUntilExit];
+        NSLog(@"PLANK certificate crypto timed out (operation=%@)", task.arguments.firstObject);
+        return NO;
+    }
+    if (task.terminationStatus != 0)
+        NSLog(@"PLANK certificate crypto failed (operation=%@ status=%d)", task.arguments.firstObject, task.terminationStatus);
+    return task.terminationStatus == 0;
+}
+
+static BOOL crypto(NSString *directory, NSArray<NSString *> *arguments, uint64_t deadline) {
     NSTask *task = [NSTask new];
     task.executableURL = [NSURL fileURLWithPath:@"/usr/bin/openssl"];
     task.currentDirectoryURL = [NSURL fileURLWithPath:directory isDirectory:YES];
     task.arguments = arguments;
     task.environment = @{@"PATH": @"/usr/bin:/bin"};
     task.standardInput = task.standardOutput = task.standardError = NSFileHandle.fileHandleWithNullDevice;
-    dispatch_semaphore_t finished = dispatch_semaphore_create(0);
-    task.terminationHandler = ^(NSTask *ended) { (void)ended; dispatch_semaphore_signal(finished); };
-    if (![task launchAndReturnError:NULL]) {
-        NSLog(@"PLANK certificate crypto could not start (operation=%@)", arguments.firstObject); return NO;
-    }
-    if (dispatch_semaphore_wait(finished, dispatch_time(DISPATCH_TIME_NOW, NSEC_PER_SEC))) {
-        // Only this exact crypto child. No shell or user-controlled arguments.
-        kill(task.processIdentifier, SIGKILL);
-        [task waitUntilExit];
-        NSLog(@"PLANK certificate crypto timed out (operation=%@)", arguments.firstObject);
-        return NO;
-    }
-    if (task.terminationStatus != 0)
-        NSLog(@"PLANK certificate crypto failed (operation=%@ status=%d)", arguments.firstObject, task.terminationStatus);
-    return task.terminationStatus == 0;
+    return runCryptoTask(task, deadline);
 }
 
 static NSString *stageIn(NSString *directory) {
@@ -102,6 +110,7 @@ static BOOL wordIs(xpc_object_t message, const char *name, uint64_t expected) {
 
 NSDictionary<NSString *, NSData *> *PLANKMacIssueWorkerIdentity(NSData *csr, NSString *directory) {
     if (getuid() != geteuid() || !csr.length || csr.length > 16384) return nil;
+    uint64_t deadline = clock_gettime_nsec_np(CLOCK_MONOTONIC) + PLANK_MAC_IDENTITY_CRYPTO_NS;
     NSString *stage = stageIn(directory);
     if (!stage) { NSLog(@"PLANK certificate issuer rejected its private directory"); return nil; }
     NSData *profile = [@"basicConstraints=critical,CA:FALSE\nkeyUsage=critical,digitalSignature\nextendedKeyUsage=serverAuth\nsubjectAltName=DNS:plank-host\n" dataUsingEncoding:NSASCIIStringEncoding];
@@ -109,9 +118,9 @@ NSDictionary<NSString *, NSData *> *PLANKMacIssueWorkerIdentity(NSData *csr, NSS
         writeNew(profile, [stage stringByAppendingPathComponent:@"profile.cnf"]);
     // Verify proof of possession and constrain the key. Never copy requested
     // extensions: the fixed DNS SAN and server-only usage are supplied here.
-    if (ok) ok = crypto(stage, @[@"req", @"-in", @"request.pem", @"-verify", @"-noout"]) &&
-        crypto(stage, @[@"req", @"-in", @"request.pem", @"-pubkey", @"-noout", @"-out", @"public.pem"]) &&
-        crypto(stage, @[@"rsa", @"-pubin", @"-in", @"public.pem", @"-RSAPublicKey_out", @"-outform", @"DER", @"-out", @"public.der"]);
+    if (ok) ok = crypto(stage, @[@"req", @"-in", @"request.pem", @"-verify", @"-noout"], deadline) &&
+        crypto(stage, @[@"req", @"-in", @"request.pem", @"-pubkey", @"-noout", @"-out", @"public.pem"], deadline) &&
+        crypto(stage, @[@"rsa", @"-pubin", @"-in", @"public.pem", @"-RSAPublicKey_out", @"-outform", @"DER", @"-out", @"public.der"], deadline);
     NSString *publicPath = [stage stringByAppendingPathComponent:@"public.der"];
     if (ok) ok = chmod(publicPath.fileSystemRepresentation, 0600) == 0;
     NSData *publicBytes = ok ? readPublicResult(publicPath) : nil;
@@ -127,8 +136,8 @@ NSDictionary<NSString *, NSData *> *PLANKMacIssueWorkerIdentity(NSData *csr, NSS
     NSString *serial = [@"0x" stringByAppendingString:[NSUUID.UUID.UUIDString stringByReplacingOccurrencesOfString:@"-" withString:@""]];
     if (ok) ok = crypto(stage, @[@"x509", @"-req", @"-in", @"request.pem", @"-CA", @"../cert.pem",
         @"-CAkey", @"../key.pem", @"-set_serial", serial, @"-days", @"365", @"-sha256",
-        @"-extfile", @"profile.cnf", @"-out", @"cert.pem"]);
-    if (ok) ok = crypto(stage, @[@"x509", @"-in", @"cert.pem", @"-outform", @"DER", @"-out", @"cert.der"]);
+        @"-extfile", @"profile.cnf", @"-out", @"cert.pem"], deadline);
+    if (ok) ok = crypto(stage, @[@"x509", @"-in", @"cert.pem", @"-outform", @"DER", @"-out", @"cert.der"], deadline);
     for (NSString *name in @[@"cert.pem", @"cert.der"])
         if (ok) ok = chmod([stage stringByAppendingPathComponent:name].fileSystemRepresentation, 0600) == 0;
     NSData *pem = ok ? readPublicResult([stage stringByAppendingPathComponent:@"cert.pem"]) : nil;
@@ -145,7 +154,8 @@ NSData *PLANKMacAuthorizeDesktopIdentity(NSString *directory, const char *servic
     NSString *stage = stageIn(directory);
     if (!stage) return nil;
     // The key never leaves this account, not even in IPC. Generate only a CSR.
-    BOOL ok = crypto(stage, @[@"req", @"-new", @"-key", @"../key.pem", @"-sha256", @"-subj", @"/CN=PLANK Host", @"-out", @"request.pem"]);
+    BOOL ok = crypto(stage, @[@"req", @"-new", @"-key", @"../key.pem", @"-sha256", @"-subj", @"/CN=PLANK Host", @"-out", @"request.pem"],
+        clock_gettime_nsec_np(CLOCK_MONOTONIC) + PLANK_MAC_IDENTITY_CRYPTO_NS);
     NSString *requestPath = [stage stringByAppendingPathComponent:@"request.pem"];
     if (ok) ok = chmod(requestPath.fileSystemRepresentation, 0600) == 0;
     NSData *request = ok ? readPublicResult(requestPath) : nil;
@@ -178,7 +188,7 @@ NSData *PLANKMacAuthorizeDesktopIdentity(NSString *directory, const char *servic
         }
         dispatch_semaphore_signal(finished);
     });
-    BOOL received = dispatch_semaphore_wait(finished, dispatch_time(DISPATCH_TIME_NOW, 6 * NSEC_PER_SEC)) == 0;
+    BOOL received = dispatch_semaphore_wait(finished, dispatch_time(DISPATCH_TIME_NOW, PLANK_MAC_IDENTITY_REPLY_NS)) == 0;
     xpc_connection_cancel(peer);
     // Synchronize access with a possibly late response. No file writes occur
     // from the reply callback, so timing out cannot publish a stale identity.
@@ -199,7 +209,8 @@ NSData *PLANKMacAuthorizeDesktopIdentity(NSString *directory, const char *servic
     if (trust) CFRelease(trust);
     if (policy) CFRelease(policy);
     // Check the returned leaf belongs to the private key that made this CSR.
-    ok = result && validChain && crypto(stage, @[@"rsa", @"-in", @"../key.pem", @"-RSAPublicKey_out", @"-outform", @"DER", @"-out", @"public.der"]);
+    ok = result && validChain && crypto(stage, @[@"rsa", @"-in", @"../key.pem", @"-RSAPublicKey_out", @"-outform", @"DER", @"-out", @"public.der"],
+        clock_gettime_nsec_np(CLOCK_MONOTONIC) + PLANK_MAC_IDENTITY_CRYPTO_NS);
     NSString *publicPath = [stage stringByAppendingPathComponent:@"public.der"];
     if (ok) ok = !chmod(publicPath.fileSystemRepresentation, 0600) && [actualKey isEqual:readPublicResult(publicPath)];
     if (publicKey) CFRelease(publicKey);

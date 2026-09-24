@@ -1,6 +1,38 @@
 # PLANK handoff
 
-## Current task: microphone forwarding
+## Current task: post-reboot macOS desktop startup
+
+The operator accepted microphone forwarding and requested the login-startup
+reliability fix. Keep branch `microphone-forwarding`; no main merge or production
+installation is authorized. Candidate version is now **1.0.157**.
+
+Read-only diagnosis found a certificate-helper timeout followed by desktop
+worker exit status 2 and a successful replacement a few seconds later. The
+operator clarified that this was a brief offline period requiring another
+connection, not a macOS crash dialog. No matching crash report was found.
+The reported resolution warning has not been tied to a Client log; do not
+claim a proven geometry defect or microphone crash.
+
+The issuer now shares a ten-second deadline across its crypto subprocesses,
+with twelve seconds for the worker reply and fifteen seconds for an accepted
+one-shot identity link. Ordinary unregistered peers retain their five-second
+expiry. Expired helpers are terminated/reaped; signing, scope and private-key
+checks remain intact. Client runtime is unchanged: temporary readiness errors
+already retry inside its configured wait policy, while trust/account failures
+remain terminal. A current 1.0.156 microphone Client can test this Host fix.
+
+Dedicated-Mac isolated tests pass slow helper completion beyond one second,
+cumulative timeout/child cleanup, actual LibreSSL and Security.framework chain
+validation, 270 registry checks and 2407 repeated/delayed identity checks.
+Six-second issuance succeeds, and losing desktop scope during that delay still
+fails closed. The delayed-reply regression fails against the original registry
+and passes against the repair. Client retry-policy and all 14 reconnect source
+checks pass. All 62 CI-policy tests and seven portable Mac permission tests
+pass (the native bundle gate is skipped on Linux, not a native pass).
+No installed application or live service was modified by these tests.
+Signed candidate build and post-reboot live acceptance are next.
+
+## Accepted: microphone forwarding
 
 ### Integration and candidate validation
 
@@ -85,13 +117,14 @@ runner failed an in-order PTS assertion with zero kernel drops; a diagnostic
 repeat passed unchanged. That original failure remains retained/unresolved,
 not retrospectively attributed to the independently demonstrated drain bug.
 
-Next: install matching candidates on authorized hardware and follow
-`docs/user/microphone.md`. Implementation and candidate-build work are complete;
-no package has been installed by this microphone task.
+The operator manually installed matching candidates, rebooted the Mac to make
+the new HAL input available, and accepted the microphone work. Implementation
+and candidate-build work are complete; no package was installed by the agent.
+See `docs/user/microphone.md` for the workflow.
 Driver installation/upgrade, real input restoration/user override, full-app
 mute/reconnect/takeover, physical speech and long-call drift remain acceptance
-gates. The Development NUC is unreachable and the dedicated Mac has no physical
-input device; the operator has been asked to bring the NUC/microphone online.
+gates beyond the operator's acceptance; the agent did not independently repeat
+all of them. The dedicated Mac has no physical input device.
 Administrative installation also needs normal authorization on the dedicated
 Mac. Do not substitute an End-User target or bypass OS consent. The synthetic
 reader approval is not permission granted to the real Client application.

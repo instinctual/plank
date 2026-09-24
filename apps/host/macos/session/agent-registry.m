@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 #import "agent-registry.h"
+#import "machine-identity.h"
 #import "../auth/boot-sign-in.h"
 #import <Security/Security.h>
 #import <Security/AuthSession.h>
@@ -51,6 +52,7 @@ NSString *PLANKMacOwnSigningRequirement(void) {
 @property uint64_t sequence, created;
 @property BOOL closed, retired;
 @property BOOL identityRequested;
+@property uint64_t identityDeadline;
 @end
 @implementation PLANKMacAgentLink
 @end
@@ -90,8 +92,10 @@ NSString *PLANKMacOwnSigningRequirement(void) {
         if (!owner) return;
         [owner refresh];
         uint64_t now = clock_gettime_nsec_np(CLOCK_MONOTONIC);
-        for (PLANKMacAgentLink *link in owner->_links.copy)
-            if (!link.lease && now - link.created >= 5 * NSEC_PER_SEC) [owner close:link];
+        for (PLANKMacAgentLink *link in owner->_links.copy) {
+            if (!link.lease && (link.identityRequested ? now >= link.identityDeadline :
+                    now - link.created >= 5 * NSEC_PER_SEC)) [owner close:link];
+        }
     });
     dispatch_resume(_watch);
     return self;
@@ -149,6 +153,7 @@ static BOOL word(xpc_object_t message, const char *key, uint64_t *value) {
             xpc_dictionary_get_count(message) != 3 || !bytes || !length || length > 16384 ||
             !peer.uid || _scope(peer) != PLANKMacAgentDesktop) { [self close:link]; return; }
         link.identityRequested = YES;
+        link.identityDeadline = clock_gettime_nsec_np(CLOCK_MONOTONIC) + PLANK_MAC_IDENTITY_LINK_NS;
         _issuing = YES;
         NSData *csr = [NSData dataWithBytes:bytes length:length];
         NSDictionary<NSString *, NSData *> *(^issue)(NSData *) = self.issueIdentity;
@@ -157,6 +162,7 @@ static BOOL word(xpc_object_t message, const char *key, uint64_t *value) {
             dispatch_async(self->_queue, ^{
                 self->_issuing = NO;
                 if (link.closed || self->_stopped) return;
+                if (clock_gettime_nsec_np(CLOCK_MONOTONIC) >= link.identityDeadline) { [self close:link]; return; }
                 if (self->_scope(peer) != PLANKMacAgentDesktop || issued.count != 3) { [self close:link]; return; }
                 for (NSString *name in @[@"certificate", @"der", @"authority"]) {
                     NSData *value = issued[name];
@@ -171,7 +177,7 @@ static BOOL word(xpc_object_t message, const char *key, uint64_t *value) {
                 // A send barrier drains this sender, not the receiving client's
                 // reply handler. Cancelling here can race a valid reply into an
                 // XPC error. The caller closes after consuming it; abandoned
-                // one-shot links retain the existing five-second expiry.
+                // one-shot links retain their bounded issuance/reply expiry.
             });
         });
         return;

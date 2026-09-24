@@ -29,7 +29,7 @@ xcrun clang -O2 -mmacosx-version-min=27.0 -fobjc-arc -Wall -Wextra -Werror \
 "$output/microphone-selection-test"
 bash "$source_root/scripts/test/build-macos-agent-registry.sh" "$source_root" "$output/agent-registry-tests"
 xcrun clang -mmacosx-version-min=27.0 -fobjc-arc -Wall -Wextra -Werror \
-    -Iapps/host/macos/session apps/host/macos/session/machine-identity.m tests/auth/macos-machine-identity.m \
+    -Iapps/host/macos/session tests/auth/macos-machine-identity.m \
     -framework Foundation -framework Security -o "$output/machine-identity-test"
 "$output/machine-identity-test"
 bash "$source_root/scripts/test/build-macos-display-recovery.sh" "$source_root" "$output/display-recovery-tests"
