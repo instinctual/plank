@@ -12,15 +12,16 @@ choices must be preserved. See [the implementation plan](docs/development/plans/
 The branch was synchronized with main `acb29884bff626c9381169fd94563ec79555984c`.
 Its original runtime base was `af71d2b404486a9846bca464ddd646b5ab9c738a`.
 The separate main/startup-fix and RK3576 work remain untouched. No merge, tag or
-GitHub Release is authorized. Candidate version is **1.1.010-native-media-investigation**.
+GitHub Release is authorized. Candidate version is **1.1.011-native-media-investigation** (Mac Host scheduling fix).
 
-Mac packages use root `f006f95cb85e0bb9a3a13bdca74914f6d110cb44`.
-The Ubuntu Client package uses `2b09aba2bc8a34262e1e0d366917e5c54d5772a1`, which only updates
-TLS fixtures after that Mac source. Runtime inputs are identical:
+Host1.1.011 source is `b7c2b6fb57b5ab4d6233ba4554c1efb5e92b60b0`.
+Implementation `04df97fe962d` and regression fixture `bd6e7a3e9e20` are committed;
+the Client change below only adds release notes. No Client runtime update is
+needed for this Host fix. Current inputs:
 
 | Input | Commit |
 | --- | --- |
-| Client | `9921712feca1346fe627e6c650c0ac646b7df4c4` |
+| Client | `b5423392b312200a9ef4cac2da63d547338733f2` |
 | Client common-c | `060f6179f88343327b44d915007f1fb4cede71f1` |
 | Client qmdnsengine | `920c097ffa742e2968290f15d4dde6693aec02e5` |
 | Kymux | `3f7a9d8618978287186e5d6ce0eaa067743cb06c` |
@@ -28,8 +29,48 @@ TLS fixtures after that Mac source. Runtime inputs are identical:
 
 Root and Client are pushed. Package manifests retain per-product source provenance;
 never relabel a signed package or rebuild different bytes into an existing catalog
-entry. Temporary protected signing permission is removed; only main remains allowed.
-No signing credentials were read, changed or committed.
+entry. Temporary signing permission was removed after the Host1.1.011 job;
+main-only signing policy is verified. No signing credentials were read, changed
+or committed.
+
+## Active audio/input regression
+
+Host1.1.010 and Ubuntu Client1.1.010 are now installed. The operator reports
+intermittent playback/alert crackles after opening camera and other apps, with
+slow typing during the same episodes. They explicitly want the degraded session
+preserved for investigation: do not restart, disable forwarding, close their
+apps or install the candidate automatically.
+
+The live Host log reports at least64 capture-ring overrun events and512 Opus
+reanchors, including120–180ms source gaps. Two eight-second thread samples put
+75.6% and74.2% of sampled serial media-queue time inside synchronous local
+session/account OS queries. Audio sends, input delivery and reverse camera/mic
+validation repeatedly call those queries on that shared queue. No network-only
+or camera-decoder-only cause is claimed.
+
+The fix refreshes graphical evidence every20ms on a separate observer and keeps
+RPCs outside the snapshot/revocation lock. Media/input reads remain bounded by
+250ms observation age measured from the beginning of the read. Expiry, changed
+identity, service failure, resignation and sleep latch revocation; late success
+cannot renew expired authority. Machine admission, leases, permissions and
+capture topology checks remain independent. See the updated
+[authentication boundary](docs/architecture/macos-authentication.md).
+
+The dedicated SDK27 Mac passes216 lifecycle checks normally and under ASan/UBSan,
+including1000 actual stream authorization/enqueue operations while an OS read
+is deliberately blocked, immediate notification revocation and expiry both
+with and without foreground polling. Full signed
+[Host run36066019394](https://github.com/instinctual/plank/actions/runs/36066019394)
+passes the full build/test/sign/notarization/package gates. Its installer is
+staged and independently verified on the test target; installed recovery is
+not yet tested. No current-session configuration or process was changed;
+diagnostics remain private outside Git.
+
+The operator subsequently asked to discuss a500ms refresh interval. The proposed
+direction is event-triggered checks plus500ms reconciliation with a separate
+strict expiry (possibly1s), after verifying notification coverage. This proposal
+is not implemented:1.1.011 still uses20ms observation and250ms maximum age. The
+machine coordinator independently checks its own admission/ownership boundary.
 
 ## Implemented behavior
 
@@ -88,12 +129,23 @@ Core Audio. Current active sessions must be preserved during staging.
 
 ## Packages and validation
 
+Host1.1.011 is collected at
+`artifacts/packages/candidates/1.1.011-native-media-investigation/macos/plank-host_1.1.011-native-media-investigation_arm64.pkg`.
+SHA-256: `4188d0b4bf9f4b33928af7f0115f0f3d04c89e3cdd0a9ce20c8a2f48173114a4`.
+Its source is the exact root/Client pair above, signed run36066019394. The
+Downloads copy passes transfer hash, package signature, Gatekeeper, version,
+RecommendRestart and all four payload component signature checks. No install,
+reboot or CoreAudio/service restart occurred. Client1.1.010 is compatible.
+
 Signed [Host run36061559638](https://github.com/instinctual/plank/actions/runs/36061559638)
 and [Client run36061563286](https://github.com/instinctual/plank/actions/runs/36061563286)
 pass the full builds, tests, signing, notarization and package gates.
 [Corrected run36062636492](https://github.com/instinctual/plank/actions/runs/36062636492)
-passes Ubuntu Client packaging and both Mac compile/test jobs. Its Linux Host
-job is still running; no Linux Host1.1.010 RPM is claimed here.
+passes all four product jobs, including Linux Host. The table below retains
+the previously staged1.1.010 packages, separately from the1.1.011 Host above.
+Mac 1.1.010 source is `f006f95cb85e0bb9a3a13bdca74914f6d110cb44`;
+Ubuntu 1.1.010 source is `2b09aba2bc8a34262e1e0d366917e5c54d5772a1` (tests-only
+difference), both with Client `9921712feca1346fe627e6c650c0ac646b7df4c4`.
 
 | Package | SHA-256 |
 | --- | --- |
@@ -106,8 +158,9 @@ All artifacts belong under
 Both Mac installers are staged in the office Host test target's Downloads;
 Ubuntu Client is staged in the development Client's Downloads. Transfer hashes
 and package versions pass; Mac signatures/Gatekeeper and Host RecommendRestart
-also pass on the target. These1.1.010 packages have not been installed. The
-active session was preserved. Completed Ubuntu component worktrees, builds,
+also pass on the target. Host and Ubuntu Client1.1.010 are now installed;
+the Mac Client installer remains staged. The active degraded session is preserved.
+Completed Ubuntu component worktrees, builds,
 bundles and the temporary extracted SDK were removed; private reports remain.
 
 Focused gates pass: fixed microphone2/3 vectors and malformed bounds; encrypted
@@ -136,15 +189,10 @@ SDK27 development Mac or authorized hosted workers. The office Mac is test-only.
 Machine addresses, accounts, deployment details and reports remain in private
 notes outside Git; read their local README before machine work.
 
-Host1.1.009 is installed and all four installed component hashes match its signed
-package. The operator reports PLANK Output working. Its package SHA-256 is
-`40794369dccd460757b4e15e35d5b27d5b8944e36a1d63e0e9192e9f7d683d18`, source
-`bc47e99e47dc7493d0fb69aa3eab1cc5c505c8a3`, Client
-`d80645162b700b01b6228c7bfaa591bb64fdfe9d`, signed run36055041948.
-Ubuntu Client1.1.006 remains installed; its DEB SHA-256 is
-`8507874db51a15f25f05db6b2cf3581cb0dcffe90354a0e5267ed740c833bee6`, root
-`f403eeef769b9aef3bf8e7afcda7f5779b795842`, Client
-`b4af89a4649bc679514d7d85594200b5802db215`, run36042793806.
+Host1.1.010's installed Host executable, microphone driver and output driver
+hashes match its signed package. The active Ubuntu Client reports1.1.010.
+Host 1.1.009's working output routing is retained, but the current 1.1.010 session has
+the audio/input scheduling regression above.
 The separate Mac Client1.1.005 display-mode fallback was installed and its
 connection succeeded; do not restore the fatal missing-native-flag check.
 
@@ -156,10 +204,12 @@ and Zoom capture. One simultaneous native-first/pixel-second run delivered only
 repeating that installed test. Other application formats may inherit an existing
 pixel stream; automatic output does not guarantee native coded delivery.
 
-Next: install the staged Host and Ubuntu Client at a convenient interruption,
-then verify installed versions/hashes and loaded extension/48kHz stereo driver.
-The Host test target requires the operator's administrator Installer interaction.
-Save work before any operator reboot. Then qualify:
+Next: preserve the degraded session and settle the proposed500ms observation
+policy. Host1.1.011 is ready in Downloads. The Host test target requires the
+operator's administrator Installer interaction; wait for their decision to end
+this diagnostic session. After installation,
+repeat application startup and simultaneous camera/audio use, inspect audio
+ring overruns and compare thread samples/input responsiveness. Then qualify:
 
 1. Manual default and mute/reopen, physical channel separation and cleanup.
 2. Native-first/pixel-second and reverse-order concurrent readers for sustained delivery.
