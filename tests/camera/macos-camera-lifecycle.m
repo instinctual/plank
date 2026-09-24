@@ -3,7 +3,9 @@
 // camera consent, device capture, network or system extension installation.
 #import "camera-consumer.h"
 #import "camera-signing.h"
-#import "native-camera-fixture.h"
+#import <CoreMedia/CoreMedia.h>
+// Only the frame factory; the diagnostic bundle identifiers are unrelated.
+CMSampleBufferRef PLANKCameraFixtureCreateSized(int32_t width, int32_t height) CF_RETURNS_RETAINED;
 #include "plank_transport_camera.h"
 #include <stdio.h>
 #include <unistd.h>
