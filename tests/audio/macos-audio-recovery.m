@@ -71,7 +71,7 @@ int main(void) {
     @autoreleasepool {
         dispatch_queue_t queue = dispatch_queue_create("plank.test.audio-recovery", DISPATCH_QUEUE_SERIAL);
         // Real capture lifecycle must wait for output restoration before
-        // releasing tap suppression. Denied capture never selects an output.
+        // destroying the output tap. Denied capture never selects an output.
         dispatch_sync(queue, ^{
             Capture *routed = [[Capture alloc] initWithDesktopAudioTap:YES];
             [routed setValue:queue forKey:@"queue"];
