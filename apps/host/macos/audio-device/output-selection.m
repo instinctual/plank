@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 #import "output-selection.h"
+#import "../media/audio-output-volume.h"
 #include <fcntl.h>
 #include <sys/stat.h>
 #include <unistd.h>
@@ -68,6 +69,25 @@ static NSString *const keys[] = {@"output", @"alerts"};
         format.mFormatID == kAudioFormatLinearPCM && format.mFormatFlags == kAudioFormatFlagsNativeFloatPacked &&
         format.mChannelsPerFrame == PLANKOutputChannels && format.mBitsPerChannel == 32 &&
         format.mBytesPerFrame == 8 && format.mBytesPerPacket == 8 && format.mFramesPerPacket == 1;
+}
+- (BOOL)inheritVolumeFrom:(AudioObjectID)previous to:(AudioObjectID)device {
+    // Begin at the physical output's existing level, including mute. Subsequent
+    // remote adjustments affect only PLANK Output, leaving physical controls alone.
+    Float32 gain = 1; UInt32 muted = 0; BOOL master = NO, present = NO;
+    if (!PLANKOutputValue(previous, kAudioDevicePropertyVolumeScalar, kAudioObjectPropertyElementMain,
+            &gain, sizeof(gain), &master) || !isfinite(gain) || gain < 0 || gain > 1 ||
+        !PLANKOutputValue(previous, kAudioDevicePropertyMute, kAudioObjectPropertyElementMain,
+            &muted, sizeof(muted), &present)) return NO;
+    if (!master) {
+        float gains[2];
+        if (!PLANKOutputGains(previous, gains)) return NO;
+        gain = fminf(gains[0], gains[1]);
+    }
+    AudioObjectPropertyAddress address = {kAudioDevicePropertyVolumeScalar,
+        kAudioObjectPropertyScopeOutput, kAudioObjectPropertyElementMain};
+    if (AudioObjectSetPropertyData(device, &address, 0, NULL, sizeof(gain), &gain)) return NO;
+    address.mSelector = kAudioDevicePropertyMute; muted = !!muted;
+    return !AudioObjectSetPropertyData(device, &address, 0, NULL, sizeof(muted), &muted);
 }
 - (AudioObjectID)builtInFallback {
     // Only used if an owned route's original device disappeared. Never pick an
@@ -149,6 +169,8 @@ static NSString *const keys[] = {@"output", @"alerts"};
         if (!uid.length || uid.length > 1024) { _previous = nil; return NO; }
         _previous[keys[i]] = uid;
     }
+    if (_previous[keys[0]] && _previous[keys[1]] &&
+        ![self inheritVolumeFrom:[self deviceForUID:_previous[keys[0]]] to:device]) { _previous = nil; return NO; }
     if (![self save]) { _previous = nil; return NO; }
     for (unsigned i = 0; i < 2; ++i) if (_previous[keys[i]]) {
         // A manual change during preparation wins. Recover any partial switch.

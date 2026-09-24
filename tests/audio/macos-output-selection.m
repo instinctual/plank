@@ -5,7 +5,7 @@
 #include <stdio.h>
 
 @interface TestSelection : PLANKMacOutputSelection
-@property unsigned writes;
+@property unsigned writes, inherited;
 @property int failIndex;
 @property BOOL originalMissing, unavailable, incompatible, failRestore;
 @end
@@ -25,6 +25,9 @@ static AudioObjectID selected[] = {10, 11};
 }
 - (BOOL)compatible:(AudioObjectID)device { return device == 20 && !_incompatible; }
 - (BOOL)usable:(AudioObjectID)device { return device && !(_originalMissing && (device == 10 || device == 11)); }
+- (BOOL)inheritVolumeFrom:(AudioObjectID)previous to:(AudioObjectID)device {
+    assert(previous && previous != 20 && device == 20); _inherited++; return YES;
+}
 - (AudioObjectID)builtInFallback { return 40; }
 @end
 static TestSelection *make(NSString *path) {
@@ -36,7 +39,7 @@ int main(void) { @autoreleasepool {
     NSString *path = @(pattern), *journal = [path stringByAppendingPathComponent:@"output-route.plist"];
     TestSelection *owner = make(path);
     assert([owner recover]);
-    assert([owner select] && selected[0] == 20 && selected[1] == 20);
+    assert([owner select] && selected[0] == 20 && selected[1] == 20 && owner.inherited == 1);
     struct stat st; assert(!lstat(journal.fileSystemRepresentation, &st) && (st.st_mode & 0777) == 0600);
     assert([owner restore] && selected[0] == 10 && selected[1] == 11);
     assert(access(journal.fileSystemRepresentation, F_OK));

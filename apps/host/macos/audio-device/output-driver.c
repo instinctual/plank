@@ -3,6 +3,7 @@
 // captures PCM before this sink. No audio is retained, copied to another user,
 // encoded or sent from the HAL. Volume is applied once by the existing tap.
 #include <CoreAudio/AudioServerPlugIn.h>
+#include <CoreAudio/CoreAudio.h>
 #include <CoreFoundation/CFPlugInCOM.h>
 #include <mach/mach_time.h>
 #include <pthread.h>
