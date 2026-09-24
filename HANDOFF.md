@@ -112,14 +112,43 @@ audio decoded 403 and 425 packets respectively, with two activations and one
 mute per run. No audio recording was retained. Camera format/interval restoration
 passed in both runs.
 
-These runs carried encrypted datagrams through temporary SSH connections
-because direct test traffic between the targets timed out. They do not qualify
-direct UDP performance, latency, loss or lip sync. The audio timeline had six
-gaps alongside MJPEG and one alongside H.264; seamless audio is not established.
-No firewall, routing or product-port policy was changed. The probe does not
+The first runs carried encrypted datagrams through temporary SSH connections
+because nonstandard test ports were filtered. The operator clarified that only
+SSH and standard PLANK ports are allowed. Subsequent direct tests on the idle
+standard UDP media port pass, without a tunnel or firewall/routing change.
+The first direct run delivered 90 MJPEG/84 H.264 frames, all byte-identical,
+and decoded 413 stereo audio packets in each mode. It had zero microphone gaps
+alongside MJPEG and eleven alongside H.264. A subsequent instrumented run
+confirmed continuous Client capture but avoidable source-queue drops: two with
+MJPEG and six with H.264. The source queue now accepts the Client's maximum
+six-packet capture batch; immediate draining, bounded overflow and the 100 ms
+stale-packet limit remain. With that fix, the direct repeat delivered all 411
+and 428 microphone packets respectively, with zero capture gaps, source drops,
+transport timeouts or receiver gaps in either camera mode. Payload bitrate was
+192.34/192.80 kbps. Camera delivery was 90 MJPEG/84 H.264 frames; all matched and
+decoded. H.264 recovered from startup and a later gap using two device keyframe
+requests. Release unit tests and encrypted microphone/camera regression tests
+pass on both authorized platforms. These changes are not in installed 1.1.002.
+Do not
+present these short tests as sustained performance or lip-sync acceptance.
+The probe does not
 inject the installed virtual microphone or camera, bypass product login, or
 establish application acceptance. Private captures and deployment details remain
 outside Git. See [the probe procedure](docs/development/investigations/native-camera-probe.md).
+
+Mac reception now has bounded native payload validation, generation/sequence/
+timestamp checks, JPEG coded-dimension checks and H.264 parameter-set dimension
+validation before sample creation. Annex B is adapted to Core Media framing
+without changing NAL bytes; JPEG payloads are unchanged. A separate output
+component retains compressed samples directly or creates an NV12 decoder only
+when requested, waits for a keyframe after a switch/discontinuity, and preserves
+mapped Host timestamps. Sanitizer tests on macOS27/SDK27 pass framing faults,
+false dimensions, replay rejection, mode switching and keyframe recovery. Both
+combined-test private captures pass through these production components:
+90 MJPEG and 84 H.264 frames decoded, with hardware H.264 and software JPEG.
+These components are compiled/tested but not attached to a product camera yet.
+CMIO stream formats are immutable for a stream's lifetime; extension admission
+must establish the actual native format before publishing that stream.
 
 Read [the investigation](docs/development/investigations/native-media-forwarding.md)
 for sources, preservation boundaries, integration constraints and probe gates.

@@ -25,7 +25,7 @@ static void cameraDecoded(void *context, void *frameContext, OSStatus status,
         !((dimensions.width == 1280 && dimensions.height == 720) ||
           (dimensions.width == 1920 && dimensions.height == 1080))) return nil;
     self = [super init];
-    if (self) _format = (CMVideoFormatDescriptionRef)CFRetain(format);
+    if (self) { _format = (CMVideoFormatDescriptionRef)CFRetain(format); _needsKeyframe = YES; }
     return self;
 }
 - (BOOL)needsKeyframe { return _needsKeyframe; }
@@ -37,7 +37,8 @@ static void cameraDecoded(void *context, void *frameContext, OSStatus status,
 }
 - (void)setPixelOutput:(BOOL)pixels {
     if (pixels == _pixels) return;
-    [self resetDecoder]; _pixels = pixels; _needsKeyframe = pixels;
+    // A consumer starting coded output also needs a complete recovery picture.
+    [self resetDecoder]; _pixels = pixels; _needsKeyframe = YES;
 }
 - (void)discontinuity {
     [self resetDecoder]; _needsKeyframe = YES;
@@ -48,13 +49,13 @@ static void cameraDecoded(void *context, void *frameContext, OSStatus status,
         !CMBlockBufferGetDataLength(CMSampleBufferGetDataBuffer(sample)) ||
         CMBlockBufferGetDataLength(CMSampleBufferGetDataBuffer(sample)) > 4u*1024u*1024u ||
         !CMFormatDescriptionEqual(_format, CMSampleBufferGetFormatDescription(sample)) ||
-        !CMTIME_IS_NUMERIC(CMSampleBufferGetPresentationTimeStamp(sample))) return NULL;
+        !CMTIME_IS_NUMERIC(CMSampleBufferGetPresentationTimeStamp(sample))) { [self discontinuity]; return NULL; }
     CFArrayRef attachments = CMSampleBufferGetSampleAttachmentsArray(sample, false);
     // Only samples from the validated builder are accepted; require an explicit
     // sync flag rather than interpreting a missing attachment as permission.
-    if (!attachments || CFArrayGetCount(attachments) != 1) return NULL;
+    if (!attachments || CFArrayGetCount(attachments) != 1) { [self discontinuity]; return NULL; }
     CFTypeRef notSync = CFDictionaryGetValue(CFArrayGetValueAtIndex(attachments, 0), kCMSampleAttachmentKey_NotSync);
-    if (!notSync || CFGetTypeID(notSync) != CFBooleanGetTypeID()) return NULL;
+    if (!notSync || CFGetTypeID(notSync) != CFBooleanGetTypeID()) { [self discontinuity]; return NULL; }
     BOOL independent = CFEqual(notSync, kCFBooleanFalse);
     if (_needsKeyframe && !independent) return NULL;
     if (!_pixels) { _needsKeyframe = NO; return (CMSampleBufferRef)CFRetain(sample); }

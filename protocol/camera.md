@@ -16,6 +16,16 @@ Requests are limited to two per second; an accepted control still requires a
 validated recovery frame before dependent pictures may resume. Product capture
 activation, authenticated controls and Host integration are still outstanding.
 
+The Mac sample builder independently checks coded framing and dimensions,
+activation, sequence, timestamps and fixed format metadata. H.264 parameter sets
+must match throughout an activation; JPEG is bounded single-scan baseline. It
+rejects progressive JPEG and H.264 SVC/MVC. H.264 NAL bytes survive the required
+Annex-B-to-length-prefix adaptation; JPEG remains byte-identical. Its output
+component returns compressed samples directly or lazily decodes NV12 when pixels
+are requested. Switching to pixels and recovering from discontinuity require an
+independent frame. These serial components do not establish producer admission,
+camera registration, clock synchronization or product capability advertisement.
+
 The pilot's driver sequence skips an index at H.264 startup despite continuous
 coded frame numbers. Capture conservatively marks that discontinuity so the
 transport can recover. A reported 30 fps interval is not a promise of actual

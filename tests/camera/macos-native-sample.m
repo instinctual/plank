@@ -92,10 +92,13 @@ int main(void) { @autoreleasepool {
         CVPixelBufferRef image = CMSampleBufferGetImageBuffer(raw);
         CHECK(image && CVPixelBufferGetWidth(image) == 1280 && CVPixelBufferGetHeight(image) == 720);
         CFRelease(raw);
-        [output setPixelOutput:NO]; CHECK(!output.needsKeyframe && !output.hardwareDecoder);
-        coded = [output copyOutputForSample:sample]; CHECK(coded == sample && output.decodedFrames == 1); CFRelease(coded);
+        [output setPixelOutput:NO]; CHECK(output.needsKeyframe && !output.hardwareDecoder);
         CFArrayRef attachments = CMSampleBufferGetSampleAttachmentsArray(sample, false);
         CFMutableDictionaryRef attachment = (CFMutableDictionaryRef)CFArrayGetValueAtIndex(attachments, 0);
+        CFDictionarySetValue(attachment, kCMSampleAttachmentKey_NotSync, kCFBooleanTrue);
+        CHECK(![output copyOutputForSample:sample] && output.needsKeyframe);
+        CFDictionarySetValue(attachment, kCMSampleAttachmentKey_NotSync, kCFBooleanFalse);
+        coded = [output copyOutputForSample:sample]; CHECK(coded == sample && output.decodedFrames == 1); CFRelease(coded);
         CFDictionarySetValue(attachment, kCMSampleAttachmentKey_NotSync, kCFBooleanTrue);
         [output setPixelOutput:YES]; CHECK(![output copyOutputForSample:sample] && output.needsKeyframe);
         CFDictionarySetValue(attachment, kCMSampleAttachmentKey_NotSync, kCFBooleanFalse);
