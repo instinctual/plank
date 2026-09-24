@@ -24,6 +24,49 @@ application-delivery results; the current implementation adds stereo audio. Main
 Client gitlink are retained. The separate startup-fix worktree, main worktree
 and primary RK3576 research are untouched.
 
+### Current checkpoint: installed camera tests and installer restart recommendation
+
+The operator resumed office testing with the development Ubuntu Client and a
+newly authorized Mac Host test target. The dedicated development Mac remains
+the only local Mac compile/probe-build target. The new test target has signed
+Host1.1.006 installed; all three component hashes match the collected package.
+Its old Core Audio driver process still exposes mono input. The operator plans
+to reboot after this work is saved; stereo routing must be rechecked afterward.
+
+Installed native H.264 application delivery passes317 frames at1920x1080 over
+10.522 seconds; separate decoded NV12 delivery passes310 frames over10.307
+seconds. Both have zero invalid samples and application drops. The real camera
+uses its native H.264 transport path without Client transcoding. Concurrent
+readers remain unqualified: one native-first/pixel-second run delivered only14
+pixel frames with241 application drops. Late-join keyframe recovery needs
+investigation; its cause is not yet established. Automatic output can inherit
+an existing pixel format and does not guarantee native coded delivery. Reader
+processes are stopped and detailed reports are saved privately.
+
+Client1.1.004 logs prove a schema4 desktop connection to older Host1.0.156,
+followed by automatic reconnect using schema7 after the Host upgrade. This
+qualifies that installed newer-Client/older-Host direction; it does not qualify
+the opposite direction or physical stereo audio.
+
+Ubuntu Client1.1.006 was built at root
+`f403eeef769b9aef3bf8e7afcda7f5779b795842`, Client
+`b4af89a4649bc679514d7d85594200b5802db215`, in passing hosted run
+[36042793806](https://github.com/instinctual/plank/actions/runs/36042793806).
+The exact DEB is collected in the candidate catalog and staged in the Client's
+Downloads with matching SHA-256
+`8507874db51a15f25f05db6b2cf3581cb0dcffe90354a0e5267ed740c833bee6`.
+It is not installed; the operator's Client1.1.004 session was left running.
+
+Installer source `e6712b3f114bef6f0c23aeac35ce6ef03686f167` adds the native
+`RecommendRestart` conclusion, explains updated driver loading, and permits
+deferral. The final PKG build checks its actual Installer restart action.
+On the dedicated macOS27 Mac, all9 packaging tests and29 installer-script
+checks pass, including a real non-installing product-package fixture reporting
+`RecommendRestart`. Portable checks pass with2 Mac-only tests skipped. No new
+signed Host package was built: existing1.1.006 packages do not contain this
+change. Use a new version for the next Host candidate. Save work before the
+operator's reboot; do not reboot automatically or restart Core Audio.
+
 The operator authorized independent per-feature schemas and compatibility with
 older peers after a schema 4 Client could not connect to the schema 5 Host.
 The installed Host candidate is **1.1.006-native-media-investigation**. Implementation
@@ -177,7 +220,8 @@ confirms the production camera extension1.1.006 is activated and enabled. The
 development Ubuntu Client1.1.004 executable SHA-256 is
 `fea0b14fcfd7e217f0750ed3f0b01031271353dc33683e13b3e03cb33adf6fb6`,
 matching the collected DEB. It is open at the bookmark UI; no authenticated
-physical-media session has been established for installed acceptance.
+physical-media session had been established at that checkpoint. The current
+office session and its newer evidence are recorded above.
 
 Current compatibility package source:
 `9a858832db135b0ff62891b1b2faa0af7c8fa660`.
@@ -290,19 +334,12 @@ preserve H.264. Configuration selection and consumer adaptation need explicit
 qualification. Its successful OS approval and subsequent removal do not approve
 the production Host extension.
 
-The operator deferred live verification until their return. Resume by checking
-development Client reachability and arranging ordinary Host account sign-in;
-SSH key access alone does not authenticate a PLANK session. The Client supports
-remote session launch with `--plank-user` and `--plank-password-stdin`, so physical
-interaction with the Client is not inherently required. Keep credentials in an
-approved credential store, never in source, notes or command arguments.
-
-Required next steps: exercise the installed1.1.006 Host and1.1.004 Ubuntu Client's
-physical camera/stereo microphone through an ordinary
-authenticated session. Do not interrupt the operator's active Mac Client session
-to take over the Host. Verify installed broker and
-extension admission, native/pixel application delivery, concurrent readers,
-sustained loss/keyframe recovery, unplug/reopen, cleanup and A/V synchronization.
+Required next steps: after the operator's reboot, verify the loaded microphone
+is48kHz stereo and exercise physical channel routing. The new Ubuntu Client is
+ready for installation when the operator can close their active session.
+Investigate concurrent camera reader startup and keyframe recovery, then test
+sustained loss, unplug/reopen, cleanup and A/V synchronization. Preserve ordinary
+session authentication and explicit camera activation after reconnect.
 Current presentation uses arrival in the Core Media Host clock. Client capture
 timestamps survive transport, but there is no qualified lip-sync result.
 
