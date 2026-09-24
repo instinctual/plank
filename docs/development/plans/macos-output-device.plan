@@ -10,7 +10,9 @@ Retain the existing owned-process Core Audio tap upstream of that sink: this
 preserves active-user admission, system-alert validation, capture consent,
 applications pinned to other outputs, and the single Opus/Kymux media path.
 There is no public loopback input, PCM capture in root, second encoder or new
-network feature schema. Tap gain applies the selected output's controls once.
+network feature schema. Tap gain applies the selected output's controls once. A newly selected output
+inherits the prior master volume/mute (or the lower channel gain when no master
+exists); subsequent changes leave physical controls untouched.
 
 After desktop audio is active, the signed admitted worker requests a renewable
 local routing lease from the root coordinator. The coordinator records stable
