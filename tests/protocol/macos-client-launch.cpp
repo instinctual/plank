@@ -20,6 +20,7 @@ int main(int argc, char** argv)
     const bool busy = mode == QLatin1String("auth-busy");
     const bool auth = mode.startsWith(QLatin1String("auth-"));
     const bool success = mode == QLatin1String("success") || mode == QLatin1String("negotiate-optional") ||
+        mode == QLatin1String("microphone-timed") || mode == QLatin1String("microphone-timed-disabled") ||
         mode == QLatin1String("legacy-4") || mode == QLatin1String("legacy-5") || mode == QLatin1String("legacy-6");
     const bool unknown = mode == QLatin1String("auth-first") || mode == QLatin1String("auth-recovery-unknown");
     // Trust only the out-of-band certificate supplied by this synthetic test
@@ -70,6 +71,8 @@ int main(int argc, char** argv)
                          result.configuration.negotiatedVideoFormat);
             return 1;
         }
+        if (result.microphone != (mode == QLatin1String("microphone-timed")) ||
+                (result.microphone && result.microphoneSchema != 3)) return 1;
         // The same NvHTTP cannot replay its consumed HTTP token.
         try { http.startMacPreview(topology, pin, 50000, 1200); return 1; }
         catch (const GfeHttpResponseException& error) { if (error.getStatusCode() != 400) return 1; }

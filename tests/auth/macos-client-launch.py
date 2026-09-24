@@ -33,6 +33,8 @@ def main():
              "negotiate-denied", "negotiate-incompatible", "negotiate-malformed",
              "negotiate-oversized", "negotiate-timeout", "negotiate-redirect",
              "negotiate-required", "negotiate-optional", "negotiate-profile")
+    if sys.platform.startswith("linux"):
+        modes += ("microphone-timed", "microphone-timed-disabled", "microphone-timed-downgrade")
     with tempfile.TemporaryDirectory(prefix="plank-client-launch-") as directory:
         root = Path(directory)
         for number in (1, 2):
@@ -133,6 +135,8 @@ def main():
                             expected["features"]["clipboard"] = []
                         if not sys.platform.startswith("linux"):
                             expected["features"]["camera"] = []
+                        if sys.platform.startswith("linux"):
+                            expected["features"]["microphone"].insert(0, vector["timed_microphone"])
                         if body != expected:
                             faults.append("negotiation offer mismatch")
                         if mode.startswith("legacy-"):
@@ -152,6 +156,8 @@ def main():
                             self.respond(200, b"x" * (40000 if mode == "negotiate-oversized" else 1))
                             return
                         response = copy.deepcopy(vector["response"])
+                        if mode.startswith("microphone-timed"):
+                            response["features"]["microphone"] = vector["timed_microphone"]
                         for name, choices in expected["features"].items():
                             if not choices:
                                 response["features"][name] = None
@@ -192,6 +198,8 @@ def main():
                             expected["features"]["camera"] = None
                         if mode == "negotiate-optional":
                             expected["features"]["microphone"] = None
+                        if mode.startswith("microphone-timed"):
+                            expected["features"]["microphone"] = vector["timed_microphone"]
                     if body != expected:
                         faults.append("launch tuple mismatch")
                     if mode == "redirect":
@@ -221,6 +229,10 @@ def main():
                                         features=copy.deepcopy(expected["features"]))
                         for name in ("clipboard", "microphone", "camera"):
                             response["features"][name] = None
+                        if mode == "microphone-timed":
+                            response["features"]["microphone"] = vector["timed_microphone"]
+                        elif mode == "microphone-timed-downgrade":
+                            response["features"]["microphone"] = vector["response"]["features"]["microphone"]
                     if mode == "wrong-port":
                         response["udp_port"] = 1
                     if mode == "audio":
@@ -257,7 +269,7 @@ def main():
                 elif mode == "auth-mid-change":
                     expected_requests = ["discovery", "auth"]
                 if requests != expected_requests or faults:
-                    raise RuntimeError(f"{mode}: incorrect HTTP request sequence")
+                    raise RuntimeError(f"{mode}: HTTP sequence {requests}, fixture faults {faults}")
                 print(f"{mode}: pass", flush=True)
             finally:
                 server.shutdown()
