@@ -49,11 +49,12 @@ candidates or mix their RaptorQ-2 transport with pre-upgrade published peers.
 Read [the investigation](docs/development/investigations/native-media-forwarding.md)
 for sources, preservation boundaries, integration constraints and probe gates.
 API/code evidence supports device-native camera/audio payload forwarding.
-Pilot device formats and H.264 extension controls are enumerated; live
-preservation/compatibility remains unverified. Camera: native H.264/MJPEG through
+Pilot device formats and H.264 extension controls are enumerated; PLANK network
+preservation and physical-input Mac compatibility remain unverified. Camera:
+native H.264/MJPEG through
 1080p30. Read-only extension-unit queries advertise picture-type, bitrate,
-frame-rate and configuration controls. No control writes or camera capture
-were performed. The USB microphone
+frame-rate and configuration controls. No extension-control writes were made;
+the subsequent operator-authorized captures are recorded below. The USB microphone
 exposes S16_LE stereo at 16/24/32 kHz. Latest operator selection is Bluetooth
 headphone playback only: A2DP SBC-XQ, internal 48 kHz stereo S16LE sink, with
 headset microphone suspended. Effective/configured input is the USB camera
@@ -122,14 +123,33 @@ ordinary reboot. Do not report that registration as already absent.
 Deployment paths, signed artifacts and raw evidence stay in private notes/audits.
 See [the probe procedure](docs/development/investigations/native-camera-probe.md).
 
-Next: native H.264/MJPEG and USB stereo-PCM preservation probes, coordinated
+Physical capture now confirms 90 native H.264 and 90 MJPEG buffers at each of
+720p and 1080p, with no error-flagged buffers. H.264 headers describe Baseline
+level 4.0, 8-bit 4:2:0 with matching dimensions. Both H.264 runs skip V4L2 sequence 1
+at startup, but encoded frame numbers remain continuous; do not equate that with
+a lost coded picture. The strict no-sequence-gap criterion remains failed.
+MJPEG delivers approximately 30 fps with no sequence gaps. This proves bounded
+native capture/header validity, not decoding, color or sustained performance.
+
+An endpoint-filtered USB monitor observed the existing microphone stream before
+PipeWire conversion: 3,000 successful 128-byte completions in three seconds,
+96,000 stereo S16LE frames at 32 kHz, with no errors, truncation or monitor drops.
+USB descriptors identify PCM, Type I, two-byte samples and 16 significant bits.
+No audio file was saved. The video device is closed, its prior format/interval
+restored, the monitor module unloaded, and the existing microphone process,
+parameters and running state unchanged. Raw evidence and video samples remain
+private. No existing capture owner was displaced and no package was installed.
+
+Next: physical-input Mac decode and native camera/PCM preservation through PLANK,
+plus a supported audio capture API coexisting with the desktop graph. USB
+monitoring is a diagnostic reference, not product capture. Coordinate captures
 around existing camera/audio use. For headset microphone support, separately
 investigate encoded mSBC capture before PipeWire decoding and Host decoding;
 ordinary capture exposes only decoded PCM and would not preserve that codec.
 Do not take over the active Bluetooth transport. Target access details are only
 in protected private notes; passwords stay in the password
-manager. No product package build/install, physical capture or product-code
-change has occurred in this investigation.
+manager. No product package build/install or product-code change has occurred
+in this investigation.
 
 Synchronization validation passes: all 62 CI-policy tests, seven package
 collection tests, main/feature release-version contracts, both microphone wire

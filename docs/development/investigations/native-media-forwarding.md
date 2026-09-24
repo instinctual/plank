@@ -4,7 +4,7 @@ September 23, 2026. Research branch `native-media-investigation`, based on root
 `af71d2b404486a9846bca464ddd646b5ab9c738a`, synchronized with main
 `acb29884bff626c9381169fd94563ec79555984c` (product version 1.1.001;
 runtime/package source `a4ea39eb6fd0c098ebe01e6eb516747b84c71800`).
-This includes query-only hardware inventory and synthetic framework probes,
+This includes hardware inventory, bounded live capture and synthetic framework probes,
 not an implemented product capability or end-to-end hardware qualification.
 
 The operator wants each device's native media output preserved through
@@ -16,8 +16,9 @@ MJPEG payload, and a microphone exposing native PCM should send that PCM.
 The synthetic Mac probe demonstrates unchanged H.264 delivery and decoded NV12
 delivery through one virtual camera, including overlapping consumers in both
 startup orders. AVFoundation can decode H.264 input for a pixel consumer while
-another consumer receives the original coded payload. Linux exposes useful
-capture boundaries, and PLANK's underlying transport carries opaque bytes.
+another consumer receives the original coded payload. Direct Linux capture now
+confirms native H.264/MJPEG at 720p and 1080p, and USB monitoring confirms native
+32 kHz stereo S16LE microphone payloads. PLANK's underlying transport carries opaque bytes.
 Product contracts, live-device/network preservation and third-party application
 compatibility still require implementation and qualification.
 
@@ -324,16 +325,67 @@ native-mode negotiation must follow the actual source and its generation.
 The latest card enumeration advertises SBC and SBC-XQ playback profiles and
 CVSD/mSBC headset profiles; no broader device codec support is inferred.
 
-API/code review and the pilot device descriptors support the approach. H.264
-passthrough is now a concrete first camera candidate, with native MJPEG also
-available. The currently selected USB microphone exposes native PCM; the
+API/code review, pilot descriptors and the bounded captures below support the
+approach. H.264 passthrough is a concrete first camera candidate, with native
+MJPEG also observed. The currently selected USB microphone delivers native PCM; the
 Bluetooth headset microphone has an earlier compressed mSBC boundary when
-selected in headset mode. Sustained delivery,
-keyframe control, Mac decode compatibility and live byte-preservation remain
-unverified. A bounded capture-to-receiver probe is next; it must avoid taking
+selected in headset mode. Sustained delivery, keyframe control, physical-input
+Mac decode compatibility and PLANK network byte-preservation remain unverified.
+A bounded capture-to-receiver probe is next; it must avoid taking
 over an active recording or conferencing session.
 
 ## Follow-up measurements
+
+### Live native camera and microphone payloads
+
+The operator explicitly authorized activating the physical webcam, and observed
+its indicator lights during the bounded test. A preflight found video idle and
+the microphone already owned by the desktop audio server. No existing reader
+was displaced. Direct V4L2 mmap capture requested four native modes, read back
+the accepted format and interval, and collected 90 buffers per mode. There was
+no Client video encoder, decoder or libv4l conversion layer in this capture.
+
+| Native mode | Delivered payload | Measured result |
+| --- | --- | --- |
+| H.264 1280x720, requested 30 fps | 90 Annex B access units with SPS/PPS, IDR and subsequent non-IDR slices | 29.63 fps over buffer timestamps; no error-flagged buffers; one startup sequence gap |
+| H.264 1920x1080, requested 30 fps | 90 Annex B access units with SPS/PPS, IDR and subsequent non-IDR slices | 29.67 fps; no error-flagged buffers; one startup sequence gap |
+| MJPEG 1280x720, requested 30 fps | 90 complete JPEG frames, matching dimensions, 8-bit precision | 29.99 fps; no sequence gaps or error-flagged buffers |
+| MJPEG 1920x1080, requested 30 fps | 90 complete JPEG frames, matching dimensions, 8-bit precision | 29.99 fps; no sequence gaps or error-flagged buffers |
+
+The H.264 SPS describes Baseline profile, level 4.0, 8-bit 4:2:0 and the requested
+dimensions. Each captured access unit contains four slices. These webcam formats
+are independent of PLANK's desktop video profile policy. Both H.264 runs skip
+V4L2 sequence 1 immediately after sequence 0, producing a first timestamp gap of
+about 68–72 ms. Their encoded slice frame numbers remain continuous, including
+wraparound. This does not establish a lost coded picture; the startup timing
+discontinuity remains a qualification finding. The strict no-sequence-gap
+criterion therefore fails for H.264 even though native payload delivery and
+header parsing succeed. Actual image decode, color and sustained delivery are
+not established by parsing alone. [V4L2 compressed formats][v4l-compressed]
+
+For audio, the USB Audio streaming descriptors specify PCM (`wFormatTag=1`),
+Type I, two channels, two-byte samples and 16 significant bits. The selected
+alternate setting specifies 32 kHz. A three-second `usbmon` observation inspected
+only that camera's audio IN endpoint, before desktop audio processing. It
+received **3,000 successful isochronous completions, each carrying 128 bytes**:
+384,000 payload bytes, or 96,000 interleaved stereo sample frames. Both channels
+contained varying, nonzero samples. There were no packet errors, truncated
+payloads or dropped monitor events. Thus the observed USB media payload is
+S16LE stereo PCM at 32 kHz: **1.024 Mbps before transport overhead**.
+
+This is the kernel's USB completion boundary, not an electrical bus analyzer.
+It confirms actual arriving payloads without opening or replacing the busy ALSA
+capture stream. `usbmon` is a diagnostic reference, not the proposed product
+capture API. A supported native capture path coexisting with desktop audio still
+needs implementation and sample-preservation comparison. No audio recording was
+saved; only counts, statistics and hashes were retained. [USB monitoring][usbmon]
+
+Afterward, video was closed and the original video format/frame interval were
+restored. The microphone retained its original process owner, native parameters
+and running state. The temporary USB monitor module was unloaded. Bounded video
+samples and raw evidence remain in the private audit directory, outside Git.
+No package was installed and no PLANK network preservation or Mac application
+test used these physical-device captures yet.
 
 ### Camera recovery controls
 
@@ -431,6 +483,8 @@ success does not qualify a physical camera's bitstream, color, sustained rate,
 network preservation or audio synchronization.
 
 [uvc]: https://docs.kernel.org/userspace-api/media/v4l/metafmt-uvc.html
+[v4l-compressed]: https://docs.kernel.org/userspace-api/media/v4l/pixfmt-compressed.html
+[usbmon]: https://docs.kernel.org/usb/usbmon.html
 [v4l-formats]: https://docs.kernel.org/userspace-api/media/v4l/vidioc-enum-fmt.html
 [v4l-buffers]: https://docs.kernel.org/userspace-api/media/v4l/buffer.html
 [sdl-formats]: https://wiki.libsdl.org/SDL3/SDL_GetCameraSupportedFormats
