@@ -49,7 +49,10 @@ off-by-default, acknowledgement gating, stale acknowledgement, cancellation and
 missing-device behavior. Shared C camera controls and the typed launch contract
 pass, including 167 Ubuntu launch checks. Mac SDK27 compilation of IPC, producer,
 activation and extension passes; shared-buffer and native sample/output
-sanitizer tests pass. Portable packaging lifecycle/profile/permission tests and
+sanitizer tests pass. The headless CMIO source lifecycle test also passes
+native-format publication, fixed formats, stale generation and revocation before
+a queued media completion; it does not activate an OS extension or exercise
+root admission. Portable packaging lifecycle/profile/permission tests and
 62 CI policy tests pass. The dedicated Mac is at LoginWindow: the broader
 session fixture fails when its non-posting input fixture cannot obtain a
 WindowServer event source. This is an unpassed graphical gate, not a camera
