@@ -12,7 +12,8 @@
 
 // Bound observation age even when the observer or an OS service stalls. Measure
 // from before the read: a late reply must never renew an expired authority.
-static const uint64_t MaximumObservationAge = 250 * NSEC_PER_MSEC;
+static const uint64_t ObservationInterval = 500 * NSEC_PER_MSEC;
+static const uint64_t MaximumObservationAge = NSEC_PER_SEC;
 static uint64_t authorityNow(void) { return clock_gettime_nsec_np(CLOCK_MONOTONIC); }
 
 static BOOL readGraphical(PLANKMacGraphicalPhase phase, PLANKMacAccountIdentity *account, SecuritySessionId *sessionID) {
@@ -89,7 +90,7 @@ static BOOL readGraphical(PLANKMacGraphicalPhase phase, PLANKMacAccountIdentity 
     dispatch_queue_t observer = dispatch_queue_create("la.instinctual.PLANK.graphical-observation",
         dispatch_queue_attr_make_with_qos_class(DISPATCH_QUEUE_SERIAL, QOS_CLASS_USER_INITIATED, 0));
     _watch = dispatch_source_create(DISPATCH_SOURCE_TYPE_TIMER, 0, 0, observer);
-    dispatch_source_set_timer(_watch, DISPATCH_TIME_NOW, 20 * NSEC_PER_MSEC, 2 * NSEC_PER_MSEC);
+    dispatch_source_set_timer(_watch, DISPATCH_TIME_NOW, ObservationInterval, 25 * NSEC_PER_MSEC);
     dispatch_source_set_event_handler(_watch, ^{ [weakSelf refresh]; });
     dispatch_resume(_watch);
     return self;

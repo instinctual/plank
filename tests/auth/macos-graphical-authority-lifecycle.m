@@ -10,6 +10,7 @@
 #import <objc/runtime.h>
 #include <membership.h>
 #include <stdatomic.h>
+#include <time.h>
 #include <unistd.h>
 
 static unsigned checks;
@@ -66,7 +67,7 @@ PLANKMacAuthenticationResult PLANKMacVerifyAccountIsolated(
 }
 
 int main(void) {
-    alarm(15);
+    alarm(25);
     @autoreleasepool {
         CHECK(getuid() != 0 && getuid() == geteuid());
         workspaceCenter = [NSNotificationCenter new]; distributedCenter = [NSNotificationCenter new];
@@ -121,7 +122,7 @@ int main(void) {
             // Notifications revoke synchronously. Unannounced identity/service
             // changes are detected by the independent observer, bounded by age.
             if (scenario >= 2) {
-                for (unsigned i = 0; i < 100 && authority.snapshot.active; ++i) usleep(5000);
+                for (unsigned i = 0; i < 300 && authority.snapshot.active; ++i) usleep(5000);
             }
             CHECK(!authority.snapshot.active);
             CHECK(![auth authorizeStreamLease:lease identity:&identity]);
@@ -132,6 +133,21 @@ int main(void) {
             CHECK(![auth authorizeStreamLease:lease identity:&identity]);
             CHECK(![[auth startForPeer:peer username:@"example"][@"state"] isEqual:@"challenge"]);
             [auth revokeAll];
+        }
+        // Frequent media reads do not turn background reconciliation back into
+        // per-packet OS polling. Healthy authority survives several500ms cycles.
+        @autoreleasepool {
+            PLANKMacGraphicalAuthority *authority = [[PLANKMacGraphicalAuthority alloc] initWithPhase:PLANKMacScopeDesktop];
+            unsigned before = atomic_load(&observations);
+            uint64_t began = clock_gettime_nsec_np(CLOCK_MONOTONIC);
+            for (unsigned i = 0; i < 240; ++i) {
+                CHECK(authority.snapshot.active);
+                usleep(5000);
+            }
+            uint64_t elapsed = clock_gettime_nsec_np(CLOCK_MONOTONIC) - began;
+            unsigned reads = atomic_load(&observations) - before;
+            CHECK(reads >= 2 && reads <= 2 + elapsed / (500*NSEC_PER_MSEC));
+            [authority revoke];
         }
         // A blocked system call must not hold up audio/input authorization or
         // notification revocation. Test the actual concurrent authority owner.
@@ -166,7 +182,7 @@ int main(void) {
                 [workspaceCenter postNotificationName:NSWorkspaceWillSleepNotification object:nil];
                 CHECK(!authority.snapshot.active);
             } else {
-                usleep(300000);
+                usleep(1100000);
                 // Also cover expiry with NO foreground reader during the stall.
                 if (scenario == 1) CHECK(!authority.snapshot.active);
             }

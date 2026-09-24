@@ -10,8 +10,8 @@
 // with PLANKMacAgentConnection.bindGraphicalScope:.
 @interface PLANKMacGraphicalAuthority : NSObject
 - (instancetype)initWithPhase:(PLANKMacGraphicalPhase)phase;
-// Nonblocking local observation, refreshed every20ms off the media/UI queues.
-// An observation aged250ms, OS failure, or resignation/sleep permanently revokes
+// Nonblocking local observation, refreshed every500ms off the media/UI queues.
+// An observation aged1s, OS failure, or resignation/sleep permanently revokes
 // this authority. A late OS reply cannot re-arm it. Machine admission is still
 // checked separately at every media/input boundary.
 - (PLANKMacGraphicalIdentity)snapshot;
