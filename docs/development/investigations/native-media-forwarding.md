@@ -4,7 +4,8 @@ September 23, 2026. Research branch `native-media-investigation`, based on root
 `af71d2b404486a9846bca464ddd646b5ab9c738a`, synchronized with main
 `acb29884bff626c9381169fd94563ec79555984c` (product version 1.1.001;
 runtime/package source `a4ea39eb6fd0c098ebe01e6eb516747b84c71800`).
-This is API/code research, not an implemented capability or hardware qualification.
+This includes query-only hardware inventory and synthetic framework probes,
+not an implemented product capability or end-to-end hardware qualification.
 
 The operator wants each device's native media output preserved through
 transport. Native does not mean uncompressed: an MJPEG camera should send its
@@ -12,10 +13,13 @@ MJPEG payload, and a microphone exposing native PCM should send that PCM.
 
 ## Finding and proposed boundary
 
-Proceed to device inventory and a payload-preservation probe. Linux exposes
-useful capture boundaries; PLANK's underlying media transport carries opaque
-bytes. The product format contracts need extension, and the actual devices
-and Mac compatibility still require qualification.
+The synthetic Mac probe demonstrates unchanged H.264 delivery and decoded NV12
+delivery through one virtual camera, including overlapping consumers in both
+startup orders. AVFoundation can decode H.264 input for a pixel consumer while
+another consumer receives the original coded payload. Linux exposes useful
+capture boundaries, and PLANK's underlying transport carries opaque bytes.
+Product contracts, live-device/network preservation and third-party application
+compatibility still require implementation and qualification.
 
 The proposed contract preserves valid media payload bytes from a qualified
 Linux capture boundary to Mac reception, before Host decoding or adaptation.
@@ -159,10 +163,10 @@ format and consumes image buffers. That capture path does not pass the camera's
 original encoded units to its consumer. [WebRTC capture][webrtc-capture]
 
 Apple supports application-fed sink streams and camera source streams through
-Core Media I/O camera extensions. Qualify whether an extension can expose native
-H.264 samples through AVFoundation to a compatible consumer; compressed
-extension output is not yet established. Separately qualify decoded sample
-buffers for pixel-buffer consumers. Avoid promising unchanged H.264 through
+Core Media I/O camera extensions. The synthetic probe now demonstrates H.264
+samples through AVFoundation to a compatible consumer, as well as decoded pixel
+buffers. Physical camera bitstreams and third-party applications remain separate
+qualification targets. Avoid promising unchanged H.264 through
 third-party applications: transport preservation and application passthrough are
 different gates. [Apple camera extensions][apple]
 
@@ -176,16 +180,17 @@ For consumers requiring pixels, decode on the Mac and provide a qualified pixel
 format. Neither output requires a PLANK video encoder.
 
 Core Media I/O exposes a stream's supported formats and active format index.
-Its formats become AVFoundation device formats. These mechanisms support the
-negotiation design, but do not establish H.264 extension delivery or independent
-per-application selection. An application's requested output pixel format is
-also distinct from the device's active format: establish whether AVFoundation
-performs the decode itself before adding a duplicate decoder in PLANK.
+Its formats become AVFoundation device formats. The measurements below establish
+synthetic H.264 delivery and mixed consumers, with a shared source format.
+An application's output pixel format is distinct from the device's active
+format: AVFoundation performed the decode in the measured H.264-to-NV12 case.
+Do not add a duplicate decoder to that path in PLANK.
 [Stream formats][cmio-formats], [Active format][cmio-active],
 [Apple camera extensions][apple]
 
-Qualify compressed-only, pixels-only, format-switching and simultaneous mixed
-consumers. The extension has a stream-level active format; do not assume each
+Extend the synthetic compressed, pixel, switching and mixed-consumer tests to
+real input and target applications. The extension has a stream-level active
+format; do not assume each
 consumer can select a different source format concurrently. Start decoding only
 when the qualified delivery path needs it, share decoded frames where possible,
 and stop decoding when it is no longer needed. H.264 decoder startup or recovery
@@ -195,9 +200,9 @@ changes. Only advertise output modes that pass their delivery tests; a rejected
 compressed mode must not be replaced with a newly encoded stream labeled native.
 
 Candidate decoder paths are VideoToolbox for supported H.264 and a qualified
-JPEG decoder for MJPEG. No hardware acceleration or device-specific decode
-result has been measured here. Signing, activation, permissions, upgrade/removal
-and consuming applications need macOS 27 qualification.
+JPEG decoder for MJPEG. Hardware acceleration and physical-device decode remain
+unqualified. Signing, activation and permissions pass for the standalone probe;
+product installation, upgrades and third-party applications remain gates.
 
 The existing virtual microphone is fixed at 48 kHz mono float; its producer
 adjusts samples to track the Mac clock. Initially it could remain the output
@@ -328,6 +333,103 @@ keyframe control, Mac decode compatibility and live byte-preservation remain
 unverified. A bounded capture-to-receiver probe is next; it must avoid taking
 over an active recording or conferencing session.
 
+## Follow-up measurements
+
+### Camera recovery controls
+
+The pilot camera's standard V4L2 control list did not expose codec controls.
+Its USB descriptors do expose the UVC H.264 extension unit. Read-only
+`UVCIOC_CTRL_QUERY` calls found GET/SET support for these selectors:
+
+| H.264 extension selector | Purpose | Reported control length |
+| --- | --- | --- |
+| 1 | Video configuration probe | 46 bytes |
+| 9 | Picture type request | 4 bytes |
+| 12 | Frame-rate configuration | 6 bytes |
+| 14 | Bitrate layers | 10 bytes |
+
+The H.264 extension definition includes requests for IDR pictures with parameter
+sets. This provides a concrete candidate for camera-generated recovery frames
+and bitrate changes without a Client encoder. GET_INFO/GET_LEN are capability
+queries: no SET, capture, reset or control mapping was performed. Actual request
+acceptance, latency, recovery after loss and parameter-set handling remain gates.
+Resolve the extension unit from its descriptor/GUID; do not hardcode an observed
+unit number into product code. [Linux UVC controls][uvc-controls],
+[GStreamer's UVC H.264 definitions][uvc-h264]
+
+### Microphone capture boundary
+
+The selected USB microphone's hardware-facing PipeWire format was S16LE,
+32 kHz, stereo. Its adapter `PortConfig` was **dsp**, with F32P ports for the two
+channels. `EnumPortConfig` advertised none/dsp/convert, without a passthrough
+mode. This confirms a conversion boundary upstream of PLANK's current stream.
+The default graph rate was 48 kHz; that default alone does not establish every
+node's instantaneous processing rate. Device activity also changed between
+read-only observations. A later ALSA capability probe declined to open `hw:`
+because the capture device was busy; no audio-server ownership was displaced.
+
+Requesting S16LE/32 kHz at PLANK's PipeWire stream would not prove original
+hardware PCM was preserved: upstream conversion may already have occurred.
+`PW_STREAM_FLAG_NO_CONVERT` controls that stream's conversion, not the entire
+graph. Qualify a supported earlier capture boundary with ordinary desktop audio
+coexistence, using direct ALSA hardware capture as the reference when idle.
+Do not reconfigure the user's global graph to make the result pass.
+[PipeWire stream flags][pw-stream], [PipeWire properties][pw]
+
+### Synthetic macOS camera probe
+
+On the authorized Apple Silicon development Mac, macOS27/SDK27, the standalone
+probe compiles with warnings as errors and an explicit 27.0 deployment target.
+It creates a 320x240 synthetic H.264 fixture. `CMIOExtensionStreamFormat`
+construction accepts avc1, NV12/420v, BGRA and JPEG descriptions. VideoToolbox
+decodes the fixture to a correctly sized NV12 buffer. Generic secure keyed
+archiving fails for all four descriptions, including uncompressed formats;
+that diagnostic does not establish compressed extension IPC support or rejection.
+
+The separate extension/consumer probe also compiles. Its single synthetic
+camera advertises H.264 and NV12, sends copies of the original coded fixture in
+H.264 mode, and lazily decodes that fixture for NV12 mode. The consumer can
+request device-native samples or pixels and reports delivered formats, frame
+counts and encoded-payload hashes. These are test programs, with no physical
+camera, microphone, network or production Host integration.
+
+Developer ID signing, the matching provisioning profile, notarization, stapling,
+Gatekeeper assessment and operator-approved activation passed. AVFoundation
+enumerated H.264 and NV12 on the exact synthetic device. Camera consent was
+granted normally. The consumer pins an explicitly selected source format by
+holding the configuration lock through capture; automatic cases leave that
+lock unused. On macOS, releasing the lock before session startup allowed
+AVFoundation to replace H.264 with NV12. Apple's configuration-lock semantics
+explain this behavior. [Device formats][av-formats], [Configuration lock][av-lock]
+
+| Consumer request | Measured result |
+| --- | --- |
+| Native output, H.264 source pinned | 30 avc1 samples; hash equals extension source; no extension decode |
+| NV12 output, H.264 source pinned | 30 NV12 buffers; source stays avc1; no extension decode, establishing framework-side decoding |
+| NV12 output, NV12 source pinned | 30 NV12 buffers; extension decodes its fixture once |
+| NV12 output, automatic source | 30 NV12 buffers; AVFoundation selects NV12 source |
+| Native output, automatic source | NV12 source and 30 image buffers; fails the probe's H.264-output criterion |
+| H.264 consumer first, automatic pixel consumer second | 180 unchanged coded samples and 90 NV12 buffers; 2.91 seconds of callback overlap; source stays avc1 and extension decode count stays unchanged |
+| Automatic pixel consumer first, H.264 consumer second | 180 NV12 buffers and 90 unchanged coded samples; 2.97 seconds overlap; source changes from NV12 to avc1 while the pixel reader remains active |
+
+The compressed runs matched the source's recorded SHA-256, rather than merely
+matching their own preceding frames. Reopening and switching formats completed.
+The reverse-order pixel reader spanned 7.28 seconds for 180 frames, versus
+5.97 seconds at nominal 30 fps. These results do not qualify seamless switching,
+sustained rate, maximum gaps, decoded color or hardware decoding. The H.264 input
+is one repeated synthetic keyframe; no network or physical camera is involved.
+
+This supports automatic output adaptation with a stable compressed source where
+applications permit it. Advertising H.264 alongside NV12 does not make every
+application select compressed input. Empty output settings preserve the selected
+source representation; they do not force H.264. Retain a qualified NV12 source
+path for consumers that select it, and investigate the transition delay.
+
+See [the probe procedure](native-camera-probe.md) for build inputs, output
+interpretation and the application-delivery matrix. Synthetic decode
+success does not qualify a physical camera's bitstream, color, sustained rate,
+network preservation or audio synchronization.
+
 [uvc]: https://docs.kernel.org/userspace-api/media/v4l/metafmt-uvc.html
 [v4l-formats]: https://docs.kernel.org/userspace-api/media/v4l/vidioc-enum-fmt.html
 [v4l-buffers]: https://docs.kernel.org/userspace-api/media/v4l/buffer.html
@@ -337,12 +439,17 @@ over an active recording or conferencing session.
 [sdl-audio]: https://wiki.libsdl.org/SDL3/SDL_OpenAudioDeviceStream
 [alsa-hw]: https://www.alsa-project.org/alsa-doc/alsa-lib/pcm_plugins.html
 [pw]: https://docs.pipewire.org/page_man_pipewire-props_7.html
+[pw-stream]: https://docs.pipewire.org/group__pw__stream.html
+[uvc-controls]: https://docs.kernel.org/userspace-api/media/drivers/uvcvideo.html
+[uvc-h264]: https://github.com/GStreamer/gstreamer/blob/main/subprojects/gst-plugins-bad/sys/uvch264/uvc_h264.h
 [alsa-compress]: https://docs.kernel.org/sound/designs/compress-offload.html
 [apple]: https://developer.apple.com/videos/play/wwdc2022/10022/
 [av-output]: https://developer.apple.com/documentation/avfoundation/avcapturevideodataoutput
 [av-native]: https://developer.apple.com/documentation/avfoundation/avcapturevideodataoutput/videosettings
 [cmio-formats]: https://developer.apple.com/documentation/coremediaio/cmioextensionstreamsource/formats
 [cmio-active]: https://developer.apple.com/documentation/coremediaio/cmioextensionproperty/streamactiveformatindex
+[av-formats]: https://developer.apple.com/documentation/avfoundation/capture-device-formats
+[av-lock]: https://developer.apple.com/documentation/avfoundation/avcapturedevice/lockforconfiguration()
 [webrtc-capture]: https://webrtc.googlesource.com/src/+/refs/heads/main/sdk/objc/components/capturer/RTCCameraVideoCapturer.m
 [wp-bluetooth]: https://pipewire.pages.freedesktop.org/wireplumber/daemon/configuration/bluetooth.html
 [wp-settings]: https://pipewire.pages.freedesktop.org/wireplumber/daemon/configuration/settings.html

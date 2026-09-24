@@ -5,6 +5,14 @@ the Linux-only root qualification CMake project or change its dependency gates.
 See `docs/development/plans/macos-host.plan` for phase order and acceptance requirements.
 macOS 27 and SDK 27 or newer are required; all binaries target macOS 27.0.
 
+The standalone native-camera format and extension/consumer probes use
+`scripts/test/build-macos-native-camera-formats.sh` and
+`scripts/test/build-macos-native-camera-probe.sh`. They generate synthetic H.264
+input and test native coded output versus decoded NV12. See
+[the procedure](../../docs/development/investigations/native-camera-probe.md)
+for signing/provisioning, explicit activation, the consumer matrix and cleanup.
+They neither capture a physical device nor integrate a camera into the Host.
+
 The focused embedded-cursor app is built separately with
 `scripts/test/build-macos-embedded-cursor.sh` and accepts only `--cursor` in Aqua.
 See `docs/development/build/macos-build-runbook.md` for the five-phase owned-window pixel test,

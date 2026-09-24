@@ -12,8 +12,9 @@ Branch: `native-media-investigation`, isolated worktree
 Synchronized with main `acb29884bff626c9381169fd94563ec79555984c`.
 Its runtime/package source remains `a4ea39eb6fd0c098ebe01e6eb516747b84c71800`;
 the latest main commit changes only package-validation documentation.
-The investigation checkpoint is `c12504c`; only this handoff required merge
-resolution. Main's version, release notes, build runbook, packaging tests and
+The initial investigation checkpoint is `c12504c`; only this handoff required
+merge resolution. This checkpoint adds the synthetic camera probes and measured
+application-delivery results. Main's version, release notes, build runbook, packaging tests and
 Client gitlink are retained. The separate startup-fix worktree, main worktree
 and primary RK3576 research are untouched.
 
@@ -48,8 +49,11 @@ candidates or mix their RaptorQ-2 transport with pre-upgrade published peers.
 Read [the investigation](docs/development/investigations/native-media-forwarding.md)
 for sources, preservation boundaries, integration constraints and probe gates.
 API/code evidence supports device-native camera/audio payload forwarding.
-Pilot device formats are enumerated; live preservation/compatibility remains
-unverified. Camera: native H.264/MJPEG through 1080p30. The USB microphone
+Pilot device formats and H.264 extension controls are enumerated; live
+preservation/compatibility remains unverified. Camera: native H.264/MJPEG through
+1080p30. Read-only extension-unit queries advertise picture-type, bitrate,
+frame-rate and configuration controls. No control writes or camera capture
+were performed. The USB microphone
 exposes S16_LE stereo at 16/24/32 kHz. Latest operator selection is Bluetooth
 headphone playback only: A2DP SBC-XQ, internal 48 kHz stereo S16LE sink, with
 headset microphone suspended. Effective/configured input is the USB camera
@@ -59,19 +63,26 @@ Earlier headset-mode inventory confirmed mSBC with decoded 16 kHz mono S16LE
 in both directions. No streams or device settings were changed by inventory.
 All raw inventory and deployment details remain in protected private notes.
 
+The hardware-facing USB microphone format is S16LE/32 kHz/stereo, but its
+PipeWire adapter exposes float DSP ports and does not advertise passthrough
+port configuration. Disabling conversion only on PLANK's stream cannot prove
+original PCM preservation. The ALSA reference query refused a busy capture
+device; audio-server ownership and user routing remain unchanged.
+
 V4L2 distinguishes compressed and emulated formats. SDL can expose MJPG bytes
 but can also convert requested formats. ALSA `hw:` avoids userspace PCM
 conversions. Current Client microphone capture requests converted 48 kHz mono
 float PCM and sends Opus; Mac virtual input is fixed at that PCM format.
 New native format negotiation/validation and shared endpoint allocation need
 product work. Audio FEC's minimum two repair symbols affect wire-rate estimates.
-AVFoundation can request device-native compressed samples, but physical camera
-driver support and compressed delivery through a Core Media I/O extension remain
-unverified. Qualify application passthrough separately from decoded-frame output;
+AVFoundation can request device-native compressed samples. Synthetic H.264
+delivery through a Core Media I/O extension now passes; physical camera driver
+support and third-party applications remain unverified. Qualify application
+passthrough separately from decoded-frame output;
 a physical USB connection does not guarantee that an application preserves H.264.
 Target automatic format negotiation on one camera, preserving one native network
-stream and decoding on the Mac only when needed. Verify where AVFoundation
-decodes, and test simultaneous consumers with different format requirements;
+stream and decoding on the Mac only when needed. The synthetic test demonstrates
+AVFoundation decoding and simultaneous consumers with different output formats;
 the extension's active format is a stream property, not a per-client promise.
 
 SSH key access and uncached passwordless sudo verification succeeded. Query-only
@@ -80,22 +91,54 @@ SSH account lacked camera-node access. No access policy was changed. The initial
 SSH-user PipeWire query was not the desktop graph; read-only queries as the
 active graphical user subsequently established the Bluetooth devices and routes.
 
+The synthetic Mac format probe passes native compilation with warnings as
+errors, H.264/NV12/BGRA/JPEG format construction, and H.264-to-NV12 decode at
+320x240. Generic keyed archiving fails for all four formats and is inconclusive
+for extension IPC. The standalone camera extension and consumer compile and
+pass strict certificate signing with a matching system-extension installation
+profile. Xcode export must retain the required entitlement and embed its
+authorizing profile. Notarization, stapling, strict signature, Gatekeeper,
+operator-approved extension activation and camera consent all pass.
+
+The application-delivery matrix passes unchanged H.264 and decoded NV12 through
+one camera. Explicit H.264 selection needs the macOS configuration lock through
+capture; releasing it before startup allowed AVFoundation to choose NV12.
+Thirty coded frames match the extension's source hash. A pixel consumer receives
+NV12 while the source stays H.264 and the extension performs no decoding,
+establishing framework-side adaptation. Explicit NV12 and automatic pixel output
+also pass. Native output with automatic source selection receives NV12, so
+advertising H.264 does not force every app to select it.
+
+Mixed readers pass in both startup orders: 180 coded plus 90 pixel frames with
+2.91 seconds overlap, and 180 pixel plus 90 coded frames with 2.97 seconds
+overlap. The reverse-order pixel run spans 7.28 seconds versus 5.97 nominal;
+seamless switching and sustained rate remain unqualified. Invalid frame bounds
+are rejected. These are repeated synthetic keyframes, not a physical webcam,
+network, motion/color, hardware-decoder or lip-sync qualification. No product
+camera capability has been added. Operator-approved deactivation completed;
+the temporary app is removed and probe GUI jobs are unloaded. The extension is
+inactive, with its terminated registration waiting for removal at the next
+ordinary reboot. Do not report that registration as already absent.
+Deployment paths, signed artifacts and raw evidence stay in private notes/audits.
+See [the probe procedure](docs/development/investigations/native-camera-probe.md).
+
 Next: native H.264/MJPEG and USB stereo-PCM preservation probes, coordinated
 around existing camera/audio use. For headset microphone support, separately
 investigate encoded mSBC capture before PipeWire decoding and Host decoding;
 ordinary capture exposes only decoded PCM and would not preserve that codec.
 Do not take over the active Bluetooth transport. Target access details are only
 in protected private notes; passwords stay in the password
-manager. No package build/install, live capture or product-code change has
-occurred in this investigation.
+manager. No product package build/install, physical capture or product-code
+change has occurred in this investigation.
 
 Synchronization validation passes: all 62 CI-policy tests, seven package
 collection tests, main/feature release-version contracts, both microphone wire
 and queue unit tests, and the encrypted microphone FFI test (direct and setup
 entry points, mute/reopen/generation/bounds). The portable microphone buffer
 stress test passes one million samples with two readers, bounds, silence and
-reset checks. These are Linux debug/portable checks, not native Mac camera,
-Core Audio, hardware or release-performance qualification. The default-feature
+reset checks. These are Linux debug/portable checks, separate from the synthetic
+Mac probe results above; neither constitutes live camera, Core Audio, hardware
+or release-performance qualification. The default-feature
 Rust build emits two existing unused-telemetry warnings in vendored Quinn.
 The follow-up main merge changes documentation only; runtime sources and pins
 match the tested synchronization, so these test results remain applicable.
