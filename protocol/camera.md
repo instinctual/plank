@@ -129,3 +129,11 @@ stable device identity; do not claim seamless app reopen across format changes.
 Compressed output retains native samples. NV12 output creates a decoder on
 request, with keyframe recovery on format switches. The active format belongs
 to the stream; mixed application adaptation requires live qualification.
+
+A newly streaming application also requests a fresh independent picture when
+the active format remains compressed: that app may have its own decoder. The
+extension observes CoreMediaIO's streaming-client membership as well as stream
+start callbacks. It preserves existing readers' decoder state and retries through
+the bounded keyframe-request path until an independent picture is delivered
+after the latest join. A frame already in flight before that join cannot satisfy
+the request. Retiring the stream cancels queued membership notifications.

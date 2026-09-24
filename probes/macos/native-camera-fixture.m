@@ -23,7 +23,12 @@ CMSampleBufferRef PLANKCameraFixtureCreate(void) {
 }
 
 CMSampleBufferRef PLANKCameraFixtureCreateSized(unsigned width, unsigned height) {
-    if (width < 16 || height < 16 || width > 1920 || height > 1080) return NULL;
+    NSArray *samples = PLANKCameraFixtureCreateSequence(width, height, 1);
+    return samples.count ? (CMSampleBufferRef)CFRetain((__bridge CFTypeRef)samples[0]) : NULL;
+}
+
+NSArray *PLANKCameraFixtureCreateSequence(unsigned width, unsigned height, unsigned count) {
+    if (width < 16 || height < 16 || width > 1920 || height > 1080 || !count || count > 120) return nil;
     CVPixelBufferRef pixels = NULL;
     VTCompressionSessionRef encoder = NULL;
     EncodedFrame frame = {NULL, noErr};
@@ -55,20 +60,29 @@ CMSampleBufferRef PLANKCameraFixtureCreateSized(unsigned width, unsigned height)
         status = VTSessionSetProperty(encoder, kVTCompressionPropertyKey_AllowFrameReordering,
                                        kCFBooleanFalse);
     if (status == noErr)
-        status = VTCompressionSessionEncodeFrame(encoder, pixels, kCMTimeZero,
+        status = VTSessionSetProperty(encoder, kVTCompressionPropertyKey_MaxKeyFrameInterval,
+                                       (__bridge CFNumberRef)@300);
+    NSMutableArray *samples = [NSMutableArray array];
+    for (unsigned i = 0; status == noErr && i < count; i++) {
+        frame.sample = NULL;
+        status = VTCompressionSessionEncodeFrame(encoder, pixels, CMTimeMake(i, 30),
             CMTimeMake(1, 30),
-            (__bridge CFDictionaryRef)@{(id)kVTEncodeFrameOptionKey_ForceKeyFrame: @YES},
+            (__bridge CFDictionaryRef)@{(id)kVTEncodeFrameOptionKey_ForceKeyFrame: @(i == 0)},
             NULL, NULL);
-    if (status == noErr)
-        status = VTCompressionSessionCompleteFrames(encoder, kCMTimeInvalid);
+        // Drain even a failed submission before releasing the callback context.
+        OSStatus drained = VTCompressionSessionCompleteFrames(encoder, kCMTimeInvalid);
+        if (status == noErr) status = drained;
+        if (status == noErr) status = frame.status;
+        if (frame.sample) [samples addObject:CFBridgingRelease(frame.sample)];
+        if (samples.count != i + 1) status = -1;
+    }
     if (encoder) { VTCompressionSessionInvalidate(encoder); CFRelease(encoder); }
     CFRelease(pixels);
-    if (status != noErr || frame.status != noErr || !frame.sample) {
+    if (status != noErr || samples.count != count) {
         fprintf(stderr, "synthetic_h264_failed status=%d callback=%d\n", (int)status, (int)frame.status);
-        if (frame.sample) CFRelease(frame.sample);
-        return NULL;
+        return nil;
     }
-    return frame.sample;
+    return samples;
 }
 
 static void decoded(void *context, void *frameContext, OSStatus status,

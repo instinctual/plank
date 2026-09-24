@@ -12,16 +12,18 @@
 static NSError *cameraError(NSInteger code) {
     return [NSError errorWithDomain:@PLANK_CAMERA_EXTENSION_ID code:code userInfo:nil];
 }
+static char cameraClientsContext;
 @interface PLANKCameraStream : NSObject <CMIOExtensionStreamSource>
 @property(nonatomic, readonly) CMIOExtensionStream *stream;
 @property(nonatomic, readonly) NSUInteger active, clients;
 @property(nonatomic, copy) void (^changed)(void);
+@property(nonatomic, copy) void (^readerJoined)(void);
 - (instancetype)initWithFormat:(CMVideoFormatDescriptionRef)format;
 - (void)retire;
 @end
 @implementation PLANKCameraStream {
     NSArray<CMIOExtensionStreamFormat *> *_formats;
-    BOOL _retired;
+    BOOL _retired, _observingClients;
 }
 - (instancetype)init { return nil; }
 - (instancetype)initWithFormat:(CMVideoFormatDescriptionRef)format {
@@ -40,7 +42,29 @@ static NSError *cameraError(NSInteger code) {
     _stream = [[CMIOExtensionStream alloc] initWithLocalizedName:@"PLANK Camera"
         streamID:[[NSUUID alloc] initWithUUIDString:@"2F31320B-B24E-48BD-A17B-318F8B6A8F11"]
         direction:CMIOExtensionStreamDirectionSource clockType:CMIOExtensionStreamClockTypeHostTime source:self];
+    [_stream addObserver:self forKeyPath:@"streamingClients"
+        options:NSKeyValueObservingOptionOld | NSKeyValueObservingOptionNew context:&cameraClientsContext];
+    _observingClients = YES;
     return self;
+}
+- (void)observeValueForKeyPath:(NSString *)keyPath ofObject:(id)object
+                       change:(NSDictionary<NSKeyValueChangeKey,id> *)change context:(void *)context {
+    if (context != &cameraClientsContext) {
+        [super observeValueForKeyPath:keyPath ofObject:object change:change context:context]; return;
+    }
+    NSArray *before = change[NSKeyValueChangeOldKey], *after = change[NSKeyValueChangeNewKey];
+    if (![after isKindOfClass:NSArray.class]) return;
+    if (![before isKindOfClass:NSArray.class]) before = @[];
+    for (id client in after) if (![before containsObject:client]) {
+        // KVO need not arrive on the provider's control queue. Do not retain a
+        // retired stream through a pending notification or touch its media state.
+        __weak typeof(self) weakSelf = self;
+        dispatch_async(dispatch_get_main_queue(), ^{
+            typeof(self) owner = weakSelf;
+            if (owner && !owner->_retired && owner->_readerJoined) owner->_readerJoined();
+        });
+        break;
+    }
 }
 - (NSArray<CMIOExtensionStreamFormat *> *)formats { return _formats; }
 - (NSSet<CMIOExtensionProperty> *)availableProperties {
@@ -77,6 +101,7 @@ static NSError *cameraError(NSInteger code) {
 - (BOOL)startStreamAndReturnError:(NSError **)error {
     if (_retired || _clients == NSUIntegerMax) { if (error) *error = cameraError(2); return NO; }
     if (!_clients++ && _changed) _changed();
+    if (_readerJoined) _readerJoined();
     return YES;
 }
 - (BOOL)stopStreamAndReturnError:(NSError **)error {
@@ -84,7 +109,16 @@ static NSError *cameraError(NSInteger code) {
     if (_clients && !--_clients && _changed) _changed();
     return YES;
 }
-- (void)retire { _retired = YES; _clients = 0; _changed = nil; }
+- (void)retire {
+    _retired = YES; _clients = 0; _changed = nil; _readerJoined = nil;
+    if (_observingClients) {
+        [_stream removeObserver:self forKeyPath:@"streamingClients" context:&cameraClientsContext];
+        _observingClients = NO;
+    }
+}
+- (void)dealloc {
+    if (_observingClients) [_stream removeObserver:self forKeyPath:@"streamingClients" context:&cameraClientsContext];
+}
 @end
 
 @interface PLANKCameraDevice : NSObject <CMIOExtensionDeviceSource>
@@ -127,8 +161,8 @@ static NSError *cameraError(NSInteger code) {
     PLANKMacCameraConsumer *_consumer;
     PLANKCameraDevice *_device;
     dispatch_queue_t _media;
-    uint64_t _activation, _epoch, _revision, _lastGoodAt;
-    BOOL _busy, _gap;
+    uint64_t _activation, _epoch, _revision, _lastGoodAt, _joinRevision;
+    BOOL _busy, _gap, _joinPending;
     // Accessed exclusively on _media. One submitted frame at a time; no
     // accumulation of frame-sized dispatch blocks behind a stalled decoder.
     uint64_t _mediaEpoch;
@@ -150,10 +184,16 @@ static NSError *cameraError(NSInteger code) {
     return self;
 }
 - (void)changed { _revision++; _gap = YES; [_consumer requestKeyframe]; }
+- (void)readerJoined {
+    // A second app may decode the unchanged compressed stream itself. Ask for
+    // a new independent picture without resetting the existing readers' decoder.
+    _joinRevision++; _joinPending = YES; [_consumer requestKeyframe];
+}
 - (void)admitted:(uint64_t)activation {
     // This runs on the main control queue, independent of VideoToolbox. A
     // decoder completion from any retired epoch can never republish a device.
-    _epoch++; _activation = activation; _lastGoodAt = PLANKCameraHostTimeNanos(); [self changed];
+    _epoch++; _activation = activation; _joinPending = NO;
+    _lastGoodAt = PLANKCameraHostTimeNanos(); [self changed];
     if (_device) {
         [_device.source retire];
         [_provider removeDevice:_device.device error:NULL]; _device = nil;
@@ -169,7 +209,7 @@ static NSError *cameraError(NSInteger code) {
     if (_busy) { [self changed]; return; }
     _busy = YES;
     NSData *data = [NSData dataWithBytes:record length:size];
-    uint64_t epoch = _epoch, revision = _revision, activation = _activation;
+    uint64_t epoch = _epoch, revision = _revision, activation = _activation, joinRevision = _joinRevision;
     BOOL gap = _gap, running = _device.source.clients > 0, pixels = _device.source.active == 1;
     _gap = NO;
     dispatch_async(_media, ^{
@@ -184,6 +224,9 @@ static NSError *cameraError(NSInteger code) {
         [self->_output setPixelOutput:pixels];
         CMSampleBufferRef output = running && native ? [self->_output copyOutputForSample:native] : NULL;
         BOOL needsKey = self->_builder.needsKeyframe || (running && self->_output.needsKeyframe);
+        CFArrayRef attachments = native ? CMSampleBufferGetSampleAttachmentsArray(native, false) : NULL;
+        BOOL independent = attachments && CFArrayGetCount(attachments) == 1 &&
+            CFDictionaryGetValue(CFArrayGetValueAtIndex(attachments, 0), kCMSampleAttachmentKey_NotSync) == kCFBooleanFalse;
         dispatch_async(dispatch_get_main_queue(), ^{
             self->_busy = NO;
             if (self->_epoch == epoch && self->_activation == activation && self->_consumer.available) {
@@ -196,6 +239,7 @@ static NSError *cameraError(NSInteger code) {
                             typeof(self) owner = weakSelf; if (!owner) return;
                             owner->_lastGoodAt = PLANKCameraHostTimeNanos(); [owner changed];
                         };
+                        device.source.readerJoined = ^{ [weakSelf readerJoined]; };
                     }
                 }
                 uint64_t now = PLANKCameraHostTimeNanos();
@@ -205,8 +249,11 @@ static NSError *cameraError(NSInteger code) {
                     [self->_device.source.stream sendSampleBuffer:output
                         discontinuity:gap ? CMIOExtensionStreamDiscontinuityFlagUnknown : CMIOExtensionStreamDiscontinuityFlagNone
                         hostTimeInNanoseconds:time];
+                    if (independent && self->_joinRevision == joinRevision) self->_joinPending = NO;
                 } else if (running) { self->_gap = YES; [self->_consumer requestKeyframe]; }
-                if (needsKey) [self->_consumer requestKeyframe];
+                // Retry through the existing rate limiter until a recovery
+                // picture is actually delivered after the latest join event.
+                if (needsKey || self->_joinPending) [self->_consumer requestKeyframe];
             }
             if (output) CFRelease(output);
             if (native) CFRelease(native);

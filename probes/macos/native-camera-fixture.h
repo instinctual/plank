@@ -7,6 +7,7 @@
 // Owned synthetic gradient; never uses any physical or desktop capture source.
 CMSampleBufferRef PLANKCameraFixtureCreate(void) CF_RETURNS_RETAINED;
 CMSampleBufferRef PLANKCameraFixtureCreateSized(unsigned width, unsigned height) CF_RETURNS_RETAINED;
+NSArray *PLANKCameraFixtureCreateSequence(unsigned width, unsigned height, unsigned count);
 CVPixelBufferRef PLANKCameraFixtureDecode(CMSampleBufferRef sample) CF_RETURNS_RETAINED;
 NSString *PLANKCameraFixtureDigest(CMSampleBufferRef sample);
 
