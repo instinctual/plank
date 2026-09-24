@@ -9,14 +9,18 @@
 #import <SystemConfiguration/SystemConfiguration.h>
 #import <objc/runtime.h>
 #include <membership.h>
+#include <stdatomic.h>
 #include <unistd.h>
 
 static unsigned checks;
 #define CHECK(x) do { if (!(x)) { fprintf(stderr, "scope lifecycle failed line %d\n", __LINE__); exit(1); } ++checks; } while (0)
-static BOOL onConsole = YES, loginDone = YES, locked, graphicAccess = YES, available = YES;
-static SecuritySessionId auditSession = 42;
-static uid_t consoleUID;
-static uint8_t accountVersion = 1;
+static _Atomic BOOL onConsole = YES, loginDone = YES, locked, graphicAccess = YES, available = YES;
+static _Atomic SecuritySessionId auditSession = 42;
+static _Atomic uid_t consoleUID;
+static _Atomic uint8_t accountVersion = 1;
+static _Atomic unsigned observations;
+static _Atomic BOOL blockNextRead;
+static dispatch_semaphore_t readEntered, readRelease, readReturned;
 static NSNotificationCenter *workspaceCenter, *distributedCenter;
 
 @interface PLANKFakeWorkspace : NSObject
@@ -32,6 +36,12 @@ static id fakeDistributed(id object, SEL selector) { (void)object; (void)selecto
 OSStatus SessionGetInfo(SecuritySessionId requested, SecuritySessionId *actual, SessionAttributeBits *attributes) {
     (void)requested; *actual = auditSession;
     *attributes = graphicAccess ? sessionHasGraphicAccess : 0;
+    atomic_fetch_add(&observations, 1);
+    if (atomic_exchange(&blockNextRead, NO)) {
+        dispatch_semaphore_signal(readEntered);
+        if (dispatch_semaphore_wait(readRelease, dispatch_time(DISPATCH_TIME_NOW, 3*NSEC_PER_SEC))) abort();
+        dispatch_semaphore_signal(readReturned);
+    }
     return errSecSuccess;
 }
 CFDictionaryRef CGSessionCopyCurrentDictionary(void) {
@@ -61,6 +71,9 @@ int main(void) {
         CHECK(getuid() != 0 && getuid() == geteuid());
         workspaceCenter = [NSNotificationCenter new]; distributedCenter = [NSNotificationCenter new];
         workspace = [PLANKFakeWorkspace new];
+        readEntered = dispatch_semaphore_create(0);
+        readRelease = dispatch_semaphore_create(0);
+        readReturned = dispatch_semaphore_create(0);
         Method workspaceMethod = class_getClassMethod(NSWorkspace.class, @selector(sharedWorkspace));
         Method distributedMethod = class_getClassMethod(NSDistributedNotificationCenter.class, @selector(defaultCenter));
         IMP oldWorkspace = method_setImplementation(workspaceMethod, (IMP)fakeWorkspace);
@@ -105,6 +118,11 @@ int main(void) {
                 case 7: graphicAccess = NO; break;
                 case 8: available = NO; break;
             }
+            // Notifications revoke synchronously. Unannounced identity/service
+            // changes are detected by the independent observer, bounded by age.
+            if (scenario >= 2) {
+                for (unsigned i = 0; i < 100 && authority.snapshot.active; ++i) usleep(5000);
+            }
             CHECK(!authority.snapshot.active);
             CHECK(![auth authorizeStreamLease:lease identity:&identity]);
             consoleUID = getuid(); auditSession = 42; accountVersion = 1;
@@ -115,9 +133,38 @@ int main(void) {
             CHECK(![[auth startForPeer:peer username:@"example"][@"state"] isEqual:@"challenge"]);
             [auth revokeAll];
         }
+        // A blocked system call must not hold up audio/input authorization or
+        // notification revocation. Test the actual concurrent authority owner.
+        for (unsigned scenario = 0; scenario < 3; ++scenario) {
+            PLANKMacGraphicalAuthority *authority = [[PLANKMacGraphicalAuthority alloc] initWithPhase:PLANKMacScopeDesktop];
+            CHECK(authority.snapshot.active);
+            blockNextRead = YES;
+            CHECK(!dispatch_semaphore_wait(readEntered, dispatch_time(DISPATCH_TIME_NOW, NSEC_PER_SEC)));
+            unsigned before = atomic_load(&observations);
+            dispatch_semaphore_t readsDone = dispatch_semaphore_create(0);
+            __block BOOL allActive = YES;
+            dispatch_async(dispatch_get_global_queue(QOS_CLASS_USER_INITIATED, 0), ^{
+                for (unsigned i = 0; i < 1000; ++i) allActive &= authority.snapshot.active;
+                dispatch_semaphore_signal(readsDone);
+            });
+            CHECK(!dispatch_semaphore_wait(readsDone, dispatch_time(DISPATCH_TIME_NOW, 100*NSEC_PER_MSEC)));
+            CHECK(allActive && atomic_load(&observations) == before);
+            if (scenario == 0) {
+                [workspaceCenter postNotificationName:NSWorkspaceWillSleepNotification object:nil];
+                CHECK(!authority.snapshot.active);
+            } else {
+                usleep(300000);
+                // Also cover expiry with NO foreground reader during the stall.
+                if (scenario == 1) CHECK(!authority.snapshot.active);
+            }
+            dispatch_semaphore_signal(readRelease);
+            CHECK(!dispatch_semaphore_wait(readReturned, dispatch_time(DISPATCH_TIME_NOW, NSEC_PER_SEC)));
+            usleep(30000);
+            CHECK(!authority.snapshot.active); // late success cannot renew
+        }
         method_setImplementation(workspaceMethod, oldWorkspace);
         method_setImplementation(distributedMethod, oldDistributed);
-        printf("macos_graphical_lifecycle=pass checks=%u synthetic_os=1 lock_continuity=1 revocation_latched=1\n", checks);
+        printf("macos_graphical_lifecycle=pass checks=%u synthetic_os=1 lock_continuity=1 revocation_latched=1 blocked_observer=pass\n", checks);
     }
     return 0;
 }

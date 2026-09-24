@@ -159,6 +159,24 @@ The local scope can now be bound to fresh machine admission using
 queue. Service expiry and local identity changes latch revocation even if that
 queue stalls. The native A/V/input lifecycle suite exercises that composition.
 
+Local graphical evidence is refreshed every20ms on a dedicated serial observer.
+Authorization reads that evidence under a short lock, without calling
+WindowServer, SystemConfiguration or membership services on the media/input
+queue. Those synchronous calls previously ran for every audio packet, camera
+check and input event; live thread samples and audio-ring overruns showed this
+queue could stall under application startup and simultaneous camera use.
+
+Observation age is limited to250ms, measured from the beginning of the OS read.
+Expiry permanently revokes the local authority, including when a late successful
+read returns before any foreground caller noticed the expired deadline. OS
+failure or changed account/session also revokes it. Resignation and sleep
+notifications revoke immediately without waiting for an outstanding OS call;
+lock/unlock retains the existing same-console policy. Unannounced OS changes
+have this bounded observation window. Machine admission, token/lease ownership,
+permissions and display generation remain independently checked. The lifecycle
+fixture covers a blocked observer, concurrent reads, notification revocation,
+expiry and late replies; installed audio/input recovery needs a separate test.
+
 ## Qualification and limits
 
 - Twenty-seven pure phase/ownership/identity cases and 119 synthetic conversation/
