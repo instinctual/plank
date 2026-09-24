@@ -1,6 +1,6 @@
 # PLANK handoff
 
-## Current task: native camera forwarding and stereo microphone implementation
+## Current task: native media forwarding and Mac audio devices
 
 The operator requested preserving webcam/microphone native media output through
 transport without Client transcoding and explicitly requested a new branch.
@@ -23,6 +23,44 @@ merge resolution. The investigation commits add synthetic camera probes and meas
 application-delivery results; the current implementation adds stereo audio. Main's version, release notes, build runbook, packaging tests and
 Client gitlink are retained. The separate startup-fix worktree, main worktree
 and primary RK3576 research are untouched.
+
+### Current checkpoint: PLANK Output candidate
+
+The operator approved adding PLANK Output as the Mac's remote playback device.
+Implementation and tests are saved and pushed; candidate source is
+`824cfc5d619a9242d923061a55626aff1334e3cc`, with changelog-only Client
+`02e2663f5354f53166681fb37a58b7cf43481053`. Other gitlinks are unchanged.
+Version1.1.007 includes both the output device and native Installer restart
+recommendation. Signed hosted run
+[36048823698](https://github.com/instinctual/plank/actions/runs/36048823698)
+is in progress; collect and verify the exact package before staging it.
+The preceding dispatch was cancelled because its supplied source revision was
+incorrect; it produced no candidate. The feature branch has temporary signing
+permission; remove that permission when this build finishes.
+
+PLANK Output is a real output-only HAL sink with48kHz stereo Float32, volume
+and mute controls. The existing owned-process tap captures upstream PCM,
+retaining active-user isolation, system-alert validation, and applications
+pinned to another device. The same Opus/Kymux path is used. An admitted worker
+requests routing only after audio starts. Root records previous playback/alert
+UIDs privately before selection, restores only owned defaults, and retries
+failed restoration. An unplugged original falls back only to a built-in output.
+Coordinator crash restart recovers its journal. No Client protocol changes.
+
+SDK27 ASan/UBSan driver, journal and anonymous-XPC broker tests pass, including
+control values, buffer bounds, manual override, crash recovery, partial failure,
+unsafe journals, malformed requests, ownership, generation rejection and lease
+expiry. Broker signature/root admission is replaced only in that fixture;
+installed authorization remains a live gate. Existing capture recovery tests
+also pass with the new route-before-tap teardown check and denied-start check.
+Portable packaging/script checks and62 CI-policy tests pass. A local full Host
+build stopped at the existing synthetic handoff fixture's unavailable sudo;
+the hosted build must pass this gate before packaging acceptance.
+
+See [the output plan](docs/development/plans/macos-output-device.plan).
+No1.1.007 installation or live output acceptance is claimed. The operator's
+current session is preserved. Continue with the signed installer, loaded-driver
+verification after restart, and live output/volume/alert/disconnect checks.
 
 ### Current checkpoint: installed camera tests and installer restart recommendation
 
