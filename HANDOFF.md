@@ -97,15 +97,36 @@ exposure-control change is involved. Later capture measured approximately 15 fps
 with dynamic frame rate enabled by the device's existing auto-exposure policy;
 do not present nominal 30 fps as measured delivery. The H.264 startup driver
 sequence gap remains and is conservatively marked for recovery. Product capture
-activation, native network delivery and extension integration remain pending.
+activation and extension integration remain pending.
 Full Linux/Mac lifecycle/performance gates for this new lane remain required.
 See [the camera contract](protocol/camera.md).
+
+The standalone physical camera/microphone network probe now passes on both
+authorized targets. It uses the actual Linux capture and microphone modules,
+the encrypted PLANK transport and the native Mac Opus decoder. With microphone
+mute/reopen during each 90-frame run, MJPEG delivered 90 frames and H.264 88;
+every received native payload matched its source SHA-256. All received frames
+decoded to NV12 on the Mac (hardware H.264, software JPEG). H.264 discarded two
+startup frames while obtaining one camera-generated recovery keyframe. Stereo
+audio decoded 403 and 425 packets respectively, with two activations and one
+mute per run. No audio recording was retained. Camera format/interval restoration
+passed in both runs.
+
+These runs carried encrypted datagrams through temporary SSH connections
+because direct test traffic between the targets timed out. They do not qualify
+direct UDP performance, latency, loss or lip sync. The audio timeline had six
+gaps alongside MJPEG and one alongside H.264; seamless audio is not established.
+No firewall, routing or product-port policy was changed. The probe does not
+inject the installed virtual microphone or camera, bypass product login, or
+establish application acceptance. Private captures and deployment details remain
+outside Git. See [the probe procedure](docs/development/investigations/native-camera-probe.md).
 
 Read [the investigation](docs/development/investigations/native-media-forwarding.md)
 for sources, preservation boundaries, integration constraints and probe gates.
 API/code evidence supports device-native camera/audio payload forwarding.
-Pilot device formats and H.264 extension controls are enumerated; PLANK network
-preservation and physical-input Mac compatibility remain unverified. Camera:
+Pilot device formats and H.264 extension controls are enumerated; component
+network preservation and physical-input Mac decode pass as described above.
+Production application delivery remains unverified. Camera:
 native H.264/MJPEG through
 1080p30. Read-only extension-unit queries advertise picture-type, bitrate,
 frame-rate and configuration controls. No extension-control writes were made;
@@ -225,8 +246,8 @@ No Client encoder or new device capture was used. This is decode qualification,
 not color, sustained timing, network preservation or application acceptance.
 
 Next: finish stereo live session and installed-device audio testing;
-implement native camera capture/transport
-and authenticated extension production. Clock-drift/loss and real application
+integrate camera capture/transport into authenticated sessions
+and implement the production camera extension. Clock-drift/loss and real application
 acceptance remain required. USB monitoring is a diagnostic reference, not
 product capture. The selected microphone implementation is Opus; native PCM or
 Bluetooth mSBC preservation is no longer an implementation gate. Capture/test

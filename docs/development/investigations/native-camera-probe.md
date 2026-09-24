@@ -150,6 +150,7 @@ transfer and the transferred file hash before testing. Never put the captures
 or their machine-specific manifest in the repository.
 
 Run `native-camera-decode h264 WIDTH HEIGHT PRIVATE_RECORDS`, or use `mjpeg`.
+
 The tool accepts at most 300 frames, 4 MiB per frame and 1920x1080 dimensions,
 with a 30-second process limit. It opens no devices and produces no image files.
 For H.264 it replaces Annex B start codes with length prefixes required by
@@ -162,3 +163,66 @@ All four measured physical captures pass: 90 frames each of 720p/1080p H.264
 and MJPEG, with 360 decoded frames and no decoder errors/drops. VideoToolbox
 reports hardware acceleration for H.264 and software decoding for JPEG. This
 does not qualify sustained timing, color, transport loss or application delivery.
+
+### Physical camera and microphone transport probe
+
+`probes/network/plank-transport/native-camera-live.cpp` joins the actual Linux
+V4L2 capture and Client microphone modules to the native encrypted transport.
+The Mac receiver uses the production Opus decoder through
+`native-audio-stats.c`. It records private camera payloads and per-frame hashes;
+audio stays in memory and only aggregate counts/levels are reported. The probe
+mutes and reopens the microphone while the camera continues. It uses its own
+ephemeral pinned certificate and session token, not the product authentication
+or installed virtual-device paths.
+
+Build the exact transport archive on each authorized builder first. In these
+commands, `PLANK_SOURCE_ROOT` selects the reviewed source snapshot,
+`PLANK_PROBE_BUILD` an external build directory, and `PLANK_TRANSPORT_ARCHIVE`
+the matching platform's `libplank_transport.a`. Record root and Client commits
+and hashes of separately staged probe sources. On the Ubuntu Client builder:
+
+```bash
+cd "$PLANK_SOURCE_ROOT"
+c++ -std=c++17 -O2 -Wall -Wextra -Werror -DPLANK_TRANSPORT=1 \
+  -Iprotocol/plank-transport/include -Iapps/client/app/streaming/camera \
+  -Iapps/client/app/streaming/audio $(pkg-config --cflags Qt6Core sdl3 opus) \
+  probes/network/plank-transport/native-camera-live.cpp \
+  apps/client/app/streaming/camera/linuxnativecamera.cpp \
+  apps/client/app/streaming/audio/microphone.cpp "$PLANK_TRANSPORT_ARCHIVE" \
+  $(pkg-config --libs Qt6Core sdl3 opus) -lcrypto -ldl -lpthread -lm -lrt \
+  -o "$PLANK_PROBE_BUILD/native-camera-live"
+```
+
+On the authorized macOS 27/SDK27 development Mac:
+
+```bash
+cd "$PLANK_SOURCE_ROOT"
+xcrun clang -std=c11 -O2 -Wall -Wextra -Werror -mmacosx-version-min=27.0 \
+  -Iapps/host/macos/media probes/network/plank-transport/native-audio-stats.c \
+  -c -o "$PLANK_PROBE_BUILD/native-audio-stats.o"
+xcrun clang++ -std=c++17 -O2 -Wall -Wextra -Werror -mmacosx-version-min=27.0 \
+  -Iprotocol/plank-transport/include \
+  probes/network/plank-transport/native-camera-live.cpp \
+  "$PLANK_PROBE_BUILD/native-audio-stats.o" "$PLANK_TRANSPORT_ARCHIVE" \
+  -framework AudioToolbox -framework Security -framework SystemConfiguration \
+  -framework CoreFoundation -lpthread -lm -o "$PLANK_PROBE_BUILD/native-camera-live"
+```
+
+Transfer and hash-verify the Linux executable on the authorized hardware Client;
+do not compile there. Run as its existing graphical user, preserving the user's
+audio-server environment. Check that no other process owns the camera first.
+Provision an ephemeral certificate using `probes/macos/loopback-cert.cnf`, and
+supply the same unpredictable 64-character `PLANK_CAMERA_PROBE_TOKEN` through
+each process environment without logging its value. The receiver takes
+`server BIND CERT KEY PRIVATE_RECORDS`; the Client takes
+`client REMOTE CERT_SHA256 DEVICE h264|mjpeg`. Addresses and device paths are
+operator-selected arguments, never product defaults. The output record file
+must not already exist and is created mode 0600 outside Git. Remove temporary
+credentials/listeners afterward and verify the original camera mode is restored.
+
+Compare received hashes by frame sequence with the source hashes, then run the
+Mac decode probe on the private receiver records. A successful pair proves
+native payload preservation and simultaneous stereo Opus transport, including
+mute/reopen. It does not test the installed HAL, CMIO extension, product login,
+color fidelity or lip sync. If a diagnostic tunnel is needed, record that fact:
+its throughput and packet-gap results do not qualify direct UDP behavior.
