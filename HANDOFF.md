@@ -24,6 +24,51 @@ application-delivery results; the current implementation adds stereo audio. Main
 Client gitlink are retained. The separate startup-fix worktree, main worktree
 and primary RK3576 research are untouched.
 
+The current integration source advances the next candidate to
+**1.1.003-native-media-investigation**. Installed 1.1.002 remains unchanged.
+Camera integration now includes Ubuntu device selection and toolbar activation,
+strict launch schema6 and PLD1 camera controls, session-bound Host reception,
+root-brokered fresh shared mappings and a CMIO extension with native/NV12 output.
+Camera starts off on each connection, including reconnects. A missing selected
+camera fails without choosing another device. Optional camera failure leaves
+other session media available. These changes are committed on this branch;
+they are not installed or application-qualified.
+
+The Mac extension publishes immutable formats only after its first validated
+native sample. Root verifies the signed extension and current registered
+worker; the consumer verifies root and keeps admission independent of producer
+memory. One media job may be outstanding; revocation removes the device and
+rejects old completions. Three atomic shared slots bound copying and age.
+Codec failure expires the producer, and camera-off/reopen uses new memory.
+The build now embeds/signs the extension, validates the containing Host profile,
+and provides explicit enable/disable setup. Uninstall refuses to remove the
+containing app until OS extension removal is complete.
+
+Validation for this integration: Ubuntu camera actor sanitizer tests pass
+off-by-default, acknowledgement gating, stale acknowledgement, cancellation and
+missing-device behavior. Shared C camera controls and the typed launch contract
+pass, including 167 Ubuntu launch checks. Mac SDK27 compilation of IPC, producer,
+activation and extension passes; shared-buffer and native sample/output
+sanitizer tests pass. Portable packaging lifecycle/profile/permission tests and
+62 CI policy tests pass. The dedicated Mac is at LoginWindow: the broader
+session fixture fails when its non-posting input fixture cannot obtain a
+WindowServer event source. This is an unpassed graphical gate, not a camera
+application pass. Hosted builds are running; initial source82fb419 found stale
+schema5 HTTPS/Client test fixtures, now updated in62cc7058. Await fresh results
+before collecting candidate packages.
+
+Production signing is currently blocked by a missing matching Developer ID
+system-extension installation profile for `la.instinctual.PLANK.Host`.
+Read-only inventory found probe profiles, no matching Host installation profile.
+The probe profile cannot be reused. CI accepts the additional protected
+`PLANK_MACOS_HOST_PROVISION_PROFILE` base64 input only in the signed job and
+removes it afterward. No profile or credentials were committed. Complete
+independent build checks before requesting operator profile/activation help.
+Signed packaging, installed broker/extension admission and application delivery,
+concurrent readers, sustained/loss/unplug testing and A/V synchronization remain
+required. Presentation currently uses arrival in the Core Media Host clock;
+Client capture timestamps survive PCAM, but no lip-sync claim is justified.
+
 The synchronized base product version is **1.1.001**; the stereo test candidate
 is **1.1.002-native-media-investigation**. Preserve the padded patch component.
 Main already contains the accepted microphone and post-reboot certificate
@@ -85,7 +130,7 @@ queues, activation isolation and H.264 keyframe recovery. Portable wire and
 queue tests pass; encrypted Rust C-ABI tests pass all four allocation/setup
 combinations with byte-identical synthetic payloads and mute/reopen. The
 microphone encrypted regression still passes after allocation coordination.
-Product camera capture/negotiation/UI/Host extension integration is not enabled.
+Subsequent schema6 integration is described above; this earlier transport checkpoint was not advertised.
 The subsequent direct V4L2 capture component passes sanitizer tests on the
 authorized Client builder: unchanged payload copy, malformed framing, native
 mode requirements, coerced/busy-device rejection and partial-resource cleanup.
@@ -96,8 +141,7 @@ three recoveries below 140 ms. No encoder, persistent UVC mapping, bitrate or
 exposure-control change is involved. Later capture measured approximately 15 fps
 with dynamic frame rate enabled by the device's existing auto-exposure policy;
 do not present nominal 30 fps as measured delivery. The H.264 startup driver
-sequence gap remains and is conservatively marked for recovery. Product capture
-activation and extension integration remain pending.
+sequence gap remains and is conservatively marked for recovery. Product activation and extension integration are now implemented as described above; live gates remain pending.
 Full Linux/Mac lifecycle/performance gates for this new lane remain required.
 See [the camera contract](protocol/camera.md).
 
