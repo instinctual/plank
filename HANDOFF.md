@@ -53,20 +53,39 @@ sanitizer tests pass. The headless CMIO source lifecycle test also passes
 native-format publication, fixed formats, stale generation and revocation before
 a queued media completion; it does not activate an OS extension or exercise
 root admission. Portable packaging lifecycle/profile/permission tests and
-62 CI policy tests pass. The dedicated Mac is at LoginWindow: the broader
-session fixture fails when its non-posting input fixture cannot obtain a
-WindowServer event source. This is an unpassed graphical gate, not a camera
-application pass. Hosted builds are running; initial source82fb419 found stale
-schema5 HTTPS/Client test fixtures, now updated in62cc7058. Await fresh results
-before collecting candidate packages.
+62 CI policy tests pass. The dedicated Mac is at LoginWindow, where the broader session fixture cannot
+obtain a WindowServer event source. The hosted Mac fixture passes 744 checks
+across 24 scenarios at the exact candidate source below; this resolves the
+fixture gate without claiming installed camera application acceptance.
 
-Production signing is currently blocked by a missing matching Developer ID
-system-extension installation profile for `la.instinctual.PLANK.Host`.
-Read-only inventory found probe profiles, no matching Host installation profile.
-The probe profile cannot be reused. CI accepts the additional protected
-`PLANK_MACOS_HOST_PROVISION_PROFILE` base64 input only in the signed job and
-removes it afterward. No profile or credentials were committed. Complete
-independent build checks before requesting operator profile/activation help.
+Candidate source is `803383b588f1c56606cc0f7fdc7103c5c215f602`, Client
+`79ebab378eda15419b07a324c2df17bd1411f890`. Hosted run
+[`35966387798`](https://github.com/instinctual/plank/actions/runs/35966387798)
+passes all four product jobs: both Linux packages and both unsigned Mac builds,
+including camera lifecycle/sample tests and the full Mac authentication/session
+fixtures. Initial source82fb419 found stale schema5 HTTPS/Client fixtures; those
+are corrected in the passing candidate.
+
+Both Linux packages are checksum/provenance-verified and collected under
+`artifacts/packages/candidates/1.1.003-native-media-investigation/`:
+
+| Candidate package | SHA-256 |
+| --- | --- |
+| Ubuntu Client DEB | `1f3207e4404c2ce27b4e10d4618013c188a3b082d999db1a7c716bb027df29cc` |
+| Linux Host RPM | `3ad58a8f124991cd1a30300a424ee31135aab9e4b93f7860f224e6f9c98e097f` |
+
+No signed Mac installer exists for this source, and neither target was upgraded.
+Schema6 requires matching peers; do not install this Client against the installed
+schema5 Host.
+
+The operator supplied a new Developer ID profile for `la.instinctual.PLANK.Host`.
+Its exact app/team, existing application signing certificate, expiration and
+system-extension installation permission pass validation. The protected
+`macos-signing` environment now contains `PLANK_MACOS_HOST_PROVISION_PROFILE`;
+the signing job consumes and removes its temporary decoded copy. Existing
+notarization credentials are unchanged. No profile or credentials were committed.
+Signed Host packaging is the next gate; OS extension activation still needs
+normal approval on the dedicated Mac.
 Signed packaging, installed broker/extension admission and application delivery,
 concurrent readers, sustained/loss/unplug testing and A/V synchronization remain
 required. Presentation currently uses arrival in the Core Media Host clock;

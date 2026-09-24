@@ -91,6 +91,24 @@ Set environment variable `PLANK_MACOS_TEAM_ID` to the Developer Team ID.
 Certificate type, private-key presence and team are validated on the runner.
 Keep Developer ID distinct from Apple Development and Mac App Store identities.
 
+For the Host camera, an Account Holder or Admin must enable **System Extension**
+on the explicit App ID `la.instinctual.PLANK.Host` in Apple Developer's
+Certificates, Identifiers & Profiles. Create a **Developer ID** provisioning
+profile for that App ID using the existing Developer ID Application certificate
+used by the signing job. Download the profile outside the checkout and provide
+its base64 contents through `PLANK_MACOS_HOST_PROVISION_PROFILE` in the protected
+environment. The package gate verifies the exact app/team, signing certificate,
+expiration and `com.apple.developer.system-extension.install = true` before
+embedding the profile. The probe's App ID/profile does not authorize the Host.
+See [Apple's capability setup](https://developer.apple.com/help/account/identifiers/enable-app-capabilities/).
+The build uses a Team-ID-prefixed macOS app group, which does not need separate
+portal registration; its entitlement is added to the signed Host and extension.
+See [Apple's app-group formats](https://developer.apple.com/documentation/bundleresources/entitlements/com.apple.security.application-groups).
+
+This provisioning step does not replace notarization credentials or the Mac's
+extension activation approval. The installed Host exposes explicit camera
+enable/disable actions; signing a package does not activate the extension.
+
 After a clean committed/pushed source is qualified, request signing with
 `bash scripts/ci/dispatch.sh macos-host true` (or `macos-client true`). The job
 starts without a separate approval prompt on an allowed branch. Only its
