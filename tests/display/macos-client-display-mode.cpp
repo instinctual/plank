@@ -32,7 +32,7 @@ extern "C" size_t CGDisplayModeGetPixelHeight(CGDisplayModeRef mode)
 { return reinterpret_cast<const Mode*>(mode)->height; }
 extern "C" uint32_t CGDisplayModeGetIOFlags(CGDisplayModeRef mode)
 { return reinterpret_cast<const Mode*>(mode)->flags; }
-extern "C" uint32_t CGDisplayIsBuiltin(CGDirectDisplayID) { return builtin; }
+extern "C" boolean_t CGDisplayIsBuiltin(CGDirectDisplayID) { return builtin; }
 
 int main()
 {
