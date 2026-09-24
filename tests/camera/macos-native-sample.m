@@ -32,7 +32,7 @@ static NSData *annexB(CMSampleBufferRef sample) {
 }
 static NSData *jpeg(unsigned width, unsigned height) {
     CGColorSpaceRef color = CGColorSpaceCreateDeviceRGB();
-    CGContextRef context = CGBitmapContextCreate(NULL, width, height, 8, width*4, color, kCGImageAlphaNoneSkipLast);
+    CGContextRef context = CGBitmapContextCreate(NULL, width, height, 8, width*4, color, (CGBitmapInfo)kCGImageAlphaNoneSkipLast);
     CGColorSpaceRelease(color); CHECK(context);
     CGContextSetRGBFillColor(context, .2, .6, .4, 1);
     CGContextFillRect(context, CGRectMake(0,0,width,height));
