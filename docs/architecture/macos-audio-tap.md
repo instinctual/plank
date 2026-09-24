@@ -14,6 +14,19 @@ remote playback. ScreenCaptureKit itself does not route audio to speakers.
 The root LoginWindow worker retains its separate ScreenCaptureKit audio path;
 the desktop process tap is never broadened to a global root tap.
 
+The private capture aggregate explicitly uses PLANK Output as its main audio
+device and clock. Its only hardware-style subdevice is that virtual null sink;
+its only input is the process-scoped stereo tap. Preparation verifies the
+selected clock and fails if it differs. The IO callback clears the aggregate's
+virtual output buffers. Physical speakers and microphone devices are not members
+of this aggregate. This replaces the earlier tap-only aggregate's implicit clock
+selection; live recurrence testing of this clock change remains required.
+
+Capture diagnostics retain HAL sample position, host time and callback time with
+each bounded ring entry. The consumer logs timing gaps at exponentially spaced
+counts, distinguishing source sample gaps, clock changes and delivery delay.
+There is no logging in the HAL callback and no recorded media payload.
+
 The earlier suppression investigation and qualification below describe the
 preceding implementation, whose global output scope is superseded.
 

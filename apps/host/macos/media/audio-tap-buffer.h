@@ -13,6 +13,8 @@ enum { PLANKTapSlots = 16, PLANKTapMaxFrames = 8192 };
 typedef struct {
     uint32_t frames;
     uint64_t hostTime;
+    uint64_t callbackTime;
+    double sampleTime; // NAN when HAL does not supply a sample position
     float samples[PLANKTapMaxFrames * 2];
 } PLANKTapBlock;
 typedef struct {
@@ -29,7 +31,8 @@ static inline void PLANKTapBufferInit(PLANKTapBuffer *buffer) {
     atomic_init(&buffer->overruns, 0);
 }
 static inline bool PLANKTapPush(PLANKTapBuffer *buffer, const float *left,
-                               const float *right, uint32_t frames, uint64_t hostTime) {
+                               const float *right, uint32_t frames, uint64_t hostTime,
+                               double sampleTime, uint64_t callbackTime) {
     if (atomic_load_explicit(&buffer->stopped, memory_order_acquire)) return false;
     uint32_t write = atomic_load_explicit(&buffer->writeIndex, memory_order_relaxed);
     uint32_t read = atomic_load_explicit(&buffer->readIndex, memory_order_acquire);
@@ -42,6 +45,7 @@ static inline bool PLANKTapPush(PLANKTapBuffer *buffer, const float *left,
     }
     PLANKTapBlock *block = &buffer->blocks[write % PLANKTapSlots];
     block->frames = frames; block->hostTime = hostTime;
+    block->sampleTime = sampleTime; block->callbackTime = callbackTime;
     for (uint32_t i = 0; i < frames; i++) {
         float l = left[right ? i : i * 2], r = right ? right[i] : left[i * 2 + 1];
         if (!isfinite(l) || !isfinite(r)) { atomic_store(&buffer->failed, 1); return false; }
