@@ -11,6 +11,8 @@
   automation, script-pinned inputs and upgrade qualification.
   [Native media forwarding](development/investigations/native-media-forwarding.md)
   investigates preserving webcam and microphone device payloads through transport.
+  [Installed media reader](development/investigations/installed-media-reader.md)
+  describes bounded application checks for the production camera and microphone.
 - [Security](security/): threat models and security-focused contracts.
   [Private information policy](security/private-information.md) defines the
   boundary between public development material and private operational notes.

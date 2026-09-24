@@ -26,7 +26,7 @@ and primary RK3576 research are untouched.
 
 The operator authorized independent per-feature schemas and compatibility with
 older peers after a schema 4 Client could not connect to the schema 5 Host.
-The installed Host candidate is **1.1.004-native-media-investigation**. Implementation
+The installed Host candidate is **1.1.006-native-media-investigation**. Implementation
 adds authenticated feature negotiation, launch 7 and exact schema 4/5/6 adapters.
 Schema4 disables its incompatible mono microphone; schemas5/6 retain stereo
 microphone, and camera requires schema 6/7. New Clients bridge only known older
@@ -53,7 +53,9 @@ confirmed that Client1.1.005 now connects successfully to Host1.1.004. Logs conf
 launch7 feature agreement and completed native QUIC negotiation, with microphone
 available and camera unavailable on the Mac Client. This validates the display
 repair and this installed version pair, not camera/audio application delivery or
-an older schema4 Client. Ubuntu Client remains on1.1.002. Never install superseded1.1.003.
+an older schema4 Client. The development Ubuntu Client is now on1.1.004, with
+its installed executable verified against the exact package and the idle GUI
+restarted. Never install superseded1.1.003.
 
 Camera integration includes Ubuntu device selection and toolbar activation,
 session-bound Host reception, root-brokered fresh shared mappings and a CMIO
@@ -159,7 +161,7 @@ Temporary signing permission is removed.
 
 ## Installed state and source provenance
 
-The prior stereo Host and the still-installed Ubuntu Client are **1.1.002-native-media-investigation**,
+The prior stereo Host and Ubuntu Client were **1.1.002-native-media-investigation**,
 from root `613765ba8e3b66f4b2e42685f1ed8230af2c8139` and Client
 `398b05a01cf84a894b8935bb0eb9fce7c8a271ca`. Signed Host run 35952211994 and
 all-product run 35952188885 passed. The Host PKG SHA-256 is
@@ -171,7 +173,11 @@ operator reboot, Core Audio reported
 PLANK Microphone as 48 kHz, two channels, Float32 and eight bytes per frame.
 Installed-device stereo routing and physical application acceptance are pending.
 The earlier synthetic extension was removed with approval. Enumeration now
-confirms the production camera extension1.1.004 is activated and enabled.
+confirms the production camera extension1.1.006 is activated and enabled. The
+development Ubuntu Client1.1.004 executable SHA-256 is
+`fea0b14fcfd7e217f0750ed3f0b01031271353dc33683e13b3e03cb33adf6fb6`,
+matching the collected DEB. It is open at the bookmark UI; no authenticated
+physical-media session has been established for installed acceptance.
 
 Current compatibility package source:
 `9a858832db135b0ff62891b1b2faa0af7c8fa660`.
@@ -191,7 +197,7 @@ in [main's synchronized handoff](https://github.com/instinctual/plank/blob/acb29
 
 ## Native media evidence and remaining gates
 
-Further coding does not depend on installed media acceptance. The next Host
+Further coding does not depend on installed media acceptance. The installed Host
 candidate is **1.1.006-native-media-investigation**. Runtime source `15f9c858`
 adds a 100 ms age limit to decoded microphone PCM and smooths the occupancy used
 for clock correction. The prior instantaneous correction starved periodically
@@ -214,14 +220,28 @@ passes at root `582dd96ce27ba703dbc1defef78c78b303cddf61`, with changelog-only
 Client `b4af89a4649bc679514d7d85594200b5802db215`; other gitlinks are unchanged.
 The collected1.1.006 Host PKG SHA-256 is
 `278da4f0b229bc8cec6fbb3f6a5f8aea32255ebeffa84af67fa8a1cd321aac78`.
-It is staged on the development Mac. Package signature, stapled ticket,
+It is installed on the development Mac. Package signature, stapled ticket,
 Gatekeeper assessment, Host/camera/microphone signatures and the system-extension
 installation entitlement pass verification there. Temporary signing permission
-is removed. Installation requires the operator's normal administrator prompt;
-installed testing remains pending. This code is not in the installed1.1.004 Host.
+is removed. The operator completed the normal administrator installation. All
+three installed component hashes match the signed package, both Host roles
+restarted, and camera extension1.1.006 is activated and enabled. The retired
+1.1.004 registration awaits normal reboot cleanup. Installed Core Audio reports
+48kHz stereo Float32. Physical application-delivery testing remains pending.
 Full camera/microphone clock alignment still needs a
 capture-time contract; activation-relative audio sample indices are not the
 camera's monotonic capture clock.
+
+The [installed-media reader](docs/development/investigations/installed-media-reader.md)
+at root `37ab23d5` builds on the dedicated SDK27 Mac with warnings as errors.
+Its synthetic sample-validation tests pass under ASan/UBSan, including stereo,
+silence, nonfinite PCM, coded/pixel distinction, dimensions, codec changes,
+oversized samples and invalid/nonmonotonic presentation timestamps. It selects
+only the production PLANK camera/microphone, retains no media and reports bounded
+application delivery. This is a separate app from the synthetic extension probe;
+its normal camera/microphone consent and an ordinary authenticated session are
+required. Inventory confirms the stereo virtual input and no camera before
+forwarding starts. No physical capture pass is claimed from that inventory.
 
 Physical camera capture confirms native H.264 and MJPEG at 720p/1080p. H.264
 is Baseline level 4.0, 8-bit 4:2:0; its startup driver sequence gap is conservatively
@@ -266,9 +286,8 @@ preserve H.264. Configuration selection and consumer adaptation need explicit
 qualification. Its successful OS approval and subsequent removal do not approve
 the production Host extension.
 
-Required next steps: install the staged1.1.006 Host when the operator is ready,
-update the development Ubuntu Client to the staged1.1.004 candidate, and exercise
-its physical camera/stereo microphone through an ordinary
+Required next steps: exercise the installed1.1.006 Host and1.1.004 Ubuntu Client's
+physical camera/stereo microphone through an ordinary
 authenticated session. Do not interrupt the operator's active Mac Client session
 to take over the Host. Verify installed broker and
 extension admission, native/pixel application delivery, concurrent readers,
