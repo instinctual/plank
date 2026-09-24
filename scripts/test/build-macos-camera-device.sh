@@ -22,6 +22,9 @@ xcrun clang "${flags[@]}" -fobjc-arc -c apps/host/macos/media/camera-session.m -
 for source in camera-broker camera-producer camera-activation; do
     xcrun clang "${flags[@]}" -fobjc-arc -c "apps/host/macos/camera-device/$source.m" -o "$output/$source.o"
 done
+xcrun clang "${flags[@]}" -fobjc-arc tests/camera/macos-camera-setup.m \
+    -framework Foundation -framework AppKit -framework SystemExtensions -o "$output/camera-setup-test"
+"$output/camera-setup-test"
 xcrun clang "${flags[@]}" -fobjc-arc apps/host/macos/camera-device/camera-{extension,consumer,signing}.m \
     apps/host/macos/media/native-camera-{sample,output}.m \
     -framework Foundation -framework Security -framework CoreMediaIO -framework CoreMedia \

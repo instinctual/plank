@@ -393,13 +393,7 @@ int main(int argc, const char **argv) {
                 BOOL input = AXIsProcessTrusted();
                 BOOL post = CGPreflightPostEventAccess();
                 if (screen && input && post) {
-                    NSAlert *ready = [NSAlert new]; ready.messageText = @"PLANK Host is ready";
-                    ready.informativeText = @"Screen and input permissions are enabled. You can also enable PLANK Camera for webcam forwarding. Camera capture starts only from the Client toolbar.";
-                    [ready addButtonWithTitle:@"Close"]; [ready addButtonWithTitle:@"Enable Camera"];
-                    [app activate];
-                    if ([ready runModal] == NSAlertSecondButtonReturn)
-                        PLANKMacRequestCameraExtension(YES, ^(BOOL success) { (void)success; [app terminate:nil]; });
-                    else [app terminate:nil];
+                    PLANKMacShowCameraSetup(^{ [app terminate:nil]; });
                     return;
                 }
                 if (!screen) screen = CGRequestScreenCaptureAccess();
@@ -414,13 +408,7 @@ int main(int argc, const char **argv) {
                 input = AXIsProcessTrusted();
                 post = CGPreflightPostEventAccess();
                 if (screen && input && post) {
-                    NSAlert *ready = [NSAlert new]; ready.messageText = @"PLANK Host is ready";
-                    ready.informativeText = @"Screen and input permissions are enabled. You can also enable PLANK Camera for webcam forwarding. Camera capture starts only from the Client toolbar.";
-                    [ready addButtonWithTitle:@"Close"]; [ready addButtonWithTitle:@"Enable Camera"];
-                    [app activate];
-                    if ([ready runModal] == NSAlertSecondButtonReturn)
-                        PLANKMacRequestCameraExtension(YES, ^(BOOL success) { (void)success; [app terminate:nil]; });
-                    else [app terminate:nil];
+                    PLANKMacShowCameraSetup(^{ [app terminate:nil]; });
                     return;
                 }
                 NSAlert *alert = [NSAlert new];
