@@ -14,9 +14,9 @@ source_root=$1
 output=$2
 mkdir "$output"
 cd "$source_root"
-shasum -a 256 apps/host/macos/audio-device/microphone-{format.h,buffer.h,driver.c} \
+shasum -a 256 apps/host/macos/audio-device/microphone-{format.h,buffer.h,queue.h,driver.c} \
     apps/host/macos/audio-device/microphone-{link.h,driver-ipc.h,broker.h,broker.m,producer.h,producer.m,selection.h,selection.m} \
-    tests/audio/macos-microphone-{buffer,driver}.c packaging/host/macos/microphone-info.plist \
+    tests/audio/macos-microphone-{buffer,driver,queue}.c packaging/host/macos/microphone-info.plist \
     probes/macos/microphone-{tone-driver.c,read.m,reader-info.plist} \
     probes/macos/microphone-xpc-{driver.c,source.c,shared.h} \
     probes/macos/microphone-managed{.m,-config.h} \
@@ -25,6 +25,8 @@ flags=(-std=c11 -O2 -g -mmacosx-version-min=27.0 -Wall -Wextra -Werror
        -Iapps/host/macos/audio-device)
 xcrun --sdk macosx clang "${flags[@]}" tests/audio/macos-microphone-buffer.c -o "$output/buffer-test"
 "$output/buffer-test"
+xcrun --sdk macosx clang "${flags[@]}" tests/audio/macos-microphone-queue.c -o "$output/queue-test"
+"$output/queue-test"
 xcrun --sdk macosx clang "${flags[@]}" tests/audio/macos-microphone-driver.c \
     -framework CoreAudio -framework CoreFoundation -o "$output/driver-test"
 "$output/driver-test"

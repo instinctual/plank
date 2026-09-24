@@ -13,7 +13,7 @@ source "$source_root/scripts/build/build-paths.sh"
 plank_build_path_flags "$source_root" "$output"
 mkdir "$output"
 cd "$source_root"
-for component in buffer driver; do
+for component in buffer driver queue; do
     xcrun clang -std=c11 -O2 -mmacosx-version-min=27.0 -Wall -Wextra -Werror \
         -Iapps/host/macos/audio-device "tests/audio/macos-microphone-$component.c" \
         -framework CoreAudio -framework CoreFoundation -o "$output/microphone-$component-test"

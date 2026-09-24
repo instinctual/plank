@@ -14,6 +14,12 @@ audio sink with that ID. Both use AudioProtocol::UnreliableFec and the existing
 QUIC connection. Kyber needs no modification. Endpoint establishment belongs
 inside the existing session cancellation scope and has a bounded deadline.
 
+This is the same Kymux stack (`kyproto`/`kynet`) and authenticated connection
+used for Host-to-Client desktop video and sound, with the source/sink direction
+reversed. Camera likewise uses a reverse video endpoint on that connection.
+Reliable controls and FEC media share the established transport; no extra
+listening port or separate media connection is needed.
+
 Audio is stereo Opus, 48 kHz, 480 samples per channel (10 ms) per packet.
 The Client uses OPUS_APPLICATION_AUDIO, 192 kbps total, constrained VBR and
 forced stereo signaling. This is a quality-oriented lossy mode, not native PCM
@@ -59,6 +65,15 @@ the session cancellation scope.
 
 The Host native Opus decoder validates stereo/480 samples per channel, then a bounded PCM
 producer absorbs independent clock drift and supplies silence on starvation.
+Its decoded PCM queue remains bounded to 60 ms of samples and separately drops
+PCM that has waited 100 ms in that queue, both before appending and before
+rendering. Fresh arrivals cannot renew old samples' age. Expiry requires fresh
+priming, including after starvation leaves a partial packet. Mute clears queued
+PCM. Smoothed queue occupancy controls a maximum one-frame adjustment per
+480-frame output block, retaining the target reserve after consumption so
+capture batches do not cancel the clock correction. Both channels use the same
+interpolation. These local receipt times are not source capture timestamps and
+do not establish camera/microphone synchronization or an end-to-end latency bound.
 The existing root coordinator admits the signed current desktop worker using
 kernel UID/PID/audit-session identity plus its current registry generation.
 A fresh shared region is allocated for each producer lease; retired producers
@@ -68,8 +83,9 @@ HAL callback. The driver sanitizes fixed-size blocks into private sample history
 The virtual input exposes 48 kHz, interleaved stereo float32 with left/right
 channels. Both channels share timestamps and drift correction. Shared-memory
 and control version 2 reject the previous mono layout; the Host checks the
-loaded device format before advertising microphone availability. Launch schema
-4 and microphone envelope version 1 are rejected, requiring matching candidates.
+loaded device format before advertising microphone availability. Launch schema4
+keeps microphone disabled through its compatibility adapter; mono envelope
+version1 is not accepted on a negotiated stereo lane.
 
 Automatic selection is owned for the producer lifetime. It remembers the prior
 input UID and restores only if PLANK is still selected; later user choices win.
