@@ -15,20 +15,31 @@ static BOOL publicText(NSString *value, NSUInteger maximum) {
     NSUUID *_uuid;
     NSString *_version;
     BOOL _streaming;
+    BOOL _occupied;
 }
 
 - (instancetype)initWithName:(NSString *)name workstationUUID:(NSUUID *)uuid version:(NSString *)version {
-    return [self initWithName:name workstationUUID:uuid version:version streaming:NO];
+    return [self initWithName:name workstationUUID:uuid version:version streaming:NO occupied:NO];
 }
 - (instancetype)initWithName:(NSString *)name workstationUUID:(NSUUID *)uuid version:(NSString *)version
                   streaming:(BOOL)streaming {
+    return [self initWithName:name workstationUUID:uuid version:version streaming:streaming occupied:NO];
+}
+- (instancetype)initWithName:(NSString *)name workstationUUID:(NSUUID *)uuid version:(NSString *)version
+                  streaming:(BOOL)streaming occupied:(BOOL)occupied {
     if (!uuid || !publicText(name, 255) || !publicText(version, 128)) return nil;
     uuid_t bytes;
     [uuid getUUIDBytes:bytes];
     const uuid_t zero = {0};
     if (!memcmp(bytes, zero, sizeof(bytes))) return nil;
     self = [super init];
-    if (self) { _name = [name copy]; _uuid = [uuid copy]; _version = [version copy]; _streaming = streaming; }
+    if (self) {
+        _name = [name copy];
+        _uuid = [uuid copy];
+        _version = [version copy];
+        _streaming = streaming;
+        _occupied = occupied;
+    }
     return self;
 }
 
@@ -49,7 +60,8 @@ static BOOL publicText(NSString *value, NSUInteger maximum) {
         @[@"PlankAuth", @"1"], @[@"ServerCodecModeSupport", _streaming ? @"1049088" : @"0"],
         @[@"PlankTopologyVersion", _streaming ? @"13" : @"0"],
         @[@"PlankFeatureFlags", _streaming ? @"7897201" : @"0"],
-        @[@"PairStatus", authorized ? @"1" : @"0"]
+        @[@"PairStatus", authorized ? @"1" : @"0"],
+        @[@"PlankOccupied", _occupied ? @"1" : @"0"]
     ];
     for (NSArray *field in fields)
         [root addChild:[NSXMLNode elementWithName:field[0] stringValue:field[1]]];

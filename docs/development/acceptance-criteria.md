@@ -62,7 +62,9 @@ A candidate passes only when all of the following hold:
   record.
 - Malformed protocol records, unknown endpoints or feature bits, invalid or
   replayed tokens, expired launch state, certificate mismatch, and
-  unauthenticated requests fail closed without leaking desktop state.
+  unauthenticated requests fail closed without leaking desktop contents,
+  identity, or credentials. HTTPS `/serverinfo` may advertise a nameless
+  `PlankOccupied` bit so other Clients can show `In Session`.
 - The PAM broker socket, TLS private key, machine state, Host configuration,
   and persistent Host logs retain their documented root ownership and modes.
 - PLANK does not decide whether an address is LAN, WAN, VPN, or approved.

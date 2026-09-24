@@ -24,7 +24,8 @@ int main(int argc, char **argv)
                 computer.plankHostMetadataVersion != 1 ||
                 computer.plankHostVersion != QStringLiteral("macos-host-qualification") ||
                 computer.serverCodecModeSupport != 0 || computer.plankFeatureFlags != 0 ||
-                computer.plankTopologyVersion != 0 || computer.currentGameId != 0 ||
+                computer.plankTopologyVersion != 0 || computer.plankOccupied ||
+                computer.currentGameId != 0 ||
                 !computer.displayModes.isEmpty() || !computer.sessionToken.isEmpty() ||
                 !computer.localAddress.isNull() || !computer.remoteAddress.isNull()) return 1;
         NvHTTP wrongPort(NvAddress(QStringLiteral("127.0.0.1"), 28990));

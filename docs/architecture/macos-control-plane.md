@@ -54,11 +54,14 @@ name or hardware identity. Persistent service state is still a future gate.
 The advertised control port is the actual bound listener port, not a copied
 default. There are no alternate address or port-discovery rules.
 
-Discovery does not consult or disclose the active account, session state,
-desktop geometry, tokens or hardware serials. Its only optional query keys are
-the current Client's ignored `uniqueid`/`uuid` cache busters, with bounded
-hex/hyphen values and no duplicates. Unknown keys, percent-encoded values and
-credentials in URLs are rejected. GET cannot invoke an authentication route.
+Discovery does not consult or disclose the active account, username, UID,
+desktop geometry, tokens or hardware serials. Unauthenticated `/serverinfo`
+may include a nameless `PlankOccupied` bit: `0` while the LoginWindow agent
+is listening, `1` while the Aqua desktop agent is listening. Occupancy is a
+courtesy indicator only; it does not replace authentication. Its only optional
+query keys are the current Client's ignored `uniqueid`/`uuid` cache busters,
+with bounded hex/hyphen values and no duplicates. Unknown keys, percent-encoded
+values and credentials in URLs are rejected. GET cannot invoke an authentication route.
 Discovery serialization is cached at listener readiness and does not occupy
 the authentication worker queue.
 
