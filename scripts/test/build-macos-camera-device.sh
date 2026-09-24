@@ -11,7 +11,7 @@ fi
 source_root=$1; output=$2
 mkdir "$output"
 cd "$source_root"
-flags=(-std=c11 -g -O1 -mmacosx-version-min=27.0 -Wall -Wextra -Werror
+flags=(-std=gnu11 -g -O1 -mmacosx-version-min=27.0 -Wall -Wextra -Werror
     -fsanitize=address,undefined -fno-omit-frame-pointer
     -Iapps/host/macos/media -Iapps/host/macos/camera-device -Iprotocol/plank-transport/include)
 xcrun clang "${flags[@]}" tests/camera/macos-camera-link.c -o "$output/camera-link-test"
