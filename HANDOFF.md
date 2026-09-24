@@ -1,6 +1,6 @@
 # PLANK handoff
 
-## Current state: merged to main; next version 1.1.001
+## Current state: mainline 1.1.001 test packages ready; unpublished
 
 The operator authorized merging all accumulated integration work, but explicitly
 requested **no release**. Root, Client, Linux Host and Kymux main branches now
@@ -20,10 +20,48 @@ Main dependency pins:
 The operator subsequently set the next product version to **1.1.001**, followed
 by 1.1.002, etc. Preserve the padded patch component in package/visible versions.
 Host and Client must be upgraded together from the previous published release;
-see `docs/releases/1.1.001.md`. There is no 1.1.001 package or published release
-yet. Do not relabel existing artifacts or silently deploy them.
+see `docs/releases/1.1.001.md`. The operator requested test packages from main,
+not a release or installation. All four hosted builds use exact root
+`a4ea39eb6fd0c098ebe01e6eb516747b84c71800`:
+
+- Linux Host: `35940461297`.
+- Ubuntu Client: `35940463873`.
+- Signed macOS Host: `35940466159`.
+- Signed macOS Client: `35940468319`.
+
+All four builds passed on their first attempt, and their packages are downloaded
+and independently checksum/provenance-verified. Do not relabel existing artifacts
+or silently deploy them. The mainline catalog path is
+`artifacts/packages/releases/1.1.001/`; its `releases` directory identifies
+unqualified main builds, not GitHub publication. No tag or release is authorized.
 Main/feature version-contract checks, padded-version collection tests and all
-62 CI-policy tests pass. These are metadata checks, not new product builds.
+62 CI-policy tests pass. All packages use the exact source and pins above;
+recursive product/build pins remain those recorded below.
+
+| Package | Bytes | SHA-256 |
+| --- | ---: | --- |
+| Linux Host RPM | 8660218 | `83999138c18b78001d4f503000b56faf34245b4635f676eb13a72814d3c163e1` |
+| Ubuntu Client DEB | 15520576 | `35b2c031cceb923cd0cccb5830c566eff15237bd545c90a04b00d71f035f02bf` |
+| macOS Host PKG | 6682063 | `6111c9ea85849813ddb6ce1d5a62e17b1e5c0428d28fa3d92932791b32ee351c` |
+| macOS Client DMG | 87318279 | `95dbd029e1665b0fde2b64fbff86e84968577318fbb9147fa7af7e3de4fe7685` |
+
+Both Mac packages passed Developer ID signing, notarization, stapling,
+Gatekeeper, package checks and temporary-keychain cleanup. The Host's new
+identity-deadline and delayed-XPC tests pass. Both Clients pass microphone
+capture/mute/reopen/failure-cleanup and render-shutdown checks. Linux Host
+passes PAM, dependency-patch, RPM/log-directory and post-package input tests;
+its production payload remains `BUILD_TESTS=OFF`. Its three consecutive
+150 Mbps / 60 fps matrices pass at 0/0.5/1/3/5% induced loss: 2700 recovered
+frames, zero unrecovered objects and zero proxy kernel drops, with per-phase
+p95 delivery 4.291–5.300 ms. These are controlled loopback checks, not WAN or
+live hardware acceptance. Verified exact-input dependency caches were enabled;
+applications, transport, tests and packages were rebuilt on hosted runners.
+
+No installation, tag or GitHub release was performed. The latest published
+release remains 1.0.143. Next: manually install matching 1.1.001 Host/Client
+packages and verify normal sessions plus the post-reboot macOS desktop startup
+case. Do not mix these with pre-RaptorQ-2 published peers. Hardware acceptance
+and the remaining gates below are not implied by successful package builds.
 
 ## Post-reboot macOS desktop startup fix
 
