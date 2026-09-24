@@ -30,6 +30,18 @@ Unauthenticated HTTPS `/serverinfo` also includes a nameless occupancy bit:
 active. On Linux that is `confirmed_desktop_stage() == "user"` or a live
 session count. On macOS the LoginWindow agent advertises `0` and the Aqua
 desktop agent advertises `1`. `0` or an omitted element means the Client must
-show `Online`, not `In Session`. The field must not include a username, UID,
-or session id. Occupancy is a courtesy indicator only; it does not replace PAM
-or active-desktop ownership.
+show `Online`, not `In Session`. Occupancy is a courtesy indicator only; it
+does not replace PAM or active-desktop ownership.
+
+By default the response includes no account name, UID, or session id. A Linux
+Host administrator may opt in with `publish_session_user = true` in
+`/etc/plank/host.conf`. While that setting is true and a user desktop is
+active, `/serverinfo` may add the login name of that desktop:
+
+```xml
+<PlankSessionUser>Ernie.Armitage</PlankSessionUser>
+```
+
+The Client then shows `In Session - Ernie.Armitage`. An omitted or rejected
+name keeps the label `In Session`. The sign-in screen does not publish a name.
+The element is still omitted when the setting is false.

@@ -64,7 +64,10 @@ A candidate passes only when all of the following hold:
   replayed tokens, expired launch state, certificate mismatch, and
   unauthenticated requests fail closed without leaking desktop contents,
   identity, or credentials. HTTPS `/serverinfo` may advertise a nameless
-  `PlankOccupied` bit so other Clients can show `In Session`.
+  `PlankOccupied` bit so other Clients can show `In Session`. A Linux Host
+  may also advertise the active desktop's login name when
+  `publish_session_user` is explicitly enabled; that name is omitted by
+  default.
 - The PAM broker socket, TLS private key, machine state, Host configuration,
   and persistent Host logs retain their documented root ownership and modes.
 - PLANK does not decide whether an address is LAN, WAN, VPN, or approved.
