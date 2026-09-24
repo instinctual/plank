@@ -134,6 +134,7 @@ sources=(apps/host/macos/auth/authentication-session.m apps/host/macos/auth/grap
     apps/host/macos/media/native-audio.m apps/host/macos/media/opus-encoder.m apps/host/macos/media/audio-tap.m
     apps/host/macos/media/microphone-session.m
     apps/host/macos/media/native-camera-sample.m
+    apps/host/macos/media/native-camera-output.m
     apps/host/macos/audio-device/microphone-broker.m apps/host/macos/audio-device/microphone-producer.m
     apps/host/macos/audio-device/microphone-selection.m
     apps/host/macos/input/input-events.m apps/host/macos/input/native-input.m apps/host/macos/input/quartz-input.m

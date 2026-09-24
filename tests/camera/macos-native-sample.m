@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 #import "native-camera-sample.h"
+#import "native-camera-output.h"
 #include "native-camera-payload.h"
 #import "native-camera-fixture.h"
 #import <ImageIO/ImageIO.h>
@@ -82,9 +83,26 @@ int main(void) { @autoreleasepool {
         CMSampleBufferRef sample = make(owner, header, payload, 1000000000); CHECK(sample);
         CHECK(!owner.needsKeyframe && CMTimeCompare(CMSampleBufferGetPresentationTimeStamp(sample), CMTimeMake(1,1)) == 0);
         preserved(sample, payload, &header);
-        CVPixelBufferRef image = PLANKCameraFixtureDecode(sample);
+        PLANKMacNativeCameraOutput *output = [[PLANKMacNativeCameraOutput alloc] initWithFormat:CMSampleBufferGetFormatDescription(sample)];
+        CHECK(output);
+        CMSampleBufferRef coded = [output copyOutputForSample:sample]; CHECK(coded == sample && !output.decodedFrames); CFRelease(coded);
+        [output setPixelOutput:YES]; CHECK(output.needsKeyframe);
+        CMSampleBufferRef raw = [output copyOutputForSample:sample]; CHECK(raw && output.decodedFrames == 1 && !output.needsKeyframe);
+        CHECK(CMTimeCompare(CMSampleBufferGetPresentationTimeStamp(raw), CMSampleBufferGetPresentationTimeStamp(sample)) == 0);
+        CVPixelBufferRef image = CMSampleBufferGetImageBuffer(raw);
         CHECK(image && CVPixelBufferGetWidth(image) == 1280 && CVPixelBufferGetHeight(image) == 720);
-        CFRelease(image); CFRelease(sample);
+        CFRelease(raw);
+        [output setPixelOutput:NO]; CHECK(!output.needsKeyframe && !output.hardwareDecoder);
+        coded = [output copyOutputForSample:sample]; CHECK(coded == sample && output.decodedFrames == 1); CFRelease(coded);
+        CFArrayRef attachments = CMSampleBufferGetSampleAttachmentsArray(sample, false);
+        CFMutableDictionaryRef attachment = (CFMutableDictionaryRef)CFArrayGetValueAtIndex(attachments, 0);
+        CFDictionarySetValue(attachment, kCMSampleAttachmentKey_NotSync, kCFBooleanTrue);
+        [output setPixelOutput:YES]; CHECK(![output copyOutputForSample:sample] && output.needsKeyframe);
+        CFDictionarySetValue(attachment, kCMSampleAttachmentKey_NotSync, kCFBooleanFalse);
+        raw = [output copyOutputForSample:sample]; CHECK(raw && output.decodedFrames == 2); CFRelease(raw);
+        [output discontinuity]; CHECK(output.needsKeyframe && !output.hardwareDecoder);
+        raw = [output copyOutputForSample:sample]; CHECK(raw && output.decodedFrames == 3); CFRelease(raw);
+        CFRelease(sample);
         CHECK(!make(owner, header, payload, 1000000001)); // Replayed sequence.
         header.sequence = 1; header.capture_time_us = 2;
         CHECK(!make(owner, header, payload, 1000000000)); // Regressed Host time.

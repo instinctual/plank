@@ -16,7 +16,7 @@ flags=(-std=c11 -g -O1 -mmacosx-version-min=27.0 -Wall -Wextra -Werror
 xcrun clang "${flags[@]}" tests/camera/native-payload.c -o "$output/native-payload-test"
 "$output/native-payload-test"
 xcrun clang "${flags[@]}" -fobjc-arc tests/camera/macos-native-sample.m \
-    apps/host/macos/media/native-camera-sample.m probes/macos/native-camera-fixture.m \
+    apps/host/macos/media/native-camera-{sample,output}.m probes/macos/native-camera-fixture.m \
     -framework Foundation -framework CoreMedia -framework CoreVideo \
     -framework VideoToolbox -framework CoreGraphics -framework ImageIO \
     -o "$output/native-sample-test"

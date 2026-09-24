@@ -2,7 +2,7 @@
 // Decode an operator-authorized private capture. No camera access, encoding,
 // installation or image output. Input records: big-endian u32 length + bytes.
 #import <Foundation/Foundation.h>
-#import <VideoToolbox/VideoToolbox.h>
+#import "../../apps/host/macos/media/native-camera-output.h"
 #import "../../apps/host/macos/media/native-camera-sample.h"
 #include "../../apps/host/macos/media/native-camera-payload.h"
 #include <stdio.h>
@@ -10,22 +10,6 @@
 
 enum { MaxFrameBytes = 4 * 1024 * 1024, MaxFrames = 300 };
 #define CHECK(x) do { if (!(x)) { fprintf(stderr, "camera_decode_failed line=%d\n", __LINE__); exit(1); } } while (0)
-typedef struct { unsigned frames, errors, width, height; } Decoded;
-
-static void decoded(void *context, void *frameContext, OSStatus status,
-                    VTDecodeInfoFlags flags, CVImageBufferRef image,
-                    CMTime presentationTime, CMTime duration) {
-    (void)frameContext; (void)presentationTime; (void)duration;
-    Decoded *result = context;
-    if (status || !image || (flags & kVTDecodeInfo_FrameDropped) ||
-        CVPixelBufferGetWidth(image) != result->width ||
-        CVPixelBufferGetHeight(image) != result->height ||
-        CVPixelBufferGetPixelFormatType(image) != kCVPixelFormatType_420YpCbCr8BiPlanarVideoRange) {
-        result->errors++; return;
-    }
-    result->frames++;
-}
-
 int main(int argc, const char *argv[]) { @autoreleasepool {
     if (argc != 5) {
         fprintf(stderr, "Usage: native-camera-decode h264|mjpeg WIDTH HEIGHT PRIVATE_RECORDS\n");
@@ -39,10 +23,8 @@ int main(int argc, const char *argv[]) { @autoreleasepool {
     unsigned long height = strtoul(argv[3], &end, 10); CHECK(*argv[3] && !*end);
     CHECK((width == 1280 && height == 720) || (width == 1920 && height == 1080));
     FILE *file = fopen(argv[4], "rb"); CHECK(file);
-    CMVideoFormatDescriptionRef format = NULL;
-    VTDecompressionSessionRef decoder = NULL;
+    PLANKMacNativeCameraOutput *output = nil;
     PLANKMacNativeCameraSample *owner = [[PLANKMacNativeCameraSample alloc] initWithGeneration:1];
-    Decoded result = {0, 0, (unsigned)width, (unsigned)height};
     unsigned submitted = 0;
     BOOL hardware = NO;
     for (;;) { @autoreleasepool {
@@ -71,34 +53,21 @@ int main(int argc, const char *argv[]) { @autoreleasepool {
         CMSampleBufferRef sample = [owner copySampleFromRecord:envelope.bytes size:envelope.length
             hostTimeNanos:1000000000 + (uint64_t)submitted*33333333];
         CHECK(sample);
-        if (!format) format = (CMVideoFormatDescriptionRef)CFRetain(CMSampleBufferGetFormatDescription(sample));
-        if (!decoder) {
-            VTDecompressionOutputCallbackRecord callback = {decoded, &result};
-            NSDictionary *attributes = @{
-                (id)kCVPixelBufferPixelFormatTypeKey: @(kCVPixelFormatType_420YpCbCr8BiPlanarVideoRange),
-                (id)kCVPixelBufferIOSurfacePropertiesKey: @{}
-            };
-            CHECK(!VTDecompressionSessionCreate(kCFAllocatorDefault, format, NULL,
-                (__bridge CFDictionaryRef)attributes, &callback, &decoder));
-            CHECK(decoder);
-            CFTypeRef accelerated = NULL;
-            if (!VTSessionCopyProperty(decoder, kVTDecompressionPropertyKey_UsingHardwareAcceleratedVideoDecoder,
-                                       kCFAllocatorDefault, &accelerated) && accelerated) {
-                hardware = CFEqual(accelerated, kCFBooleanTrue); CFRelease(accelerated);
-            }
+        if (!output) {
+            output = [[PLANKMacNativeCameraOutput alloc] initWithFormat:CMSampleBufferGetFormatDescription(sample)];
+            CHECK(output); [output setPixelOutput:YES];
         }
-        CHECK(!VTDecompressionSessionDecodeFrame(decoder, sample, 0, NULL, NULL));
-        CHECK(!VTDecompressionSessionWaitForAsynchronousFrames(decoder));
-        CFRelease(sample); submitted++;
-        CHECK(!result.errors);
+        CMSampleBufferRef pixels = [output copyOutputForSample:sample]; CHECK(pixels);
+        CVPixelBufferRef image = CMSampleBufferGetImageBuffer(pixels);
+        CHECK(image && CVPixelBufferGetWidth(image) == width && CVPixelBufferGetHeight(image) == height &&
+            CVPixelBufferGetPixelFormatType(image) == kCVPixelFormatType_420YpCbCr8BiPlanarVideoRange);
+        CHECK(CMTimeCompare(CMSampleBufferGetPresentationTimeStamp(pixels), CMSampleBufferGetPresentationTimeStamp(sample)) == 0);
+        hardware = output.hardwareDecoder;
+        CFRelease(pixels); CFRelease(sample); submitted++;
     } }
     CHECK(!ferror(file)); fclose(file);
-    CHECK(submitted && decoder);
-    CHECK(!VTDecompressionSessionFinishDelayedFrames(decoder));
-    CHECK(!VTDecompressionSessionWaitForAsynchronousFrames(decoder));
-    VTDecompressionSessionInvalidate(decoder); CFRelease(decoder); CFRelease(format);
-    CHECK(!result.errors && result.frames == submitted);
+    CHECK(submitted && output.decodedFrames == submitted);
     printf("native_camera_decode=pass codec=%s width=%lu height=%lu submitted=%u decoded=%u hardware=%d pixels=420v client_transcode=0 product_sample_validation=1\n",
-           argv[1], width, height, submitted, result.frames, hardware);
+           argv[1], width, height, submitted, (unsigned)output.decodedFrames, hardware);
     return 0;
 } }
