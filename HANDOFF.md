@@ -12,16 +12,16 @@ choices must be preserved. See [the implementation plan](docs/development/plans/
 The branch was synchronized with main `acb29884bff626c9381169fd94563ec79555984c`.
 Its original runtime base was `af71d2b404486a9846bca464ddd646b5ab9c738a`.
 The separate main/startup-fix and RK3576 work remain untouched. No merge, tag or
-GitHub Release is authorized. Candidate version is **1.1.011-native-media-investigation** (Mac Host scheduling fix).
+GitHub Release is authorized. Candidate version is **1.1.012-native-media-investigation** (Mac Host scheduling fix).
 
-Host1.1.011 source is `b7c2b6fb57b5ab4d6233ba4554c1efb5e92b60b0`.
-Implementation `04df97fe962d` and regression fixture `bd6e7a3e9e20` are committed;
+Host1.1.012 source is `177061ffda5012a30d33a89fcb27f051f1bc0a26`.
+It moves the previous off-queue observer to500ms polling with a1-second expiry;
 the Client change below only adds release notes. No Client runtime update is
 needed for this Host fix. Current inputs:
 
 | Input | Commit |
 | --- | --- |
-| Client | `b5423392b312200a9ef4cac2da63d547338733f2` |
+| Client | `72c6267ce7bec8788a1256382841ecbe54a75262` |
 | Client common-c | `060f6179f88343327b44d915007f1fb4cede71f1` |
 | Client qmdnsengine | `920c097ffa742e2968290f15d4dde6693aec02e5` |
 | Kymux | `3f7a9d8618978287186e5d6ce0eaa067743cb06c` |
@@ -29,9 +29,8 @@ needed for this Host fix. Current inputs:
 
 Root and Client are pushed. Package manifests retain per-product source provenance;
 never relabel a signed package or rebuild different bytes into an existing catalog
-entry. Temporary signing permission was removed after the Host1.1.011 job;
-main-only signing policy is verified. No signing credentials were read, changed
-or committed.
+entry. Temporary signing permission was removed after Host1.1.012 completed;
+main-only policy is verified. No signing credentials were read, changed or committed.
 
 ## Active audio/input regression
 
@@ -48,29 +47,30 @@ session/account OS queries. Audio sends, input delivery and reverse camera/mic
 validation repeatedly call those queries on that shared queue. No network-only
 or camera-decoder-only cause is claimed.
 
-The fix refreshes graphical evidence every20ms on a separate observer and keeps
+The fix refreshes graphical evidence every500ms on a separate observer and keeps
 RPCs outside the snapshot/revocation lock. Media/input reads remain bounded by
-250ms observation age measured from the beginning of the read. Expiry, changed
+1-second observation age measured from the beginning of the read. Expiry, changed
 identity, service failure, resignation and sleep latch revocation; late success
 cannot renew expired authority. Machine admission, leases, permissions and
 capture topology checks remain independent. See the updated
 [authentication boundary](docs/architecture/macos-authentication.md).
 
-The dedicated SDK27 Mac passes216 lifecycle checks normally and under ASan/UBSan,
-including1000 actual stream authorization/enqueue operations while an OS read
-is deliberately blocked, immediate notification revocation and expiry both
+The dedicated SDK27 Mac passes457 lifecycle checks normally and under ASan/UBSan,
+including healthy500ms polling cadence and1000 actual stream authorization/enqueue
+operations while an OS read is deliberately blocked, immediate notification revocation and expiry both
 with and without foreground polling. Full signed
-[Host run36066019394](https://github.com/instinctual/plank/actions/runs/36066019394)
-passes the full build/test/sign/notarization/package gates. Its installer is
-staged and independently verified on the test target; installed recovery is
-not yet tested. No current-session configuration or process was changed;
+[Host run36067300678](https://github.com/instinctual/plank/actions/runs/36067300678)
+passes the complete build/test/sign/notarization/package gates. The installer
+is staged and independently verified; installed recovery is not yet tested. No current-session configuration or process was changed;
 diagnostics remain private outside Git.
 
-The operator subsequently asked to discuss a500ms refresh interval. The proposed
-direction is event-triggered checks plus500ms reconciliation with a separate
-strict expiry (possibly1s), after verifying notification coverage. This proposal
-is not implemented:1.1.011 still uses20ms observation and250ms maximum age. The
-machine coordinator independently checks its own admission/ownership boundary.
+The requested500ms refresh interval is implemented. User-switch and sleep
+notifications revoke immediately; unannounced changes are reconciled by the
+500ms check. A1-second maximum age permits the normal interval while bounding
+stalled observation. Expired authorization cannot be renewed by late success.
+The machine coordinator's independent250ms ownership checks and admission
+expiry remain unchanged. Host1.1.011 used20ms/250ms and remains an older staged
+candidate, not the requested final polling policy.
 
 ## Implemented behavior
 
@@ -129,10 +129,20 @@ Core Audio. Current active sessions must be preserved during staging.
 
 ## Packages and validation
 
+The current Host1.1.012 package is collected at
+`artifacts/packages/candidates/1.1.012-native-media-investigation/macos/plank-host_1.1.012-native-media-investigation_arm64.pkg`.
+SHA-256: `187053e123263fbcefc843d9f335b15c33b81a18529c79a02a159804c6ab7d7a`.
+It uses the exact current root/Client pair above, signed run36067300678.
+The test target's Downloads copy passes transfer hash, package signature,
+Gatekeeper, version, RecommendRestart and all four payload component signature
+checks. It remains uninstalled to preserve the user's degraded session. No
+reboot, CoreAudio restart or forwarding configuration change occurred.
+
 Host1.1.011 is collected at
 `artifacts/packages/candidates/1.1.011-native-media-investigation/macos/plank-host_1.1.011-native-media-investigation_arm64.pkg`.
 SHA-256: `4188d0b4bf9f4b33928af7f0115f0f3d04c89e3cdd0a9ce20c8a2f48173114a4`.
-Its source is the exact root/Client pair above, signed run36066019394. The
+Its source is root `b7c2b6fb57b5ab4d6233ba4554c1efb5e92b60b0`,
+Client `b5423392b312200a9ef4cac2da63d547338733f2`, signed run36066019394. The
 Downloads copy passes transfer hash, package signature, Gatekeeper, version,
 RecommendRestart and all four payload component signature checks. No install,
 reboot or CoreAudio/service restart occurred. Client1.1.010 is compatible.
@@ -204,8 +214,8 @@ and Zoom capture. One simultaneous native-first/pixel-second run delivered only
 repeating that installed test. Other application formats may inherit an existing
 pixel stream; automatic output does not guarantee native coded delivery.
 
-Next: preserve the degraded session and settle the proposed500ms observation
-policy. Host1.1.011 is ready in Downloads. The Host test target requires the
+Next: preserve the degraded session until the operator chooses to install the
+verified Host1.1.012 from Downloads. The Host test target requires the
 operator's administrator Installer interaction; wait for their decision to end
 this diagnostic session. After installation,
 repeat application startup and simultaneous camera/audio use, inspect audio
