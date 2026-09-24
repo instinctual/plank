@@ -139,3 +139,26 @@ record that state without claiming the registration is already absent. Do not
 remove the containing app while its extension still needs the deactivation request.
 If any required gate is unavailable, retain the concrete failure and leave
 application delivery unqualified.
+
+## Private physical-capture decode
+
+The format-probe build also produces `native-camera-decode`. It reads bounded
+private records containing a four-byte big-endian payload length followed by
+exactly one captured V4L2 buffer. Construct these outside Git from the verified
+capture and its per-buffer lengths; check every original payload hash before
+transfer and the transferred file hash before testing. Never put the captures
+or their machine-specific manifest in the repository.
+
+Run `native-camera-decode h264 WIDTH HEIGHT PRIVATE_RECORDS`, or use `mjpeg`.
+The tool accepts at most 300 frames, 4 MiB per frame and 1920x1080 dimensions,
+with a 30-second process limit. It opens no devices and produces no image files.
+For H.264 it replaces Annex B start codes with length prefixes required by
+Core Media, retaining every NAL payload byte. Parameter sets produce the format
+description; later format changes fail this bounded qualification. JPEG bytes
+are passed directly. VideoToolbox decodes to NV12; errors, drops and mismatched
+dimensions fail. This is Host decoding, with no compression session.
+
+All four measured physical captures pass: 90 frames each of 720p/1080p H.264
+and MJPEG, with 360 decoded frames and no decoder errors/drops. VideoToolbox
+reports hardware acceleration for H.264 and software decoding for JPEG. This
+does not qualify sustained timing, color, transport loss or application delivery.

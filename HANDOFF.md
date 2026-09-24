@@ -136,7 +136,8 @@ level 4.0, 8-bit 4:2:0 with matching dimensions. Both H.264 runs skip V4L2 seque
 at startup, but encoded frame numbers remain continuous; do not equate that with
 a lost coded picture. The strict no-sequence-gap criterion remains failed.
 MJPEG delivers approximately 30 fps with no sequence gaps. This proves bounded
-native capture/header validity, not decoding, color or sustained performance.
+native capture/header validity. The subsequent private Mac decode below passes;
+color and sustained performance remain unqualified.
 
 An endpoint-filtered USB monitor observed the existing microphone stream before
 PipeWire conversion: 3,000 successful 128-byte completions in three seconds,
@@ -167,8 +168,15 @@ independent tones from the Ubuntu encoder (left amplitude 0.062822, right
 separation, not installed audio routing, microphone fidelity or lip sync.
 The encrypted microphone FFI mute/reopen/generation/bounds test passes locally.
 
-Next: finish stereo Host/Client build gates and installed-device testing; qualify
-physical H.264/MJPEG Mac decode and implement native camera capture/transport
+Physical Mac decode now passes all 360 captured frames (90 each of H.264 and
+MJPEG at 720p/1080p). VideoToolbox reports hardware acceleration for H.264 and
+software decoding for JPEG; output is matching-size NV12. H.264 NAL payloads
+are unchanged while Annex B framing is adapted to Core Media length prefixes.
+No Client encoder or new device capture was used. This is decode qualification,
+not color, sustained timing, network preservation or application acceptance.
+
+Next: finish stereo Host/Client build gates and installed-device testing;
+implement native camera capture/transport
 and authenticated extension production. Clock-drift/loss and real application
 acceptance remain required. USB monitoring is a diagnostic reference, not
 product capture. The selected microphone implementation is Opus; native PCM or

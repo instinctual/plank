@@ -14,6 +14,7 @@ output=$2
 mkdir "$output"
 cd "$source_root"
 shasum -a 256 probes/macos/native-camera-formats.m probes/macos/native-camera-fixture.{h,m} \
+    probes/macos/native-camera-decode.m \
     scripts/test/build-macos-native-camera-formats.sh
 xcrun --sdk macosx clang -std=c11 -O2 -g -mmacosx-version-min=27.0 \
     -fobjc-arc -Wall -Wextra -Werror probes/macos/native-camera-formats.m \
@@ -21,3 +22,8 @@ xcrun --sdk macosx clang -std=c11 -O2 -g -mmacosx-version-min=27.0 \
     -framework Foundation -framework CoreMediaIO -framework CoreMedia \
     -framework CoreVideo -framework VideoToolbox -o "$output/native-camera-formats"
 "$output/native-camera-formats"
+# Build the private-capture reader without embedding or opening any capture.
+xcrun --sdk macosx clang -std=c11 -O2 -g -mmacosx-version-min=27.0 \
+    -fobjc-arc -Wall -Wextra -Werror probes/macos/native-camera-decode.m \
+    -framework Foundation -framework CoreMedia -framework CoreVideo \
+    -framework VideoToolbox -o "$output/native-camera-decode"
