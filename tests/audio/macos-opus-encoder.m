@@ -7,6 +7,7 @@
 #include <fcntl.h>
 
 static unsigned checks;
+static unsigned frequencies[2] = {440, 880};
 #define CHECK(x) do { if (!(x)) { fprintf(stderr, "failed line %d: %s\n", __LINE__, #x); exit(1); } ++checks; } while (0)
 static CMSampleBufferRef sample(unsigned start, unsigned frames, BOOL planar, CMTime pts, BOOL invalid) {
     AudioStreamBasicDescription format = {0};
@@ -20,7 +21,7 @@ static CMSampleBufferRef sample(unsigned start, unsigned frames, BOOL planar, CM
     NSMutableData *data = [NSMutableData dataWithLength:frames * 2 * sizeof(float)];
     float *values = data.mutableBytes;
     for (unsigned f = 0; f < frames; ++f) for (unsigned c = 0; c < 2; ++c)
-        values[planar ? c * frames + f : f * 2 + c] = 0.25f * sinf(2 * M_PI * (c ? 880 : 440) * (start + f) / 48000);
+        values[planar ? c * frames + f : f * 2 + c] = 0.25f * sinf(2 * M_PI * frequencies[c] * (start + f) / 48000);
     if (invalid) values[0] = NAN;
     CMBlockBufferRef block = NULL;
     CHECK(!CMBlockBufferCreateWithMemoryBlock(NULL, NULL, data.length, NULL, NULL, 0, data.length, 0, &block));
@@ -34,11 +35,12 @@ static void append32(NSMutableData *data, uint32_t value) {
     uint8_t bytes[] = {value, value >> 8, value >> 16, value >> 24}; [data appendBytes:bytes length:4];
 }
 int main(int argc, const char **argv) {
-    if (argc != 2) return 2;
+    if (argc != 2 && !(argc == 3 && !strcmp(argv[2], "--tone-1000"))) return 2;
+    if (argc == 3) frequencies[0] = frequencies[1] = 1000;
     alarm(20);
     @autoreleasepool {
         NSMutableData *reference = nil;
-        for (unsigned mode = 0; mode < 4; ++mode) {
+        for (unsigned mode = 0; mode < 6; ++mode) {
             NSMutableData *fixture = [NSMutableData dataWithBytes:"PAO1" length:4];
             append32(fixture, 48000); append32(fixture, 2); append32(fixture, 240);
             __block unsigned packets = 0;
@@ -58,7 +60,10 @@ int main(int argc, const char **argv) {
             unsigned supplied = 0, chunk = 0;
             unsigned sizes[] = {1, 127, 511, 32, 240, 1000, 17, 960, 333};
             while (supplied < 96000) {
-                unsigned frames = mode >= 2 ? sizes[chunk++ % 9] : 960;
+                // Include the short interleaved blocks observed from the
+                // virtual-output tap as well as the earlier capture quantum.
+                unsigned frames = mode == 4 ? 180 : mode == 5 ? 512 :
+                    mode >= 2 ? sizes[chunk++ % 9] : 960;
                 frames = MIN(frames, 96000 - supplied);
                 if (mode == 3 && supplied) {
                     // Repeated forward/backward 96-ms jumps, whole-sample
@@ -77,7 +82,7 @@ int main(int argc, const char **argv) {
                     // mistake representation error for a source-clock jump.
                     if (supplied) pts.value += 41;
                 }
-                CMSampleBufferRef input = sample(supplied, frames, mode != 0, pts, NO);
+                CMSampleBufferRef input = sample(supplied, frames, mode > 0 && mode < 4, pts, NO);
                 BOOL encoded = [encoder encodeSample:input];
                 if (!encoded) {
                     const AudioStreamBasicDescription *f = CMAudioFormatDescriptionGetStreamBasicDescription(CMSampleBufferGetFormatDescription(input));
@@ -113,6 +118,6 @@ int main(int argc, const char **argv) {
         const uint8_t *bytes = reference.bytes; size_t remaining = reference.length;
         while (remaining) { ssize_t done = write(fd, bytes, remaining); CHECK(done > 0); bytes += done; remaining -= done; }
         CHECK(!close(fd));
-        printf("macos_opus_encoder=pass checks=%u packets=400 planar_interleaved_uneven_identical=1 signed_jumps_byte_identical=1 invalid_stop_latched=1 no_eof_flush=1 priming_frames=312\n", checks);
+        printf("macos_opus_encoder=pass checks=%u packets=400 planar_interleaved_uneven_identical=1 interleaved_180_512_identical=1 signed_jumps_byte_identical=1 invalid_stop_latched=1 no_eof_flush=1 priming_frames=312\n", checks);
     }
 }
