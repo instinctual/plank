@@ -32,8 +32,12 @@ Schema4 disables its incompatible mono microphone; schemas5/6 retain stereo
 microphone, and camera requires schema6/7. New Clients bridge only known older
 Hosts after pinned HTTP404; authentication/TLS failures never trigger fallback.
 See [the contract](protocol/media-feature-negotiation.md) and
-[release notes](docs/releases/1.1.004.md). Compatibility validation is in progress;
-no new test result or installed acceptance is claimed yet. Hold installation of
+[release notes](docs/releases/1.1.004.md). Compatibility checks pass at runtime source
+`c42252ba` with Client `04c307dd`: Ubuntu: 225 launch checks, 291 optional-service
+checks and 33 real Qt/TLS scenarios; Mac: 45 feature checks, 744 session checks
+across 24 scenarios and real HTTPS/QUIC launches for schemas4/5/6/7. TLS/auth
+failure, redirects, malformed replies and unknown older versions do not trigger
+fallback. These are synthetic component/session results, not installed acceptance. Hold installation of
 1.1.003 while the compatibility candidate is completed. Installed1.1.002 remains.
 
 Camera integration includes Ubuntu device selection and toolbar activation,
@@ -86,7 +90,8 @@ Signed Host run35968724357 and signed Client run35969255868 both pass at
 `5e84977c51e71a66f0e8dd084717a81da2242830` (runtime identical to803383b).
 The signed Host PKG SHA-256 is
 `04f4d5d6fb9ea14ac51fec2c501e931a269d135d3f6195d9075ddb30279cc5a3`.
-It is collected and staged; the signed Client collection is in progress.
+It is collected and staged. The signed Client DMG is collected with SHA-256
+`c20368813ae59675d00a3fe7e63ec159c1dd91606d94b598ba31f0ef5341b9cf`.
 Neither target was upgraded. Preserve these artifacts as the1.1.003 checkpoint;
 do not relabel them as1.1.004.
 
