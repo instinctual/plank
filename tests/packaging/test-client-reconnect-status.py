@@ -17,7 +17,7 @@ def between(text, start, end):
 
 class ReconnectPresentation(unittest.TestCase):
     def test_retry_gate_covers_all_http_entry_points(self):
-        for signature in ("QJsonObject NvHTTP::postPlankJson", "QJsonObject NvHTTP::postPinnedMacJson",
+        for signature in ("QJsonObject NvHTTP::postPlankJson", "QJsonObject NvHTTP::requestPinnedMacJson",
                           "NvHTTP::openConnection(QUrl"):
             body = http.split(signature, 1)[1].split("{", 1)[1]
             self.assertTrue(body.lstrip().startswith("waitForRequestPermission("))

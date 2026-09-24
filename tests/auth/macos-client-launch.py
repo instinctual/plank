@@ -2,6 +2,7 @@
 """Actual Qt Client launch over TLS 1.3; synthetic loopback server, no desktop."""
 import argparse
 import base64
+import copy
 import http.server
 import json
 import os
@@ -22,10 +23,16 @@ def main():
     parser.add_argument("--certificate-config", required=True)
     args = parser.parse_args()
     topology = json.loads(Path(args.topology).read_text())
+    vector = json.loads((Path(__file__).resolve().parents[1] /
+                        "protocol/media-feature-negotiation-v1.json").read_text())
     modes = ("success", "wrong-pin", "certificate-swap", "redirect", "denied", "permissions",
              "oversized", "malformed", "wrong-port", "audio", "timeout", "auth-busy",
              "auth-first", "auth-recovery-known", "auth-recovery-unknown", "auth-changed",
-             "auth-mid-change", "auth-replace-cancel", "auth-replace-accept")
+             "auth-mid-change", "auth-replace-cancel", "auth-replace-accept",
+             "legacy-4", "legacy-5", "legacy-6", "legacy-unknown", "legacy-pin-change",
+             "negotiate-denied", "negotiate-incompatible", "negotiate-malformed",
+             "negotiate-oversized", "negotiate-timeout", "negotiate-redirect",
+             "negotiate-required", "negotiate-optional", "negotiate-profile")
     with tempfile.TemporaryDirectory(prefix="plank-client-launch-") as directory:
         root = Path(directory)
         for number in (1, 2):
@@ -63,6 +70,15 @@ def main():
                     self.close_connection = True
 
                 def do_GET(self):
+                    if mode.startswith("legacy-") and self.path == "/serverinfo":
+                        if self.headers.get("Authorization") != "Bearer " + token:
+                            faults.append("invalid pinned server information authorization")
+                        requests.append("version")
+                        version = {"legacy-4": "1.0.156", "legacy-5": "1.1.002-native-media-investigation",
+                                   "legacy-6": "1.1.003", "legacy-unknown": "1.0.155"}.get(mode, "1.0.156")
+                        self.respond(200, ('<root status_code="200"><PlankHostVersion>' + version +
+                                           '</PlankHostVersion></root>').encode())
+                        return
                     if mode.startswith("auth-") and self.path.startswith("/serverinfo"):
                         if self.headers.get("Authorization"):
                             faults.append("credentials in trust preflight")
@@ -107,6 +123,47 @@ def main():
                         self.rfile.read(int(self.headers.get("Content-Length", "0")))
                         self.respond(200, b'{"state":"busy"}')
                         return
+                    if self.path == "/plank/negotiate":
+                        requests.append("negotiate")
+                        if self.headers.get("Authorization") != "Bearer " + token:
+                            faults.append("invalid negotiation authorization")
+                        body = json.loads(self.rfile.read(int(self.headers.get("Content-Length", "0"))))
+                        expected = copy.deepcopy(vector["offer"])
+                        if sys.platform != "darwin":
+                            expected["features"]["clipboard"] = []
+                        if not sys.platform.startswith("linux"):
+                            expected["features"]["camera"] = []
+                        if body != expected:
+                            faults.append("negotiation offer mismatch")
+                        if mode.startswith("legacy-"):
+                            if mode == "legacy-pin-change":
+                                context.load_cert_chain(root / "cert2.pem", root / "key2.pem")
+                            self.respond(404, b"{}")
+                            return
+                        if mode in ("negotiate-denied", "negotiate-incompatible", "negotiate-redirect"):
+                            self.respond({"negotiate-denied": 403, "negotiate-incompatible": 426,
+                                          "negotiate-redirect": 307}[mode],
+                                         b'{"error":"protocol_incompatible"}',
+                                         Location="https://127.0.0.1:1/must-not-follow")
+                            return
+                        if mode == "negotiate-timeout":
+                            time.sleep(6)
+                        if mode in ("negotiate-oversized", "negotiate-malformed"):
+                            self.respond(200, b"x" * (40000 if mode == "negotiate-oversized" else 1))
+                            return
+                        response = copy.deepcopy(vector["response"])
+                        for name, choices in expected["features"].items():
+                            if not choices:
+                                response["features"][name] = None
+                        if mode == "negotiate-optional":
+                            response["features"].pop("microphone")
+                            response["features"]["future_optional"] = {"schema_version": 9}
+                        if mode == "negotiate-required":
+                            response["required_features"].append("future_required")
+                        if mode == "negotiate-profile":
+                            response["features"]["desktop"]["encoding_mode"] = "hevc-10-444-videotoolbox"
+                        self.respond(200, json.dumps(response).encode())
+                        return
                     requests.append("launch")
                     if self.path != "/plank/launch" or self.headers.get("Authorization") != "Bearer " + token:
                         faults.append("unexpected launch target or authorization")
@@ -116,6 +173,25 @@ def main():
                                 "height": topology["capture"]["height"], "encoding_mode": "hevc-10-420-videotoolbox",
                                 "frame_rate": 60, "bitrate_kbps": 50000, "max_udp_payload_size": 1200,
                                 "clipboard": sys.platform == "darwin", "microphone": True, "camera": sys.platform.startswith("linux")}
+                    schema = int(mode[-1]) if mode in ("legacy-4", "legacy-5", "legacy-6") else 7
+                    if schema < 7:
+                        expected["schema_version"] = schema
+                        if schema < 6:
+                            expected.pop("camera")
+                        if schema == 4:
+                            expected["microphone"] = False
+                    else:
+                        expected = copy.deepcopy(vector["launch"])
+                        expected["capture_generation"] = topology["generation"]
+                        expected["capture_id"] = topology["capture"]["id"]
+                        desktop = expected["features"]["desktop"]
+                        desktop.update(width=topology["capture"]["width"], height=topology["capture"]["height"], bitrate_kbps=50000)
+                        if sys.platform != "darwin":
+                            expected["features"]["clipboard"] = None
+                        if not sys.platform.startswith("linux"):
+                            expected["features"]["camera"] = None
+                        if mode == "negotiate-optional":
+                            expected["features"]["microphone"] = None
                     if body != expected:
                         faults.append("launch tuple mismatch")
                     if mode == "redirect":
@@ -132,15 +208,23 @@ def main():
                     if mode in ("oversized", "malformed"):
                         self.respond(200, b"x" * (40000 if mode == "oversized" else 1))
                         return
-                    response = {"schema_version": 6, "state": "connecting",
+                    response = {"schema_version": schema, "state": "connecting",
                                 "udp_port": self.server.server_port,
                                 "max_udp_payload_size": 1200, "capture": topology["capture"],
                                 "transport_token": base64.b64encode(b"x" * 32).decode(),
                                 "services": {"audio": True, "input": True, "pen": "normalized", "cursor": "embedded", "clipboard": False, "microphone": False, "camera": False}}
+                    if schema < 6:
+                        response["services"].pop("camera")
+                    if schema == 7:
+                        response.pop("services")
+                        response.update(transport=expected["transport"], required_features=expected["required_features"],
+                                        features=copy.deepcopy(expected["features"]))
+                        for name in ("clipboard", "microphone", "camera"):
+                            response["features"][name] = None
                     if mode == "wrong-port":
                         response["udp_port"] = 1
                     if mode == "audio":
-                        response["services"]["audio"] = False
+                        response["features"]["audio"] = None
                     self.respond(200, json.dumps(response).encode())
 
             server = http.server.HTTPServer(("127.0.0.1", 0), Handler)
@@ -157,7 +241,15 @@ def main():
                     raise RuntimeError(f"{mode}: sensitive response reached diagnostics")
                 if result.returncode:
                     raise RuntimeError(f"{mode}: Client qualification failed ({result.returncode}): {result.stderr}")
-                expected_requests = ["discovery", "auth"] if mode == "auth-busy" else ["topology"] if mode in ("wrong-pin", "certificate-swap") else ["topology", "launch"]
+                expected_requests = ["discovery", "auth"] if mode == "auth-busy" else ["topology"] if mode in ("wrong-pin", "certificate-swap") else ["topology", "negotiate", "launch"]
+                if mode.startswith("legacy-"):
+                    expected_requests = ["topology", "negotiate"]
+                    if mode != "legacy-pin-change":
+                        expected_requests.append("version")
+                    if mode in ("legacy-4", "legacy-5", "legacy-6"):
+                        expected_requests.append("launch")
+                elif mode.startswith("negotiate-") and mode != "negotiate-optional":
+                    expected_requests = ["topology", "negotiate"]
                 if mode in ("auth-first", "auth-recovery-known", "auth-replace-accept"):
                     expected_requests = ["discovery", "auth", "password"]
                 elif mode in ("auth-recovery-unknown", "auth-changed", "auth-replace-cancel"):

@@ -27,6 +27,12 @@ if lsof -nP -iUDP:47491 -iUDP:47492 >/dev/null 2>&1; then
 fi
 export MACOSX_DEPLOYMENT_TARGET=27.0
 cd "$source_root"
+xcrun clang -mmacosx-version-min=27.0 -fobjc-arc -Wall -Wextra -Werror \
+    -Iapps/host/macos/control tests/protocol/macos-media-features.m \
+    apps/host/macos/control/fixed-capture.m -framework Foundation -framework CoreGraphics \
+    -o "$video_build/media-features"
+"$video_build/media-features" "$source_root/tests/protocol/media-feature-negotiation-v1.json" \
+    "$source_root/tests/protocol/macos-preview-launch-v6.json"
 shasum -a 256 "$transport_library" apps/host/macos/media/native-video.{h,m} \
     apps/host/macos/media/preview-session.{h,m} apps/host/macos/media/screen-capture.{h,m} \
     apps/host/macos/media/native-audio.{h,m} apps/host/macos/media/opus-encoder.{h,m} \

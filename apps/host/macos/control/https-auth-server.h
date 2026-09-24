@@ -26,6 +26,8 @@ typedef NSDictionary *(^PLANKMacPrepareDisplayHandler)(NSDictionary *request, NS
 // Configure before start. Runs on the bounded auth lane; authenticates before
 // dispatch and rechecks ownership before returning any display description.
 @property(copy) PLANKMacPrepareDisplayHandler prepareDisplay;
+// Read-only, authenticated feature negotiation before display/stream setup.
+@property(copy) NSDictionary *(^negotiateMedia)(NSDictionary *request, unsigned *status);
 @property(copy) BOOL (^recoverTopology)(BOOL (^valid)(void));
 - (instancetype)initWithIdentity:(SecIdentityRef)identity authority:(NSData *)authority
                        sessions:(PLANKMacAuthenticationSession *)sessions

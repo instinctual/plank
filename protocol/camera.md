@@ -1,7 +1,8 @@
 # Native camera lane (in development)
 
-Schema6 of the authenticated macOS launch contract negotiates this optional
-lane separately from microphone. It is not in the installed stereo candidate.
+Mac launch schema6 or independently negotiated camera feature1 in schema7
+enables this optional lane separately from microphone. Earlier peers keep camera
+disabled while retaining desktop connectivity. It is not in the installed stereo candidate.
 The Ubuntu Client starts with camera off; the toolbar explicitly enables it.
 The selected device uses native H.264 when available, then MJPEG, preferring
 1080p over 720p within a codec. An explicitly selected missing device fails;

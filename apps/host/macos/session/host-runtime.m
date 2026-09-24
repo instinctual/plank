@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 #import "host-runtime.h"
 #import "fixed-capture.h"
+#import "media-features.h"
 #include <arpa/inet.h>
 #include <stdatomic.h>
 #include <time.h>
@@ -47,6 +48,11 @@
             if (!owner) { *status = 503; return nil; }
             return [owner launch:request token:token peer:peer port:port status:status];
         }];
+    _server.negotiateMedia = ^NSDictionary *(NSDictionary *request, unsigned *status) {
+        typeof(self) owner = weakSelf;
+        if (!owner || atomic_load(&owner->_stopping) || !owner->_started) { *status = 503; return nil; }
+        return PLANKMacNegotiateMedia(request, status);
+    };
     _server.prepareDisplay = ^NSDictionary *(NSDictionary *request, NSString *token, NSData *peer,
                                              BOOL (^requestValid)(void), unsigned *status) {
         typeof(self) owner = weakSelf;
@@ -202,6 +208,15 @@
             request:request topology:_topology config:&config capture:_capture() input:_input()
             microphoneGeneration:_snapshot().generation];
         if (!_stream) { *status = 503; return nil; }
+        if ([request[@"schema_version"] isEqual:@7]) {
+            NSArray *required = request[@"required_features"];
+            if (([required containsObject:@"clipboard"] && !_stream.clipboardEnabled) ||
+                ([required containsObject:@"microphone"] && !_stream.microphoneEnabled) ||
+                ([required containsObject:@"camera"] && !_stream.cameraEnabled)) {
+                [_stream stopWithCompletion:nil];
+                *status = 426; return @{@"state": @"denied", @"error": @"protocol_incompatible"};
+            }
+        }
         _takeoverToken = nil; _takeoverPeer = nil;
         // Snapshot after endpoint creation as well. Do not put a later display
         // generation into a manifest for a stream created against an older one.
@@ -210,11 +225,22 @@
             !plank_macos_graphical_identity_valid(_snapshot())) {
             [_stream stopWithCompletion:nil]; *status = 503; return nil;
         }
-        NSDictionary *reply = @{@"schema_version": @6, @"state": @"connecting",
+        unsigned schema = [request[@"schema_version"] unsignedIntValue];
+        NSDictionary *normalized = PLANKMacNormalizeMediaLaunch(request);
+        NSMutableDictionary *reply = [@{@"schema_version": @(schema), @"state": @"connecting",
             @"transport_token": transportToken, @"udp_port": @(port),
-            @"max_udp_payload_size": request[@"max_udp_payload_size"], @"capture": selected[@"capture"],
-            @"services": @{@"audio": @YES, @"input": @YES, @"pen": @"normalized", @"cursor": @"embedded",
-                @"clipboard": @(_stream.clipboardEnabled), @"microphone": @(_stream.microphoneEnabled), @"camera": @(_stream.cameraEnabled)}};
+            @"max_udp_payload_size": normalized[@"max_udp_payload_size"], @"capture": selected[@"capture"]} mutableCopy];
+        if (schema == 7) {
+            reply[@"transport"] = @"plank-native/2";
+            reply[@"required_features"] = request[@"required_features"];
+            reply[@"features"] = PLANKMacMediaReplyFeatures(request, _stream.clipboardEnabled,
+                _stream.microphoneEnabled, _stream.cameraEnabled);
+        } else {
+            NSMutableDictionary *services = [@{@"audio": @YES, @"input": @YES, @"pen": @"normalized", @"cursor": @"embedded",
+                @"clipboard": @(_stream.clipboardEnabled), @"microphone": @(_stream.microphoneEnabled)} mutableCopy];
+            if (schema >= 6) services[@"camera"] = @(_stream.cameraEnabled);
+            reply[@"services"] = services;
+        }
         [_stream start]; *status = 200; return reply;
     }
 }

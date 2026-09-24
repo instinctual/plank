@@ -1,6 +1,7 @@
 #include "backend/macpreviewlaunch.h"
 #include <QCoreApplication>
 #include <QFile>
+#include <QFileInfo>
 #include <QJsonDocument>
 #include <cstdio>
 #include <cstdlib>
@@ -128,5 +129,94 @@ int main(int argc, char** argv)
     CHECK(!MacPreviewLaunch::parseReply(fullReply, topology, 28989, 1200, parsed));
     full.appleEncodingMode = QStringLiteral("invalid");
     CHECK(MacPreviewLaunch::request(full, 50000, 1200).isEmpty());
+
+    // One shared Host/Client vector fixes each independent feature contract.
+    QFile featureFile(QFileInfo(requestFile).absolutePath() + "/media-feature-negotiation-v1.json");
+    CHECK(featureFile.open(QIODevice::ReadOnly));
+    const auto vector = QJsonDocument::fromJson(featureFile.readAll()).object();
+    auto offer = vector.value("offer").toObject();
+    auto negotiation = vector.value("response").toObject();
+    auto featureLaunch = vector.value("launch").toObject();
+    auto offered = offer.value("features").toObject();
+    auto chosen = negotiation.value("features").toObject();
+    auto launchFeatures = featureLaunch.value("features").toObject();
+    for (const auto& name : {QStringLiteral("clipboard"), QStringLiteral("camera")}) {
+        if ((name == QLatin1String("clipboard") && !NvOutputTopology::PlatformClipboardSyncFeature) ||
+            (name == QLatin1String("camera") && !MacPreviewLaunch::CameraSupported)) {
+            offered[name] = QJsonArray {}; chosen[name] = QJsonValue::Null; launchFeatures[name] = QJsonValue::Null;
+        }
+    }
+    offer["features"] = offered; negotiation["features"] = chosen; featureLaunch["features"] = launchFeatures;
+    CHECK(MacMediaFeatures::offer(topology.appleEncodingMode) == offer);
+    MacMediaFeatures::Agreement agreement;
+    CHECK(MacMediaFeatures::select(negotiation, topology.appleEncodingMode, agreement));
+    const int bitrate = expected.value("bitrate_kbps").toInt();
+    CHECK(MacPreviewLaunch::request(topology, bitrate, 1200, agreement) == featureLaunch);
+    auto featureReply = valid;
+    featureReply.remove("services"); featureReply["schema_version"] = 7;
+    featureReply["transport"] = MacMediaFeatures::transport();
+    featureReply["required_features"] = MacMediaFeatures::required();
+    featureReply["features"] = launchFeatures;
+    CHECK(MacPreviewLaunch::parseReply(featureReply, topology, 28989, 1200, parsed, agreement, bitrate));
+    CHECK(parsed.microphone);
+    for (const auto& name : {QStringLiteral("clipboard"), QStringLiteral("microphone"), QStringLiteral("camera")}) {
+        auto fewer = launchFeatures; fewer[name] = QJsonValue::Null;
+        auto response = featureReply; response["features"] = fewer;
+        CHECK(MacPreviewLaunch::parseReply(response, topology, 28989, 1200, parsed, agreement, bitrate));
+    }
+    for (const auto& name : MacMediaFeatures::required()) {
+        auto fewer = launchFeatures; fewer[name.toString()] = QJsonValue::Null;
+        auto response = featureReply; response["features"] = fewer;
+        CHECK(!MacPreviewLaunch::parseReply(response, topology, 28989, 1200, parsed, agreement, bitrate));
+        CHECK(parsed.transportToken.isEmpty());
+    }
+    auto additive = negotiation;
+    auto extraFeatures = chosen; extraFeatures["future_optional"] = QJsonObject {{"schema_version", 12}};
+    additive["features"] = extraFeatures; additive["future_hint"] = true;
+    CHECK(MacMediaFeatures::select(additive, topology.appleEncodingMode, agreement));
+    auto desktopExtra = extraFeatures.value("desktop").toObject(); desktopExtra["future_hint"] = true;
+    extraFeatures["desktop"] = desktopExtra; additive["features"] = extraFeatures;
+    CHECK(MacMediaFeatures::select(additive, topology.appleEncodingMode, agreement));
+    auto requiredExtra = MacMediaFeatures::required(); requiredExtra.append("future_optional");
+    additive["required_features"] = requiredExtra;
+    CHECK(!MacMediaFeatures::select(additive, topology.appleEncodingMode, agreement));
+    CHECK(agreement.launchSchema == 0);
+    for (const QJsonValue& wrong : {QJsonValue(true), QJsonValue(2), QJsonValue(1.5)}) {
+        auto response = negotiation; response["schema_version"] = wrong;
+        CHECK(!MacMediaFeatures::select(response, topology.appleEncodingMode, agreement));
+    }
+    for (const auto& name : MacMediaFeatures::names()) {
+        auto response = negotiation; auto changed = chosen;
+        auto profile = MacMediaFeatures::profile(name, topology.appleEncodingMode);
+        profile["schema_version"] = 999; changed[name] = profile; response["features"] = changed;
+        CHECK(!MacMediaFeatures::select(response, topology.appleEncodingMode, agreement));
+    }
+    auto incompatibleTransport = negotiation; incompatibleTransport["transport"] = "plank-native/1";
+    CHECK(!MacMediaFeatures::select(incompatibleTransport, topology.appleEncodingMode, agreement));
+
+    for (int schema : {4, 5, 6}) {
+        const auto legacy = MacMediaFeatures::legacy(schema, topology.appleEncodingMode);
+        const auto request = MacPreviewLaunch::request(topology, 50000, 1200, legacy);
+        CHECK(request.value("schema_version") == schema);
+        CHECK(request.size() == (schema == 6 ? 12 : 11));
+        CHECK(request.value("microphone") == QJsonValue(schema >= 5));
+        CHECK(request.contains("camera") == (schema == 6));
+        auto response = valid; response["schema_version"] = schema;
+        auto services = response.value("services").toObject();
+        if (schema < 6) services.remove("camera");
+        services["microphone"] = schema >= 5; response["services"] = services;
+        CHECK(MacPreviewLaunch::parseReply(response, topology, 28989, 1200, parsed, legacy, 50000));
+        CHECK(parsed.microphone == (schema >= 5) && !parsed.camera);
+        if (schema == 4) {
+            services["microphone"] = true; response["services"] = services;
+            CHECK(!MacPreviewLaunch::parseReply(response, topology, 28989, 1200, parsed, legacy, 50000));
+        }
+    }
+    for (const QString& version : {QStringLiteral("1.0.156"), QStringLiteral("1.0.157-microphone-forwarding"), QStringLiteral("1.1.001")})
+        CHECK(MacMediaFeatures::legacySchema(version) == 4);
+    CHECK(MacMediaFeatures::legacySchema("1.1.002-native-media-investigation") == 5);
+    CHECK(MacMediaFeatures::legacySchema("1.1.003-native-media-investigation") == 6);
+    for (const QString& version : {QStringLiteral("1.1.004"), QStringLiteral("1.0.155"), QStringLiteral("1.1.2"), QStringLiteral("1.1.002/extra"), QString()})
+        CHECK(MacMediaFeatures::legacySchema(version) == 0);
     std::printf("Mac preview launch: %u checks passed\n", checks);
 }

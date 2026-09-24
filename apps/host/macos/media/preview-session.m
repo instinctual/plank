@@ -5,6 +5,7 @@
 #import "clipboard-sync.h"
 #import "microphone-session.h"
 #import "camera-session.h"
+#import "media-features.h"
 #include "stream-diagnostics.h"
 #include "plank_transport_control.h"
 #include "plank_transport_input.h"
@@ -21,6 +22,7 @@ static BOOL integerInRange(id value, uint32_t minimum, uint32_t maximum) {
 }
 
 BOOL PLANKMacPreviewRequestMatchesTopology(NSDictionary *request, NSDictionary *topology) {
+    request = PLANKMacNormalizeMediaLaunch(request);
     if (![request isKindOfClass:NSDictionary.class] || request.count != 12 ||
         ![topology isKindOfClass:NSDictionary.class] ||
         !integerInRange(request[@"schema_version"], 6, 6) ||
@@ -134,6 +136,7 @@ BOOL PLANKMacPreviewRequestMatchesTopology(NSDictionary *request, NSDictionary *
         return nil;
     PLANKMacAccountIdentity account = {0};
     if (![sessions authorizeToken:token peer:peer identity:&account]) return nil;
+    request = PLANKMacNormalizeMediaLaunch(request);
     NSDictionary *selected = topology();
     if (!PLANKMacPreviewRequestMatchesTopology(request, selected)) return nil;
     self = [super init];

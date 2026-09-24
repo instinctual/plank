@@ -19,6 +19,8 @@ int main(int argc, char** argv)
     NvHTTP http(NvAddress(QStringLiteral("127.0.0.1"), static_cast<quint16>(port)));
     const bool busy = mode == QLatin1String("auth-busy");
     const bool auth = mode.startsWith(QLatin1String("auth-"));
+    const bool success = mode == QLatin1String("success") || mode == QLatin1String("negotiate-optional") ||
+        mode == QLatin1String("legacy-4") || mode == QLatin1String("legacy-5") || mode == QLatin1String("legacy-6");
     const bool unknown = mode == QLatin1String("auth-first") || mode == QLatin1String("auth-recovery-unknown");
     // Trust only the out-of-band certificate supplied by this synthetic test
     // fixture. No product bypass or trusting the network leaf after sending.
@@ -58,7 +60,7 @@ int main(int argc, char** argv)
         if (pin.size() != 64) return 1;
         if (mode == QLatin1String("wrong-pin")) pin = QString(64, QLatin1Char('0'));
         const auto result = http.startMacPreview(topology, pin, 50000, 1200);
-        if (mode != QLatin1String("success") ||
+        if (!success ||
                 result.transportToken != QByteArray(32, 'x').toBase64() ||
                 result.configuration.serviceFlags != (PLANK_NATIVE_SERVICE_AUDIO | PLANK_NATIVE_SERVICE_INPUT) ||
                 result.configuration.sessionPort != static_cast<uint32_t>(port) ||
@@ -72,10 +74,13 @@ int main(int argc, char** argv)
         try { http.startMacPreview(topology, pin, 50000, 1200); return 1; }
         catch (const GfeHttpResponseException& error) { if (error.getStatusCode() != 400) return 1; }
     } catch (const GfeHttpResponseException& error) {
-        const int expected = busy ? 503 : mode == QLatin1String("wrong-pin") || mode == QLatin1String("certificate-swap") ? 401 :
-                (mode == QLatin1String("denied") || mode == QLatin1String("permissions")) ? 403 :
-                mode == QLatin1String("redirect") ? 307 : 400;
-        if (mode == QLatin1String("success") || error.getStatusCode() != expected) {
+        const int expected = busy ? 503 : mode == QLatin1String("wrong-pin") || mode == QLatin1String("certificate-swap") ||
+                mode == QLatin1String("legacy-pin-change") ? 401 :
+                (mode == QLatin1String("denied") || mode == QLatin1String("permissions") || mode == QLatin1String("negotiate-denied")) ? 403 :
+                (mode == QLatin1String("redirect") || mode == QLatin1String("negotiate-redirect")) ? 307 :
+                (mode == QLatin1String("legacy-unknown") || mode == QLatin1String("negotiate-incompatible") ||
+                 mode == QLatin1String("negotiate-required") || mode == QLatin1String("negotiate-profile")) ? 426 : 400;
+        if (success || error.getStatusCode() != expected) {
             std::fprintf(stderr, "unexpected HTTP status %d (expected %d)\n", error.getStatusCode(), expected);
             return 1;
         }
@@ -86,8 +91,9 @@ int main(int argc, char** argv)
         try { http.getOutputTopology(); return 1; }
         catch (const GfeHttpResponseException& consumed) { if (consumed.getStatusCode() != 400) return 1; }
     } catch (const QtNetworkReplyException& error) {
-        const bool tlsFailure = mode == QLatin1String("wrong-pin") || mode == QLatin1String("certificate-swap");
-        if (mode != QLatin1String("timeout") && !tlsFailure) return 1;
+        const bool tlsFailure = mode == QLatin1String("wrong-pin") || mode == QLatin1String("certificate-swap") ||
+            mode == QLatin1String("legacy-pin-change");
+        if (mode != QLatin1String("timeout") && mode != QLatin1String("negotiate-timeout") && !tlsFailure) return 1;
         if (tlsFailure && error.getError() != QNetworkReply::SslHandshakeFailedError) return 1;
         try { http.getOutputTopology(); return 1; }
         catch (const GfeHttpResponseException& consumed) { if (consumed.getStatusCode() != 400) return 1; }

@@ -24,15 +24,23 @@ application-delivery results; the current implementation adds stereo audio. Main
 Client gitlink are retained. The separate startup-fix worktree, main worktree
 and primary RK3576 research are untouched.
 
-The current integration source advances the next candidate to
-**1.1.003-native-media-investigation**. Installed 1.1.002 remains unchanged.
-Camera integration now includes Ubuntu device selection and toolbar activation,
-strict launch schema6 and PLD1 camera controls, session-bound Host reception,
-root-brokered fresh shared mappings and a CMIO extension with native/NV12 output.
-Camera starts off on each connection, including reconnects. A missing selected
-camera fails without choosing another device. Optional camera failure leaves
-other session media available. These changes are committed on this branch;
-they are not installed or application-qualified.
+The operator authorized independent per-feature schemas and compatibility with
+older peers after a schema4 Client could not connect to the schema5 Host.
+The next candidate is **1.1.004-native-media-investigation**. Implementation
+adds authenticated feature negotiation, launch7 and exact schema4/5/6 adapters.
+Schema4 disables its incompatible mono microphone; schemas5/6 retain stereo
+microphone, and camera requires schema6/7. New Clients bridge only known older
+Hosts after pinned HTTP404; authentication/TLS failures never trigger fallback.
+See [the contract](protocol/media-feature-negotiation.md) and
+[release notes](docs/releases/1.1.004.md). Compatibility validation is in progress;
+no new test result or installed acceptance is claimed yet. Hold installation of
+1.1.003 while the compatibility candidate is completed. Installed1.1.002 remains.
+
+Camera integration includes Ubuntu device selection and toolbar activation,
+session-bound Host reception, root-brokered fresh shared mappings and a CMIO
+extension with native/NV12 output. Camera starts off on every connection,
+including reconnects. A missing selected camera fails without choosing another
+device. Optional camera failure leaves other session media available.
 
 The Mac extension publishes immutable formats only after its first validated
 native sample. Root verifies the signed extension and current registered
@@ -74,9 +82,13 @@ Both Linux packages are checksum/provenance-verified and collected under
 | Ubuntu Client DEB | `1f3207e4404c2ce27b4e10d4618013c188a3b082d999db1a7c716bb027df29cc` |
 | Linux Host RPM | `3ad58a8f124991cd1a30300a424ee31135aab9e4b93f7860f224e6f9c98e097f` |
 
-No signed Mac installer exists for this source, and neither target was upgraded.
-Schema6 requires matching peers; do not install this Client against the installed
-schema5 Host.
+Signed Host run35968724357 and signed Client run35969255868 both pass at
+`5e84977c51e71a66f0e8dd084717a81da2242830` (runtime identical to803383b).
+The signed Host PKG SHA-256 is
+`04f4d5d6fb9ea14ac51fec2c501e931a269d135d3f6195d9075ddb30279cc5a3`.
+It is collected and staged; the signed Client collection is in progress.
+Neither target was upgraded. Preserve these artifacts as the1.1.003 checkpoint;
+do not relabel them as1.1.004.
 
 The operator supplied a new Developer ID profile for `la.instinctual.PLANK.Host`.
 Its exact app/team, existing application signing certificate, expiration and
@@ -84,9 +96,9 @@ system-extension installation permission pass validation. The protected
 `macos-signing` environment now contains `PLANK_MACOS_HOST_PROVISION_PROFILE`;
 the signing job consumes and removes its temporary decoded copy. Existing
 notarization credentials are unchanged. No profile or credentials were committed.
-Signed Host packaging is the next gate; OS extension activation still needs
+Signed Host packaging passes; OS extension activation still needs
 normal approval on the dedicated Mac.
-Signed packaging, installed broker/extension admission and application delivery,
+Compatibility candidate packaging, installed broker/extension admission and application delivery,
 concurrent readers, sustained/loss/unplug testing and A/V synchronization remain
 required. Presentation currently uses arrival in the Core Media Host clock;
 Client capture timestamps survive PCAM, but no lip-sync claim is justified.

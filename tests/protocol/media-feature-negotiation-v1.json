@@ -1,0 +1,157 @@
+{
+  "offer": {
+    "schema_version": 1,
+    "transport": "plank-native/2",
+    "required_features": [
+      "desktop",
+      "audio",
+      "input"
+    ],
+    "features": {
+      "desktop": [
+        {
+          "schema_version": 1,
+          "encoding_mode": "hevc-10-420-videotoolbox"
+        }
+      ],
+      "audio": [
+        {
+          "schema_version": 1,
+          "codec": "opus",
+          "sample_rate": 48000,
+          "channels": 2,
+          "packet_duration_ms": 5
+        }
+      ],
+      "input": [
+        {
+          "schema_version": 1,
+          "keyboard": true,
+          "mouse": "absolute",
+          "pen": "normalized"
+        }
+      ],
+      "clipboard": [
+        {
+          "schema_version": 1
+        }
+      ],
+      "microphone": [
+        {
+          "schema_version": 2,
+          "codec": "opus",
+          "sample_rate": 48000,
+          "channels": 2,
+          "packet_duration_ms": 10
+        }
+      ],
+      "camera": [
+        {
+          "schema_version": 1,
+          "codecs": [
+            "h264-annex-b",
+            "mjpeg"
+          ]
+        }
+      ]
+    }
+  },
+  "response": {
+    "schema_version": 1,
+    "transport": "plank-native/2",
+    "required_features": [
+      "desktop",
+      "audio",
+      "input"
+    ],
+    "launch_schema": 7,
+    "features": {
+      "desktop": {
+        "schema_version": 1,
+        "encoding_mode": "hevc-10-420-videotoolbox"
+      },
+      "audio": {
+        "schema_version": 1,
+        "codec": "opus",
+        "sample_rate": 48000,
+        "channels": 2,
+        "packet_duration_ms": 5
+      },
+      "input": {
+        "schema_version": 1,
+        "keyboard": true,
+        "mouse": "absolute",
+        "pen": "normalized"
+      },
+      "clipboard": {
+        "schema_version": 1
+      },
+      "microphone": {
+        "schema_version": 2,
+        "codec": "opus",
+        "sample_rate": 48000,
+        "channels": 2,
+        "packet_duration_ms": 10
+      },
+      "camera": {
+        "schema_version": 1,
+        "codecs": [
+          "h264-annex-b",
+          "mjpeg"
+        ]
+      }
+    }
+  },
+  "launch": {
+    "schema_version": 7,
+    "transport": "plank-native/2",
+    "required_features": [
+      "desktop",
+      "audio",
+      "input"
+    ],
+    "capture_generation": "98454815-80ab-4a88-b187-92f59353afca",
+    "capture_id": "cgdisplay:42",
+    "max_udp_payload_size": 1200,
+    "features": {
+      "desktop": {
+        "schema_version": 1,
+        "encoding_mode": "hevc-10-420-videotoolbox",
+        "width": 3840,
+        "height": 2160,
+        "frame_rate": 60,
+        "bitrate_kbps": 50000
+      },
+      "audio": {
+        "schema_version": 1,
+        "codec": "opus",
+        "sample_rate": 48000,
+        "channels": 2,
+        "packet_duration_ms": 5
+      },
+      "input": {
+        "schema_version": 1,
+        "keyboard": true,
+        "mouse": "absolute",
+        "pen": "normalized"
+      },
+      "clipboard": {
+        "schema_version": 1
+      },
+      "microphone": {
+        "schema_version": 2,
+        "codec": "opus",
+        "sample_rate": 48000,
+        "channels": 2,
+        "packet_duration_ms": 10
+      },
+      "camera": {
+        "schema_version": 1,
+        "codecs": [
+          "h264-annex-b",
+          "mjpeg"
+        ]
+      }
+    }
+  }
+}

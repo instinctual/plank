@@ -2,8 +2,9 @@
 
 This extension is implemented on the native-media-investigation candidate branch,
 not released. Existing even-numbered Host-created endpoints and native/2 ALPN
-remain unchanged. Matching macOS launch schema 5 requests `microphone: true`;
-the authenticated reply's services map advertises availability only for a
+remain unchanged. Mac launch schemas5/6 request `microphone: true`; schema7 negotiates microphone
+feature2 independently. Schema4 peers retain desktop connectivity with microphone
+disabled. The authenticated reply advertises availability only for a
 desktop worker with the installed stereo virtual input. Linux Hosts do not advertise
 this capability. Merely accepting an audio endpoint never authorizes capture.
 
