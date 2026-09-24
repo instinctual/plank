@@ -9,7 +9,9 @@ Native does not mean uncompressed.
 Branch: `native-media-investigation`, isolated worktree
 `build/worktrees/native-media-investigation`. Original runtime base:
 `af71d2b404486a9846bca464ddd646b5ab9c738a` from `microphone-forwarding`.
-Synchronized with main `a4ea39eb6fd0c098ebe01e6eb516747b84c71800`.
+Synchronized with main `acb29884bff626c9381169fd94563ec79555984c`.
+Its runtime/package source remains `a4ea39eb6fd0c098ebe01e6eb516747b84c71800`;
+the latest main commit changes only package-validation documentation.
 The investigation checkpoint is `c12504c`; only this handoff required merge
 resolution. Main's version, release notes, build runbook, packaging tests and
 Client gitlink are retained. The separate startup-fix worktree, main worktree
@@ -22,13 +24,26 @@ startup repairs. The new Client pin changes only its changelog. No release,
 package build or deployment has been performed by this synchronization.
 See [coordinated upgrade notes](docs/releases/1.1.001.md).
 
-The inherited signed Host candidate remains **1.0.157-microphone-forwarding**,
-root `af71d2b`, hosted run `35937730094`, SHA-256
-`2e7d7540b9a2159e0a721b046b3610a8f4d3afe9b1942b5af5129c1bc605f23f`.
-It was verified but not installed by the prior task; post-reboot live acceptance
-remains pending. Historical package provenance and qualification results remain
-in [main's handoff at the synchronization point](https://github.com/instinctual/plank/blob/a4ea39eb6fd0c098ebe01e6eb516747b84c71800/HANDOFF.md).
-Do not relabel those packages as 1.1.001 or native-media candidates.
+Mainline **1.1.001** test packages are built and checksum/provenance-verified
+from exact root `a4ea39eb6fd0c098ebe01e6eb516747b84c71800`. Hosted runs:
+Linux Host `35940461297`, Ubuntu Client `35940463873`, signed Mac Host
+`35940466159`, signed Mac Client `35940468319`. All four passed first attempt.
+They are retained in `artifacts/packages/releases/1.1.001/`; that catalog name
+does not mean publication. No installation, tag or GitHub release was performed
+by the package task. Matching Host/Client manual installation and live hardware
+acceptance, including post-reboot Mac startup, remain pending.
+
+| Mainline package | SHA-256 |
+| --- | --- |
+| Linux Host RPM | `83999138c18b78001d4f503000b56faf34245b4635f676eb13a72814d3c163e1` |
+| Ubuntu Client DEB | `35b2c031cceb923cd0cccb5830c566eff15237bd545c90a04b00d71f035f02bf` |
+| macOS Host PKG | `6111c9ea85849813ddb6ce1d5a62e17b1e5c0428d28fa3d92932791b32ee351c` |
+| macOS Client DMG | `95dbd029e1665b0fde2b64fbff86e84968577318fbb9147fa7af7e3de4fe7685` |
+
+Detailed package provenance, recursive pins and qualification results remain in
+[main's handoff at the synchronization point](https://github.com/instinctual/plank/blob/acb29884bff626c9381169fd94563ec79555984c/HANDOFF.md).
+These packages do not contain native-media work. Do not relabel them as feature
+candidates or mix their RaptorQ-2 transport with pre-upgrade published peers.
 
 Read [the investigation](docs/development/investigations/native-media-forwarding.md)
 for sources, preservation boundaries, integration constraints and probe gates.
@@ -82,6 +97,8 @@ stress test passes one million samples with two readers, bounds, silence and
 reset checks. These are Linux debug/portable checks, not native Mac camera,
 Core Audio, hardware or release-performance qualification. The default-feature
 Rust build emits two existing unused-telemetry warnings in vendored Quinn.
+The follow-up main merge changes documentation only; runtime sources and pins
+match the tested synchronization, so these test results remain applicable.
 Documentation whitespace/reference checks and commit privacy hooks pass.
 
 Maintained gitlinks after synchronization:
@@ -93,7 +110,7 @@ Maintained gitlinks after synchronization:
 | Linux Host | `5829bf7c335440a8b25c3330643eacb4d914f00a` |
 
 Prior package provenance and recursive pins remain in main's linked HANDOFF.
-No new candidate exists. Kymux is initialized at its exact pin from the verified
+No native-media candidate exists. Kymux is initialized at its exact pin from the verified
 local repository for transport tests. Client and Linux Host are uninitialized
 here; comparison against the retained Client repository confirms that its pin
 update changes only the changelog.

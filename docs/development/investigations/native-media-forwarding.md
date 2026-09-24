@@ -2,7 +2,8 @@
 
 September 23, 2026. Research branch `native-media-investigation`, based on root
 `af71d2b404486a9846bca464ddd646b5ab9c738a`, synchronized with main
-`a4ea39eb6fd0c098ebe01e6eb516747b84c71800` (product version 1.1.001).
+`acb29884bff626c9381169fd94563ec79555984c` (product version 1.1.001;
+runtime/package source `a4ea39eb6fd0c098ebe01e6eb516747b84c71800`).
 This is API/code research, not an implemented capability or hardware qualification.
 
 The operator wants each device's native media output preserved through
