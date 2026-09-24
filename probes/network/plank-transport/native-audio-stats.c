@@ -6,7 +6,7 @@
 #include <stdio.h>
 typedef struct {
     PLANKMicDecoder decoder;
-    uint64_t packets, frames, next, gaps, different;
+    uint64_t packets, frames, next, gaps, different, missing, maximumGap;
     double energy[2], peak[2];
     bool hasSample;
 } AudioStats;
@@ -28,6 +28,11 @@ bool plank_probe_audio_consume(void *pointer, uint64_t sampleTime, const uint8_t
     AudioStats *stats = pointer;
     if (stats->hasSample && stats->next != sampleTime) {
         stats->gaps++;
+        if (sampleTime > stats->next) {
+            uint64_t missing = sampleTime - stats->next;
+            stats->missing += missing;
+            if (missing > stats->maximumGap) stats->maximumGap = missing;
+        }
         if (!PLANKMicDecoderReset(&stats->decoder)) return false;
     }
     float samples[480 * 2];
@@ -46,9 +51,10 @@ bool plank_probe_audio_consume(void *pointer, uint64_t sampleTime, const uint8_t
 }
 bool plank_probe_audio_finish(void *pointer) {
     AudioStats *stats = pointer;
-    printf("physical_audio_decode packets=%llu frames=%llu channels=2 gaps=%llu different_frames=%llu left_rms=%.8f right_rms=%.8f left_peak=%.8f right_peak=%.8f\n",
+    printf("physical_audio_decode packets=%llu frames=%llu channels=2 gaps=%llu missing_frames=%llu maximum_gap_frames=%llu different_frames=%llu left_rms=%.8f right_rms=%.8f left_peak=%.8f right_peak=%.8f\n",
         (unsigned long long)stats->packets, (unsigned long long)stats->frames,
-        (unsigned long long)stats->gaps, (unsigned long long)stats->different,
+        (unsigned long long)stats->gaps, (unsigned long long)stats->missing,
+        (unsigned long long)stats->maximumGap, (unsigned long long)stats->different,
         stats->frames ? sqrt(stats->energy[0]/stats->frames) : 0,
         stats->frames ? sqrt(stats->energy[1]/stats->frames) : 0,
         stats->peak[0], stats->peak[1]);

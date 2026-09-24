@@ -189,6 +189,7 @@ c++ -std=c++17 -O2 -Wall -Wextra -Werror -DPLANK_TRANSPORT=1 \
   probes/network/plank-transport/native-camera-live.cpp \
   apps/client/app/streaming/camera/linuxnativecamera.cpp \
   apps/client/app/streaming/audio/microphone.cpp "$PLANK_TRANSPORT_ARCHIVE" \
+  -Wl,--wrap=plank_transport_native_microphone_send \
   $(pkg-config --libs Qt6Core sdl3 opus) -lcrypto -ldl -lpthread -lm -lrt \
   -o "$PLANK_PROBE_BUILD/native-camera-live"
 ```

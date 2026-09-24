@@ -32,6 +32,36 @@ bool plank_probe_audio_finish(void*);
 #include <vector>
 
 using Clock = std::chrono::steady_clock;
+#ifdef __linux__
+// Link-wrap only this diagnostic executable. The product capture module and
+// transport archive stay unchanged; inspect source gaps before transport entry.
+static struct {
+    std::uint64_t packets = 0, bytes = 0, generation = 0, next = 0;
+    std::uint64_t gaps = 0, missing = 0, dropped = 0, timeouts = 0, maxIntervalUs = 0;
+    Clock::time_point last;
+} sourceAudio;
+extern "C" int32_t __real_plank_transport_native_microphone_send(PlankTransportNativeEndpoint*,
+    std::uint64_t, std::uint64_t, const std::uint8_t*, size_t);
+extern "C" int32_t __wrap_plank_transport_native_microphone_send(PlankTransportNativeEndpoint* endpoint,
+    std::uint64_t generation, std::uint64_t sample, const std::uint8_t* bytes, size_t size)
+{
+    const auto now = Clock::now();
+    if (sourceAudio.generation == generation) {
+        const auto interval = std::chrono::duration_cast<std::chrono::microseconds>(now - sourceAudio.last).count();
+        if (std::uint64_t(interval) > sourceAudio.maxIntervalUs) sourceAudio.maxIntervalUs = interval;
+        if (sample != sourceAudio.next) {
+            ++sourceAudio.gaps;
+            if (sample > sourceAudio.next) sourceAudio.missing += sample - sourceAudio.next;
+        }
+    }
+    sourceAudio.last = now; sourceAudio.generation = generation; sourceAudio.next = sample + 480;
+    ++sourceAudio.packets; sourceAudio.bytes += size;
+    const auto result = __real_plank_transport_native_microphone_send(endpoint, generation, sample, bytes, size);
+    sourceAudio.dropped += result == PLANK_TRANSPORT_DROPPED;
+    sourceAudio.timeouts += result == PLANK_TRANSPORT_TIMEOUT;
+    return result;
+}
+#endif
 static void require(bool okay) { if (!okay) throw std::runtime_error("camera probe gate failed"); }
 struct Endpoint {
     PlankTransportNativeEndpoint* value = nullptr;
@@ -81,6 +111,12 @@ struct Audio {
     void finish() {
         drain(); require(sawMute && sawReopen);
         microphone.reset();
+        std::printf("physical_audio_source packets=%llu bytes=%llu capture_gaps=%llu missing_frames=%llu transport_drops=%llu transport_timeouts=%llu max_interval_us=%llu payload_kbps=%.2f\n",
+            (unsigned long long)sourceAudio.packets, (unsigned long long)sourceAudio.bytes,
+            (unsigned long long)sourceAudio.gaps, (unsigned long long)sourceAudio.missing,
+            (unsigned long long)sourceAudio.dropped, (unsigned long long)sourceAudio.timeouts,
+            (unsigned long long)sourceAudio.maxIntervalUs,
+            sourceAudio.packets ? sourceAudio.bytes * .8 / sourceAudio.packets : 0);
         std::puts("physical_audio_capture=pass actual_client_module=1 mute=pass reopen=pass");
     }
 #else
