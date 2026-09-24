@@ -28,7 +28,8 @@ The synchronized base product version is **1.1.001**; the stereo test candidate
 is **1.1.002-native-media-investigation**. Preserve the padded patch component.
 Main already contains the accepted microphone and post-reboot certificate
 startup repairs. The synchronized Client base changed only its changelog. The current stereo
-work updates that Client. No native-media package or deployment exists yet.
+work updates that Client. Stereo test packages are recorded below; live
+deployment and product camera integration remain pending.
 See [coordinated upgrade notes](docs/releases/1.1.001.md).
 
 Mainline **1.1.001** test packages are built and checksum/provenance-verified
@@ -51,6 +52,39 @@ Detailed package provenance, recursive pins and qualification results remain in
 [main's handoff at the synchronization point](https://github.com/instinctual/plank/blob/acb29884bff626c9381169fd94563ec79555984c/HANDOFF.md).
 These packages do not contain native-media work. Do not relabel them as feature
 candidates or mix their RaptorQ-2 transport with pre-upgrade published peers.
+
+Stereo candidate **1.1.002-native-media-investigation** is built from exact root
+`613765ba8e3b66f4b2e42685f1ed8230af2c8139`, Client
+`398b05a0` (full pin in the table below). Signed Mac Host run `35952211994`
+passes build/tests/signing/notarization/stapling. All four product jobs pass in
+hosted run `35952188885` (Mac jobs unsigned). Packages are collected with original provenance in
+`artifacts/packages/candidates/1.1.002-native-media-investigation/`.
+
+| Stereo candidate | SHA-256 |
+| --- | --- |
+| Mac Host PKG | `12ac1eeabc056b64486a234fb9cdbd68030988b12c25b38255ac3a0ae372136d` |
+| Ubuntu Client DEB | `5244de6797f6cc4327c1426a6f9ea62eeaa23fe3840578d7ab788f856b098942` |
+
+Both target transfer hashes match; native Mac signature, stapler and Gatekeeper
+checks pass. The operator has been asked to finish the signed Mac installer
+through normal administrator authentication. Neither installation is confirmed.
+The matching Ubuntu package is staged; update it after Host installation. Check
+the loaded HAL format; the installer deliberately does not interrupt Core Audio,
+so an already-loaded mono driver may require a normal reload/reboot. Do not
+claim live stereo routing until both installed binaries and actual format pass.
+No tag, merge or release is published. Exact feature-branch signing permission
+is temporary; remove it when signed builds for this task are finished.
+
+The subsequent camera transport prototype is **not in those package bytes**.
+PCAM v1 has shared C/Rust bounds and a fixed synthetic wire vector, explicit
+camera-only versus microphone-plus-camera endpoint allocation, two/three-frame
+queues, activation isolation and H.264 keyframe recovery. Portable wire and
+queue tests pass; encrypted Rust C-ABI tests pass all four allocation/setup
+combinations with byte-identical synthetic payloads and mute/reopen. The
+microphone encrypted regression still passes after allocation coordination.
+Product camera capture/negotiation/UI/Host extension integration is not enabled.
+Full Linux/Mac lifecycle/performance gates for this new lane remain required.
+See [the camera contract](protocol/camera.md).
 
 Read [the investigation](docs/development/investigations/native-media-forwarding.md)
 for sources, preservation boundaries, integration constraints and probe gates.
@@ -197,7 +231,7 @@ The follow-up main merge changes documentation only; runtime sources and pins
 match the tested synchronization, so these test results remain applicable.
 Documentation whitespace/reference checks and commit privacy hooks pass.
 
-Maintained gitlinks after synchronization:
+Current maintained gitlinks:
 
 | Input | Commit |
 | --- | --- |
@@ -206,6 +240,7 @@ Maintained gitlinks after synchronization:
 | Linux Host | `5829bf7c335440a8b25c3330643eacb4d914f00a` |
 
 Prior package provenance and recursive pins remain in main's linked HANDOFF.
-No native-media candidate exists. Kymux is initialized at its exact pin from the verified
+The stereo-only candidate above does not contain product camera support.
+Kymux is initialized at its exact pin from the verified
 local repository for transport tests. Client is initialized on the matching feature branch for stereo implementation.
 Linux Host remains uninitialized and unchanged.

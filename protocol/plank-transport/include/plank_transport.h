@@ -355,6 +355,28 @@ int32_t plank_transport_native_microphone_send(PlankTransportNativeEndpoint *end
 int32_t plank_transport_native_microphone_receive(PlankTransportNativeEndpoint *endpoint,
         uint64_t *generation, uint64_t *sample_time, uint8_t *payload, size_t capacity, size_t *size_out);
 
+/* Optional Client -> Host camera lane, using bounded PCAM v1 records.
+ * Enable on BOTH peers after authenticated capability agreement, AFTER enabling
+ * the microphone if negotiated. microphone_negotiated must be exactly 0 or 1
+ * and match that fixed session capability; microphone allocation precedes camera.
+ * Availability/generation rules match microphone. Capture waits for Host ACK.
+ * Native payload maximum: 4 MiB. Source/receiver queues: 2/3 frames; 150 ms age.
+ * H.264 gaps/overflow discard dependent frames until an independent frame arrives.
+ * keyframe_needed returns the activation requiring recovery, or zero. The
+ * caller rate-limits requests; this level stays set until a keyframe is queued.
+ * Camera failure leaves desktop video, audio, microphone and input available.
+ * Receive is nonblocking; BUFFER_TOO_SMALL preserves the unclaimed record.
+ */
+int32_t plank_transport_native_camera_enable(PlankTransportNativeEndpoint *endpoint,
+        uint32_t microphone_negotiated);
+uint32_t plank_transport_native_camera_state(const PlankTransportNativeEndpoint *endpoint);
+int32_t plank_transport_native_camera_activate(PlankTransportNativeEndpoint *endpoint, uint64_t generation);
+uint64_t plank_transport_native_camera_keyframe_needed(const PlankTransportNativeEndpoint *endpoint);
+int32_t plank_transport_native_camera_send(PlankTransportNativeEndpoint *endpoint,
+        const uint8_t *record, size_t length);
+int32_t plank_transport_native_camera_receive(PlankTransportNativeEndpoint *endpoint,
+        uint8_t *record, size_t capacity, size_t *length);
+
 int32_t plank_transport_native_input_send(
         PlankTransportNativeEndpoint *endpoint, uint8_t type,
         const uint8_t *payload, size_t payload_size);

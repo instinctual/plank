@@ -64,6 +64,9 @@ mod cancellation_tests;
 #[path = "native_microphone.rs"]
 mod microphone_lane;
 
+#[path = "native_camera.rs"]
+mod camera_lane;
+
 struct NativeVideoFrame {
     #[cfg(feature = "sender-timing")]
     enqueued_at: Instant,
@@ -188,6 +191,8 @@ struct NativeShared {
     stats: NativeStats,
     rate_policy: Arc<TransportRatePolicy>,
     microphone: microphone_lane::Microphone,
+    camera: camera_lane::Camera,
+    reverse_allocation: Mutex<()>,
 }
 
 impl NativeShared {
@@ -225,6 +230,8 @@ impl NativeShared {
             stats: NativeStats::default(),
             rate_policy: TransportRatePolicy::new(initial_video_bitrate_bps),
             microphone: microphone_lane::Microphone::default(),
+            camera: camera_lane::Camera::default(),
+            reverse_allocation: Mutex::new(()),
         }
     }
 
@@ -824,9 +831,11 @@ async fn hold_server(shared: Arc<NativeShared>, protocols: NativeServerProtocols
     let mut data_receive = Box::pin(receive_data(shared.clone(), data.recv));
     let mut stats = Box::pin(sample_stats(shared.clone(), stats_provider));
     let mut microphone = Box::pin(microphone_lane::run(shared.clone(), &connection, false));
+    let mut camera = Box::pin(camera_lane::run(shared.clone(), &connection, false));
     shared.set_state(EndpointState::Ready);
     tokio::select! {
         _ = &mut microphone => unreachable!("microphone lane remains isolated"),
+        _ = &mut camera => unreachable!("camera lane remains isolated"),
         result = &mut video => active_lane_result(result, "native video sender"),
         result = &mut audio => active_lane_result(result, "native audio sender"),
         result = &mut input => active_lane_result(result, "native input receiver"),
@@ -862,9 +871,11 @@ async fn hold_client(shared: Arc<NativeShared>, protocols: NativeClientProtocols
     let mut data_receive = Box::pin(receive_data(shared.clone(), data.recv));
     let mut stats = Box::pin(sample_stats(shared.clone(), stats_provider));
     let mut microphone = Box::pin(microphone_lane::run(shared.clone(), &connection, true));
+    let mut camera = Box::pin(camera_lane::run(shared.clone(), &connection, true));
     shared.set_state(EndpointState::Ready);
     tokio::select! {
         _ = &mut microphone => unreachable!("microphone lane remains isolated"),
+        _ = &mut camera => unreachable!("camera lane remains isolated"),
         result = &mut video => active_lane_result(result, "native video receiver"),
         result = &mut audio => active_lane_result(result, "native audio receiver"),
         result = &mut input => active_lane_result(result, "native input sender"),
@@ -908,9 +919,11 @@ async fn hold_setup_server(
     let mut audio = Box::pin(send_audio(shared.clone(), audio));
     let mut input = Box::pin(receive_input(shared.clone(), input.recv));
     let mut microphone = Box::pin(microphone_lane::run(shared.clone(), &connection, false));
+    let mut camera = Box::pin(camera_lane::run(shared.clone(), &connection, false));
     shared.set_state(EndpointState::Ready);
     tokio::select! {
         _ = &mut microphone => unreachable!("microphone lane remains isolated"),
+        _ = &mut camera => unreachable!("camera lane remains isolated"),
         result = &mut video => result.context("native video sender failed"),
         result = &mut audio => result.context("native audio sender failed"),
         result = &mut input => result.context("native input receiver failed"),
@@ -967,9 +980,11 @@ async fn hold_setup_client(
     let mut audio = Box::pin(receive_audio(shared.clone(), audio));
     let mut input = Box::pin(send_input(shared.clone(), input.send));
     let mut microphone = Box::pin(microphone_lane::run(shared.clone(), &connection, true));
+    let mut camera = Box::pin(camera_lane::run(shared.clone(), &connection, true));
     shared.set_state(EndpointState::Ready);
     tokio::select! {
         _ = &mut microphone => unreachable!("microphone lane remains isolated"),
+        _ = &mut camera => unreachable!("camera lane remains isolated"),
         result = &mut video => result.context("native video receiver failed"),
         result = &mut audio => result.context("native audio receiver failed"),
         result = &mut input => result.context("native input sender failed"),

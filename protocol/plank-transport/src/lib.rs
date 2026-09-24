@@ -15,6 +15,7 @@ use std::time::{Duration, Instant};
 use subtle::ConstantTimeEq;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 
+pub mod camera;
 pub mod microphone;
 pub mod native;
 pub mod native_ffi;

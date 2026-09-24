@@ -4,7 +4,7 @@
 //! KyProto's server/client audio types mean source/sink, not QUIC server/client.
 use anyhow::{Context, Result, bail, ensure};
 use bytes::{BufMut, Bytes, BytesMut};
-use kymux_types::{AudioClientProtocol, AudioServerProtocol};
+use kymux_types::{AudioClientProtocol, AudioServerEndpoint, AudioServerProtocol};
 use kyproto::{AudioProtocol, Connection};
 use std::time::Duration;
 
@@ -86,6 +86,17 @@ pub async fn open_source(
     connection: &Connection,
     timeout: Duration,
 ) -> Result<AudioServerProtocol> {
+    let deadline = tokio::time::Instant::now() + timeout;
+    let endpoint = register_source(connection, timeout).await?;
+    Ok(tokio::time::timeout_at(deadline, endpoint.ready())
+        .await
+        .context("microphone source readiness timed out")??)
+}
+
+pub async fn register_source(
+    connection: &Connection,
+    timeout: Duration,
+) -> Result<AudioServerEndpoint> {
     tokio::time::timeout(timeout, async {
         let (id, endpoint) = connection
             .register_audio_endpoint(AudioProtocol::UnreliableFec)
@@ -93,7 +104,7 @@ pub async fn open_source(
         if id != ENDPOINT_ID {
             bail!("unexpected microphone endpoint allocation");
         }
-        Ok::<_, anyhow::Error>(endpoint.ready().await?)
+        Ok::<_, anyhow::Error>(endpoint)
     })
     .await
     .context("microphone source negotiation timed out")?

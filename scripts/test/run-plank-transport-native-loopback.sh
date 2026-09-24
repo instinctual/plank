@@ -19,6 +19,10 @@ export SC_NATIVE_TEST_PRIVATE_KEY="$test_tmp/key.pem"
 SC_NATIVE_TEST_CERTIFICATE_SHA256=$(sha256sum "$test_tmp/cert.der")
 export SC_NATIVE_TEST_CERTIFICATE_SHA256=${SC_NATIVE_TEST_CERTIFICATE_SHA256%% *}
 
+cc -std=c11 -O2 -Wall -Wextra -Werror -I"$crate_dir/include" \
+  "$repo_root/tests/protocol/camera-v1.c" -o "$test_tmp/camera-wire"
+"$test_tmp/camera-wire" "$repo_root/tests/protocol/camera-v1.hex"
+
 cargo_profile_args=()
 # Performance qualification uses optimized product code. Explicit debug runs
 # are still useful diagnostics, but are not release performance qualification.
@@ -54,6 +58,10 @@ cargo test "${cargo_profile_args[@]}" --locked --offline --manifest-path "$crate
 
 cargo test "${cargo_profile_args[@]}" --locked --offline --manifest-path "$crate_dir/Cargo.toml" \
   native_ffi::microphone_lane::tests::encrypted_ffi_microphone_mute_reopen_and_bounds \
+  -- --ignored --exact --nocapture
+
+cargo test "${cargo_profile_args[@]}" --locked --offline --manifest-path "$crate_dir/Cargo.toml" \
+  native_ffi::camera_lane::tests::encrypted_camera_with_and_without_microphone \
   -- --ignored --exact --nocapture
 
 # Three required passes, not retries: set -e stops on the first failure.

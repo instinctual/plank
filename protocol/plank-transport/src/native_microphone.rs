@@ -21,9 +21,30 @@ struct State {
 pub(super) struct Microphone {
     state: Mutex<State>,
     changed: tokio::sync::Notify,
+    allocated: AtomicBool,
+    allocation_changed: tokio::sync::Notify,
 }
 
 impl Microphone {
+    pub(super) fn negotiated(&self) -> bool {
+        self.state.lock().unwrap().enabled
+    }
+
+    // Camera allocation follows microphone allocation, not microphone ready.
+    // A missing microphone consumer cannot indefinitely block camera setup.
+    pub(super) async fn wait_for_allocation(&self) -> Result<()> {
+        tokio::time::timeout(Duration::from_secs(3), async {
+            loop {
+                let notified = self.allocation_changed.notified();
+                if self.allocated.load(Ordering::Acquire) {
+                    break;
+                }
+                notified.await;
+            }
+        })
+        .await
+        .context("camera waited too long for microphone allocation")
+    }
     fn activate(&self, generation: u64) -> bool {
         let mut state = self.state.lock().unwrap();
         if !state.enabled || state.status == 3 {
@@ -82,7 +103,13 @@ impl Microphone {
 }
 
 async fn source(shared: &NativeShared, connection: &kyproto::Connection) -> Result<()> {
-    let mut protocol = microphone::open_source(connection, Duration::from_secs(3)).await?;
+    let deadline = tokio::time::Instant::now() + Duration::from_secs(3);
+    let endpoint = microphone::register_source(connection, Duration::from_secs(3)).await?;
+    shared.microphone.allocated.store(true, Ordering::Release);
+    shared.microphone.allocation_changed.notify_one();
+    let mut protocol = tokio::time::timeout_at(deadline, endpoint.ready())
+        .await
+        .context("microphone source readiness timed out")??;
     protocol
         .send
         .send(AVPacket::Codec(CodecPacket {
@@ -197,6 +224,10 @@ pub unsafe extern "C" fn plank_transport_native_microphone_enable(
         let Some(endpoint) = (unsafe { endpoint.as_ref() }) else {
             return PLANK_TRANSPORT_ERROR_INVALID_ARGUMENT;
         };
+        let _allocation = endpoint.shared.reverse_allocation.lock().unwrap();
+        if endpoint.shared.camera.negotiated() {
+            return PLANK_TRANSPORT_ERROR_INVALID_STATE;
+        }
         if !matches!(
             endpoint.shared.state(),
             EndpointState::SetupReady | EndpointState::Ready
