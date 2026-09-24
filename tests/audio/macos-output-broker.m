@@ -86,6 +86,11 @@ int main(void) { @autoreleasepool {
     assert(request(replacement, message(7, true), queue));
     // Old-generation renewal revokes this owner's route, not a replacement's.
     assert(!request(replacement, message(8, true), queue));
+    // XPC can report the unanswered rejection before queued HAL restoration.
+    // Wait for the actual control/selection barriers, not transport reply timing.
+    dispatch_sync(queue, ^{});
+    dispatch_sync((dispatch_queue_t)[broker valueForKey:@"hal"], ^{});
+    dispatch_sync(queue, ^{});
     assert(atomic_load(&restorations) == 2);
     xpc_connection_t expired = connectPeer(endpoint, queue);
     assert(request(expired, message(7, true), queue));
