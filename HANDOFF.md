@@ -133,7 +133,12 @@ provenance: Client DEB SHA-256
 `db83bd8ad0a39a522aecf1886db0f53af4b0599f20227aba96925ddb979aa895`
 and Host RPM SHA-256
 `8db77a73a0d0d627f91c7a9753e2df795e89f861628b0e708752b62408d8e2a6`.
-The focused1.1.005 display regression and signed Client build are pending.
+The focused1.1.005 display regression passes on the dedicated SDK27 Mac with
+AddressSanitizer and UndefinedBehaviorSanitizer, including absent native flags,
+empty/unavailable mode lists, invalid dimensions and native/current ownership.
+The seven fullscreen checks pass on both development platforms; 62 CI-policy
+checks and release-version validation also pass. Client source is
+`b391c279`; the signed Client build and installed retry are pending.
 
 ## Installed state and source provenance
 
