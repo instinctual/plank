@@ -3,6 +3,7 @@
 #import <Foundation/Foundation.h>
 #import "../session/agent-registry.h"
 #define PLANK_OUTPUT_SERVICE "la.instinctual.PLANK.Host.output-routing"
+#define PLANK_OUTPUT_ROUTING_DIRECTORY "/Library/Application Support/PLANK/OutputRouting"
 enum { PLANKOutputRoutingVersion = 1 };
 // Local routing only. No PCM, credentials or remote media protocol changes.
 @interface PLANKMacOutputBroker : NSObject

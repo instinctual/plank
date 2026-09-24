@@ -13,6 +13,9 @@ flags=(-O1 -g -mmacosx-version-min=27.0 -Wall -Wextra -Werror -fsanitize=address
 xcrun clang "${flags[@]}" -std=c11 tests/audio/macos-output-driver.c \
     -framework CoreAudio -framework CoreFoundation -o "$output/driver-test"
 "$output/driver-test"
+xcrun clang "${flags[@]}" -fobjc-arc tests/audio/macos-output-tap.m \
+    -framework Foundation -framework CoreAudio -framework CoreMedia -framework Security -o "$output/tap-test"
+"$output/tap-test"
 xcrun clang "${flags[@]}" -fobjc-arc tests/audio/macos-output-selection.m \
     -framework Foundation -framework CoreAudio -o "$output/selection-test"
 "$output/selection-test"
@@ -23,4 +26,7 @@ for source in output-broker output-route output-selection; do
     xcrun clang -O2 -mmacosx-version-min=27.0 -fobjc-arc -Wall -Wextra -Werror \
         -c "apps/host/macos/audio-device/$source.m" -o "$output/$source.o"
 done
+xcrun clang -O2 -mmacosx-version-min=27.0 -fobjc-arc -Wall -Wextra -Werror \
+    probes/macos/output-inspection.m apps/host/macos/audio-device/output-selection.m \
+    -framework Foundation -framework CoreAudio -o "$output/output-inspection"
 echo 'macos_output_device=pass installed=0'

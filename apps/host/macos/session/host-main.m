@@ -156,7 +156,7 @@ static int machine(const char *service) {
         authorize:^BOOL(PLANKMacAgentPeer peer, uint64_t generation) {
             return [weakRegistry admitsDesktopPeer:peer generation:generation];
         }];
-    if (![output start]) NSLog(@"PLANK Output routing unavailable; process audio capture remains available");
+    if (![output start]) NSLog(@"PLANK Output automatic selection unavailable; manual output selection remains available");
     PLANKMacCameraBroker *camera = [[PLANKMacCameraBroker alloc]
         initWithQueue:dispatch_get_main_queue() requirement:requirement
         extensionRequirement:PLANKCameraPeerRequirement(@"la.instinctual.PLANK.Host.Camera")

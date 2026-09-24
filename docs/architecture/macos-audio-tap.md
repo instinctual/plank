@@ -1,4 +1,12 @@
-# Session-scoped local audio suppression
+# macOS audio tap
+
+Current desktop capture is restricted to PLANK Output with `CATapUnmuted`,
+preserving the non-root process allowlist and verified system-alert membership.
+Physical outputs play locally. See [PLANK Output](../development/plans/macos-output-device.plan).
+The earlier suppression investigation and qualification below describe the
+preceding implementation, whose global output scope is superseded.
+
+## Historical local-suppression investigation
 
 Work branch: `macos-audio-tap`, based on main `35ed81f`.
 

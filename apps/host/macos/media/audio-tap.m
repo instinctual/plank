@@ -4,6 +4,7 @@
 #import "audio-tap-policy.h"
 #import "audio-tap-system-alerts.h"
 #import "audio-output-volume.h"
+#import "../audio-device/output-format.h"
 #import <CoreAudio/CoreAudio.h>
 #import <CoreAudio/AudioHardwareTapping.h>
 #import <CoreAudio/CATapDescription.h>
@@ -131,10 +132,19 @@ static OSStatus receive(AudioObjectID device, const AudioTimeStamp *now,
 }
 - (void)refreshOutputVolume {
     if (atomic_load(&_input->buffer.stopped)) return;
-    AudioObjectID output = kAudioObjectUnknown; UInt32 bytes = sizeof(output);
-    AudioObjectPropertyAddress address = property(kAudioHardwarePropertyDefaultOutputDevice);
-    OSStatus status = AudioObjectGetPropertyData(kAudioObjectSystemObject, &address, 0, NULL, &bytes, &output);
-    if (status) output = kAudioObjectUnknown;
+    // Capture and gain both belong to PLANK Output. A manual switch to physical
+    // speakers must neither redirect this tap nor change remote gain.
+    CFStringRef uid = CFSTR(PLANK_OUTPUT_DEVICE_UID);
+    AudioObjectID output = kAudioObjectUnknown;
+    AudioValueTranslation translation = {&uid, sizeof(uid), &output, sizeof(output)};
+    UInt32 bytes = sizeof(translation);
+    AudioObjectPropertyAddress address = property(kAudioHardwarePropertyDeviceForUID);
+    OSStatus status = AudioObjectGetPropertyData(kAudioObjectSystemObject, &address, 0, NULL, &bytes, &translation);
+    if (status || bytes != sizeof(translation)) output = kAudioObjectUnknown;
+    if (_running && output != _outputDevice) {
+        atomic_store(&_input->buffer.failed, 5);
+        dispatch_source_merge_data(_ready, 1);
+    }
     AudioObjectPropertyAddress deviceProperty = {kAudioObjectPropertySelectorWildcard,
         kAudioObjectPropertyScopeOutput, kAudioObjectPropertyElementWildcard};
     if (output != _outputDevice || (output && !_deviceListening)) {
@@ -162,22 +172,24 @@ static OSStatus receive(AudioObjectID device, const AudioTimeStamp *now,
         (void)count; (void)addresses;
         [weakSelf refreshOutputVolume];
     };
-    AudioObjectPropertyAddress address = property(kAudioHardwarePropertyDefaultOutputDevice);
+    AudioObjectPropertyAddress address = property(kAudioHardwarePropertyDevices);
     OSStatus status = AudioObjectAddPropertyListenerBlock(kAudioObjectSystemObject, &address, _control, _outputChanged);
-    if (status) { NSLog(@"PLANK audio default-output listener failed: status=%d", (int)status); return NO; }
+    if (status) { NSLog(@"PLANK audio device-list listener failed: status=%d", (int)status); return NO; }
     _outputListening = YES;
     [self refreshOutputVolume];
-    return YES;
+    return _outputDevice != kAudioObjectUnknown && _deviceListening;
 }
 - (BOOL)prepare {
     if (![self observeOutputVolume]) return NO;
     NSArray *processes = [self ownedAudioProcesses];
     if (!processes) return NO;
-    _description = [[CATapDescription alloc] initStereoMixdownOfProcesses:processes];
+    _description = [[CATapDescription alloc] initWithProcesses:processes
+        andDeviceUID:@PLANK_OUTPUT_DEVICE_UID withStream:0];
     _description.name = @"PLANK Session Audio";
     _description.privateTap = YES;
     _description.processRestoreEnabled = NO; // no bundle-ID cross-user matching
-    _description.muteBehavior = CATapMutedWhenTapped;
+    _description.exclusive = NO; // include only the verified process allowlist
+    _description.muteBehavior = CATapUnmuted; // PLANK Output itself is a null sink
     if (AudioHardwareCreateProcessTap(_description, &_tap)) return NO;
     if (atomic_load(&_input->buffer.stopped)) return NO;
     NSDictionary *specification = @{
@@ -240,7 +252,7 @@ static OSStatus receive(AudioObjectID device, const AudioTimeStamp *now,
 }
 - (BOOL)activate {
     // startWithCompletion won the activation/cancellation race. From here stop
-    // must await HAL cleanup before reporting that local playback is released.
+    // must await HAL cleanup before reporting that capture has stopped.
     if (AudioDeviceStart(_device, _io)) return NO;
     _running = YES;
     return YES;
@@ -260,7 +272,7 @@ static OSStatus receive(AudioObjectID device, const AudioTimeStamp *now,
         if (ready) ready = [self activate];
         dispatch_async(self->_owner, ^{
             if (self->_stopped) return;
-            NSLog(@"PLANK desktop audio tap: %@", ready ? @"active; local playback muted while captured" :
+            NSLog(@"PLANK desktop audio tap: %@", ready ? @"active; capturing PLANK Output only; local playback unchanged" :
                 @"unavailable; releasing any partial audio resources");
             completion(ready);
         });
@@ -272,7 +284,7 @@ static OSStatus receive(AudioObjectID device, const AudioTimeStamp *now,
     if (failure) {
         _failureReported = YES;
         const char *reason = failure == 1 ? "invalid-callback" : failure == 3 ? "process-update" :
-            failure == 4 ? "format-change" : "unknown";
+            failure == 4 ? "format-change" : failure == 5 ? "output-device-change" : "unknown";
         NSLog(@"PLANK audio tap failed: reason=%s code=%d", reason, failure);
         if (_failed) _failed(); return;
     }
@@ -327,7 +339,7 @@ static OSStatus receive(AudioObjectID device, const AudioTimeStamp *now,
         if (self->_ownsSlot) { atomic_store(&tapInUse, false); self->_ownsSlot = NO; }
         dispatch_async(self->_owner, ^{
             dispatch_source_cancel(self->_ready);
-            NSLog(@"PLANK desktop audio tap stopped; local playback released");
+            NSLog(@"PLANK desktop audio tap stopped; PLANK Output capture released");
             if (!cancelledBeforeActivation && completion) completion();
         });
     });
@@ -339,7 +351,7 @@ static OSStatus receive(AudioObjectID device, const AudioTimeStamp *now,
 - (void)destroy {
     BOOL clean = YES;
     if (_outputListening) {
-        AudioObjectPropertyAddress address = property(kAudioHardwarePropertyDefaultOutputDevice);
+        AudioObjectPropertyAddress address = property(kAudioHardwarePropertyDevices);
         AudioObjectRemovePropertyListenerBlock(kAudioObjectSystemObject, &address, _control, _outputChanged);
     }
     if (_deviceListening) {

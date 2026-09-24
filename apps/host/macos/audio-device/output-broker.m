@@ -33,7 +33,7 @@ static uint64_t outputNow(void) { return clock_gettime_nsec_np(CLOCK_MONOTONIC);
     if (self) {
         _queue = queue; _requirement = [requirement copy]; _authorize = [authorize copy];
         _hal = dispatch_queue_create("la.instinctual.PLANK.Output.selection", DISPATCH_QUEUE_SERIAL);
-        _selection = [[PLANKMacOutputSelection alloc] initWithDirectory:@"/Library/Application Support/PLANK"];
+        _selection = [[PLANKMacOutputSelection alloc] initWithDirectory:@PLANK_OUTPUT_ROUTING_DIRECTORY];
         _peers = [NSMutableArray array];
     }
     return self;

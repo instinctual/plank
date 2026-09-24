@@ -163,6 +163,19 @@ if [[ ${1:-} = --filesystem ]]; then
     state="$fixture/state"; logs="$fixture/logs"
     initialize_state
     prepare_machine_authority
+    [[ $(/usr/bin/stat -f '%Su:%Lp' "$state") = root:755 ]]; ok
+    [[ $(/usr/bin/stat -f '%Su:%Lp' "$state/OutputRouting") = root:700 ]]; ok
+    # Reproduce the shared-parent/private-journal mismatch and reject unsafe
+    # pre-existing routing storage instead of broadening its access.
+    /bin/chmod 755 "$state/OutputRouting"
+    reject initialize_state
+    /bin/chmod 700 "$state/OutputRouting"
+    /bin/rmdir "$state/OutputRouting"
+    /bin/ln -s "$state/SignIn" "$state/OutputRouting"
+    reject initialize_state
+    /bin/rm "$state/OutputRouting"
+    initialize_state
+    [[ $(/usr/bin/stat -f '%Su:%Lp' "$state/OutputRouting") = root:700 ]]; ok
     [[ $(/usr/bin/stat -f '%Su:%Sg:%Lp' "$logs") = root:admin:750 ]]; ok
     for name in host-machine.log host-sign-in.log; do
         [[ $(/usr/bin/stat -f '%Su:%Sg:%Lp' "$logs/$name") = root:admin:640 ]]; ok

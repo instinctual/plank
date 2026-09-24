@@ -6,19 +6,24 @@ feature branch; Host deployment remains macOS27/SDK27.
 
 Publish a real output-only Audio Server Plug-in device named PLANK Output,
 48kHz stereo Float32 with volume/mute controls. Its final mix is a silent sink.
-Retain the existing owned-process Core Audio tap upstream of that sink: this
-preserves active-user admission, system-alert validation, capture consent,
-applications pinned to other outputs, and the single Opus/Kymux media path.
+Use a Core Audio tap restricted to that output's stream and the admitted user's
+processes. The operator explicitly requested ordinary local playback for all
+physical outputs. Use CATapUnmuted: only audio routed to PLANK Output is forwarded.
+Preserve active-user admission, system-alert validation, capture consent,
+and the single Opus/Kymux media path.
 There is no public loopback input, PCM capture in root, second encoder or new
-network feature schema. Tap gain applies the selected output's controls once. A newly selected output
+network feature schema. Tap gain applies PLANK Output's controls once, independently
+of the current default device. A newly selected output
 inherits the prior master volume/mute (or the lower channel gain when no master
 exists); subsequent changes leave physical controls untouched.
 
 After desktop audio is active, the signed admitted worker requests a renewable
 local routing lease from the root coordinator. The coordinator records stable
-UIDs for playback and system-alert defaults in a private recovery journal before
+UIDs for playback and system-alert defaults in the private OutputRouting directory
+created by the installer beneath the shared settings folder, before
 selecting PLANK Output. No route change occurs before consent or for LoginWindow.
-Driver absence or incompatible format retains existing process capture.
+Driver absence or incompatible format disables desktop audio without capturing
+physical outputs. Automatic-routing failure permits explicit PLANK Output selection.
 
 Normal disconnect, worker loss, expired heartbeat and graphical revocation
 restore owned defaults. A manual replacement wins. If an original device was

@@ -158,9 +158,13 @@ static NSString *const keys[] = {@"output", @"alerts"};
     return [self restore];
 }
 - (BOOL)select {
-    if (![self recover]) return NO;
+    if (![self recover]) {
+        NSLog(@"PLANK Output selection failed: private recovery journal unavailable"); return NO;
+    }
     AudioObjectID device = [self deviceForUID:@PLANK_OUTPUT_DEVICE_UID];
-    if (![self compatible:device]) return NO;
+    if (![self compatible:device]) {
+        NSLog(@"PLANK Output selection failed: compatible output driver unavailable"); return NO;
+    }
     _previous = [NSMutableDictionary dictionary];
     for (unsigned i = 0; i < 2; ++i) {
         NSString *uid = [self uidForDevice:[self current:i]];
@@ -171,7 +175,9 @@ static NSString *const keys[] = {@"output", @"alerts"};
     }
     if (_previous[keys[0]] && _previous[keys[1]] &&
         ![self inheritVolumeFrom:[self deviceForUID:_previous[keys[0]]] to:device]) { _previous = nil; return NO; }
-    if (![self save]) { _previous = nil; return NO; }
+    if (![self save]) {
+        NSLog(@"PLANK Output selection failed: cannot save recovery journal"); _previous = nil; return NO;
+    }
     for (unsigned i = 0; i < 2; ++i) if (_previous[keys[i]]) {
         // A manual change during preparation wins. Recover any partial switch.
         if (![[self uidForDevice:[self current:i]] isEqual:_previous[keys[i]]] ||

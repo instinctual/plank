@@ -255,6 +255,9 @@ prepare_logs() {
 initialize_state() {
     local stage name
     ensure_directory "$state" 755
+    # Public settings stay readable; routing recovery records require root-only
+    # access and must exist before the machine coordinator starts.
+    ensure_directory "$state/OutputRouting" 700
     if ! present "$state/host.plist"; then
         stage=$(/usr/bin/mktemp "$state/.config.XXXXXX")
         /usr/bin/plutil -create xml1 "$stage"

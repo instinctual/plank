@@ -5,6 +5,7 @@
 
 // One-shot desktop audio capture. Public methods and delivered callbacks use
 // the supplied serial owner queue. HAL lifecycle work is off that queue.
+// Capture only audio routed to PLANK Output, without muting any local device.
 // Audio includes this non-root user's processes (excluding the Host), plus
 // Apple's verified system-alert service only while this user owns the console.
 // stop drops buffered audio. Active IO is destroyed before completion. A pending

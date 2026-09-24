@@ -30,7 +30,7 @@
 - (void)finish {
     if (_timer) { dispatch_source_cancel(_timer); _timer = nil; }
     if (_peer) { xpc_connection_cancel(_peer); _peer = nil; }
-    if (!_stopped) NSLog(@"PLANK Output unavailable; existing process audio capture remains active");
+    if (!_stopped) NSLog(@"PLANK Output automatic selection unavailable; select PLANK Output in Sound settings for remote audio");
     _stopped = YES;
     void (^completion)(void) = _completion; _completion = nil;
     if (completion) completion();
