@@ -34,13 +34,15 @@ main-only policy is verified. No signing credentials were read, changed or commi
 
 ## Active audio/input regression
 
-Host1.1.010 and Ubuntu Client1.1.010 are now installed. The operator reports
-intermittent playback/alert crackles after opening camera and other apps, with
-slow typing during the same episodes. They explicitly want the degraded session
-preserved for investigation: do not restart, disable forwarding, close their
-apps or install the candidate automatically.
+Host 1.1.012 and Ubuntu Client 1.1.010 are installed. The Host binary hash matches
+the signed package. After installing and rebooting the Host, the operator still
+heard crackling with camera and microphone disabled, but typing and pointer
+movement were normal. They believe the audio problem began September 24. Rebooting only
+the Client then cleared the audio while the Host remained running. Preserve the
+working session: do not restart services, disable forwarding, close apps or
+install automatically.
 
-The live Host log reports at least64 capture-ring overrun events and512 Opus
+The earlier Host 1.1.010 log reported at least 64 capture-ring overruns and 512 Opus
 reanchors, including120–180ms source gaps. Two eight-second thread samples put
 75.6% and74.2% of sampled serial media-queue time inside synchronous local
 session/account OS queries. Audio sends, input delivery and reverse camera/mic
@@ -61,8 +63,26 @@ operations while an OS read is deliberately blocked, immediate notification revo
 with and without foreground polling. Full signed
 [Host run36067300678](https://github.com/instinctual/plank/actions/runs/36067300678)
 passes the complete build/test/sign/notarization/package gates. The installer
-is staged and independently verified; installed recovery is not yet tested. No current-session configuration or process was changed;
-diagnostics remain private outside Git.
+is independently verified and the operator installed it. A new eight-second
+sample shows no synchronous graphical observation on the media queue. The
+post-Host-reboot connection reported 69,150 audio packets, zero audio receive
+drops, zero QUIC loss and zero KyProto drops; current-session Host diagnostics
+showed one tap overrun and two Opus reanchors. Do not confuse those counters
+with the earlier session's 64+/512+ events.
+
+The Client reboot retained the same 48kHz stereo playback format, 1024-frame
+device buffer and 5ms Opus blocks. PipeWire reported no graph errors both before
+and after, and its prior-boot journal did not identify a specific audio-device
+failure. This narrows the investigation but does not establish a cause:
+rebooting also recreates the Client application and Host per-connection state.
+Remaining crackle recovery is unqualified. Before/after diagnostics remain
+private outside Git; no media content was recorded. A bounded, read-only SDL
+queue probe completed after recovery: 4,022 submissions and one empty observation
+among 9,755 queue checks. An empty observation alone does not establish an audible
+underrun. The probe detached automatically and the working session continued.
+On recurrence, compare
+Client queue timing and Host counters before coordinating an application-only
+restart to distinguish application state from the OS audio backend.
 
 The requested500ms refresh interval is implemented. User-switch and sleep
 notifications revoke immediately; unannounced changes are reconciled by the
@@ -135,8 +155,10 @@ SHA-256: `187053e123263fbcefc843d9f335b15c33b81a18529c79a02a159804c6ab7d7a`.
 It uses the exact current root/Client pair above, signed run36067300678.
 The test target's Downloads copy passes transfer hash, package signature,
 Gatekeeper, version, RecommendRestart and all four payload component signature
-checks. It remains uninstalled to preserve the user's degraded session. No
-reboot, CoreAudio restart or forwarding configuration change occurred.
+checks. The operator installed it and rebooted the Host; its installed Host
+binary matches the signed package. Residual crackling cleared only after the
+operator subsequently rebooted the Client. The agent did not restart services
+or change forwarding configuration.
 
 Host1.1.011 is collected at
 `artifacts/packages/candidates/1.1.011-native-media-investigation/macos/plank-host_1.1.011-native-media-investigation_arm64.pkg`.
