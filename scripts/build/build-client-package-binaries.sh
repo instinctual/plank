@@ -1756,6 +1756,8 @@ mkdir -p "$build_dir/tests/client-microphone"
   make -j2
   timeout 30 ./client-microphone
 )
+PLANK_CLIENT_SOURCE="$source_dir" bash "$repo_dir/scripts/test/test-native-camera-capture.sh" \
+  "$build_dir/tests/native-camera"
 
 mkdir -p "$build_dir"
 (

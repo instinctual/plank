@@ -65,13 +65,16 @@ hosted run `35952188885` (Mac jobs unsigned). Packages are collected with origin
 | Mac Host PKG | `12ac1eeabc056b64486a234fb9cdbd68030988b12c25b38255ac3a0ae372136d` |
 | Ubuntu Client DEB | `5244de6797f6cc4327c1426a6f9ea62eeaa23fe3840578d7ab788f856b098942` |
 
-Both target transfer hashes match; native Mac signature, stapler and Gatekeeper
-checks pass. The operator has been asked to finish the signed Mac installer
-through normal administrator authentication. Neither installation is confirmed.
-The matching Ubuntu package is staged; update it after Host installation. Check
-the loaded HAL format; the installer deliberately does not interrupt Core Audio,
-so an already-loaded mono driver may require a normal reload/reboot. Do not
-claim live stereo routing until both installed binaries and actual format pass.
+Both candidates are installed on their authorized development targets. The
+operator completed the signed Mac installer and rebooted. Host and HAL binaries
+match the signed package payload; the machine service is running. Core Audio
+reports the loaded production input as 48 kHz, two channels, 32-bit float and
+eight bytes per frame. The matching Ubuntu package and installed executable
+hashes/version pass; it contains no service or autostart entry. The Client is
+open for operator authentication. Live stereo routing, mute/reopen and physical
+audio acceptance remain pending; format discovery alone does not qualify them.
+The operator is away and cannot provide interactive help. Continue unattended
+component/network work on the authorized targets; do not wait for that login.
 No tag, merge or release is published. Exact feature-branch signing permission
 is temporary; remove it when signed builds for this task are finished.
 
@@ -83,6 +86,18 @@ queue tests pass; encrypted Rust C-ABI tests pass all four allocation/setup
 combinations with byte-identical synthetic payloads and mute/reopen. The
 microphone encrypted regression still passes after allocation coordination.
 Product camera capture/negotiation/UI/Host extension integration is not enabled.
+The subsequent direct V4L2 capture component passes sanitizer tests on the
+authorized Client builder: unchanged payload copy, malformed framing, native
+mode requirements, coerced/busy-device rejection and partial-resource cleanup.
+Live execution as the existing graphical user passes 90 MJPEG and 90 H.264
+buffers at 720p, with restoration of the exact prior format/interval and no
+saved images. Descriptor-verified UVC H.264 IDR/SPS/PPS requests pass three of
+three recoveries below 140 ms. No encoder, persistent UVC mapping, bitrate or
+exposure-control change is involved. Later capture measured approximately 15 fps
+with dynamic frame rate enabled by the device's existing auto-exposure policy;
+do not present nominal 30 fps as measured delivery. The H.264 startup driver
+sequence gap remains and is conservatively marked for recovery. Product capture
+activation, native network delivery and extension integration remain pending.
 Full Linux/Mac lifecycle/performance gates for this new lane remain required.
 See [the camera contract](protocol/camera.md).
 
@@ -159,8 +174,8 @@ are rejected. These are repeated synthetic keyframes, not a physical webcam,
 network, motion/color, hardware-decoder or lip-sync qualification. No product
 camera capability has been added. Operator-approved deactivation completed;
 the temporary app is removed and probe GUI jobs are unloaded. The extension is
-inactive, with its terminated registration waiting for removal at the next
-ordinary reboot. Do not report that registration as already absent.
+inactive. After the operator's ordinary reboot, system-extension enumeration
+confirms that its registration is absent.
 Deployment paths, signed artifacts and raw evidence stay in private notes/audits.
 See [the probe procedure](docs/development/investigations/native-camera-probe.md).
 
@@ -209,14 +224,14 @@ are unchanged while Annex B framing is adapted to Core Media length prefixes.
 No Client encoder or new device capture was used. This is decode qualification,
 not color, sustained timing, network preservation or application acceptance.
 
-Next: finish stereo Host/Client build gates and installed-device testing;
+Next: finish stereo live session and installed-device audio testing;
 implement native camera capture/transport
 and authenticated extension production. Clock-drift/loss and real application
 acceptance remain required. USB monitoring is a diagnostic reference, not
 product capture. The selected microphone implementation is Opus; native PCM or
 Bluetooth mSBC preservation is no longer an implementation gate. Capture/test
 coordination and deployment details stay in private notes; credentials remain
-in the OS Keychain/password manager. No new package has been installed.
+in the OS Keychain/password manager. The stereo candidates above are installed.
 
 Synchronization validation passes: all 62 CI-policy tests, seven package
 collection tests, main/feature release-version contracts, both microphone wire
@@ -235,7 +250,7 @@ Current maintained gitlinks:
 
 | Input | Commit |
 | --- | --- |
-| Shared Client | `398b05a01cf84a894b8935bb0eb9fce7c8a271ca` |
+| Shared Client | `bfea688c287b0698123ea0fdf29aeaf21950290b` |
 | Kymux | `3f7a9d8618978287186e5d6ce0eaa067743cb06c` |
 | Linux Host | `5829bf7c335440a8b25c3330643eacb4d914f00a` |
 

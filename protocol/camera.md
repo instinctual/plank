@@ -6,6 +6,22 @@ and activation controls, Mac producer admission and camera-extension integration
 remain required before enabling it. Registering an endpoint does not authorize
 camera access. Existing native/2 desktop lanes and their IDs are unchanged.
 
+The Linux capture component now reads direct V4L2 MMAP buffers without a video
+encoder or libv4l conversion. It rejects emulated/coerced modes, bounds buffers,
+validates basic coded framing and monotonic timestamps, copies native bytes and
+restores the prior device mode at close. Its standard force-keyframe request can
+fall back to the descriptor-verified UVC H.264 picture-type control, requesting
+IDR with SPS/PPS. The physical camera passed three such requests within 140 ms.
+Requests are limited to two per second; an accepted control still requires a
+validated recovery frame before dependent pictures may resume. Product capture
+activation, authenticated controls and Host integration are still outstanding.
+
+The pilot's driver sequence skips an index at H.264 startup despite continuous
+coded frame numbers. Capture conservatively marks that discontinuity so the
+transport can recover. A reported 30 fps interval is not a promise of actual
+30 fps: the current device's auto-exposure policy permits a lower frame rate.
+Preserve actual capture timestamps and qualify timing separately.
+
 Reverse endpoint allocation is fixed by authenticated session capabilities:
 microphone ID1, then camera ID3; a camera-only session uses ID1. Recording/mute
 switches do not change allocation. Enable microphone first when negotiated.
