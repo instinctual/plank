@@ -19,6 +19,7 @@ The measured baseline is recorded in ../investigations/native-media-forwarding.m
 - Capture remains user-controlled and session-bound. Keep authentication,
   permissions, mute, disconnect, takeover, bounded queues and stale-generation
   rejection. Optional camera failure must not terminate healthy desktop media.
+- New Client configurations default microphone activation to Manual; retain saved choices.
 - Camera and microphone registration use an explicit endpoint allocation
   contract. Format changes and reconnects cannot reuse stale payloads.
 
@@ -44,3 +45,14 @@ The measured baseline is recorded in ../investigations/native-media-forwarding.m
 
 The investigation commits are not implementation or hardware acceptance for
 these gates. Record completed validation and remaining limitations in HANDOFF.
+
+## Timing and concurrent-reader checkpoint
+
+The1.1.010 implementation adds late-reader recovery-frame requests and independent
+microphone3 capture timing with schema2 fallback. Bounded source timestamps follow
+Opus and rendered stereo samples onto the Host camera presentation clock. See
+../../../protocol/microphone.md for timing limits and fallback semantics.
+Synthetic clock/queue, encrypted transport, SDK27 camera lifecycle and Ubuntu
+capture tests pass. The live source timing probe passes without storing audio.
+Installed simultaneous readers, physical channel separation and measured camera/
+microphone sync under load remain explicit hardware gates.

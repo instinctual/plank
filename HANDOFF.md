@@ -24,7 +24,40 @@ application-delivery results; the current implementation adds stereo audio. Main
 Client gitlink are retained. The separate startup-fix worktree, main worktree
 and primary RK3576 research are untouched.
 
-### Current checkpoint: PLANK Output routing fix packaged and staged
+### Current checkpoint: camera recovery and capture timing
+
+The operator reports Host1.1.009 working after installation. Read-only inspection
+confirms the installed version; the prior statement that it was only staged is
+superseded. The operator also requested Manual as the default Client microphone
+activation mode. Existing saved choices remain unchanged.
+
+Camera recovery at root `45ba4c550d00` now requests an independent frame when
+another consumer joins, with bounded retries until delivery. Existing readers
+continue while recovery is pending. SDK27 lifecycle tests pass for same-format
+joins, replacement clients, in-flight joins and lease revocation. The installed
+concurrent-reader test still needs repeating; the earlier failure is not yet
+qualified as fixed on hardware.
+
+Timing implementation checkpoint: root `b2fdd211000d`, Client
+`108a465099456a0b01d3d4a33a6446247f98b65f`. Microphone3 adds source timestamps;
+Ubuntu offers3 then2, and older peers retain2. PipeWire capture, bounded packet
+assembly and Opus lookahead compensation feed the Host's rendered microphone
+clock. Camera presentation uses fresh audio anchors; camera-only and legacy
+sessions retain arrival timing. Receipt-age limits remain independent of future
+presentation timestamps. Native camera payloads and camera schema1 are unchanged.
+
+Focused validation passes: timestamp vectors/bounds, encrypted microphone2/3
+mute/reopen transport, Ubuntu legacy/timed capture actor tests,232 Client launch
+checks,52 Mac feature checks, capture queue expiry/gaps/stereo, and source/Host
+clock drift/reset tests. SDK27 camera IPC/lifecycle and microphone producer/session
+compilation pass. A three-second live input probe receives281 packets with
+increasing capture timestamps,2.8026 seconds of source span and12.2–18.9ms reported
+source-to-read age. It saves no samples and does not qualify physical lip sync.
+
+Candidate1.1.010 builds and installed combined A/V, physical stereo, concurrent
+readers, loss/unplug/soak tests remain. Preserve active sessions during staging.
+
+### Installed PLANK Output routing fix
 
 The operator confirmed that PLANK Output works when selected manually, requested
 normal local playback through physical outputs, and reported that Ubuntu
@@ -67,15 +100,13 @@ and staged in the authorized Mac Host test target's Downloads. SHA-256:
 `40794369dccd460757b4e15e35d5b27d5b8944e36a1d63e0e9192e9f7d683d18`.
 Transfer checksum, package signature, Gatekeeper, version, RecommendRestart and
 all four payload signatures pass on the target. Temporary signing permission
-is removed; only main remains allowed. Host1.1.009 is not installed. The active
-session was preserved; no Core Audio restart or reboot was performed.
+is removed; only main remains allowed. Host1.1.009 is now installed and the operator reports the output behavior working.
+The active session was preserved during read-only follow-up.
 
-Next: administrator installation, then confirm automatic selection on connection,
-remote audio/volume/mute, local playback from apps pinned to physical outputs,
-and restoration/manual override on disconnect. Crash, unplug and A/V soak remain
-live gates. Existing Ubuntu Client1.1.006 can remain installed. See
-[the output plan](docs/development/plans/macos-output-device.plan) and
-[user instructions](docs/user/macos-audio-output.md).
+Remaining output gates: explicit disconnect/crash/unplug restoration and manual
+override checks. The operator's working-session report is retained without
+claiming these unobserved paths. See [the output plan](docs/development/plans/macos-output-device.plan)
+and [user instructions](docs/user/macos-audio-output.md).
 
 ### Installed camera setup fix
 
