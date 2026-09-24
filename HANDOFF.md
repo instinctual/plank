@@ -191,6 +191,28 @@ in [main's synchronized handoff](https://github.com/instinctual/plank/blob/acb29
 
 ## Native media evidence and remaining gates
 
+Further coding does not depend on installed media acceptance. The next Host
+candidate is **1.1.006-native-media-investigation**. Runtime source `15f9c858`
+adds a 100 ms age limit to decoded microphone PCM and smooths the occupancy used
+for clock correction. The prior instantaneous correction starved periodically
+under 30 ms capture batches with a 1000 ppm slower source. Freshness is checked
+before append and render, partial stale tails cannot survive re-priming, and
+stereo frames remain coupled. Wire feature2, PMIC2 and the virtual input ABI
+remain unchanged; Kymux already carries both reverse media lanes on the existing
+authenticated connection. No extra media connection or port is introduced.
+
+The production queue passes 36 simulated minutes across 10/20/30 ms batches,
+two capture phases and clocks at -1000/0/+1000 ppm, with no starvation after
+startup, overflow or expired samples in those steady cases. Separate tests
+cover stalls, the expiry boundary, partial starvation tails, gaps, malformed
+PCM, overflow, mute/reopen, stereo separation and clock reversal. SDK27
+AddressSanitizer/UndefinedBehaviorSanitizer queue, shared-buffer and HAL-driver
+tests pass; the changed Objective-C producer compiles with warnings as errors.
+Candidate packaging and installed testing are pending. This code is not in the
+installed1.1.004 Host. Full camera/microphone clock alignment still needs a
+capture-time contract; activation-relative audio sample indices are not the
+camera's monotonic capture clock.
+
 Physical camera capture confirms native H.264 and MJPEG at 720p/1080p. H.264
 is Baseline level 4.0, 8-bit 4:2:0; its startup driver sequence gap is conservatively
 marked for recovery even when coded frame numbers remain continuous. MJPEG
