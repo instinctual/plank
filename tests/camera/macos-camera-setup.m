@@ -139,17 +139,18 @@ static void tests(void) {
     request = begin();
     id<OSSystemExtensionRequestDelegate> status = request.delegate;
     // Let the real timeout run, then deliver a stale response. No auto-activation.
-    NSDate *deadline = [NSDate dateWithTimeIntervalSinceNow:7];
-    while (!completions && deadline.timeIntervalSinceNow > 0)
-        [NSRunLoop.currentRunLoop runUntilDate:[NSDate dateWithTimeIntervalSinceNow:0.01]];
-    assert(completions == 1 && requests.count == 1);
-    [status request:request foundProperties:(id)@[properties(YES)]];
-    assert(completions == 1 && requests.count == 1 && alerts.count == 1);
-    puts("Camera setup: enabled/upgrade, disabled, first use, errors, approval, reboot and timeout passed");
+    // Return to the main queue so its production timeout can execute.
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 6*NSEC_PER_SEC), dispatch_get_main_queue(), ^{
+        assert(completions == 1 && requests.count == 1);
+        [status request:request foundProperties:(id)@[properties(YES)]];
+        assert(completions == 1 && requests.count == 1 && alerts.count == 1);
+        puts("Camera setup: enabled/upgrade, disabled, first use, errors, approval, reboot and timeout passed");
+        exit(0);
+    });
 }
 int main(void) {
     @autoreleasepool {
-        dispatch_async(dispatch_get_main_queue(), ^{ tests(); exit(0); });
+        dispatch_async(dispatch_get_main_queue(), ^{ tests(); });
         dispatch_main();
     }
 }
