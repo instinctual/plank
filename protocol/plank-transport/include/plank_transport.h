@@ -343,7 +343,7 @@ int32_t plank_transport_native_audio_receive(
  * does not terminate ordinary video/output-audio/input. No new socket.
  * Activation generations increase per connection. Zero mutes and flushes;
  * prior generations can never be reactivated. Maximum Opus packet: 1275 bytes.
- * Send queue: 2 packets; receive queue: 8; queued packets expire after 100 ms.
+ * Send queue: 6 packets; receive queue: 8; queued packets expire after 100 ms.
  * Receive is nonblocking; BUFFER_TOO_SMALL preserves the queued packet.
  * Owner must still reject stale generations at its final decode/inject boundary.
  */

@@ -1758,6 +1758,8 @@ mkdir -p "$build_dir/tests/client-microphone"
 )
 PLANK_CLIENT_SOURCE="$source_dir" bash "$repo_dir/scripts/test/test-native-camera-capture.sh" \
   "$build_dir/tests/native-camera"
+bash "$repo_dir/scripts/test/test-client-camera-session.sh" "$repo_dir" "$source_dir" \
+  "$build_dir/tests/camera-session"
 
 mkdir -p "$build_dir"
 (

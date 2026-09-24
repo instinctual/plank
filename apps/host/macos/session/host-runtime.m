@@ -210,11 +210,11 @@
             !plank_macos_graphical_identity_valid(_snapshot())) {
             [_stream stopWithCompletion:nil]; *status = 503; return nil;
         }
-        NSDictionary *reply = @{@"schema_version": @5, @"state": @"connecting",
+        NSDictionary *reply = @{@"schema_version": @6, @"state": @"connecting",
             @"transport_token": transportToken, @"udp_port": @(port),
             @"max_udp_payload_size": request[@"max_udp_payload_size"], @"capture": selected[@"capture"],
             @"services": @{@"audio": @YES, @"input": @YES, @"pen": @"normalized", @"cursor": @"embedded",
-                @"clipboard": @(_stream.clipboardEnabled), @"microphone": @(_stream.microphoneEnabled)}};
+                @"clipboard": @(_stream.clipboardEnabled), @"microphone": @(_stream.microphoneEnabled), @"camera": @(_stream.cameraEnabled)}};
         [_stream start]; *status = 200; return reply;
     }
 }

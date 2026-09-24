@@ -8,6 +8,8 @@
 <key>la.instinctual.PLANK.Host.machine</key><true/>
 <key>la.instinctual.PLANK.Host.microphone-driver</key><true/>
 <key>la.instinctual.PLANK.Host.microphone-producer</key><true/>
+<key>la.instinctual.PLANK.Host.camera-extension</key><true/>
+<key>la.instinctual.PLANK.Host.camera-producer</key><true/>
 </dict>
 <key>RunAtLoad</key><true/>
 <key>StandardOutPath</key><string>/Library/Logs/PLANK/host-machine.log</string>

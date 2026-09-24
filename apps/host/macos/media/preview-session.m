@@ -4,6 +4,7 @@
 #import "native-input.h"
 #import "clipboard-sync.h"
 #import "microphone-session.h"
+#import "camera-session.h"
 #include "stream-diagnostics.h"
 #include "plank_transport_control.h"
 #include "plank_transport_input.h"
@@ -20,13 +21,15 @@ static BOOL integerInRange(id value, uint32_t minimum, uint32_t maximum) {
 }
 
 BOOL PLANKMacPreviewRequestMatchesTopology(NSDictionary *request, NSDictionary *topology) {
-    if (![request isKindOfClass:NSDictionary.class] || request.count != 11 ||
+    if (![request isKindOfClass:NSDictionary.class] || request.count != 12 ||
         ![topology isKindOfClass:NSDictionary.class] ||
-        !integerInRange(request[@"schema_version"], 5, 5) ||
+        !integerInRange(request[@"schema_version"], 6, 6) ||
         ![request[@"clipboard"] isKindOfClass:NSNumber.class] ||
         CFGetTypeID((__bridge CFTypeRef)request[@"clipboard"]) != CFBooleanGetTypeID() ||
         ![request[@"microphone"] isKindOfClass:NSNumber.class] ||
         CFGetTypeID((__bridge CFTypeRef)request[@"microphone"]) != CFBooleanGetTypeID() ||
+        ![request[@"camera"] isKindOfClass:NSNumber.class] ||
+        CFGetTypeID((__bridge CFTypeRef)request[@"camera"]) != CFBooleanGetTypeID() ||
         !PLANKMacEncodingProfile(request[@"encoding_mode"]) ||
         !integerInRange(request[@"frame_rate"], 60, 60) ||
         !integerInRange(request[@"bitrate_kbps"], 10000, 150000) ||
@@ -71,6 +74,7 @@ BOOL PLANKMacPreviewRequestMatchesTopology(NSDictionary *request, NSDictionary *
     PLANKMacNativeInput *_input;
     PLANKMacClipboardSync *_clipboard;
     PLANKMacMicrophoneSession *_microphone;
+    PLANKMacCameraSession *_camera;
     uint64_t _microphoneGeneration;
     dispatch_group_t _inputGroup;
     BOOL _captureDrained;
@@ -148,6 +152,8 @@ BOOL PLANKMacPreviewRequestMatchesTopology(NSDictionary *request, NSDictionary *
     _microphoneGeneration = microphoneGeneration;
     _microphoneEnabled = [request[@"microphone"] boolValue] && microphoneGeneration &&
         account.uid == geteuid() && [PLANKMacMicrophoneSession available];
+    _cameraEnabled = [request[@"camera"] boolValue] && microphoneGeneration &&
+        account.uid == geteuid() && [PLANKMacCameraSession available];
     _lease = [sessions claimToken:token peer:peer];
     if (!_lease) return nil;
     PlankTransportConfig configuration = *config;
@@ -174,7 +180,7 @@ BOOL PLANKMacPreviewRequestMatchesTopology(NSDictionary *request, NSDictionary *
         // One bounded lifecycle/control source, no blocking receive worker or
         // per-frame timer. The encoder itself remains capture-driven.
         dispatch_source_set_timer(self->_watch, DISPATCH_TIME_NOW,
-            (self->_microphoneEnabled ? 10 : 20) * NSEC_PER_MSEC, NSEC_PER_MSEC);
+            ((self->_microphoneEnabled || self->_cameraEnabled) ? 10 : 20) * NSEC_PER_MSEC, NSEC_PER_MSEC);
         dispatch_source_set_event_handler(self->_watch, ^{ [weakSelf tick]; });
         dispatch_resume(self->_watch);
     });
@@ -197,6 +203,8 @@ BOOL PLANKMacPreviewRequestMatchesTopology(NSDictionary *request, NSDictionary *
             if (![_sessions activateStreamLease:_lease]) { [self stopOnQueueForReason:@"lease-activation-failed"]; return; }
             if (_microphoneEnabled && plank_transport_native_microphone_enable(_endpoint) != PLANK_TRANSPORT_OK)
                 NSLog(@"PLANK microphone endpoint could not be enabled; video and output audio remain available");
+            if (_cameraEnabled && plank_transport_native_camera_enable(_endpoint, _microphoneEnabled ? 1 : 0) != PLANK_TRANSPORT_OK)
+                NSLog(@"PLANK camera endpoint could not be enabled; other media remain available");
             __weak typeof(self) weakSelf = self;
             _video = [[PLANKMacNativeVideo alloc] initWithEndpoint:_endpoint sessions:_sessions lease:_lease
                 width:[_selected[@"capture"][@"width"] intValue] height:[_selected[@"capture"][@"height"] intValue]
@@ -232,6 +240,7 @@ BOOL PLANKMacPreviewRequestMatchesTopology(NSDictionary *request, NSDictionary *
                     owner.state = PLANKMacPreviewStreaming;
                     [owner startClipboard];
                     [owner startMicrophone];
+                    [owner startCamera];
                     [owner startInputReceiver];
                 }
                 failed:^{ [weakSelf stopOnQueueForReason:@"capture-failed"]; }];
@@ -246,6 +255,7 @@ BOOL PLANKMacPreviewRequestMatchesTopology(NSDictionary *request, NSDictionary *
             [self applyPendingBitrate];
             [_clipboard tick];
             [_microphone tick];
+            [_camera tick];
         }
     }
 }
@@ -254,6 +264,18 @@ BOOL PLANKMacPreviewRequestMatchesTopology(NSDictionary *request, NSDictionary *
     if (!_microphoneEnabled) return;
     __weak typeof(self) weakSelf = self;
     _microphone = [[PLANKMacMicrophoneSession alloc] initWithQueue:_queue endpoint:_endpoint
+        generation:_microphoneGeneration valid:^BOOL {
+            typeof(self) owner = weakSelf;
+            PLANKMacAccountIdentity account = {0};
+            return owner && owner.state == PLANKMacPreviewStreaming &&
+                [owner->_sessions authorizeStreamLease:owner->_lease identity:&account] &&
+                account.uid == geteuid() && [owner->_selected isEqual:owner->_topology()];
+        }];
+}
+- (void)startCamera {
+    if (!_cameraEnabled) return;
+    __weak typeof(self) weakSelf = self;
+    _camera = [[PLANKMacCameraSession alloc] initWithQueue:_queue endpoint:_endpoint
         generation:_microphoneGeneration valid:^BOOL {
             typeof(self) owner = weakSelf;
             PLANKMacAccountIdentity account = {0};
@@ -386,6 +408,10 @@ BOOL PLANKMacPreviewRequestMatchesTopology(NSDictionary *request, NSDictionary *
                 _pendingBitrate = bitrate;
                 _bitrateDue = MIN(now + 150*NSEC_PER_MSEC, _bitrateFirstRequest + 500*NSEC_PER_MSEC);
             }
+        } else if (packet.type == PLANK_TRANSPORT_CONTROL_SET_CAMERA && _cameraEnabled) {
+            if (!_camera || ![_camera receive:&packet]) {
+                [self stopOnQueueForReason:@"camera-control-rejected"]; return;
+            }
         } else if (packet.type == PLANK_TRANSPORT_CONTROL_SET_MICROPHONE && _microphoneEnabled) {
             if (!_microphone || ![_microphone receive:&packet]) {
                 [self stopOnQueueForReason:@"microphone-control-rejected"]; return;
@@ -454,6 +480,7 @@ BOOL PLANKMacPreviewRequestMatchesTopology(NSDictionary *request, NSDictionary *
     self.state = PLANKMacPreviewStopping;
     [_clipboard stop];
     [_microphone stop]; _microphone = nil;
+    [_camera stop]; _camera = nil;
     if (_repeatWatch) { dispatch_source_cancel(_repeatWatch); _repeatWatch = nil; }
     [_input stop]; // authorized releases first; never release into a replacement desktop
     [_inputDevice stopUserActivity]; // release even if capture/input startup failed
@@ -494,6 +521,7 @@ BOOL PLANKMacPreviewRequestMatchesTopology(NSDictionary *request, NSDictionary *
     // endpoint/video until asynchronous capture drain, without capturing self.
     PlankTransportNativeEndpoint *endpoint = _endpoint;
     PLANKMacMicrophoneSession *microphone = _microphone;
+    PLANKMacCameraSession *camera = _camera;
     // Wake the condition-variable receiver before waiting for its bounded
     // handoff. Never block the serial owner queue waiting for that handoff.
     if (endpoint) plank_transport_native_endpoint_stop(endpoint);
@@ -503,7 +531,7 @@ BOOL PLANKMacPreviewRequestMatchesTopology(NSDictionary *request, NSDictionary *
         PLANKMacNativeAudio *audio = _audio;
         PLANKMacNativeInput *input = _input;
         dispatch_group_notify(_inputGroup, _queue, ^{
-            [microphone stop];
+            [microphone stop]; [camera stop];
             [capture stopWithCompletion:^{
                 (void)video;
                 (void)audio;
@@ -514,8 +542,8 @@ BOOL PLANKMacPreviewRequestMatchesTopology(NSDictionary *request, NSDictionary *
     } else if (endpoint) {
         // Normal teardown runs on the owner queue. Abandonment may not; retain
         // the optional input owner until it has revoked capture on that queue.
-        if (microphone) dispatch_async(_queue, ^{
-            [microphone stop]; plank_transport_native_endpoint_destroy(endpoint);
+        if (microphone || camera) dispatch_async(_queue, ^{
+            [microphone stop]; [camera stop]; plank_transport_native_endpoint_destroy(endpoint);
         });
         else plank_transport_native_endpoint_destroy(endpoint);
     }

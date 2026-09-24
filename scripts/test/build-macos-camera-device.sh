@@ -16,6 +16,9 @@ flags=(-std=gnu11 -g -O1 -mmacosx-version-min=27.0 -Wall -Wextra -Werror
     -Iapps/host/macos/media -Iapps/host/macos/camera-device -Iprotocol/plank-transport/include)
 xcrun clang "${flags[@]}" tests/camera/macos-camera-link.c -o "$output/camera-link-test"
 "$output/camera-link-test"
+xcrun clang "${flags[@]}" tests/protocol/camera-control.c -o "$output/camera-control-test"
+"$output/camera-control-test"
+xcrun clang "${flags[@]}" -fobjc-arc -c apps/host/macos/media/camera-session.m -o "$output/camera-session.o"
 for source in camera-broker camera-producer; do
     xcrun clang "${flags[@]}" -fobjc-arc -c "apps/host/macos/camera-device/$source.m" -o "$output/$source.o"
 done

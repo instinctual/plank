@@ -38,6 +38,23 @@ static inline void plank_camera_write_u64(uint8_t *bytes, uint64_t value) {
     plank_transport_control_write_u32(bytes, (uint32_t)(value >> 32));
     plank_transport_control_write_u32(bytes+4, (uint32_t)value);
 }
+/* Strict, shared camera control validation. KEYFRAME carries only a u64
+ * generation; SET/APPLIED add one flags/state word. Schema-6 capability only. */
+static inline int plank_camera_control_decode(const PlankTransportControlPacket *packet,
+                                              uint64_t *generation, uint32_t *value) {
+    if (!packet || !generation || !value || !packet->payload) return -1;
+    *generation = 0; *value = 0;
+    if ((packet->type != PLANK_TRANSPORT_CONTROL_SET_CAMERA &&
+         packet->type != PLANK_TRANSPORT_CONTROL_CAMERA_APPLIED &&
+         packet->type != PLANK_TRANSPORT_CONTROL_CAMERA_KEYFRAME) ||
+        packet->payload_size != (packet->type == PLANK_TRANSPORT_CONTROL_CAMERA_KEYFRAME ? 8 : 12)) return -1;
+    uint64_t command = plank_camera_read_u64(packet->payload);
+    uint32_t state = packet->payload_size == 12 ? plank_transport_control_read_u32(packet->payload + 8) : 0;
+    if (!command || command == UINT64_MAX ||
+        (packet->type == PLANK_TRANSPORT_CONTROL_SET_CAMERA && state > PLANK_TRANSPORT_CAMERA_ENABLED) ||
+        (packet->type == PLANK_TRANSPORT_CONTROL_CAMERA_APPLIED && state > PLANK_TRANSPORT_CAMERA_UNAVAILABLE)) return -1;
+    *generation = command; *value = state; return 0;
+}
 /* Writes only the header; caller appends the native payload unchanged. */
 static inline int plank_camera_header_encode(const PlankCameraHeader *header, size_t payload_size,
                                              uint8_t *output, size_t capacity) {

@@ -19,6 +19,7 @@ int main(int argc, char** argv)
     CHECK(requestFile.open(QIODevice::ReadOnly));
     const auto rawTopology = QJsonDocument::fromJson(topologyFile.readAll()).object();
     auto expected = QJsonDocument::fromJson(requestFile.readAll()).object();
+    expected["camera"] = MacPreviewLaunch::CameraSupported;
     expected["clipboard"] = NvOutputTopology::PlatformClipboardSyncFeature != 0;
     NvOutputTopology topology;
     CHECK(NvOutputTopology::fromJson(rawTopology, topology));
@@ -31,10 +32,10 @@ int main(int argc, char** argv)
     CHECK(!MacPreviewLaunch::request(topology, 150000, 65527).isEmpty());
     CHECK(MacPreviewLaunch::request({}, 10000, 1200).isEmpty());
     const QJsonObject valid {
-        {"schema_version", 5}, {"state", "connecting"}, {"udp_port", 28989},
+        {"schema_version", 6}, {"state", "connecting"}, {"udp_port", 28989},
         {"max_udp_payload_size", 1200}, {"capture", rawTopology.value("capture")},
         {"transport_token", QString::fromLatin1(QByteArray(32, 'x').toBase64())},
-        {"services", QJsonObject {{"audio", true}, {"input", true}, {"pen", "normalized"}, {"cursor", "embedded"}, {"clipboard", false}, {"microphone", false}}}
+        {"services", QJsonObject {{"audio", true}, {"input", true}, {"pen", "normalized"}, {"cursor", "embedded"}, {"clipboard", false}, {"microphone", false}, {"camera", false}}}
     };
     MacPreviewLaunch::Reply parsed;
     CHECK(MacPreviewLaunch::parseReply(valid, topology, 28989, 1200, parsed));
@@ -51,6 +52,12 @@ int main(int argc, char** argv)
     CHECK(parsed.configuration.sessionPort == 28989);
     CHECK(!parsed.clipboard);
     CHECK(!parsed.microphone);
+    CHECK(!parsed.camera);
+    auto cameraReply = valid;
+    auto cameraServices = valid.value("services").toObject();
+    cameraServices["camera"] = true; cameraReply["services"] = cameraServices;
+    CHECK(MacPreviewLaunch::parseReply(cameraReply, topology, 28989, 1200, parsed) == MacPreviewLaunch::CameraSupported);
+    CHECK(parsed.camera == MacPreviewLaunch::CameraSupported);
     auto microphoneReply = valid;
     auto microphoneServices = valid.value("services").toObject();
     microphoneServices["microphone"] = true;
@@ -80,6 +87,11 @@ int main(int argc, char** argv)
     auto bad = valid; bad["udp_port"] = 443; reject(bad);
     bad = valid; bad["schema_version"] = 3; reject(bad);
     bad = valid; bad["schema_version"] = 4; reject(bad);
+    bad = valid; bad["schema_version"] = 5; reject(bad);
+    for (const QJsonValue& value : {QJsonValue(), QJsonValue(1), QJsonValue("true")}) {
+        auto services = valid.value("services").toObject(); services["camera"] = value;
+        bad = valid; bad["services"] = services; reject(bad);
+    }
     auto invalidServices = valid.value("services").toObject(); invalidServices.remove("microphone");
     bad = valid; bad["services"] = invalidServices; reject(bad);
     invalidServices["microphone"] = 1;

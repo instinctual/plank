@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 #import "camera-consumer.h"
 #include "camera-link.h"
+#include "camera-clock.h"
 #include <xpc/xpc.h>
 #include <sys/mman.h>
 #include <time.h>
@@ -111,7 +112,7 @@ static BOOL cameraWord(xpc_object_t object, const char *name, uint64_t *value) {
     if (!_link) return;
     if (now >= _deadline) { [self disconnect]; return; }
     size_t size = 0; uint64_t time = 0;
-    int result = PLANKCameraLinkRead(_link, &_cursor, _record, PLANKCameraRecordBytes, &size, &time, now);
+    int result = PLANKCameraLinkRead(_link, &_cursor, _record, PLANKCameraRecordBytes, &size, &time, PLANKCameraHostTimeNanos());
     if (result > 0) _frame(_record, size, time);
     else if (result < 0) { _gap(); [self requestKeyframe]; }
 }

@@ -6,6 +6,7 @@
 #import "native-camera-sample.h"
 #import "native-camera-output.h"
 #include "camera-link.h"
+#include "camera-clock.h"
 #include <time.h>
 
 static NSError *cameraError(NSInteger code) {
@@ -193,7 +194,7 @@ static NSError *cameraError(NSInteger code) {
                         device.source.changed = ^{ [weakSelf changed]; };
                     }
                 }
-                uint64_t now = clock_gettime_nsec_np(CLOCK_MONOTONIC);
+                uint64_t now = PLANKCameraHostTimeNanos();
                 if (output && self->_revision == revision && self->_device.source.clients &&
                     now >= time && now - time <= PLANK_CAMERA_MAX_AGE_NS) {
                     [self->_device.source.stream sendSampleBuffer:output

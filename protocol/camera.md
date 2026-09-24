@@ -1,10 +1,13 @@
 # Native camera lane (in development)
 
-This transport foundation is not advertised by the current products and is not
-part of the stereo microphone candidate. Client capture, authenticated launch
-and activation controls, Mac producer admission and camera-extension integration
-remain required before enabling it. Registering an endpoint does not authorize
-camera access. Existing native/2 desktop lanes and their IDs are unchanged.
+Schema6 of the authenticated macOS launch contract negotiates this optional
+lane separately from microphone. It is not in the installed stereo candidate.
+The Ubuntu Client starts with camera off; the toolbar explicitly enables it.
+The selected device uses native H.264 when available, then MJPEG, preferring
+1080p over 720p within a codec. An explicitly selected missing device fails;
+it does not select another camera. Automatic selection uses the first native
+compressed camera reported by read-only V4L2 enumeration. No encoder is used.
+Existing native/2 desktop lanes and their IDs are unchanged.
 
 The Linux capture component now reads direct V4L2 MMAP buffers without a video
 encoder or libv4l conversion. It rejects emulated/coerced modes, bounds buffers,
@@ -13,8 +16,7 @@ restores the prior device mode at close. Its standard force-keyframe request can
 fall back to the descriptor-verified UVC H.264 picture-type control, requesting
 IDR with SPS/PPS. The physical camera passed three such requests within 140 ms.
 Requests are limited to two per second; an accepted control still requires a
-validated recovery frame before dependent pictures may resume. Product capture
-activation, authenticated controls and Host integration are still outstanding.
+validated recovery frame before dependent pictures may resume. Product capture activation waits for the matching Host acknowledgement.
 
 The Mac sample builder independently checks coded framing and dimensions,
 activation, sequence, timestamps and fixed format metadata. H.264 parameter sets
@@ -23,8 +25,10 @@ rejects progressive JPEG and H.264 SVC/MVC. H.264 NAL bytes survive the required
 Annex-B-to-length-prefix adaptation; JPEG remains byte-identical. Its output
 component returns compressed samples directly or lazily decodes NV12 when pixels
 are requested. Switching to pixels and recovering from discontinuity require an
-independent frame. These serial components do not establish producer admission,
-camera registration, clock synchronization or product capability advertisement.
+independent frame. The production extension adds producer admission and camera registration as
+described below. Its integrated signing, activation and application gates remain
+pending. Arrival timestamps use the Core Media Host clock; capture timestamps
+remain in PCAM. Audio/video clock alignment and lip sync remain unqualified.
 
 The pilot's driver sequence skips an index at H.264 startup despite continuous
 coded frame numbers. Capture conservatively marks that discontinuity so the
@@ -88,3 +92,39 @@ and camera-plus-microphone allocation, direct/setup-promoted connections,
 byte equality, short-buffer retry, mute and reactivation. These are transport
 component tests; live capture, sustained loss, timing/color, application delivery
 and camera/microphone synchronization remain separate acceptance gates.
+
+## Session control and local camera boundary
+
+PLD1 camera controls are valid only after schema6 camera capability agreement:
+SET_CAMERA (10) carries increasing nonzero u64 command generation and a u32
+flag (0 off, 1 on). CAMERA_APPLIED (11) echoes that generation and state 0 off,
+1 pending, 2 active or 3 unavailable. CAMERA_KEYFRAME (12) carries only the
+active u64 generation. All words are big-endian. UINT64_MAX is reserved.
+Control bounds are shared by Client/Host; malformed controls fail the session,
+while optional media/extension failure reports camera unavailable without
+terminating desktop media. Recovery requests are limited to two per second.
+
+Root admits the exact current desktop worker's kernel UID, PID, audit session
+and worker generation, after XPC code-signature verification. The extension
+must have the exact camera identifier and the Host's Developer ID Team.
+The extension independently verifies the root service's signature and UID.
+Each activation receives fresh shared memory; a retired writer never receives
+a replacement's mapping. Root handles leases, not compressed media or decoding.
+Producer renewals and registry checks expire within two seconds; consumer
+admission expires independently of all producer-writable data. Camera-off,
+disconnect and producer/extension loss revoke admission and remove the device.
+
+The mapping contains three fixed maximum-size slots. Atomic word copies and
+slot stamps prevent accepting a torn snapshot; sizes/indices/age are bounded
+before copying. Parsers see only a private copy. Gaps request an independent
+frame. The extension permits at most one media job in flight. Its control queue
+can retire the device while decoding is blocked, and stale completions cannot
+publish or deliver after revocation. CoreMediaIO/TCC governs application camera
+access; media injection uses the separate authenticated producer lease.
+
+Only the first validated native sample establishes the device's immutable
+compressed and NV12 formats. Off/reopen removes and recreates the stream with
+stable device identity; do not claim seamless app reopen across format changes.
+Compressed output retains native samples. NV12 output creates a decoder on
+request, with keyframe recovery on format switches. The active format belongs
+to the stream; mixed application adaptation requires live qualification.

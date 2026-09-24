@@ -48,6 +48,7 @@ typedef NS_ENUM(unsigned, PLANKMacPreviewState) {
 @property(atomic, readonly, copy) NSString *stopReason;
 @property(readonly) BOOL clipboardEnabled;
 @property(readonly) BOOL microphoneEnabled;
+@property(readonly) BOOL cameraEnabled;
 // Non-secret identity used to bind explicit takeover consent to this stream.
 @property(readonly, copy) NSString *sessionID;
 // Secret for the authenticated HTTPS launch reply only; never log/persist.

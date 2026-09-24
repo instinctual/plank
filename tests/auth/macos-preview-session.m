@@ -147,7 +147,7 @@ int main(int argc, const char **argv) {
             CHECK(!PLANKMacPreviewRequestMatchesTopology(bad, topology));
             for (id value in @[[NSNull null], @[], @{}, @YES, @"invalid"]) {
                 bad[field] = value;
-                BOOL validBoolean = ([field isEqual:@"clipboard"] || [field isEqual:@"microphone"]) &&
+                BOOL validBoolean = ([field isEqual:@"clipboard"] || [field isEqual:@"microphone"] || [field isEqual:@"camera"]) &&
                     value == (__bridge id)kCFBooleanTrue;
                 CHECK(PLANKMacPreviewRequestMatchesTopology(bad, topology) == validBoolean);
             }
@@ -161,6 +161,10 @@ int main(int argc, const char **argv) {
                 NSMutableDictionary *bad = [request mutableCopy]; bad[field] = value;
                 CHECK(!PLANKMacPreviewRequestMatchesTopology(bad, topology));
             }
+        }
+        for (unsigned schema = 0; schema < 6; schema++) {
+            NSMutableDictionary *bad = [request mutableCopy]; bad[@"schema_version"] = @(schema);
+            CHECK(!PLANKMacPreviewRequestMatchesTopology(bad, topology));
         }
         NSMutableDictionary *extra = [request mutableCopy]; extra[@"audio"] = @YES;
         CHECK(!PLANKMacPreviewRequestMatchesTopology(extra, topology));

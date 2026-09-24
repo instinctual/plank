@@ -1,0 +1,14 @@
+{
+  "schema_version": 6,
+  "capture_generation": "98454815-80ab-4a88-b187-92f59353afca",
+  "capture_id": "cgdisplay:42",
+  "width": 3840,
+  "height": 2160,
+  "encoding_mode": "hevc-10-420-videotoolbox",
+  "frame_rate": 60,
+  "bitrate_kbps": 50000,
+  "max_udp_payload_size": 1200,
+  "clipboard": false,
+  "microphone": true,
+  "camera": true
+}

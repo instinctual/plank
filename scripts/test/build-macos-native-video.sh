@@ -31,7 +31,7 @@ shasum -a 256 "$transport_library" apps/host/macos/media/native-video.{h,m} \
     apps/host/macos/media/preview-session.{h,m} apps/host/macos/media/screen-capture.{h,m} \
     apps/host/macos/media/native-audio.{h,m} apps/host/macos/media/opus-encoder.{h,m} \
     apps/host/macos/auth/authentication-session.{h,m} tests/auth/macos-native-video.m \
-    tests/auth/macos-preview-session.m tests/protocol/macos-preview-launch-v5.json
+    tests/auth/macos-preview-session.m tests/protocol/macos-preview-launch-v6.json
 xcrun clang -mmacosx-version-min=27.0 -fobjc-arc -Wall -Wextra -Werror \
     -Iapps/host/macos/auth -Iapps/host/macos/media -Iprotocol/plank-transport/include \
     apps/host/macos/auth/authentication-session.m apps/host/macos/media/native-video.m \
@@ -44,6 +44,7 @@ xcrun clang -mmacosx-version-min=27.0 -fobjc-arc -Wall -Wextra -Werror \
     apps/host/macos/session/agent-registry.m apps/host/macos/session/agent-connection.m \
     apps/host/macos/auth/authentication-session.m apps/host/macos/control/fixed-capture.m \
     apps/host/macos/media/native-video.m apps/host/macos/media/preview-session.m apps/host/macos/media/clipboard-sync.m \
+    apps/host/macos/media/camera-session.m apps/host/macos/camera-device/camera-producer.m apps/host/macos/camera-device/camera-signing.m \
     apps/host/macos/media/microphone-session.m apps/host/macos/audio-device/microphone-producer.m \
     apps/host/macos/media/screen-capture.m apps/host/macos/media/native-audio.m apps/host/macos/media/opus-encoder.m apps/host/macos/media/audio-tap.m \
     apps/host/macos/input/input-events.m apps/host/macos/input/native-input.m apps/host/macos/input/quartz-input.m \
@@ -62,7 +63,7 @@ openssl x509 -in "$certificate_dir/cert.pem" -outform DER -out "$certificate_dir
 certificate_hash=$(shasum -a 256 "$certificate_dir/cert.der")
 certificate_hash=${certificate_hash%% *}
 "$video_build/preview-session" "$certificate_dir/cert.pem" "$certificate_dir/key.pem" \
-    "$certificate_hash" "$source_root/tests/protocol/macos-preview-launch-v5.json"
+    "$certificate_hash" "$source_root/tests/protocol/macos-preview-launch-v6.json"
 if [[ ${4:-} = --session-only ]]; then
     # Fake capture/input and local QUIC only. Do not claim live encoder,
     # screen-recording permission or physical input qualification on a builder.
