@@ -7,10 +7,28 @@ transport without Client transcoding and explicitly requested a new branch.
 Native does not mean uncompressed.
 
 Branch: `native-media-investigation`, isolated worktree
-`build/worktrees/native-media-investigation`. Base root:
+`build/worktrees/native-media-investigation`. Original runtime base:
 `af71d2b404486a9846bca464ddd646b5ab9c738a` from `microphone-forwarding`.
-It includes the bounded macOS startup certificate timeout repair. The separate
-startup-fix worktree and primary RK3576 research are untouched.
+Synchronized with main `a4ea39eb6fd0c098ebe01e6eb516747b84c71800`.
+The investigation checkpoint is `c12504c`; only this handoff required merge
+resolution. Main's version, release notes, build runbook, packaging tests and
+Client gitlink are retained. The separate startup-fix worktree, main worktree
+and primary RK3576 research are untouched.
+
+The current base product version is **1.1.001**; this branch's candidate version
+is **1.1.001-native-media-investigation**. Preserve the padded patch component.
+Main already contains the accepted microphone and post-reboot certificate
+startup repairs. The new Client pin changes only its changelog. No release,
+package build or deployment has been performed by this synchronization.
+See [coordinated upgrade notes](docs/releases/1.1.001.md).
+
+The inherited signed Host candidate remains **1.0.157-microphone-forwarding**,
+root `af71d2b`, hosted run `35937730094`, SHA-256
+`2e7d7540b9a2159e0a721b046b3610a8f4d3afe9b1942b5af5129c1bc605f23f`.
+It was verified but not installed by the prior task; post-reboot live acceptance
+remains pending. Historical package provenance and qualification results remain
+in [main's handoff at the synchronization point](https://github.com/instinctual/plank/blob/a4ea39eb6fd0c098ebe01e6eb516747b84c71800/HANDOFF.md).
+Do not relabel those packages as 1.1.001 or native-media candidates.
 
 Read [the investigation](docs/development/investigations/native-media-forwarding.md)
 for sources, preservation boundaries, integration constraints and probe gates.
@@ -54,18 +72,28 @@ ordinary capture exposes only decoded PCM and would not preserve that codec.
 Do not take over the active Bluetooth transport. Target access details are only
 in protected private notes; passwords stay in the password
 manager. No package build/install, live capture or product-code change has
-occurred in this investigation. Documentation whitespace/local links and a
-targeted deployment-data check passed; no product tests were run for these
-documentation-only edits.
+occurred in this investigation.
 
-Unchanged maintained gitlinks:
+Synchronization validation passes: all 62 CI-policy tests, seven package
+collection tests, main/feature release-version contracts, both microphone wire
+and queue unit tests, and the encrypted microphone FFI test (direct and setup
+entry points, mute/reopen/generation/bounds). The portable microphone buffer
+stress test passes one million samples with two readers, bounds, silence and
+reset checks. These are Linux debug/portable checks, not native Mac camera,
+Core Audio, hardware or release-performance qualification. The default-feature
+Rust build emits two existing unused-telemetry warnings in vendored Quinn.
+Documentation whitespace/reference checks and commit privacy hooks pass.
+
+Maintained gitlinks after synchronization:
 
 | Input | Commit |
 | --- | --- |
-| Shared Client | `8a9d10289bf1547c5cca8ff0dd6d53c3fbe51f14` |
+| Shared Client | `cc511584c41c337569a1efd559a7c3362283d9cc` |
 | Kymux | `3f7a9d8618978287186e5d6ce0eaa067743cb06c` |
 | Linux Host | `5829bf7c335440a8b25c3330643eacb4d914f00a` |
 
-Prior package provenance and recursive pins remain in the base commit's HANDOFF.
-No new candidate exists. Submodules are not initialized in this documentation
-worktree; inspection used matching local maintained checkouts at these pins.
+Prior package provenance and recursive pins remain in main's linked HANDOFF.
+No new candidate exists. Kymux is initialized at its exact pin from the verified
+local repository for transport tests. Client and Linux Host are uninitialized
+here; comparison against the retained Client repository confirms that its pin
+update changes only the changelog.

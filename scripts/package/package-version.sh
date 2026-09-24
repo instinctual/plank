@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 
-# Load the public PLANK SemVer and its package-manager-specific metadata.
+# Load the public PLANK product version and package-manager-specific metadata.
+# The operator-facing patch component is zero-padded from 1.1.001 onward.
 # Callers must pass the repository root containing packaging/VERSION.
 plank_load_package_version() {
   if (($# != 1)); then
@@ -41,7 +42,7 @@ plank_load_package_version() {
   if [[ $build_branch != main ]]; then
     PLANK_PACKAGE_VERSION="${PLANK_BASE_VERSION}-${build_branch}"
     # Feature candidates must compare older than the final main RPM for the
-    # same base SemVer. RPM Release values cannot contain hyphens.
+    # same base version. RPM Release values cannot contain hyphens.
     PLANK_RPM_RELEASE="0.${build_branch//-/_}.1"
   fi
 }

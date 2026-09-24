@@ -286,7 +286,12 @@ assumed the bundle advertises `HEAD`; use the exact ref printed by
 ## Client DEB — linux-client-builder only
 
 The Host/Client base version is packaging/VERSION. Increment it for new package
-bytes. Set PLANK_BUILD_BRANCH explicitly on detached snapshots: main produces
+bytes. Starting with **1.1.001**, retain a three-digit, zero-padded patch component
+(1.1.002, 1.1.003, and so on) in the product version and package filenames.
+This is the operator-facing product numbering convention, not strict SemVer;
+do not parse the padded component as octal or strip its leading zeroes.
+Internal dependency/crate versions and protocol negotiation are separate.
+Set PLANK_BUILD_BRANCH explicitly on detached snapshots: main produces
 an unqualified version; a feature branch adds its lowercase kebab-case name to
 package filenames and visible application versions. Never relabel a candidate
 after merging; rebuild from main. RPM feature Release values sort below the
@@ -833,7 +838,7 @@ host commit is already published, a host-only submodule update of
 `apps/host/linux` may replace the bundle clone; still initialize recursive
 dependencies from inside the host rather than from the root.
 
-The Host application and RPM `Version` retain the exact shared semantic
+The Host application and RPM `Version` retain the exact shared product
 version. RPM requires a separate `Release` value, so the first package of a
 PLANK version uses release `1` (for example,
 `plank-host-1.0.0-1.el9.x86_64.rpm`). Increment the RPM release only to

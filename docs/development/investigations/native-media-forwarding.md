@@ -1,8 +1,9 @@
 # Native webcam and microphone media forwarding
 
 September 23, 2026. Research branch `native-media-investigation`, based on root
-`af71d2b404486a9846bca464ddd646b5ab9c738a`. This is API/code research, not an
-implemented capability or hardware qualification.
+`af71d2b404486a9846bca464ddd646b5ab9c738a`, synchronized with main
+`a4ea39eb6fd0c098ebe01e6eb516747b84c71800` (product version 1.1.001).
+This is API/code research, not an implemented capability or hardware qualification.
 
 The operator wants each device's native media output preserved through
 transport. Native does not mean uncompressed: an MJPEG camera should send its
@@ -107,11 +108,11 @@ Mac, after payload verification.
 
 ## PLANK integration findings
 
-Inspected maintained inputs at the root checkpoint:
+Maintained inputs after synchronization (Client runtime unchanged):
 
 | Input | Commit |
 | --- | --- |
-| Shared Client | `8a9d10289bf1547c5cca8ff0dd6d53c3fbe51f14` |
+| Shared Client | `cc511584c41c337569a1efd559a7c3362283d9cc` |
 | Kymux | `3f7a9d8618978287186e5d6ce0eaa067743cb06c` |
 | Linux Host, unchanged | `5829bf7c335440a8b25c3330643eacb4d914f00a` |
 
