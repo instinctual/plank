@@ -138,17 +138,30 @@ int main(void) {
         for (unsigned scenario = 0; scenario < 3; ++scenario) {
             PLANKMacGraphicalAuthority *authority = [[PLANKMacGraphicalAuthority alloc] initWithPhase:PLANKMacScopeDesktop];
             CHECK(authority.snapshot.active);
+            PLANKMacAuthenticationSession *auth = [[PLANKMacAuthenticationSession alloc]
+                initWithGraphicalSnapshot:^{ return authority.snapshot; }];
+            NSData *peer = [NSData dataWithBytes:"test" length:4];
+            NSDictionary *start = [auth startForPeer:peer username:@"example"];
+            NSDictionary *response = [auth respondForPeer:peer conversation:start[@"conversation_id"]
+                password:[NSMutableData dataWithBytes:"test" length:4]];
+            PLANKMacStreamLease *lease = [auth claimToken:response[@"session_token"] peer:peer];
+            CHECK(lease && [auth activateStreamLease:lease]);
             blockNextRead = YES;
             CHECK(!dispatch_semaphore_wait(readEntered, dispatch_time(DISPATCH_TIME_NOW, NSEC_PER_SEC)));
             unsigned before = atomic_load(&observations);
             dispatch_semaphore_t readsDone = dispatch_semaphore_create(0);
             __block BOOL allActive = YES;
+            __block unsigned enqueued = 0;
             dispatch_async(dispatch_get_global_queue(QOS_CLASS_USER_INITIATED, 0), ^{
-                for (unsigned i = 0; i < 1000; ++i) allActive &= authority.snapshot.active;
+                for (unsigned i = 0; i < 1000; ++i) {
+                    PLANKMacAccountIdentity identity;
+                    allActive &= [auth authorizeStreamLease:lease identity:&identity];
+                    allActive &= [auth performWithStreamLease:lease action:^{ ++enqueued; }];
+                }
                 dispatch_semaphore_signal(readsDone);
             });
             CHECK(!dispatch_semaphore_wait(readsDone, dispatch_time(DISPATCH_TIME_NOW, 100*NSEC_PER_MSEC)));
-            CHECK(allActive && atomic_load(&observations) == before);
+            CHECK(allActive && enqueued == 1000 && atomic_load(&observations) == before);
             if (scenario == 0) {
                 [workspaceCenter postNotificationName:NSWorkspaceWillSleepNotification object:nil];
                 CHECK(!authority.snapshot.active);
@@ -161,6 +174,7 @@ int main(void) {
             CHECK(!dispatch_semaphore_wait(readReturned, dispatch_time(DISPATCH_TIME_NOW, NSEC_PER_SEC)));
             usleep(30000);
             CHECK(!authority.snapshot.active); // late success cannot renew
+            CHECK(![auth performWithStreamLease:lease action:^{ abort(); }]);
         }
         method_setImplementation(workspaceMethod, oldWorkspace);
         method_setImplementation(distributedMethod, oldDistributed);
