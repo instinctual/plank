@@ -36,6 +36,14 @@ int main(void) {
     assert(PLANKCameraLinkWrite(link, &serial, input, 67, 100));
     atomic_store(&link->slots[(serial - 1) % PLANKCameraSlots].size, UINT64_MAX);
     assert(PLANKCameraLinkRead(link, &cursor, output, PLANKCameraRecordBytes, &size, &time, 100) == -1);
+    // Future presentation time cannot keep an old received frame alive.
+    uint64_t arrived = 0;
+    assert(PLANKCameraLinkWriteTimed(link, &serial, input, 67, 200000000, 100000000));
+    assert(PLANKCameraLinkReadTimed(link, &cursor, output, PLANKCameraRecordBytes,
+        &size, &time, &arrived, 100000000) == 1 && time == 200000000 && arrived == 100000000);
+    assert(PLANKCameraLinkWriteTimed(link, &serial, input, 67, 200000000, 100000000));
+    assert(PLANKCameraLinkReadTimed(link, &cursor, output, PLANKCameraRecordBytes,
+        &size, &time, &arrived, 250000001) == -1);
     atomic_store(&link->published, UINT64_MAX);
     assert(PLANKCameraLinkRead(link, &cursor, output, PLANKCameraRecordBytes, &size, &time, 100) == -1);
     PLANKCameraLinkInit(link); cursor = 0; pthread_t thread;

@@ -1,16 +1,18 @@
 # Microphone forwarding
 
-The `microphone-forwarding` candidate adds Linux/macOS Client microphone input
-to a macOS Host. It is not available on Linux Hosts. Install matching candidates;
-do not mix them with pre-RaptorQ-2 packages.
+Linux/macOS Clients can forward microphone input to a compatible macOS Host.
+It is not available on Linux Hosts. Host and Client negotiate support; matching
+product versions are not required.
 
-In Client **Audio Settings**, both choices default to Automatic:
+In Client **Audio Settings**:
 
-- **Enable microphone:** Automatic starts the OS-selected recording device
+- **Enable microphone:** Manual is the default and starts muted; click the toolbar
+  microphone to enable it. Automatic starts the OS-selected recording device
   after an authenticated supported session and any required OS permission.
-  Manual starts muted; click the toolbar microphone to enable it.
-- **Select PLANK Microphone as host input:** Automatic temporarily selects the
+- **Select PLANK Microphone as host input:** Automatic is the default and temporarily selects the
   virtual input on the Host. Manual leaves the choice to macOS or the application.
+
+Existing saved choices are preserved when upgrading.
 
 The toolbar microphone shows On, Off, Wait or N/A. Hover over it for an
 explanation. Muting stops Client recording and supplies silence on the Host;
@@ -28,7 +30,8 @@ listed after installation, restart the Host when convenient; the installer does
 not interrupt active system audio to force a reload.
 
 Start testing with headphones. Echo cancellation and conferencing-application
-compatibility are not yet qualified. Audio is mono, 48 kHz Opus; no extra firewall
+compatibility are not yet qualified. Audio is stereo, 48 kHz Opus at 192 kbps with
+constrained variable bitrate; mono sources retain their source limitations. No extra firewall
 port is needed, and normal Host-to-Client sound remains separate. Captured speech
 is not written to PLANK logs.
 

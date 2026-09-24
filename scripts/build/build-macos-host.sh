@@ -19,6 +19,10 @@ for component in buffer driver queue; do
         -framework CoreAudio -framework CoreFoundation -o "$output/microphone-$component-test"
     "$output/microphone-$component-test"
 done
+xcrun clang -std=c11 -O1 -g -mmacosx-version-min=27.0 -Wall -Wextra -Werror \
+    -fsanitize=address,undefined -Iapps/host/macos/media -Iapps/host/macos/audio-device \
+    tests/audio/reverse-media-clock.c -o "$output/reverse-media-clock-test"
+"$output/reverse-media-clock-test"
 xcrun clang -std=c11 -O2 -mmacosx-version-min=27.0 -Wall -Wextra -Werror \
     -Iapps/host/macos/media tests/audio/macos-microphone-decoder.c \
     -framework AudioToolbox -o "$output/microphone-decoder-test"
@@ -137,7 +141,7 @@ sources=(apps/host/macos/auth/authentication-session.m apps/host/macos/auth/grap
     apps/host/macos/media/native-audio.m apps/host/macos/media/opus-encoder.m apps/host/macos/media/audio-tap.m
     apps/host/macos/media/camera-session.m apps/host/macos/camera-device/camera-producer.m apps/host/macos/camera-device/camera-signing.m
     apps/host/macos/camera-device/camera-broker.m apps/host/macos/camera-device/camera-activation.m
-    apps/host/macos/media/microphone-session.m
+    apps/host/macos/media/reverse-media-clock.m apps/host/macos/media/microphone-session.m
     apps/host/macos/media/native-camera-sample.m
     apps/host/macos/media/native-camera-output.m
     apps/host/macos/audio-device/microphone-broker.m apps/host/macos/audio-device/microphone-producer.m

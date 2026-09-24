@@ -87,10 +87,10 @@ static uint64_t producerNow(void) { return clock_gettime_nsec_np(CLOCK_MONOTONIC
 - (BOOL)submit:(const uint8_t *)record size:(size_t)size hostTimeNanos:(uint64_t)hostTime {
     dispatch_assert_queue(_queue);
     uint64_t now = PLANKCameraHostTimeNanos(); PlankCameraHeader header;
-    if (!_link || _stopped || !_valid() || !hostTime || hostTime > now ||
-        now - hostTime > PLANK_CAMERA_MAX_AGE_NS ||
+    if (!_link || _stopped || !_valid() || !hostTime || hostTime > INT64_MAX ||
+        (hostTime > now ? hostTime - now > UINT64_C(100000000) : now - hostTime > PLANK_CAMERA_MAX_AGE_NS) ||
         plank_camera_header_decode(record, size, &header) || header.generation != _activation) return NO;
-    return PLANKCameraLinkWrite(_link, &_serial, record, size, hostTime);
+    return PLANKCameraLinkWriteTimed(_link, &_serial, record, size, hostTime, now);
 }
 - (BOOL)takeKeyframeRequest {
     dispatch_assert_queue(_queue);

@@ -6,6 +6,7 @@
 #include <mach/mach_time.h>
 #include <sys/mman.h>
 #include <unistd.h>
+#import "../camera-device/camera-clock.h"
 
 @implementation PLANKMacMicrophoneProducer {
     dispatch_queue_t _queue;
@@ -89,8 +90,11 @@ static uint64_t producerNow(void) { return clock_gettime_nsec_np(CLOCK_MONOTONIC
     });
 }
 - (BOOL)submit:(const float *)samples count:(uint32_t)count sampleTime:(uint64_t)sampleTime {
+    return [self submit:samples count:count sampleTime:sampleTime captureTimeNanos:0];
+}
+- (BOOL)submit:(const float *)samples count:(uint32_t)count sampleTime:(uint64_t)sampleTime captureTimeNanos:(uint64_t)captureTime {
     dispatch_assert_queue(_queue);
-    return _link && !_stopped && PLANKMicQueueSubmit(&_pcm, samples, count, sampleTime, producerNow());
+    return _link && !_stopped && PLANKMicQueueSubmitTimed(&_pcm, samples, count, sampleTime, captureTime, producerNow());
 }
 - (void)tick {
     if (_stopped) return;
@@ -105,7 +109,8 @@ static uint64_t producerNow(void) { return clock_gettime_nsec_np(CLOCK_MONOTONIC
     if (sequence != atomic_load(&_link->clockSequence)) return;
     uint64_t now = mach_absolute_time();
     if (!running || !anchor || !seed || now < anchor) {
-        atomic_store(&_link->deadline, 0); PLANKMicQueueFlush(&_pcm); return;
+        atomic_store(&_link->deadline, 0); PLANKMicQueueFlush(&_pcm);
+        if (_mediaClock) PLANKReverseMediaClockClear(&_mediaClock->value); return;
     }
     uint64_t frame = (uint64_t)((now - anchor) / _link->ticksPerFrame);
     if (_clockSeed != seed || _nextFrame < frame || _nextFrame > frame + PLANKMicRate) {
@@ -114,13 +119,22 @@ static uint64_t producerNow(void) { return clock_gettime_nsec_np(CLOCK_MONOTONIC
         PLANKMicBufferReset(&_link->samples, _nextFrame);
         atomic_store(&_link->producerSeed, seed); _pcm.primed = NO;
         _resyncs++;
+        if (_mediaClock) PLANKReverseMediaClockClear(&_mediaClock->value);
     }
     // <=30 ms look-ahead and at most three 10 ms blocks per tick. Adjust one
     // sample per block around the 20 ms target to absorb independent clocks;
     // never enlarge the queue to conceal drift or late network delivery.
     for (unsigned block = 0; block < 3 && _nextFrame < frame + 1440; block++) {
         float output[480 * PLANKMicChannels];
-        if (!PLANKMicQueueRender(&_pcm, ns, output)) _silenceFrames += 480;
+        uint64_t captureTime = 0;
+        if (!PLANKMicQueueRenderTimed(&_pcm, ns, output, &captureTime)) _silenceFrames += 480;
+        if (_mediaClock) {
+            CMTime scheduled = CMTimeConvertScale(CMClockMakeHostTimeFromSystemUnits(
+                anchor + (uint64_t)(_nextFrame * _link->ticksPerFrame)), 1000000000, kCMTimeRoundingMethod_Default);
+            if (captureTime && CMTIME_IS_NUMERIC(scheduled) && scheduled.value > 0)
+                PLANKReverseMediaClockObserve(&_mediaClock->value, captureTime, (uint64_t)scheduled.value, PLANKCameraHostTimeNanos());
+            else PLANKReverseMediaClockClear(&_mediaClock->value);
+        }
         PLANKMicBufferWrite(&_link->samples, _nextFrame, output, 480);
         _renderedFrames += 480;
         _nextFrame += 480;
@@ -134,6 +148,7 @@ static uint64_t producerNow(void) { return clock_gettime_nsec_np(CLOCK_MONOTONIC
         PLANKMicBufferReset(&_link->samples, _nextFrame);
     }
     PLANKMicQueueClear(&_pcm);
+    if (_mediaClock) PLANKReverseMediaClockClear(&_mediaClock->value);
 }
 - (void)stop {
     dispatch_assert_queue(_queue);
@@ -143,6 +158,7 @@ static uint64_t producerNow(void) { return clock_gettime_nsec_np(CLOCK_MONOTONIC
     if (_timer) dispatch_source_cancel(_timer);
     if (_peer) xpc_connection_cancel(_peer);
     PLANKMicQueueClear(&_pcm);
+    if (_mediaClock) PLANKReverseMediaClockClear(&_mediaClock->value);
     NSLog(@"PLANK microphone producer stopped: frames=%llu silence=%llu resyncs=%llu overflow=%llu expired=%llu",
         (unsigned long long)_renderedFrames, (unsigned long long)_silenceFrames,
         (unsigned long long)_resyncs, (unsigned long long)_pcm.discardedFrames,

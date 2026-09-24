@@ -24,6 +24,20 @@ static inline NSDictionary *PLANKMacMediaProfile(NSString *name, NSString *mode)
     if ([name isEqual:@"camera"]) return @{@"schema_version": @1, @"codecs": @[@"h264-annex-b", @"mjpeg"]};
     return nil;
 }
+static inline unsigned PLANKMacMicrophoneSchema(NSDictionary *request) {
+    if ([request[@"schema_version"] isEqual:@7] &&
+        [request[@"features"] isKindOfClass:NSDictionary.class] &&
+        [request[@"features"][@"microphone"] isKindOfClass:NSDictionary.class] &&
+        [request[@"features"][@"microphone"][@"schema_version"] isEqual:@3]) return 3;
+    return 2;
+}
+static inline NSDictionary *PLANKMacMediaSelectedProfile(NSString *name, NSString *mode, id choice) {
+    if ([name isEqual:@"microphone"] && [choice isKindOfClass:NSDictionary.class] &&
+        [choice[@"schema_version"] isEqual:@3])
+        return @{@"schema_version":@3, @"codec":@"opus", @"sample_rate":@48000,
+            @"channels":@2, @"packet_duration_ms":@10, @"capture_clock":@"monotonic-ns"};
+    return PLANKMacMediaProfile(name, mode);
+}
 static inline BOOL PLANKMacMediaContainsProfile(id value, NSDictionary *expected) {
     if (![value isKindOfClass:NSDictionary.class] || [value count] > 32 || !expected.count) return NO;
     for (NSString *key in expected) {
@@ -70,7 +84,7 @@ static inline NSDictionary *PLANKMacNegotiateMedia(NSDictionary *request, unsign
                 !PLANKMacMediaInteger(choice[@"schema_version"], 1, 65535)) { *status = 400; return nil; }
             NSString *candidateMode = [name isEqual:@"desktop"] ? choice[@"encoding_mode"] : mode;
             if ([name isEqual:@"desktop"] && !PLANKMacEncodingProfile(candidateMode)) continue;
-            NSDictionary *profile = PLANKMacMediaProfile(name, candidateMode);
+            NSDictionary *profile = PLANKMacMediaSelectedProfile(name, candidateMode, choice);
             if (!chosen && PLANKMacMediaContainsProfile(choice, profile)) {
                 chosen = profile;
                 if ([name isEqual:@"desktop"]) mode = candidateMode;
@@ -110,7 +124,7 @@ static inline NSDictionary *PLANKMacNormalizeMediaLaunch(NSDictionary *request) 
     for (NSString *name in PLANKMacMediaNames()) {
         id value = features[name];
         if ((!value || value == NSNull.null) && ![request[@"required_features"] containsObject:name]) continue;
-        if (!PLANKMacMediaContainsProfile(value, PLANKMacMediaProfile(name, desktop[@"encoding_mode"]))) return nil;
+        if (!PLANKMacMediaContainsProfile(value, PLANKMacMediaSelectedProfile(name, desktop[@"encoding_mode"], value))) return nil;
     }
     NSMutableDictionary *normalized = [NSMutableDictionary dictionaryWithDictionary:@{
         @"schema_version": @6,
@@ -131,7 +145,8 @@ static inline NSDictionary *PLANKMacMediaReplyFeatures(NSDictionary *request, BO
     for (NSString *name in PLANKMacMediaNames()) {
         BOOL enabled = !([name isEqual:@"clipboard"] && !clipboard) &&
             !([name isEqual:@"microphone"] && !microphone) && !([name isEqual:@"camera"] && !camera);
-        features[name] = enabled ? PLANKMacMediaProfile(name, normalized[@"encoding_mode"]) : (id)NSNull.null;
+        id selected = [request[@"schema_version"] isEqual:@7] ? request[@"features"][name] : nil;
+        features[name] = enabled ? PLANKMacMediaSelectedProfile(name, normalized[@"encoding_mode"], selected) : (id)NSNull.null;
     }
     NSMutableDictionary *desktop = [features[@"desktop"] mutableCopy];
     for (NSString *key in @[@"width", @"height", @"frame_rate", @"bitrate_kbps"]) desktop[key] = normalized[key];

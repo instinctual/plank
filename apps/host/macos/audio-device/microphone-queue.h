@@ -15,6 +15,7 @@ enum { PLANKMicQueueFrames = 2880, PLANKMicTargetFrames = 960 };
 typedef struct {
     float samples[PLANKMicQueueFrames * PLANKMicChannels];
     uint64_t arrived[PLANKMicQueueFrames];
+    uint64_t captured[PLANKMicQueueFrames];
     uint64_t nextSample, expiredFrames, discardedFrames;
     unsigned head, count;
     int averageFrames256;
@@ -27,7 +28,7 @@ static inline void PLANKMicQueueDiscard(PLANKMicQueue *queue, unsigned count) {
     for (unsigned i = 0; i < count; i++) {
         unsigned frame = (queue->head + i) % PLANKMicQueueFrames;
         memset(&queue->samples[frame * PLANKMicChannels], 0, PLANKMicChannels * sizeof(float));
-        queue->arrived[frame] = 0;
+        queue->arrived[frame] = 0; queue->captured[frame] = 0;
     }
     queue->head = (queue->head + count) % PLANKMicQueueFrames;
     queue->count -= count;
@@ -63,9 +64,9 @@ static inline void PLANKMicQueueExpire(PLANKMicQueue *queue, uint64_t now) {
     }
 }
 
-static inline bool PLANKMicQueueSubmit(PLANKMicQueue *queue, const float *samples,
-                                     uint32_t count, uint64_t sampleTime, uint64_t now) {
-    if (!samples || count != PLANKMicPacketFrames || sampleTime % PLANKMicPacketFrames ||
+static inline bool PLANKMicQueueSubmitTimed(PLANKMicQueue *queue, const float *samples,
+                                     uint32_t count, uint64_t sampleTime, uint64_t captureTime, uint64_t now) {
+    if (captureTime > INT64_MAX - UINT64_C(10000000) || !samples || count != PLANKMicPacketFrames || sampleTime % PLANKMicPacketFrames ||
         sampleTime > UINT64_MAX - count || (queue->hasSample && sampleTime < queue->nextSample)) return false;
     for (unsigned i = 0; i < count * PLANKMicChannels; i++) if (!isfinite(samples[i])) return false;
     // Expire before appending: fresh arrivals must not refresh old PCM's age.
@@ -76,7 +77,7 @@ static inline bool PLANKMicQueueSubmit(PLANKMicQueue *queue, const float *sample
             for (unsigned i = 0; i < missing; i++) {
                 unsigned frame = (queue->head + queue->count++) % PLANKMicQueueFrames;
                 memset(&queue->samples[frame * PLANKMicChannels], 0, PLANKMicChannels * sizeof(float));
-                queue->arrived[frame] = now;
+                queue->arrived[frame] = now; queue->captured[frame] = 0;
             }
         } else PLANKMicQueueFlush(queue);
     }
@@ -91,14 +92,21 @@ static inline bool PLANKMicQueueSubmit(PLANKMicQueue *queue, const float *sample
         for (unsigned channel = 0; channel < PLANKMicChannels; channel++)
             queue->samples[frame * PLANKMicChannels + channel] = fminf(1, fmaxf(-1, samples[i * PLANKMicChannels + channel]));
         queue->arrived[frame] = now;
+        queue->captured[frame] = captureTime ? captureTime + (uint64_t)i * 1000000000 / PLANKMicRate : 0;
     }
     return true;
 }
 
+static inline bool PLANKMicQueueSubmit(PLANKMicQueue *queue, const float *samples,
+        uint32_t count, uint64_t sampleTime, uint64_t now) {
+    return PLANKMicQueueSubmitTimed(queue, samples, count, sampleTime, 0, now);
+}
+
 // Exactly one 10 ms stereo block. Return false for silence/starvation. Adjust
 // both channels together by one frame around the existing 20 ms queue target.
-static inline bool PLANKMicQueueRender(PLANKMicQueue *queue, uint64_t now,
-                                     float output[PLANKMicPacketFrames * PLANKMicChannels]) {
+static inline bool PLANKMicQueueRenderTimed(PLANKMicQueue *queue, uint64_t now,
+                                     float output[PLANKMicPacketFrames * PLANKMicChannels], uint64_t *captureTime) {
+    if (captureTime) *captureTime = 0;
     memset(output, 0, PLANKMicPacketFrames * PLANKMicChannels * sizeof(float));
     PLANKMicQueueExpire(queue, now);
     if (!queue->primed && queue->count >= PLANKMicTargetFrames) {
@@ -125,6 +133,19 @@ static inline bool PLANKMicQueueRender(PLANKMicQueue *queue, uint64_t now,
                 queue->samples[((queue->head + a) % PLANKMicQueueFrames) * PLANKMicChannels + channel] * (1 - (offset - a)) +
                 queue->samples[((queue->head + b) % PLANKMicQueueFrames) * PLANKMicChannels + channel] * (offset - a);
     }
+    if (captureTime) {
+        *captureTime = queue->captured[queue->head];
+        for (unsigned i = 1; i < consume; i++) {
+            uint64_t before = queue->captured[(queue->head + i - 1) % PLANKMicQueueFrames];
+            uint64_t after = queue->captured[(queue->head + i) % PLANKMicQueueFrames];
+            if (!before || after <= before || after - before > 2000000) { *captureTime = 0; break; }
+        }
+    }
     PLANKMicQueueDiscard(queue, consume);
     return true;
+}
+
+static inline bool PLANKMicQueueRender(PLANKMicQueue *queue, uint64_t now,
+        float output[PLANKMicPacketFrames * PLANKMicChannels]) {
+    return PLANKMicQueueRenderTimed(queue, now, output, NULL);
 }

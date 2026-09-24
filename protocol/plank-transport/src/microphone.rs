@@ -15,6 +15,7 @@ pub const SAMPLE_RATE: u32 = 48_000;
 pub const FRAME_SAMPLES: u16 = 480;
 pub const MAX_OPUS_BYTES: usize = 1275;
 pub const HEADER_BYTES: usize = 24;
+pub const TIMED_HEADER_BYTES: usize = 32;
 const MAGIC: &[u8; 4] = b"PMIC";
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -23,10 +24,15 @@ pub struct Packet {
     pub generation: u64,
     /// First 48 kHz sample relative to this activation, not receive wall time.
     pub sample_time: u64,
+    /// First sample capture time in Client CLOCK_MONOTONIC nanoseconds.
+    /// Zero selects the explicitly negotiated legacy stereo envelope.
+    pub capture_time_ns: u64,
     pub opus: Bytes,
 }
 impl Packet {
     fn validate(&self) -> Result<()> {
+        ensure!(self.capture_time_ns <= i64::MAX as u64 - 10_000_000,
+            "invalid microphone capture timestamp");
         ensure!(
             self.generation != 0,
             "zero microphone activation generation"
@@ -47,33 +53,42 @@ impl Packet {
     }
     pub fn encode(&self) -> Result<Bytes> {
         self.validate()?;
-        let mut output = BytesMut::with_capacity(HEADER_BYTES + self.opus.len());
+        let mut output = BytesMut::with_capacity(TIMED_HEADER_BYTES + self.opus.len());
         output.extend_from_slice(MAGIC);
-        output.put_u8(2); // stereo envelope version
+        output.put_u8(if self.capture_time_ns == 0 { 2 } else { 3 });
         output.put_u8(2); // stereo
         output.put_u16(FRAME_SAMPLES);
         output.put_u64(self.generation);
         output.put_u64(self.sample_time);
+        if self.capture_time_ns != 0 { output.put_u64(self.capture_time_ns); }
         output.extend_from_slice(&self.opus);
         Ok(output.freeze())
     }
     pub fn decode(bytes: Bytes) -> Result<Self> {
         // Bound the complete record before slicing or allocating anything.
         ensure!(
-            (HEADER_BYTES + 1..=HEADER_BYTES + MAX_OPUS_BYTES).contains(&bytes.len()),
+            (HEADER_BYTES + 1..=TIMED_HEADER_BYTES + MAX_OPUS_BYTES).contains(&bytes.len()),
             "invalid microphone record length"
         );
         ensure!(
             &bytes[..4] == MAGIC
-                && bytes[4] == 2
+                && matches!(bytes[4], 2 | 3)
                 && bytes[5] == 2
                 && u16::from_be_bytes(bytes[6..8].try_into().unwrap()) == FRAME_SAMPLES,
             "unsupported microphone packet format"
         );
+        let header = if bytes[4] == 3 { TIMED_HEADER_BYTES } else { HEADER_BYTES };
+        ensure!((header + 1..=header + MAX_OPUS_BYTES).contains(&bytes.len()), "invalid microphone payload length");
+        let capture_time_ns = if bytes[4] == 3 {
+            let time = u64::from_be_bytes(bytes[24..32].try_into().unwrap());
+            ensure!(time != 0, "missing microphone capture timestamp");
+            time
+        } else { 0 };
         let packet = Self {
             generation: u64::from_be_bytes(bytes[8..16].try_into().unwrap()),
             sample_time: u64::from_be_bytes(bytes[16..24].try_into().unwrap()),
-            opus: bytes.slice(HEADER_BYTES..),
+            capture_time_ns,
+            opus: bytes.slice(header..),
         };
         packet.validate()?;
         Ok(packet)
@@ -123,10 +138,30 @@ pub async fn open_sink(connection: &Connection, timeout: Duration) -> Result<Aud
 mod tests {
     use super::*;
     #[test]
+    fn timestamped_vector_bounds_and_legacy_unchanged() {
+        let vector = hex::decode(include_str!("../../../tests/protocol/microphone-v3.hex").trim()).unwrap();
+        let packet = Packet { generation: 2, sample_time: 480, capture_time_ns: 1_000_000_000,
+            opus: Bytes::from_static(&[0xf4, 0xff, 0xfe]) };
+        assert_eq!(packet.encode().unwrap().as_ref(), vector);
+        assert_eq!(Packet::decode(Bytes::copy_from_slice(&vector)).unwrap(), packet);
+        for length in 0..=TIMED_HEADER_BYTES {
+            assert!(Packet::decode(Bytes::copy_from_slice(&vector[..length])).is_err());
+        }
+        for timestamp in [0, i64::MAX as u64, u64::MAX] {
+            let mut malformed = vector.clone(); malformed[24..32].copy_from_slice(&timestamp.to_be_bytes());
+            assert!(Packet::decode(Bytes::from(malformed)).is_err());
+        }
+        let mut legacy = packet.clone(); legacy.capture_time_ns = 0;
+        let bytes = legacy.encode().unwrap();
+        assert_eq!(bytes[4], 2); assert_eq!(bytes.len(), HEADER_BYTES + 3);
+        assert_eq!(Packet::decode(bytes).unwrap(), legacy);
+    }
+    #[test]
     fn fixed_wire_vector_and_boundaries() {
         let packet = Packet {
             generation: 2,
             sample_time: 480,
+            capture_time_ns: 0,
             opus: Bytes::from_static(&[0xF4, 0xFF, 0xFE]),
         };
         let expected = [

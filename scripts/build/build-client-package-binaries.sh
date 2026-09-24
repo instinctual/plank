@@ -1749,6 +1749,9 @@ mkdir -p "$build_dir/tests/pacershutdown"
 )
 echo "client_render_shutdown_gate=pass"
 
+c++ -std=c++17 -Wall -Wextra -Werror -I"$source_dir/app/streaming/audio" \
+  "$repo_dir/tests/audio/client-microphone-clock.cpp" -o "$build_dir/tests/client-microphone-clock"
+"$build_dir/tests/client-microphone-clock"
 mkdir -p "$build_dir/tests/client-microphone"
 (
   cd "$build_dir/tests/client-microphone"
@@ -1756,6 +1759,14 @@ mkdir -p "$build_dir/tests/client-microphone"
   make -j2
   timeout 30 ./client-microphone
 )
+mkdir -p "$build_dir/tests/client-microphone-timed"
+(
+  cd "$build_dir/tests/client-microphone-timed"
+  qmake6 "$repo_dir/tests/audio/client-microphone.pro" "PLANK_CLIENT_SOURCE=$source_dir" PLANK_TIMED_CAPTURE_TEST=1 CONFIG+=release
+  make -j2
+  timeout 30 ./client-microphone
+)
+
 PLANK_CLIENT_SOURCE="$source_dir" bash "$repo_dir/scripts/test/test-native-camera-capture.sh" \
   "$build_dir/tests/native-camera"
 bash "$repo_dir/scripts/test/test-client-camera-session.sh" "$repo_dir" "$source_dir" \

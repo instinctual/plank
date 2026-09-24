@@ -14,10 +14,12 @@ const MAX_AGE: Duration = Duration::from_millis(100);
 #[derive(Default)]
 struct State {
     enabled: bool,
+    timed: bool,
     status: u32, // 0 unavailable/not negotiated, 1 opening, 2 ready, 3 failed
     generation: u64,
     last_generation: u64,
     last_sample: Option<u64>,
+    last_capture: Option<u64>,
     packets: VecDeque<(Instant, Packet)>,
 }
 
@@ -62,6 +64,7 @@ impl Microphone {
             state.last_generation = generation;
         }
         state.last_sample = None;
+        state.last_capture = None;
         state.packets.clear();
         true
     }
@@ -71,6 +74,8 @@ impl Microphone {
         if state.status != 2
             || state.generation == 0
             || packet.generation != state.generation
+            || (packet.capture_time_ns != 0) != state.timed
+            || (state.timed && state.last_capture.is_some_and(|last| packet.capture_time_ns <= last))
             || state
                 .last_sample
                 .is_some_and(|last| packet.sample_time <= last)
@@ -78,6 +83,7 @@ impl Microphone {
             return PLANK_TRANSPORT_ERROR_INVALID_STATE;
         }
         state.last_sample = Some(packet.sample_time);
+        state.last_capture = Some(packet.capture_time_ns);
         let dropped = state.packets.len() == capacity;
         if dropped {
             state.packets.pop_front();
@@ -179,7 +185,12 @@ async fn sink(shared: &NativeShared, connection: &kyproto::Connection) -> Result
             }
             AVPacket::Media(packet) if !packet.header.is_config => {
                 anyhow::ensure!(format_valid, "missing microphone codec");
-                let packet = Packet::decode(packet.payload)?;
+                let decoded = Packet::decode(packet.payload)?;
+                anyhow::ensure!(packet.header.pts == decoded.sample_time / 48,
+                    "inconsistent microphone media timestamp");
+                let packet = decoded;
+                anyhow::ensure!((packet.capture_time_ns != 0) == shared.microphone.state.lock().unwrap().timed,
+                    "unnegotiated microphone envelope");
                 // In-flight pre-mute packets are expected, not a session error.
                 shared.microphone.push(packet, RECEIVE_PACKETS);
             }
@@ -224,10 +235,20 @@ pub(super) async fn run(shared: Arc<NativeShared>, connection: &kyproto::Connect
 pub unsafe extern "C" fn plank_transport_native_microphone_enable(
     endpoint: *mut PlankTransportNativeEndpoint,
 ) -> i32 {
+    unsafe { plank_transport_native_microphone_enable_version(endpoint, 2) }
+}
+
+/// # Safety
+/// Same endpoint lifetime and authenticated negotiation requirements as enable.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn plank_transport_native_microphone_enable_version(
+    endpoint: *mut PlankTransportNativeEndpoint, version: u32,
+) -> i32 {
     catch_result(|| {
         let Some(endpoint) = (unsafe { endpoint.as_ref() }) else {
             return PLANK_TRANSPORT_ERROR_INVALID_ARGUMENT;
         };
+        if !matches!(version, 2 | 3) { return PLANK_TRANSPORT_ERROR_INVALID_ARGUMENT; }
         let _allocation = endpoint.shared.reverse_allocation.lock().unwrap();
         if endpoint.shared.camera.negotiated() {
             return PLANK_TRANSPORT_ERROR_INVALID_STATE;
@@ -243,6 +264,7 @@ pub unsafe extern "C" fn plank_transport_native_microphone_enable(
             return PLANK_TRANSPORT_ERROR_INVALID_STATE;
         }
         state.enabled = true;
+        state.timed = version == 3;
         state.status = 1;
         drop(state);
         endpoint.shared.microphone.changed.notify_one();
@@ -298,6 +320,16 @@ pub unsafe extern "C" fn plank_transport_native_microphone_send(
     data: *const u8,
     length: usize,
 ) -> i32 {
+    unsafe { plank_transport_native_microphone_send_timed(endpoint, generation, sample_time, 0, data, length) }
+}
+
+/// # Safety
+/// Same input bounds and endpoint lifetime as send. Nonzero capture time requires schema3.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn plank_transport_native_microphone_send_timed(
+    endpoint: *mut PlankTransportNativeEndpoint, generation: u64, sample_time: u64,
+    capture_time_ns: u64, data: *const u8, length: usize,
+) -> i32 {
     catch_result(|| {
         let Some(endpoint) = (unsafe { endpoint.as_ref() }) else {
             return PLANK_TRANSPORT_ERROR_INVALID_ARGUMENT;
@@ -311,6 +343,7 @@ pub unsafe extern "C" fn plank_transport_native_microphone_send(
         let packet = Packet {
             generation,
             sample_time,
+            capture_time_ns,
             opus: Bytes::copy_from_slice(unsafe { std::slice::from_raw_parts(data, length) }),
         };
         if packet.encode().is_err() {
@@ -332,6 +365,17 @@ pub unsafe extern "C" fn plank_transport_native_microphone_receive(
     capacity: usize,
     length: *mut usize,
 ) -> i32 {
+    unsafe { plank_transport_native_microphone_receive_timed(endpoint, generation, sample_time,
+        ptr::null_mut(), data, capacity, length) }
+}
+
+/// # Safety
+/// Output storage must be writable. capture_time_ns may be null only on schema2.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn plank_transport_native_microphone_receive_timed(
+    endpoint: *mut PlankTransportNativeEndpoint, generation: *mut u64, sample_time: *mut u64,
+    capture_time_ns: *mut u64, data: *mut u8, capacity: usize, length: *mut usize,
+) -> i32 {
     catch_result(|| {
         let Some(endpoint) = (unsafe { endpoint.as_ref() }) else {
             return PLANK_TRANSPORT_ERROR_INVALID_ARGUMENT;
@@ -343,6 +387,7 @@ pub unsafe extern "C" fn plank_transport_native_microphone_receive(
             return PLANK_TRANSPORT_ERROR_INVALID_ARGUMENT;
         }
         let mut state = endpoint.shared.microphone.state.lock().unwrap();
+        if state.timed && capture_time_ns.is_null() { return PLANK_TRANSPORT_ERROR_INVALID_ARGUMENT; }
         while state
             .packets
             .front()
@@ -364,6 +409,7 @@ pub unsafe extern "C" fn plank_transport_native_microphone_receive(
         unsafe {
             *generation = packet.generation;
             *sample_time = packet.sample_time;
+            if !capture_time_ns.is_null() { *capture_time_ns = packet.capture_time_ns; }
             ptr::copy_nonoverlapping(packet.opus.as_ptr(), data, packet.opus.len());
         }
         PLANK_TRANSPORT_OK
@@ -377,6 +423,7 @@ mod tests {
         Packet {
             generation,
             sample_time: n * 480,
+            capture_time_ns: 0,
             opus: Bytes::from_static(&[1]),
         }
     }
@@ -444,12 +491,29 @@ mod tests {
         assert!(microphone.pop().is_none());
     }
 
+    #[test]
+    fn negotiated_timestamps_reject_mismatch_and_regression() {
+        let microphone = Microphone::default();
+        { let mut state = microphone.state.lock().unwrap(); state.enabled = true; state.status = 2; state.timed = true; }
+        assert!(microphone.activate(1));
+        assert_eq!(microphone.push(packet(1,0), 6), PLANK_TRANSPORT_ERROR_INVALID_STATE);
+        let mut first = packet(1,0); first.capture_time_ns = 1_000_000_000;
+        assert_eq!(microphone.push(first, 6), PLANK_TRANSPORT_OK);
+        let mut next = packet(1,1); next.capture_time_ns = 999_999_999;
+        assert_eq!(microphone.push(next.clone(), 6), PLANK_TRANSPORT_ERROR_INVALID_STATE);
+        next.capture_time_ns = 1_010_000_000;
+        assert_eq!(microphone.push(next, 6), PLANK_TRANSPORT_OK);
+        assert!(microphone.activate(0)); assert!(microphone.activate(2));
+        let mut reopened = packet(2,0); reopened.capture_time_ns = 1_020_000_000;
+        assert_eq!(microphone.push(reopened, 6), PLANK_TRANSPORT_OK);
+    }
+
     #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
     #[ignore = "run through scripts/test/run-plank-transport-native-loopback.sh"]
     async fn encrypted_ffi_microphone_mute_reopen_and_bounds() {
         use super::super::cancellation_tests::{endpoint, wait_bound, wait_state};
         use std::net::UdpSocket;
-        for setup in [false, true] {
+        for (setup, version) in [(false, 2), (true, 2), (false, 3), (true, 3)] {
             let address = UdpSocket::bind("127.0.0.1:0")
                 .unwrap()
                 .local_addr()
@@ -490,11 +554,11 @@ mod tests {
                 wait_state(&host, EndpointState::Ready).await;
                 wait_state(&client, EndpointState::Ready).await;
                 assert_eq!(
-                    plank_transport_native_microphone_enable(&mut *host),
+                    plank_transport_native_microphone_enable_version(&mut *host, version),
                     PLANK_TRANSPORT_OK
                 );
                 assert_eq!(
-                    plank_transport_native_microphone_enable(&mut *client),
+                    plank_transport_native_microphone_enable_version(&mut *client, version),
                     PLANK_TRANSPORT_OK
                 );
                 tokio::time::timeout(Duration::from_secs(5), async {
@@ -518,21 +582,24 @@ mod tests {
                         PLANK_TRANSPORT_OK
                     );
                     let input = [0xf4, 0xff, 0xfe];
+                    let capture = if version == 3 { generation * 1_000_000_000 } else { 0 };
                     assert_eq!(
-                        plank_transport_native_microphone_send(
+                        plank_transport_native_microphone_send_timed(
                             &mut *client,
                             generation,
                             0,
+                            capture,
                             input.as_ptr(),
                             MAX_OPUS_BYTES + 1
                         ),
                         PLANK_TRANSPORT_ERROR_INVALID_ARGUMENT
                     );
                     assert_eq!(
-                        plank_transport_native_microphone_send(
+                        plank_transport_native_microphone_send_timed(
                             &mut *client,
                             generation,
                             0,
+                            capture,
                             input.as_ptr(),
                             input.len()
                         ),
@@ -542,12 +609,14 @@ mod tests {
                         loop {
                             let mut received_generation = 0;
                             let mut timestamp = 99;
+                            let mut capture_time = 0;
                             let mut size = 0;
                             let mut output = [0; 3];
-                            let result = plank_transport_native_microphone_receive(
+                            let result = plank_transport_native_microphone_receive_timed(
                                 &mut *host,
                                 &mut received_generation,
                                 &mut timestamp,
+                                &mut capture_time,
                                 output.as_mut_ptr(),
                                 1,
                                 &mut size,
@@ -555,10 +624,11 @@ mod tests {
                             if result == PLANK_TRANSPORT_ERROR_BUFFER_TOO_SMALL {
                                 assert_eq!(size, 3);
                                 assert_eq!(
-                                    plank_transport_native_microphone_receive(
+                                    plank_transport_native_microphone_receive_timed(
                                         &mut *host,
                                         &mut received_generation,
                                         &mut timestamp,
+                                &mut capture_time,
                                         output.as_mut_ptr(),
                                         output.len(),
                                         &mut size
@@ -567,6 +637,7 @@ mod tests {
                                 );
                                 assert_eq!(received_generation, generation);
                                 assert_eq!(timestamp, 0);
+                                assert_eq!(capture_time, capture);
                                 assert_eq!(output, input);
                                 break;
                             }
@@ -585,10 +656,11 @@ mod tests {
                         PLANK_TRANSPORT_OK
                     );
                     assert_eq!(
-                        plank_transport_native_microphone_send(
+                        plank_transport_native_microphone_send_timed(
                             &mut *client,
                             generation,
                             480,
+                            capture + if version == 3 { 10_000_000 } else { 0 },
                             input.as_ptr(),
                             input.len()
                         ),

@@ -78,6 +78,8 @@ BOOL PLANKMacPreviewRequestMatchesTopology(NSDictionary *request, NSDictionary *
     PLANKMacMicrophoneSession *_microphone;
     PLANKMacCameraSession *_camera;
     uint64_t _microphoneGeneration;
+    unsigned _microphoneSchema;
+    PLANKMacReverseMediaClock *_mediaClock;
     dispatch_group_t _inputGroup;
     BOOL _captureDrained;
     PlankTransportNativeEndpoint *_endpoint;
@@ -136,6 +138,7 @@ BOOL PLANKMacPreviewRequestMatchesTopology(NSDictionary *request, NSDictionary *
         return nil;
     PLANKMacAccountIdentity account = {0};
     if (![sessions authorizeToken:token peer:peer identity:&account]) return nil;
+    unsigned microphoneSchema = PLANKMacMicrophoneSchema(request);
     request = PLANKMacNormalizeMediaLaunch(request);
     NSDictionary *selected = topology();
     if (!PLANKMacPreviewRequestMatchesTopology(request, selected)) return nil;
@@ -153,6 +156,8 @@ BOOL PLANKMacPreviewRequestMatchesTopology(NSDictionary *request, NSDictionary *
     // process can enable a pasteboard. Tokens cannot cross graphical scopes.
     _clipboardEnabled = [request[@"clipboard"] boolValue] && geteuid() != 0 && account.uid == geteuid();
     _microphoneGeneration = microphoneGeneration;
+    _microphoneSchema = microphoneSchema;
+    if (microphoneSchema == 3) _mediaClock = [[PLANKMacReverseMediaClock alloc] init];
     _microphoneEnabled = [request[@"microphone"] boolValue] && microphoneGeneration &&
         account.uid == geteuid() && [PLANKMacMicrophoneSession available];
     _cameraEnabled = [request[@"camera"] boolValue] && microphoneGeneration &&
@@ -204,7 +209,7 @@ BOOL PLANKMacPreviewRequestMatchesTopology(NSDictionary *request, NSDictionary *
         }
         if (self.state == PLANKMacPreviewConnecting && !_captureStarted && state == PLANK_TRANSPORT_STATE_READY) {
             if (![_sessions activateStreamLease:_lease]) { [self stopOnQueueForReason:@"lease-activation-failed"]; return; }
-            if (_microphoneEnabled && plank_transport_native_microphone_enable(_endpoint) != PLANK_TRANSPORT_OK)
+            if (_microphoneEnabled && plank_transport_native_microphone_enable_version(_endpoint, _microphoneSchema) != PLANK_TRANSPORT_OK)
                 NSLog(@"PLANK microphone endpoint could not be enabled; video and output audio remain available");
             if (_cameraEnabled && plank_transport_native_camera_enable(_endpoint, _microphoneEnabled ? 1 : 0) != PLANK_TRANSPORT_OK)
                 NSLog(@"PLANK camera endpoint could not be enabled; other media remain available");
@@ -274,6 +279,7 @@ BOOL PLANKMacPreviewRequestMatchesTopology(NSDictionary *request, NSDictionary *
                 [owner->_sessions authorizeStreamLease:owner->_lease identity:&account] &&
                 account.uid == geteuid() && [owner->_selected isEqual:owner->_topology()];
         }];
+    _microphone.mediaClock = _mediaClock;
 }
 - (void)startCamera {
     if (!_cameraEnabled) return;
@@ -286,6 +292,7 @@ BOOL PLANKMacPreviewRequestMatchesTopology(NSDictionary *request, NSDictionary *
                 [owner->_sessions authorizeStreamLease:owner->_lease identity:&account] &&
                 account.uid == geteuid() && [owner->_selected isEqual:owner->_topology()];
         }];
+    _camera.mediaClock = _mediaClock;
 }
 - (void)startClipboard {
     if (!_clipboardEnabled) return;

@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 #pragma once
 #import <Foundation/Foundation.h>
+#import "reverse-media-clock.h"
 #include "plank_transport.h"
 #include "plank_transport_control.h"
 
@@ -8,6 +9,7 @@
 // before endpoint destruction. No camera decoding or physical capture here.
 @interface PLANKMacCameraSession : NSObject
 + (BOOL)available;
+@property(nonatomic, strong) PLANKMacReverseMediaClock *mediaClock;
 - (instancetype)initWithQueue:(dispatch_queue_t)queue endpoint:(PlankTransportNativeEndpoint *)endpoint
                    generation:(uint64_t)generation valid:(BOOL (^)(void))valid;
 - (BOOL)receive:(const PlankTransportControlPacket *)packet;

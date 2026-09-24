@@ -350,6 +350,13 @@ int32_t plank_transport_native_audio_receive(
 int32_t plank_transport_native_microphone_enable(PlankTransportNativeEndpoint *endpoint);
 uint32_t plank_transport_native_microphone_state(const PlankTransportNativeEndpoint *endpoint);
 int32_t plank_transport_native_microphone_activate(PlankTransportNativeEndpoint *endpoint, uint64_t generation);
+/* Schema3 is negotiated independently; schema2 remains the legacy default.
+ * Capture time is Client CLOCK_MONOTONIC nanoseconds for the first decoded sample. */
+int32_t plank_transport_native_microphone_enable_version(PlankTransportNativeEndpoint *endpoint, uint32_t version);
+int32_t plank_transport_native_microphone_send_timed(PlankTransportNativeEndpoint *endpoint,
+    uint64_t generation, uint64_t sample_time, uint64_t capture_time_ns, const uint8_t *data, size_t length);
+int32_t plank_transport_native_microphone_receive_timed(PlankTransportNativeEndpoint *endpoint,
+    uint64_t *generation, uint64_t *sample_time, uint64_t *capture_time_ns, uint8_t *data, size_t capacity, size_t *length);
 int32_t plank_transport_native_microphone_send(PlankTransportNativeEndpoint *endpoint,
         uint64_t generation, uint64_t sample_time, const uint8_t *payload, size_t payload_size);
 int32_t plank_transport_native_microphone_receive(PlankTransportNativeEndpoint *endpoint,

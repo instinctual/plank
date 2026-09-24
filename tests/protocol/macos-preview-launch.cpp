@@ -146,6 +146,10 @@ int main(int argc, char** argv)
             offered[name] = QJsonArray {}; chosen[name] = QJsonValue::Null; launchFeatures[name] = QJsonValue::Null;
         }
     }
+#ifdef Q_OS_LINUX
+    auto microphoneOffers = offered.value("microphone").toArray();
+    microphoneOffers.prepend(vector.value("timed_microphone")); offered["microphone"] = microphoneOffers;
+#endif
     offer["features"] = offered; negotiation["features"] = chosen; featureLaunch["features"] = launchFeatures;
     CHECK(MacMediaFeatures::offer(topology.appleEncodingMode) == offer);
     MacMediaFeatures::Agreement agreement;
@@ -194,6 +198,22 @@ int main(int argc, char** argv)
     auto incompatibleTransport = negotiation; incompatibleTransport["transport"] = "plank-native/1";
     CHECK(!MacMediaFeatures::select(incompatibleTransport, topology.appleEncodingMode, agreement));
 
+    auto timedNegotiation = negotiation; auto timedChosen = chosen;
+    timedChosen["microphone"] = vector.value("timed_microphone"); timedNegotiation["features"] = timedChosen;
+#ifdef Q_OS_LINUX
+    CHECK(MacMediaFeatures::select(timedNegotiation, topology.appleEncodingMode, agreement));
+    auto timedLaunch = MacPreviewLaunch::request(topology, bitrate, 1200, agreement);
+    auto timedReply = featureReply; timedReply["features"] = timedLaunch.value("features");
+    CHECK(MacPreviewLaunch::parseReply(timedReply, topology, 28989, 1200, parsed, agreement, bitrate));
+    CHECK(parsed.microphoneSchema == 3);
+    CHECK(!MacPreviewLaunch::parseReply(featureReply, topology, 28989, 1200, parsed, agreement, bitrate));
+    // Older Hosts select the second, untimed stereo offer. Launch keeps that agreement.
+    CHECK(MacMediaFeatures::select(negotiation, topology.appleEncodingMode, agreement));
+    CHECK(MacPreviewLaunch::parseReply(featureReply, topology, 28989, 1200, parsed, agreement, bitrate));
+    CHECK(parsed.microphoneSchema == 2);
+#else
+    CHECK(!MacMediaFeatures::select(timedNegotiation, topology.appleEncodingMode, agreement));
+#endif
     for (int schema : {4, 5, 6}) {
         const auto legacy = MacMediaFeatures::legacy(schema, topology.appleEncodingMode);
         const auto request = MacPreviewLaunch::request(topology, 50000, 1200, legacy);

@@ -153,5 +153,13 @@
         ]
       }
     }
+  },
+  "timed_microphone": {
+    "schema_version": 3,
+    "codec": "opus",
+    "sample_rate": 48000,
+    "channels": 2,
+    "packet_duration_ms": 10,
+    "capture_clock": "monotonic-ns"
   }
 }

@@ -178,7 +178,7 @@ static char cameraClientsContext;
     __weak typeof(self) weakSelf = self;
     _consumer = [[PLANKMacCameraConsumer alloc] initWithQueue:dispatch_get_main_queue() requirement:requirement
         lease:^(uint64_t activation) { [weakSelf admitted:activation]; }
-        frame:^(const uint8_t *record, size_t size, uint64_t time) { [weakSelf receive:record size:size time:time]; }
+        frame:^(const uint8_t *record, size_t size, uint64_t time, uint64_t arrived) { [weakSelf receive:record size:size time:time arrived:arrived]; }
         gap:^{ [weakSelf changed]; }];
     if (!_consumer) return nil;
     return self;
@@ -203,7 +203,7 @@ static char cameraClientsContext;
         self->_mediaEpoch = epoch; self->_builder = nil; self->_output = nil;
     });
 }
-- (void)receive:(const uint8_t *)record size:(size_t)size time:(uint64_t)time {
+- (void)receive:(const uint8_t *)record size:(size_t)size time:(uint64_t)time arrived:(uint64_t)arrived {
     if (!_activation || size > PLANKCameraRecordBytes) return;
     if (PLANKCameraHostTimeNanos() - _lastGoodAt >= 3 * NSEC_PER_SEC) { [_consumer rejectLease]; return; }
     if (_busy) { [self changed]; return; }
@@ -245,7 +245,8 @@ static char cameraClientsContext;
                 uint64_t now = PLANKCameraHostTimeNanos();
                 if (native && (!running || output)) self->_lastGoodAt = now;
                 if (output && self->_revision == revision && self->_device.source.clients &&
-                    now >= time && now - time <= PLANK_CAMERA_MAX_AGE_NS) {
+                    now >= arrived && now - arrived <= PLANK_CAMERA_MAX_AGE_NS &&
+                    (time > now ? time - now <= UINT64_C(100000000) : now - time <= PLANK_CAMERA_MAX_AGE_NS)) {
                     [self->_device.source.stream sendSampleBuffer:output
                         discontinuity:gap ? CMIOExtensionStreamDiscontinuityFlagUnknown : CMIOExtensionStreamDiscontinuityFlagNone
                         hostTimeInNanoseconds:time];

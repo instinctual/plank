@@ -24,13 +24,13 @@ static BOOL cameraWord(xpc_object_t object, const char *name, uint64_t *value) {
     uint64_t _lease, _deadline, _connectAt, _cursor, _keyAt;
     BOOL _started, _stopped;
     void (^_admission)(uint64_t);
-    void (^_frame)(const uint8_t *, size_t, uint64_t);
+    void (^_frame)(const uint8_t *, size_t, uint64_t, uint64_t);
     void (^_gap)(void);
 }
 - (instancetype)init { return nil; }
 - (instancetype)initWithQueue:(dispatch_queue_t)queue requirement:(NSString *)requirement
                         lease:(void (^)(uint64_t))lease
-                        frame:(void (^)(const uint8_t *, size_t, uint64_t))frame
+                        frame:(void (^)(const uint8_t *, size_t, uint64_t, uint64_t))frame
                           gap:(void (^)(void))gap {
     long page = sysconf(_SC_PAGESIZE);
     if (!queue || !requirement.length || !lease || !frame || !gap || page <= 0) return nil;
@@ -112,9 +112,9 @@ static BOOL cameraWord(xpc_object_t object, const char *name, uint64_t *value) {
     if (!_peer && now >= _connectAt) { _connectAt = now + NSEC_PER_SEC; [self connect]; }
     if (!_link) return;
     if (now >= _deadline) { [self disconnect]; return; }
-    size_t size = 0; uint64_t time = 0;
-    int result = PLANKCameraLinkRead(_link, &_cursor, _record, PLANKCameraRecordBytes, &size, &time, PLANKCameraHostTimeNanos());
-    if (result > 0) _frame(_record, size, time);
+    size_t size = 0; uint64_t time = 0, arrived = 0;
+    int result = PLANKCameraLinkReadTimed(_link, &_cursor, _record, PLANKCameraRecordBytes, &size, &time, &arrived, PLANKCameraHostTimeNanos());
+    if (result > 0) _frame(_record, size, time, arrived);
     else if (result < 0) { _gap(); [self requestKeyframe]; }
 }
 - (void)start {

@@ -60,6 +60,22 @@ int main(int argc, const char **argv) {
         NSMutableDictionary *audio = [selected[@"audio"] mutableCopy]; audio[@"channels"] = @1;
         selected[@"audio"] = audio; bad[@"features"] = selected; CHECK(!PLANKMacNormalizeMediaLaunch(bad));
         bad = [launch mutableCopy]; bad[@"schema_version"] = @YES; CHECK(!PLANKMacNormalizeMediaLaunch(bad));
+        NSMutableDictionary *timedOffer = [offer mutableCopy], *timedFeatures = [offer[@"features"] mutableCopy];
+        NSDictionary *timed = vector[@"timed_microphone"];
+        CHECK([PLANKMacMediaSelectedProfile(@"microphone", nil, timed) isEqual:timed]);
+        timedFeatures[@"microphone"] = @[timed, PLANKMacMediaProfile(@"microphone", nil)];
+        timedOffer[@"features"] = timedFeatures;
+        CHECK([PLANKMacNegotiateMedia(timedOffer, &status)[@"features"][@"microphone"] isEqual:timed]);
+        NSMutableDictionary *timedLaunch = [launch mutableCopy], *timedSelected = [launch[@"features"] mutableCopy];
+        timedSelected[@"microphone"] = timed; timedLaunch[@"features"] = timedSelected;
+        CHECK(PLANKMacMicrophoneSchema(timedLaunch) == 3 && PLANKMacNormalizeMediaLaunch(timedLaunch));
+        CHECK([PLANKMacMediaReplyFeatures(timedLaunch, YES, YES, YES)[@"microphone"] isEqual:timed]);
+        CHECK(PLANKMacMediaReplyFeatures(timedLaunch, YES, NO, YES)[@"microphone"] == NSNull.null);
+        NSMutableDictionary *badClock = [timed mutableCopy]; badClock[@"capture_clock"] = @"wall-clock";
+        timedSelected[@"microphone"] = badClock;
+        CHECK(!PLANKMacNormalizeMediaLaunch(timedLaunch));
+        timedFeatures[@"microphone"] = @[badClock, PLANKMacMediaProfile(@"microphone", nil)];
+        CHECK([PLANKMacNegotiateMedia(timedOffer, &status)[@"features"][@"microphone"] isEqual:PLANKMacMediaProfile(@"microphone", nil)]);
         printf("Mac media features: %u checks passed\n", checks);
     }
 }

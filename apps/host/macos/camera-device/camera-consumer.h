@@ -8,7 +8,7 @@
 @interface PLANKMacCameraConsumer : NSObject
 - (instancetype)initWithQueue:(dispatch_queue_t)queue requirement:(NSString *)requirement
                         lease:(void (^)(uint64_t activation))lease
-                        frame:(void (^)(const uint8_t *, size_t, uint64_t))frame
+                        frame:(void (^)(const uint8_t *, size_t, uint64_t, uint64_t))frame
                           gap:(void (^)(void))gap;
 - (void)start;
 - (void)stop;

@@ -102,10 +102,12 @@
         if (result != PLANK_TRANSPORT_OK) { [self fail]; break; }
         PlankCameraHeader header;
         if (plank_camera_header_decode(_record, size, &header) || header.generation != _activation) continue;
-        // Arrival in the Core Media host clock is the initial presentation
-        // anchor. Capture timestamps remain in PCAM; A/V clock alignment still
-        // requires the combined hardware gate, not an assumed network offset.
-        if (!_valid() || ![_producer submit:_record size:size hostTimeNanos:PLANKCameraHostTimeNanos()]) { [self fail]; break; }
+        uint64_t presentation = PLANKCameraHostTimeNanos();
+        if (_mediaClock && PLANKReverseMediaClockActive(&_mediaClock->value, presentation)) {
+            presentation = PLANKReverseMediaClockMap(&_mediaClock->value, header.capture_time_us * 1000, presentation);
+            if (!presentation) { _keyPending = YES; continue; }
+        }
+        if (!_valid() || ![_producer submit:_record size:size hostTimeNanos:presentation]) { [self fail]; break; }
         _receivedAt = now;
     }
     if (_activation && (plank_transport_native_camera_keyframe_needed(_endpoint) == _activation || [_producer takeKeyframeRequest])) _keyPending = YES;

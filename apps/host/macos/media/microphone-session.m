@@ -74,6 +74,7 @@
                 return owner && !owner->_stopped && owner->_valid();
             }];
         if (!_producer) { [self fail]; return YES; }
+        _producer.mediaClock = self.mediaClock;
         [_producer start:^(BOOL ready) {
             typeof(self) owner = weakSelf;
             if (!owner || owner->_stopped) return;
@@ -98,8 +99,8 @@
     }
     if (!_activation || _failed) return;
     for (unsigned i = 0; i < 8; i++) {
-        uint8_t packet[1275]; size_t size = 0; uint64_t generation = 0, sampleTime = 0;
-        int32_t result = plank_transport_native_microphone_receive(_endpoint, &generation, &sampleTime,
+        uint8_t packet[1275]; size_t size = 0; uint64_t generation = 0, sampleTime = 0, captureTime = 0;
+        int32_t result = plank_transport_native_microphone_receive_timed(_endpoint, &generation, &sampleTime, &captureTime,
             packet, sizeof(packet), &size);
         if (result == PLANK_TRANSPORT_TIMEOUT) break;
         if (result != PLANK_TRANSPORT_OK) { [self fail]; break; }
@@ -107,7 +108,7 @@
         if (_hasSample && sampleTime != _nextSample && !PLANKMicDecoderReset(&_decoder)) { [self fail]; break; }
         float samples[480 * PLANKMicChannels];
         if (!PLANKMicDecode(&_decoder, packet, size, samples) || !_valid() ||
-            ![_producer submit:samples count:480 sampleTime:sampleTime]) { [self fail]; break; }
+            ![_producer submit:samples count:480 sampleTime:sampleTime captureTimeNanos:captureTime]) { [self fail]; break; }
         _hasSample = YES; _nextSample = sampleTime + 480;
     }
 }

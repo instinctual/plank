@@ -192,7 +192,7 @@ sudo apt-get install -y \
   build-essential cmake curl gh git make nasm ninja-build nodejs openssl patch \
   pkg-config python3 python3-venv ripgrep xz-utils \
   qt6-base-dev qt6-declarative-dev qt6-svg-dev qt6-svg-plugins qt6-wayland \
-  libsdl3-dev libsdl3-ttf-dev libdecor-0-dev libdrm-dev libinput-dev \
+  libsdl3-dev libsdl3-ttf-dev libpipewire-0.3-dev libdecor-0-dev libdrm-dev libinput-dev \
   libopus-dev libplacebo-dev libssl-dev libudev-dev libva-dev \
   libvdpau-dev libwayland-dev libx11-dev zlib1g-dev
 ```

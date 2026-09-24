@@ -137,3 +137,11 @@ start callbacks. It preserves existing readers' decoder state and retries throug
 the bounded keyframe-request path until an independent picture is delivered
 after the latest join. A frame already in flight before that join cannot satisfy
 the request. Retiring the stream cancels queued membership notifications.
+
+When microphone3 is active and the virtual microphone is being read, the Host
+maps the preserved V4L2 capture timestamp onto the microphone's scheduled render
+clock. See [microphone timing](microphone.md). Without a fresh audio anchor,
+arrival-based presentation remains available. Camera IPC version2 separates
+arrival from presentation time: receipt age remains bounded to150ms even when
+presentation is scheduled up to100ms ahead. Decoder completion repeats both
+checks. Neither the PCAM camera schema nor native compressed payloads change.

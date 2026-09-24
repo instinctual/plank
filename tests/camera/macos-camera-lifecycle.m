@@ -13,7 +13,7 @@ NSArray *PLANKCameraFixtureCreateSequence(unsigned width, unsigned height, unsig
 #include <unistd.h>
 
 static void (^admission)(uint64_t);
-static void (^frame)(const uint8_t *, size_t, uint64_t);
+static void (^frame)(const uint8_t *, size_t, uint64_t, uint64_t);
 static BOOL admitted;
 static unsigned keyRequests, delivered;
 // OS delivery is the fixture boundary. Keep the production sample builder,
@@ -30,7 +30,7 @@ static unsigned keyRequests, delivered;
 @end
 @implementation PLANKMacCameraConsumer
 - (instancetype)initWithQueue:(dispatch_queue_t)queue requirement:(NSString *)requirement
-                        lease:(void (^)(uint64_t))lease frame:(void (^)(const uint8_t *, size_t, uint64_t))frames
+                        lease:(void (^)(uint64_t))lease frame:(void (^)(const uint8_t *, size_t, uint64_t, uint64_t))frames
                           gap:(void (^)(void))gap {
     (void)queue; (void)requirement; (void)gap;
     if ((self = [super init])) { admission = [lease copy]; frame = [frames copy]; }
@@ -114,16 +114,16 @@ int main(void) {
         admitted = YES; admission(1);
         CHECK(provider.provider.devices.count == 0); // no fabricated H.264 format
         NSData *one = record(fixture,1);
-        frame(one.bytes, one.length, PLANKCameraHostTimeNanos());
+        frame(one.bytes, one.length, PLANKCameraHostTimeNanos(), PLANKCameraHostTimeNanos());
         // Revoke before returning to the main queue. A queued decoder/sample
         // completion must never register the retired activation's device.
         admitted = NO; admission(0); pump(.1);
         CHECK(provider.provider.devices.count == 0);
         admitted = YES; admission(2);
-        frame(one.bytes, one.length, PLANKCameraHostTimeNanos()); pump(.1);
+        frame(one.bytes, one.length, PLANKCameraHostTimeNanos(), PLANKCameraHostTimeNanos()); pump(.1);
         CHECK(provider.provider.devices.count == 0); // stale generation
         NSData *two = record(fixture,2);
-        frame(two.bytes, two.length, PLANKCameraHostTimeNanos());
+        frame(two.bytes, two.length, PLANKCameraHostTimeNanos(), PLANKCameraHostTimeNanos());
         CHECK(until(^BOOL { return provider.provider.devices.count == 1; }));
         PLANKCameraDevice *device = (PLANKCameraDevice *)provider.provider.devices[0].source;
         CHECK([device.source startStreamAndReturnError:NULL]);
@@ -132,36 +132,36 @@ int main(void) {
         // Publish a fresh activation with the GOP's exact parameter sets.
         admission(3);
         NSData *keyRecord = recordAt(key,3,0);
-        frame(keyRecord.bytes, keyRecord.length, PLANKCameraHostTimeNanos());
+        frame(keyRecord.bytes, keyRecord.length, PLANKCameraHostTimeNanos(), PLANKCameraHostTimeNanos());
         CHECK(until(^BOOL { return provider.provider.devices.count == 1; }));
         device = (PLANKCameraDevice *)provider.provider.devices[0].source;
         CHECK([device.source startStreamAndReturnError:NULL]);
         keyRecord = recordAt(key,3,1);
-        frame(keyRecord.bytes, keyRecord.length, PLANKCameraHostTimeNanos());
+        frame(keyRecord.bytes, keyRecord.length, PLANKCameraHostTimeNanos(), PLANKCameraHostTimeNanos());
         CHECK(until(^BOOL { return delivered == 1; }));
         unsigned requests = keyRequests;
         NSData *deltaRecord = recordAt(delta,3,2);
         PlankCameraHeader header;
         CHECK(!plank_camera_header_decode(deltaRecord.bytes, deltaRecord.length, &header));
         CHECK(!(header.flags & PLANK_CAMERA_KEY_FRAME)); // actual encoded dependent picture
-        frame(deltaRecord.bytes, deltaRecord.length, PLANKCameraHostTimeNanos());
+        frame(deltaRecord.bytes, deltaRecord.length, PLANKCameraHostTimeNanos(), PLANKCameraHostTimeNanos());
         CHECK(until(^BOOL { return delivered == 2; }) && keyRequests == requests);
         clientsChanged(device.source, @[first], @[first,second]); pump(.01);
         CHECK(keyRequests > requests && device.source.active == 0);
         requests = keyRequests;
         deltaRecord = recordAt(delta,3,3);
-        frame(deltaRecord.bytes, deltaRecord.length, PLANKCameraHostTimeNanos());
+        frame(deltaRecord.bytes, deltaRecord.length, PLANKCameraHostTimeNanos(), PLANKCameraHostTimeNanos());
         CHECK(until(^BOOL { return delivered == 3; }) && keyRequests > requests);
         // A recovery frame already in flight cannot satisfy a later join.
         keyRecord = recordAt(key,3,4);
-        frame(keyRecord.bytes, keyRecord.length, PLANKCameraHostTimeNanos());
+        frame(keyRecord.bytes, keyRecord.length, PLANKCameraHostTimeNanos(), PLANKCameraHostTimeNanos());
         [provider readerJoined]; requests = keyRequests;
         CHECK(until(^BOOL { return delivered == 4; }) && keyRequests > requests);
         keyRecord = recordAt(key,3,5);
-        frame(keyRecord.bytes, keyRecord.length, PLANKCameraHostTimeNanos());
+        frame(keyRecord.bytes, keyRecord.length, PLANKCameraHostTimeNanos(), PLANKCameraHostTimeNanos());
         CHECK(until(^BOOL { return delivered == 5; })); requests = keyRequests;
         deltaRecord = recordAt(delta,3,6);
-        frame(deltaRecord.bytes, deltaRecord.length, PLANKCameraHostTimeNanos());
+        frame(deltaRecord.bytes, deltaRecord.length, PLANKCameraHostTimeNanos(), PLANKCameraHostTimeNanos());
         CHECK(until(^BOOL { return delivered == 6; }) && keyRequests == requests);
         admitted = NO; admission(0);
         CHECK(provider.provider.devices.count == 0); pump(.1);

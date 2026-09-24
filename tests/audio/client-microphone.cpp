@@ -10,6 +10,24 @@
 #include <cstdlib>
 #include <cstdio>
 #include <functional>
+#ifdef PLANK_TIMED_CAPTURE_TEST
+#include "linuxmicrophone.h"
+#include <chrono>
+static std::atomic<bool> captureOpen {false};
+struct PlankLinuxMicrophone::Impl { std::uint64_t sample = 0; std::chrono::steady_clock::time_point next = std::chrono::steady_clock::now(); };
+PlankLinuxMicrophone::PlankLinuxMicrophone() : m_Impl(new Impl) { captureOpen = true; }
+PlankLinuxMicrophone::~PlankLinuxMicrophone() { captureOpen = false; }
+bool PlankLinuxMicrophone::valid() const { return true; }
+bool PlankLinuxMicrophone::take(Packet& packet) {
+    const auto now = std::chrono::steady_clock::now();
+    if (now < m_Impl->next) return false;
+    packet = {}; packet.sampleTime = m_Impl->sample;
+    packet.captureTimeNs = std::chrono::duration_cast<std::chrono::nanoseconds>(m_Impl->next.time_since_epoch()).count();
+    for (unsigned i = 0; i < 480; i++) { packet.samples[i * 2] = 0.25f; packet.samples[i * 2 + 1] = -0.5f; }
+    m_Impl->sample += 480; m_Impl->next += std::chrono::milliseconds(10);
+    return true;
+}
+#endif
 
 #ifdef __APPLE__
 // The SDL dummy backend is mandatory here. Never request real TCC permission
@@ -58,13 +76,32 @@ extern "C" int32_t plank_transport_native_microphone_send(PlankTransportNativeEn
     CHECK(opus_packet_get_nb_channels(bytes) == 2);
     return endpoint->packets.fetch_add(1) % 3 == 0 ? PLANK_TRANSPORT_DROPPED : PLANK_TRANSPORT_OK;
 }
+extern "C" int32_t plank_transport_native_microphone_send_timed(PlankTransportNativeEndpoint* endpoint,
+    uint64_t generation, uint64_t sampleTime, uint64_t captureTime, const uint8_t* bytes, size_t size)
+{
+#ifdef PLANK_TIMED_CAPTURE_TEST
+    const auto now = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now().time_since_epoch()).count();
+    CHECK(captureTime && captureTime < uint64_t(now) && uint64_t(now) - captureTime < 100000000);
+    return plank_transport_native_microphone_send(endpoint, generation, sampleTime, bytes, size);
+#else
+    (void)endpoint; (void)generation; (void)sampleTime; (void)captureTime; (void)bytes; (void)size;
+    CHECK(false); return PLANK_TRANSPORT_ERROR_INVALID_STATE;
+#endif
+}
 int main()
 {
+#ifdef PLANK_TIMED_CAPTURE_TEST
+    constexpr bool timed = true;
+    const auto recording = [] { return captureOpen.load(); };
+#else
+    constexpr bool timed = false;
+    const auto recording = [] { return SDL_WasInit(SDL_INIT_AUDIO) != 0; };
+#endif
     CHECK(SDL_SetHint(SDL_HINT_AUDIO_DRIVER, "dummy"));
     PlankTransportNativeEndpoint endpoint;
     std::atomic<bool> requested {false};
     {
-        PlankMicrophone microphone(&endpoint, requested, true);
+        PlankMicrophone microphone(&endpoint, requested, true, timed);
         const auto wait = [&](const std::function<bool()>& predicate) {
             for (unsigned i = 0; i < 400; ++i) {
                 {
@@ -80,20 +117,20 @@ int main()
         };
         CHECK(wait([&] { std::lock_guard<std::mutex> guard(endpoint.mutex); return endpoint.command != 0; }));
         CHECK(wait([&] { return microphone.state() == PlankMicrophone::State::Off; }));
-        CHECK(!endpoint.packets && !SDL_WasInit(SDL_INIT_AUDIO));
+        CHECK(!endpoint.packets && !recording());
         requested = true;
         CHECK(wait([&] { return endpoint.packets >= 20 && microphone.state() == PlankMicrophone::State::Active; }));
         endpoint.blocked = true; requested = false;
-        CHECK(wait([&] { return !SDL_WasInit(SDL_INIT_AUDIO); }));
+        CHECK(wait([&] { return !recording(); }));
         unsigned before = endpoint.packets; SDL_Delay(50); CHECK(endpoint.packets == before);
         endpoint.blocked = false;
         CHECK(wait([&] { return microphone.state() == PlankMicrophone::State::Off; }));
         requested = true;
         CHECK(wait([&] { return endpoint.packets > before + 10; }));
         endpoint.laneState = 3;
-        CHECK(wait([&] { return microphone.state() == PlankMicrophone::State::Unavailable && !SDL_WasInit(SDL_INIT_AUDIO); }));
+        CHECK(wait([&] { return microphone.state() == PlankMicrophone::State::Unavailable && !recording(); }));
     }
-    CHECK(!SDL_WasInit(SDL_INIT_AUDIO));
+    CHECK(!recording());
     {
         std::lock_guard<std::mutex> guard(endpoint.mutex); CHECK(endpoint.activation == 0);
     }

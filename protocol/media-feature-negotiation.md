@@ -21,8 +21,14 @@ The shared vector is [media-feature-negotiation-v1.json](../tests/protocol/media
 | audio | 1 | Host output: Opus, 48 kHz, stereo, 5 ms packets |
 | input | 1 | Keyboard, absolute mouse and normalized pen |
 | clipboard | 1 | Existing clipboard transfer; macOS Client only |
-| microphone | 2 | Client input: Opus, 48 kHz, stereo, 10 ms packets |
+| microphone | 3, 2 | Client input: Opus, 48 kHz, stereo, 10 ms packets; schema3 adds monotonic capture time |
 | camera | 1 | Native H.264 Annex B and MJPEG reception; Ubuntu Client capture |
+
+Ubuntu offers microphone3 (`capture_clock: "monotonic-ns"`) before microphone2.
+The Host selects the first common profile and preserves it through launch. Schema2
+has unchanged bytes and remains available to older Hosts/Clients; the macOS Client
+currently offers2. All other feature schemas and the negotiation envelope remain
+unchanged. See [the microphone wire and clock contract](microphone.md).
 
 Desktop, audio and input are required. Unsupported optional features become
 null or may be omitted; they do not prevent connection. Unknown optional
