@@ -24,7 +24,38 @@ application-delivery results; the current implementation adds stereo audio. Main
 Client gitlink are retained. The separate startup-fix worktree, main worktree
 and primary RK3576 research are untouched.
 
-### Current checkpoint: signed PLANK Output candidate staged
+### Current checkpoint: camera setup fix packaged and staged
+
+The operator reported that Host setup offered Enable Camera again after an
+upgrade. Installed system logs confirm that macOS inherited the previous
+camera-extension approval; the redundant prompt came from PLANK's setup UI.
+Host1.1.008 queries the extension's actual properties, reconciles an already
+enabled extension with the bundled version, and shows Camera enabled without
+another enable button. First-time or disabled cameras retain explicit setup.
+Query failures never imply approval; genuine approval, failure and restart
+responses remain visible. Retired extension copies cannot override a disabled
+camera. Neither setup nor the status query starts camera capture.
+
+Exact signed source: `cecfc6594f57621b423c06b2e7be79fa0d908f62`;
+Client `a5d2871d9cb5` changes only bundled release notes. Other gitlinks remain
+as recorded below. Hosted run
+[36052047214](https://github.com/instinctual/plank/actions/runs/36052047214)
+passes the full Host build, tests, signing, notarization and packaging gates.
+The new SDK27 ASan/UBSan setup regression exercises enabled/upgrade, disabled,
+first-use, retired copies, query errors, actual approval, reboot and timeout
+callbacks through the production flow, with OS submission and modal UI replaced
+by fixtures. It passes on the dedicated development Mac and hosted builder.
+
+Package1.1.008 is collected in the candidate catalog and staged in the authorized
+Mac Host test target's Downloads. SHA-256:
+`eed5fd01b8899aed869f6e44b17231da115050016f0173da779437b0ee2fe646`.
+Transfer checksum, package signature, Gatekeeper, version, RecommendRestart and
+all four payload signatures pass on the target. Temporary signing permission
+is removed; only main remains allowed. No1.1.008 installation is claimed.
+Next: administrator installation and confirmation that the enabled-camera setup
+window has only Close. Existing compatible Clients can remain installed.
+
+### PLANK Output candidate1.1.007
 
 The operator approved adding PLANK Output as the Mac's remote playback device.
 Signed candidate1.1.007 is collected and staged for administrator installation.
@@ -38,7 +69,9 @@ The package is in the1.1.007 candidate catalog and the authorized Mac Host test
 target's Downloads. Transfer checksum, package signature/notarization,
 Gatekeeper, all four component signatures, and the actual signed package's
 `RecommendRestart` action pass on the target. Temporary signing permission is
-removed; only main remains allowed. No1.1.007 installation is claimed.
+removed; only main remains allowed. The target now has1.1.007 installed, and all
+four installed component hashes match this package. Its camera extension is
+enabled and retained approval when replacing1.1.006.
 
 PLANK Output is a real output-only HAL sink with48kHz stereo Float32, volume
 and mute controls. The existing owned-process tap captures upstream PCM,
@@ -60,9 +93,8 @@ checks. Hosted packaging passes9 package tests,29 lifecycle checks and65 checks
 with the isolated root filesystem fixture. All62 CI-policy tests pass.
 
 See [the output plan](docs/development/plans/macos-output-device.plan) and
-[user instructions](docs/user/macos-audio-output.md). Next: administrator install,
-restart to load the new output driver, verify all four installed binary hashes
-against this package, then check live Sound Settings selection, volume/mute,
+[user instructions](docs/user/macos-audio-output.md). Live qualification remains:
+confirm the loaded output driver after restart, then check Sound Settings selection, volume/mute,
 application/alert audio, pinned outputs, disconnect and crash recovery. The
 operator's active session was preserved. Existing compatible Clients can remain
 installed; Ubuntu Client1.1.006 is already staged separately.
