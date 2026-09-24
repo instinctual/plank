@@ -3,6 +3,7 @@
 // ScreenCaptureKit, HAL, transport, permissions or hardware activity.
 #import "screen-capture.h"
 #import "audio-tap.h"
+#import "../../apps/host/macos/audio-device/output-route.h"
 #include <assert.h>
 #include <stdio.h>
 #include <unistd.h>
@@ -23,6 +24,14 @@
 @implementation FakeTap
 - (void)startWithCompletion:(void (^)(BOOL))completion { completion(_ready); }
 - (void)stopWithCompletion:(void (^)(void))completion { assert(!_stopped); _stopped = [completion copy]; }
+@end
+@interface FakeRoute : PLANKMacOutputRoute
+@property unsigned starts;
+@property(copy) void (^restored)(void);
+@end
+@implementation FakeRoute
+- (void)start { ++_starts; }
+- (void)stopWithCompletion:(void (^)(void))completion { assert(!_restored); _restored = [completion copy]; }
 @end
 @interface FakeEncoder : NSObject
 - (void)stop;
@@ -61,6 +70,27 @@ int main(void) {
     alarm(15);
     @autoreleasepool {
         dispatch_queue_t queue = dispatch_queue_create("plank.test.audio-recovery", DISPATCH_QUEUE_SERIAL);
+        // Real capture lifecycle must wait for output restoration before
+        // releasing tap suppression. Denied capture never selects an output.
+        dispatch_sync(queue, ^{
+            Capture *routed = [[Capture alloc] initWithDesktopAudioTap:YES];
+            [routed setValue:queue forKey:@"queue"];
+            [routed createAudioEncoder]; [routed createDesktopAudioTap];
+            FakeRoute *route = [FakeRoute new];
+            routed.outputRoute = ^PLANKMacOutputRoute *(dispatch_queue_t owner) { assert(owner == queue); return route; };
+            [routed startDesktopAudio]; assert(route.starts == 1);
+            FakeTap *tap = [routed valueForKey:@"audioTap"];
+            [routed stopDesktopAudio]; assert(route.restored && !tap.stopped);
+            route.restored(); route.restored = nil;
+            assert(tap.stopped); finishTap(tap);
+            assert([[routed valueForKey:@"audioStopped"] boolValue]);
+            Capture *deniedRoute = [[Capture alloc] initWithDesktopAudioTap:YES]; deniedRoute.deny = YES;
+            [deniedRoute setValue:queue forKey:@"queue"];
+            [deniedRoute createAudioEncoder]; [deniedRoute createDesktopAudioTap];
+            deniedRoute.outputRoute = ^PLANKMacOutputRoute *(dispatch_queue_t owner) { (void)owner; assert(0); return nil; };
+            FakeTap *deniedTap = [deniedRoute valueForKey:@"audioTap"];
+            [deniedRoute startDesktopAudio]; finishTap(deniedTap);
+        });
         __block Capture *capture;
         dispatch_sync(queue, ^{ capture = makeCapture(queue); });
         for (unsigned attempt = 0; attempt < 3; ++attempt) {

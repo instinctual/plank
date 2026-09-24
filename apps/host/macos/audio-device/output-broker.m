@@ -124,24 +124,25 @@ static uint64_t outputNow(void) { return clock_gettime_nsec_np(CLOCK_MONOTONIC);
     xpc_connection_activate(_listener);
     _watch = dispatch_source_create(DISPATCH_SOURCE_TYPE_TIMER, 0, 0, _queue);
     dispatch_source_set_timer(_watch, DISPATCH_TIME_NOW, 500*NSEC_PER_MSEC, 50*NSEC_PER_MSEC);
-    dispatch_source_set_event_handler(_watch, ^{
-        typeof(self) owner = weakSelf;
-        if (!owner || owner->_stopped) return;
-        uint64_t now = outputNow();
-        for (PLANKOutputPeer *peer in owner->_peers.copy)
-            if (now - peer.lastRenew >= 3*NSEC_PER_SEC ||
-                (peer.generation && !owner->_authorize(peer.identity, peer.generation))) [owner close:peer reply:NULL];
-        if (!owner->_owner && !owner->_maintenance) {
-            owner->_maintenance = YES;
-            dispatch_async(owner->_hal, ^{
-                // Retry restoration after temporary HAL failure; never override
-                // a manual selection or select an unrecorded external device.
-                [owner->_selection recover];
-                dispatch_async(owner->_queue, ^{ owner->_maintenance = NO; });
-            });
-        }
-    });
+    dispatch_source_set_event_handler(_watch, ^{ [weakSelf tick]; });
     dispatch_resume(_watch); return YES;
+}
+- (void)tick {
+    typeof(self) owner = self;
+    if (!owner || owner->_stopped) return;
+    uint64_t now = outputNow();
+    for (PLANKOutputPeer *peer in owner->_peers.copy)
+        if (now - peer.lastRenew >= 3*NSEC_PER_SEC ||
+            (peer.generation && !owner->_authorize(peer.identity, peer.generation))) [owner close:peer reply:NULL];
+    if (!owner->_owner && !owner->_maintenance) {
+        owner->_maintenance = YES;
+        dispatch_async(owner->_hal, ^{
+            // Retry restoration after temporary HAL failure; never override
+            // a manual selection or select an unrecorded external device.
+            [owner->_selection recover];
+            dispatch_async(owner->_queue, ^{ owner->_maintenance = NO; });
+        });
+    }
 }
 - (void)stopWithCompletion:(void (^)(void))completion {
     dispatch_assert_queue(_queue);

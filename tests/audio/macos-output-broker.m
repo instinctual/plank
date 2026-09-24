@@ -87,6 +87,15 @@ int main(void) { @autoreleasepool {
     // Old-generation renewal revokes this owner's route, not a replacement's.
     assert(!request(replacement, message(8, true), queue));
     assert(atomic_load(&restorations) == 2);
+    xpc_connection_t expired = connectPeer(endpoint, queue);
+    assert(request(expired, message(7, true), queue));
+    dispatch_sync(queue, ^{
+        PLANKOutputPeer *peer = [broker valueForKey:@"owner"];
+        peer.lastRenew = 0; [broker tick];
+    });
+    dispatch_sync((dispatch_queue_t)[broker valueForKey:@"hal"], ^{});
+    dispatch_sync(queue, ^{});
+    assert(atomic_load(&restorations) == 3);
     dispatch_semaphore_t stopped = dispatch_semaphore_create(0);
     dispatch_async(queue, ^{ [broker stopWithCompletion:^{ dispatch_semaphore_signal(stopped); }]; });
     waitFor(stopped); xpc_connection_cancel(listener);
