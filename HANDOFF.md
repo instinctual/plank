@@ -290,6 +290,13 @@ preserve H.264. Configuration selection and consumer adaptation need explicit
 qualification. Its successful OS approval and subsequent removal do not approve
 the production Host extension.
 
+The operator deferred live verification until their return. Resume by checking
+development Client reachability and arranging ordinary Host account sign-in;
+SSH key access alone does not authenticate a PLANK session. The Client supports
+remote session launch with `--plank-user` and `--plank-password-stdin`, so physical
+interaction with the Client is not inherently required. Keep credentials in an
+approved credential store, never in source, notes or command arguments.
+
 Required next steps: exercise the installed1.1.006 Host and1.1.004 Ubuntu Client's
 physical camera/stereo microphone through an ordinary
 authenticated session. Do not interrupt the operator's active Mac Client session
