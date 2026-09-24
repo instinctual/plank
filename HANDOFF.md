@@ -239,9 +239,13 @@ silence, nonfinite PCM, coded/pixel distinction, dimensions, codec changes,
 oversized samples and invalid/nonmonotonic presentation timestamps. It selects
 only the production PLANK camera/microphone, retains no media and reports bounded
 application delivery. This is a separate app from the synthetic extension probe;
-its normal camera/microphone consent and an ordinary authenticated session are
-required. Inventory confirms the stereo virtual input and no camera before
-forwarding starts. No physical capture pass is claimed from that inventory.
+the operator approved its normal camera and microphone consent, and GUI inventory
+confirms both authorizations. A five-second application read of the installed
+virtual microphone delivered241,020 stereo frames at48kHz with no invalid or
+nonzero samples. This validates silent device delivery without a forwarded
+source; physical audio and channel routing remain unqualified. The camera is
+absent before forwarding starts. An ordinary authenticated Client session is
+still required for physical-media acceptance.
 
 Physical camera capture confirms native H.264 and MJPEG at 720p/1080p. H.264
 is Baseline level 4.0, 8-bit 4:2:0; its startup driver sequence gap is conservatively
