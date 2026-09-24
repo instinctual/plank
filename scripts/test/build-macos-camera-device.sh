@@ -27,4 +27,9 @@ xcrun clang "${flags[@]}" -fobjc-arc apps/host/macos/camera-device/camera-{exten
     -framework Foundation -framework Security -framework CoreMediaIO -framework CoreMedia \
     -framework CoreVideo -framework VideoToolbox -framework CoreGraphics \
     -o "$output/PLANKCamera"
+xcrun clang "${flags[@]}" -fobjc-arc -Iprobes/macos tests/camera/macos-camera-lifecycle.m \
+    probes/macos/native-camera-fixture.m apps/host/macos/media/native-camera-{sample,output}.m \
+    -framework Foundation -framework CoreMediaIO -framework CoreMedia -framework CoreVideo \
+    -framework VideoToolbox -framework CoreGraphics -o "$output/camera-lifecycle-test"
+"$output/camera-lifecycle-test"
 printf '%s\n' 'Camera shared-memory sanitizers and IPC/extension compilation passed'
