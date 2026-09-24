@@ -5,6 +5,7 @@ import os
 from pathlib import Path
 import platform
 import plistlib
+import shutil
 import stat
 import subprocess
 import tempfile
@@ -119,6 +120,34 @@ class Permissions(unittest.TestCase):
         package = Path(self.scratch.name) / "fixture.pkg"
         subprocess.run(["pkgbuild", "--root", str(self.root), "--identifier",
                         "org.example.permission-fixture", "--version", "1.0", str(package)], check=True)
+        gate.check_package(package)
+
+    @unittest.skipUnless(platform.system() == "Darwin", "requires macOS Installer/productbuild")
+    def test_distribution_recommends_restart(self):
+        scratch = Path(self.scratch.name)
+        component = scratch / "component.pkg"
+        identifier = "org.example.restart-fixture"
+        subprocess.run(["pkgbuild", "--root", str(self.root), "--identifier",
+                        identifier, "--version", "1.0", str(component)], check=True)
+        resources = scratch / "resources"
+        resources.mkdir()
+        for name in ("welcome.html", "conclusion.html"):
+            shutil.copyfile(ROOT / "packaging/host/macos" / name, resources / name)
+        distribution = (ROOT / "packaging/host/macos/distribution.xml.in").read_text()
+        for key, value in {"TITLE": "PLANK Restart Fixture", "WELCOME": "welcome.html",
+                           "CONCLUSION": "conclusion.html", "IDENTIFIER": identifier,
+                           "VERSION": "1.0", "COMPONENT": component.name}.items():
+            distribution = distribution.replace("@" + key + "@", value)
+        definition = scratch / "distribution.xml"
+        definition.write_text(distribution)
+        package = scratch / "distribution.pkg"
+        subprocess.run(["productbuild", "--distribution", str(definition),
+                        "--resources", str(resources), "--package-path", str(scratch),
+                        str(package)], check=True)
+        # A metadata query never installs the fixture or restarts any service.
+        action = subprocess.check_output(["/usr/sbin/installer", "-query", "RestartAction",
+                                          "-pkg", str(package)], text=True).strip()
+        self.assertEqual(action, "RecommendRestart")
         gate.check_package(package)
 
 

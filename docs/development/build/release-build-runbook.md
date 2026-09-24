@@ -113,6 +113,12 @@ bundle under caller umask 077 and tests an unsigned PKG roundtrip. These are
 not distribution signing or live installation passes. Never broaden installed
 private keys, configuration or log permissions to repair a public app bundle.
 
+The macOS Host distribution recommends restarting through Installer. The final
+PKG gate requires `installer -query RestartAction -pkg PACKAGE` to report
+`RecommendRestart`. Restarting loads an updated microphone driver; the installed
+binary hash alone does not prove Core Audio has loaded that version. Users can
+defer the restart. Package scripts must not reboot or restart audio services.
+
 A compiler, linker, package gate, or nonzero packaging-script exit is a build
 failure. A later ad hoc inspection command is a validation-command failure and
 does not invalidate an already successful build unless it exposes a package

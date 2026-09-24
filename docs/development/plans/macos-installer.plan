@@ -33,6 +33,12 @@ explicit and cannot be granted by this installer.
    Host app, invoked with sudo, retaining bounded shutdown and preserved
    settings/certificates/logs. Do not generate a separate uninstall PKG or
    present the Python development uninstaller as the production workflow.
+7. Set the Host payload's native Installer conclusion to `RecommendRestart`.
+   Explain that restarting loads updated microphone drivers and completes any
+   pending camera extension updates. Remind users to save work and allow them
+   to defer; installer scripts must not reboot the Mac or restart Core Audio.
+   Query the finished package's `RestartAction` before notarization. The macOS
+   packaging fixture also checks this action without installing its payload.
 
 Reference inspection: Anyware Graphics Agent26.05.3 is a Developer ID-signed,
 notarized PKG with Bash pre/postinstall scripts, payload launchd entries and a

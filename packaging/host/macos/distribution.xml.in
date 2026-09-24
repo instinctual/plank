@@ -8,5 +8,5 @@
   <allowed-os-versions><os-version min="27.0"/></allowed-os-versions>
   <choices-outline><line choice="default"/></choices-outline>
   <choice id="default" visible="false"><pkg-ref id="@IDENTIFIER@"/></choice>
-  <pkg-ref id="@IDENTIFIER@" version="@VERSION@" auth="Root">@COMPONENT@</pkg-ref>
+  <pkg-ref id="@IDENTIFIER@" version="@VERSION@" auth="Root" onConclusion="RecommendRestart">@COMPONENT@</pkg-ref>
 </installer-gui-script>

@@ -10,4 +10,4 @@ prepare_machine_authority
 start_roles
 open_permission_setup
 echo 'PLANK Host installed. Open PLANK Host in Applications for privacy setup. Configuration and keys preserved.'
-echo 'If PLANK Microphone is not listed in Sound Input, restart the Mac to load the audio driver. Audio services are not interrupted by this installer.'
+echo 'Restart this Mac to finish loading the updated PLANK Microphone driver. Save your work first; restarting closes applications and remote sessions. You can restart later.'

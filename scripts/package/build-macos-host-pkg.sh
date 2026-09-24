@@ -72,6 +72,9 @@ sed -e "s/@TITLE@/PLANK Host $PLANK_PACKAGE_VERSION/g" \
 productbuild --distribution "$output/host-distribution.xml" --resources "$output/resources" \
   --package-path "$output" --sign "$PLANK_MACOS_INSTALLER_IDENTITY" --timestamp "$output/$name"
 pkgutil --check-signature "$output/$name"
+if [[ $(/usr/sbin/installer -query RestartAction -pkg "$output/$name") != RecommendRestart ]]; then
+  echo 'Host package must recommend a restart through macOS Installer.' >&2; exit 1
+fi
 python3 "$source_root/scripts/test/check-macos-host-permissions.py" --pkg "$output/$name"
 notary_flags=(--keychain-profile "$PLANK_NOTARY_PROFILE")
 if [[ -n ${PLANK_NOTARY_KEYCHAIN:-} ]]; then
