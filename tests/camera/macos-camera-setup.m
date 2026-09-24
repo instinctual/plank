@@ -95,7 +95,7 @@ static void enabledCamera(void) {
 static void optionalCamera(NSArray *values) {
     OSSystemExtensionRequest *request = begin(); found(request, values);
     assert(requests.count == 1 && completions == 1 && alerts.count == 1);
-    assert([alerts.lastObject.buttons isEqualToArray:@[@"Close", @"Enable Camera"]]);
+    assert(([alerts.lastObject.buttons isEqualToArray:@[@"Close", @"Enable Camera"]]));
 }
 static void tests(void) {
     enabledCamera();
