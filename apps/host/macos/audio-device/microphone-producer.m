@@ -19,7 +19,7 @@ enum { MicQueueFrames = 2880, MicTargetFrames = 960 };
     BOOL _automaticInput;
     BOOL (^_valid)(void);
     void (^_ready)(BOOL);
-    float _samples[MicQueueFrames];
+    float _samples[MicQueueFrames * PLANKMicChannels];
     unsigned _head, _count;
     uint64_t _renderedFrames, _silenceFrames, _resyncs, _discardedFrames;
 }
@@ -60,7 +60,7 @@ static uint64_t producerNow(void) { return clock_gettime_nsec_np(CLOCK_MONOTONIC
     if (!_valid()) { [self stop]; return; }
     _pending = YES; _requestedAt = producerNow();
     xpc_object_t message = xpc_dictionary_create(NULL, NULL, 0);
-    xpc_dictionary_set_uint64(message, "version", 1);
+    xpc_dictionary_set_uint64(message, "version", PLANKMicLinkVersion);
     xpc_dictionary_set_uint64(message, "generation", _generation);
     xpc_dictionary_set_bool(message, "automatic_input", _automaticInput);
     __weak typeof(self) weakSelf = self;
@@ -94,13 +94,16 @@ static uint64_t producerNow(void) { return clock_gettime_nsec_np(CLOCK_MONOTONIC
     if (!_link || _stopped || !samples || count != PLANKMicPacketFrames ||
         sampleTime % PLANKMicPacketFrames || sampleTime > UINT64_MAX - count ||
         (_hasSample && sampleTime < _nextSample)) return NO;
-    for (unsigned i = 0; i < count; i++) if (!isfinite(samples[i])) return NO;
+    for (unsigned i = 0; i < count * PLANKMicChannels; i++) if (!isfinite(samples[i])) return NO;
     if (_hasSample && sampleTime != _nextSample) {
         // Missing packets are silence, never repetitions of old speech. Large
         // discontinuities flush immediately rather than padding a stale queue.
         uint64_t missing = sampleTime - _nextSample;
         if (missing <= 2 * PLANKMicPacketFrames && _count + missing + count <= MicQueueFrames) {
-            for (unsigned i = 0; i < missing; i++) _samples[(_head + _count++) % MicQueueFrames] = 0;
+            for (unsigned i = 0; i < missing; i++) {
+                unsigned frame = (_head + _count++) % MicQueueFrames;
+                memset(&_samples[frame * PLANKMicChannels], 0, PLANKMicChannels * sizeof(float));
+            }
         } else { _head = _count = 0; _primed = NO; }
     }
     _hasSample = YES; _nextSample = sampleTime + count;
@@ -109,7 +112,11 @@ static uint64_t producerNow(void) { return clock_gettime_nsec_np(CLOCK_MONOTONIC
         _head = (_head + discard) % MicQueueFrames; _count -= discard;
         _discardedFrames += discard;
     }
-    for (unsigned i = 0; i < count; i++) _samples[(_head + _count++) % MicQueueFrames] = fminf(1, fmaxf(-1, samples[i]));
+    for (unsigned i = 0; i < count; i++) {
+        unsigned frame = (_head + _count++) % MicQueueFrames;
+        for (unsigned channel = 0; channel < PLANKMicChannels; channel++)
+            _samples[frame * PLANKMicChannels + channel] = fminf(1, fmaxf(-1, samples[i * PLANKMicChannels + channel]));
+    }
     return YES;
 }
 - (void)tick {
@@ -140,14 +147,16 @@ static uint64_t producerNow(void) { return clock_gettime_nsec_np(CLOCK_MONOTONIC
     // sample per block around the 20 ms target to absorb independent clocks;
     // never enlarge the queue to conceal drift or late network delivery.
     for (unsigned block = 0; block < 3 && _nextFrame < frame + 1440; block++) {
-        float output[480] = {0};
+        float output[480 * PLANKMicChannels] = {0};
         if (_primed && _count >= 479) {
             unsigned consume = _count > MicTargetFrames + 480 ? 481 : _count < MicTargetFrames ? 479 : 480;
             for (unsigned i = 0; i < 480; i++) {
                 double offset = (double)i * consume / 480;
                 unsigned a = (unsigned)offset, b = MIN(a + 1, consume - 1);
-                output[i] = _samples[(_head + a) % MicQueueFrames] * (1 - (offset - a)) +
-                    _samples[(_head + b) % MicQueueFrames] * (offset - a);
+                for (unsigned channel = 0; channel < PLANKMicChannels; channel++)
+                    output[i * PLANKMicChannels + channel] =
+                        _samples[((_head + a) % MicQueueFrames) * PLANKMicChannels + channel] * (1 - (offset - a)) +
+                        _samples[((_head + b) % MicQueueFrames) * PLANKMicChannels + channel] * (offset - a);
             }
             _head = (_head + consume) % MicQueueFrames; _count -= consume;
         } else { _primed = NO; _silenceFrames += 480; }

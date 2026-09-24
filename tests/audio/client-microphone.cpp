@@ -55,7 +55,7 @@ extern "C" int32_t plank_transport_native_microphone_send(PlankTransportNativeEn
     CHECK(endpoint->flags & PLANK_TRANSPORT_MICROPHONE_ENABLED);
     CHECK(sampleTime % 480 == 0 && size <= 1275 && size);
     CHECK(opus_packet_get_nb_samples(bytes, int(size), 48000) == 480);
-    CHECK(opus_packet_get_nb_channels(bytes) == 1);
+    CHECK(opus_packet_get_nb_channels(bytes) == 2);
     return endpoint->packets.fetch_add(1) % 3 == 0 ? PLANK_TRANSPORT_DROPPED : PLANK_TRANSPORT_OK;
 }
 int main()

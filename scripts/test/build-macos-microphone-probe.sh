@@ -14,7 +14,7 @@ source_root=$1
 output=$2
 mkdir "$output"
 cd "$source_root"
-shasum -a 256 apps/host/macos/audio-device/microphone-{buffer.h,driver.c} \
+shasum -a 256 apps/host/macos/audio-device/microphone-{format.h,buffer.h,driver.c} \
     apps/host/macos/audio-device/microphone-{link.h,driver-ipc.h,broker.h,broker.m,producer.h,producer.m,selection.h,selection.m} \
     tests/audio/macos-microphone-{buffer,driver}.c packaging/host/macos/microphone-info.plist \
     probes/macos/microphone-{tone-driver.c,read.m,reader-info.plist} \

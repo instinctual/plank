@@ -31,7 +31,7 @@ int main(int argc, char** argv)
     CHECK(!MacPreviewLaunch::request(topology, 150000, 65527).isEmpty());
     CHECK(MacPreviewLaunch::request({}, 10000, 1200).isEmpty());
     const QJsonObject valid {
-        {"schema_version", 4}, {"state", "connecting"}, {"udp_port", 28989},
+        {"schema_version", 5}, {"state", "connecting"}, {"udp_port", 28989},
         {"max_udp_payload_size", 1200}, {"capture", rawTopology.value("capture")},
         {"transport_token", QString::fromLatin1(QByteArray(32, 'x').toBase64())},
         {"services", QJsonObject {{"audio", true}, {"input", true}, {"pen", "normalized"}, {"cursor", "embedded"}, {"clipboard", false}, {"microphone", false}}}
@@ -79,6 +79,7 @@ int main(int argc, char** argv)
     }
     auto bad = valid; bad["udp_port"] = 443; reject(bad);
     bad = valid; bad["schema_version"] = 3; reject(bad);
+    bad = valid; bad["schema_version"] = 4; reject(bad);
     auto invalidServices = valid.value("services").toObject(); invalidServices.remove("microphone");
     bad = valid; bad["services"] = invalidServices; reject(bad);
     invalidServices["microphone"] = 1;

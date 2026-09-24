@@ -11,6 +11,17 @@ The operator wants each device's native media output preserved through
 transport. Native does not mean uncompressed: an MJPEG camera should send its
 MJPEG payload, and a microphone exposing native PCM should send that PCM.
 
+## Implementation decision after investigation
+
+The operator selected stereo Opus at 192 kbps total, constrained VBR, audio
+application mode and 10 ms packets after native capture confirmed PCM input.
+The Mac virtual microphone is being updated to 48 kHz stereo. This deliberately
+replaces native PCM/mSBC preservation as the microphone implementation goal;
+the native camera payload requirement remains. Historical observations and
+alternatives below describe the investigation baseline. Current implementation
+and acceptance status are in [HANDOFF](../../../HANDOFF.md) and the
+[implementation plan](../plans/native-media-forwarding.plan).
+
 ## Finding and proposed boundary
 
 The synthetic Mac probe demonstrates unchanged H.264 delivery and decoded NV12

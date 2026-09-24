@@ -49,8 +49,8 @@ impl Packet {
         self.validate()?;
         let mut output = BytesMut::with_capacity(HEADER_BYTES + self.opus.len());
         output.extend_from_slice(MAGIC);
-        output.put_u8(1); // envelope version
-        output.put_u8(1); // mono
+        output.put_u8(2); // stereo envelope version
+        output.put_u8(2); // stereo
         output.put_u16(FRAME_SAMPLES);
         output.put_u64(self.generation);
         output.put_u64(self.sample_time);
@@ -65,8 +65,8 @@ impl Packet {
         );
         ensure!(
             &bytes[..4] == MAGIC
-                && bytes[4] == 1
-                && bytes[5] == 1
+                && bytes[4] == 2
+                && bytes[5] == 2
                 && u16::from_be_bytes(bytes[6..8].try_into().unwrap()) == FRAME_SAMPLES,
             "unsupported microphone packet format"
         );
@@ -116,11 +116,11 @@ mod tests {
         let packet = Packet {
             generation: 2,
             sample_time: 480,
-            opus: Bytes::from_static(&[0xF0, 0xFF, 0xFE]),
+            opus: Bytes::from_static(&[0xF4, 0xFF, 0xFE]),
         };
         let expected = [
-            b'P', b'M', b'I', b'C', 1, 1, 1, 224, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 1, 224,
-            0xF0, 0xFF, 0xFE,
+            b'P', b'M', b'I', b'C', 2, 2, 1, 224, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 1, 224,
+            0xF4, 0xFF, 0xFE,
         ];
         assert_eq!(packet.encode().unwrap().as_ref(), &expected);
         assert_eq!(
@@ -135,6 +135,10 @@ mod tests {
             bad[offset] ^= 1;
             assert!(Packet::decode(Bytes::copy_from_slice(&bad)).is_err());
         }
+        let mut legacy = expected;
+        legacy[4] = 1;
+        legacy[5] = 1;
+        assert!(Packet::decode(Bytes::copy_from_slice(&legacy)).is_err());
         let mut bad = packet.clone();
         bad.generation = 0;
         assert!(bad.encode().is_err());

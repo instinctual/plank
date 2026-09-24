@@ -336,7 +336,7 @@ int32_t plank_transport_native_audio_receive(
         uint8_t *payload, size_t payload_capacity,
         size_t *payload_size_out, uint32_t timeout_ms);
 
-/* Optional Client -> Host mono 48 kHz/480-frame Opus lane. Enable on BOTH
+/* Optional Client -> Host stereo 48 kHz/480-frame Opus lane. Enable on BOTH
  * peers only after authenticated capability agreement; never for a Linux
  * Host lacking microphone injection. Capture waits for Host activation ACK.
  * State: 0 unavailable, 1 opening, 2 ready, 3 failed. Microphone lane failure

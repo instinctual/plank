@@ -32,7 +32,7 @@ def main():
                     requests = {
                         "/plank/display": {"schema_version": 3, "width": 1920, "height": 1080, "scale": 1,
                             "encoding_mode": "hevc-10-420-videotoolbox"},
-                        "/plank/launch": {"schema_version": 4, "clipboard": False, "microphone": False, "capture_generation": topology["generation"],
+                        "/plank/launch": {"schema_version": 5, "clipboard": False, "microphone": False, "capture_generation": topology["generation"],
                             "capture_id": capture["id"], "width": capture["width"], "height": capture["height"],
                             "encoding_mode": "hevc-10-420-videotoolbox", "frame_rate": 60,
                             "bitrate_kbps": 50000, "max_udp_payload_size": 1200}}

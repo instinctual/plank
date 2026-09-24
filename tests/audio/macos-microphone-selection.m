@@ -8,6 +8,13 @@
 static AudioObjectID current = 10;
 static BOOL previousPresent = YES, failSelect = NO;
 static unsigned writes;
+static AudioStreamBasicDescription inputFormat = {
+    .mSampleRate = 48000, .mFormatID = kAudioFormatLinearPCM,
+    .mFormatFlags = kAudioFormatFlagsNativeFloatPacked,
+    .mBytesPerPacket = 8, .mFramesPerPacket = 1, .mBytesPerFrame = 8,
+    .mChannelsPerFrame = 2, .mBitsPerChannel = 32
+};
+static BOOL streamPresent = YES;
 static CFStringRef deviceUID(AudioObjectID device) {
     switch (device) {
         case 10: return CFSTR("test.original");
@@ -20,6 +27,13 @@ static OSStatus fakeGet(AudioObjectID object, const AudioObjectPropertyAddress *
     UInt32 qualifierSize, const void *qualifier, UInt32 *size, void *data) {
     (void)qualifierSize; (void)qualifier; (void)size;
     switch (property->mSelector) {
+        case kAudioDevicePropertyStreams:
+            CHECK(object == 20 && property->mScope == kAudioObjectPropertyScopeInput);
+            *(AudioStreamID *)data = streamPresent ? 21 : 0;
+            *size = sizeof(AudioStreamID); return noErr;
+        case kAudioStreamPropertyVirtualFormat:
+            CHECK(object == 21); *(AudioStreamBasicDescription *)data = inputFormat;
+            *size = sizeof(inputFormat); return noErr;
         case kAudioHardwarePropertyDefaultInputDevice: *(AudioObjectID *)data = current; return noErr;
         case kAudioDevicePropertyDeviceUID: {
             CFStringRef uid = deviceUID(object); if (!uid) return -1;
@@ -47,6 +61,18 @@ static OSStatus fakeSet(AudioObjectID object, const AudioObjectPropertyAddress *
 #define AudioObjectSetPropertyData fakeSet
 #include "../../apps/host/macos/audio-device/microphone-selection.m"
 int main(void) { @autoreleasepool {
+    CHECK(!PLANKMicDeviceHasCurrentFormat(0));
+    CHECK(PLANKMicDeviceHasCurrentFormat(20));
+    inputFormat.mChannelsPerFrame = 1; inputFormat.mBytesPerFrame = inputFormat.mBytesPerPacket = 4;
+    CHECK(!PLANKMicDeviceHasCurrentFormat(20));
+    inputFormat.mChannelsPerFrame = 2; inputFormat.mBytesPerFrame = inputFormat.mBytesPerPacket = 8;
+    inputFormat.mSampleRate = 32000; CHECK(!PLANKMicDeviceHasCurrentFormat(20));
+    inputFormat.mSampleRate = 48000;
+    inputFormat.mFormatFlags |= kAudioFormatFlagIsNonInterleaved;
+    CHECK(!PLANKMicDeviceHasCurrentFormat(20));
+    inputFormat.mFormatFlags = kAudioFormatFlagsNativeFloatPacked;
+    streamPresent = NO; CHECK(!PLANKMicDeviceHasCurrentFormat(20)); streamPresent = YES;
+    CHECK(PLANKMicDeviceHasCurrentFormat(20));
     PLANKMacMicrophoneSelection *owner = [PLANKMacMicrophoneSelection new];
     CHECK([owner select] && current == 20 && writes == 1);
     CHECK([owner select] && writes == 1);
@@ -58,5 +84,5 @@ int main(void) { @autoreleasepool {
     failSelect = NO; current = 0; CHECK([owner select]); [owner restore]; CHECK(current == 20 && writes == 5);
     CHECK([owner select]); [owner restore]; CHECK(current == 20 && writes == 5);
     current = 10; CHECK([owner select]); owner = nil; CHECK(current == 10 && writes == 7);
-    puts("microphone_selection_restore_override_unplug_no_input_failure=pass"); return 0;
+    puts("microphone_selection_format_restore_override_unplug_no_input_failure=pass"); return 0;
 } }

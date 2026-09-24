@@ -1,4 +1,4 @@
-# Authenticated macOS preview launch (schema 4)
+# Authenticated macOS preview launch (schema 5)
 
 Experimental, on `macos-host` only. The actual Host advertises HEVC Main10 and
 fixed capture; component-only fixtures still advertise zero capabilities.
@@ -56,11 +56,11 @@ Disconnect cancels the paused worker. Login/logout recovery otherwise remains
 automatic. These rules do not apply credentials to bookmark discovery polls.
 
 The body has exactly the eleven fields in
-`tests/protocol/macos-preview-launch-v4.json`:
+`tests/protocol/macos-preview-launch-v5.json`:
 
 | Field | Required value |
 | --- | --- |
-| `schema_version` | Integer 4 |
+| `schema_version` | Integer 5 |
 | `clipboard` | Boolean Client opt-in; false on Linux Clients |
 | `microphone` | Boolean reverse-audio capability opt-in; not recording consent |
 | `capture_generation` | Current authenticated topology generation |
@@ -77,7 +77,7 @@ existing route policy; accepting a numeric value does not prove that path MTU.
 Unknown fields, booleans as integers, wrong profiles and stale geometry fail.
 There is no resize, profile substitution, implicit takeover or fallback port.
 
-A successful response has schema 4, `state: "connecting"`, an independent
+A successful response has schema 5, `state: "connecting"`, an independent
 one-use `transport_token`, `udp_port`, the exact `max_udp_payload_size`, the
 selected `capture` descriptor and:
 
@@ -91,7 +91,8 @@ LoginWindow and for Linux Clients. See `clipboard-sync.md`; the Client must use
 this negotiated result, not discovery alone, before accessing a pasteboard.
 
 Microphone is true only for an authenticated desktop worker with the installed
-PLANK input device and a capable Client. It is false at LoginWindow. No Client
+PLANK input device exposing 48 kHz stereo float32 and a capable Client.
+A still-loaded mono driver is unavailable until the matching driver is loaded. It is false at LoginWindow. No Client
 input device opens just because the field is true: activation additionally
 requires OS consent and a generation-matched Host acknowledgement. See
 `microphone.md`. Linux Host negotiation is unchanged.
@@ -115,7 +116,7 @@ order. Malformed/unsupported controls fail the session. System audio is Opus,
 stereo 48 kHz, 5 ms packets (one stream, one coupled stream, mapping 0/1).
 Keyboard, absolute mouse, buttons, scrolling and normalized pen use native input.
 No separate cursor, raw-HID or generic-touchscreen capability is claimed.
-See `macos-pen-input.md` for pressure, validation and cleanup. Schema1 is rejected;
+See `macos-pen-input.md` for pressure, validation and cleanup. Prior launch schemas, including schema4 with mono microphone audio, are rejected;
 this requires matching Host/Client candidates, without a legacy fallback.
 The native library itself retains its shared Linux endpoint implementation.
 
@@ -139,7 +140,7 @@ See `tests/protocol/macos-display-v3.json`. Width and height are even backing
 pixel counts from 2 through 8192; scale is integer 1 or 2. Logical desktop
 dimensions are pixels divided by scale and may be odd. Booleans, fractional
 values, missing/extra fields and prior schemas are rejected. Matching Host and
-Client builds are required; no silent 1x downgrade. Launch is schema 4
+Client builds are required; no silent 1x downgrade. Launch is schema 5
 and fixed-capture topology remains schema 13 (already carrying both geometries).
 
 For macOS Clients, Match Client reads the current CoreGraphics mode's backing

@@ -36,8 +36,10 @@ static OSStatus probeIO(AudioServerPlugInDriverRef driver, AudioObjectID device,
     if (status || !atomic_load(&running) || !(cycle->mInputTime.mFlags & kAudioTimeStampSampleTimeValid) ||
         !isfinite(cycle->mInputTime.mSampleTime) || cycle->mInputTime.mSampleTime < 0) return status;
     float *samples = main;
-    for (UInt32 i = 0; i < frames; i++)
-        samples[i] = .0625f * (float)sin(fmod(cycle->mInputTime.mSampleTime + i, 48) * 2 * M_PI / 48);
+    for (UInt32 i = 0; i < frames; i++) {
+        samples[2*i] = .0625f * (float)sin(fmod(cycle->mInputTime.mSampleTime + i, 48) * 2 * M_PI / 48);
+        samples[2*i+1] = .03125f * (float)sin(fmod(cycle->mInputTime.mSampleTime + i, 32) * 2 * M_PI / 32);
+    }
     return noErr;
 }
 __attribute__((visibility("default")))

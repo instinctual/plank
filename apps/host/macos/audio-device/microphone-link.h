@@ -10,7 +10,7 @@
 #define PLANK_MIC_DRIVER_SERVICE "la.instinctual.PLANK.Host.microphone-driver"
 #define PLANK_MIC_PRODUCER_SERVICE "la.instinctual.PLANK.Host.microphone-producer"
 #endif
-enum { PLANKMicLinkVersion = 1, PLANKMicPacketFrames = 480 };
+enum { PLANKMicLinkVersion = 2 };
 typedef struct {
     uint64_t version;
     // HAL publishes its clock; producer reads a coherent snapshot. These are

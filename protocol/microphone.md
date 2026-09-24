@@ -1,10 +1,10 @@
 # Reverse microphone audio (in development)
 
-This extension is implemented on the microphone-forwarding candidate branch,
+This extension is implemented on the native-media-investigation candidate branch,
 not released. Existing even-numbered Host-created endpoints and native/2 ALPN
-remain unchanged. Matching macOS launch schema 4 requests `microphone: true`;
+remain unchanged. Matching macOS launch schema 5 requests `microphone: true`;
 the authenticated reply's services map advertises availability only for a
-desktop worker with the installed virtual input. Linux Hosts do not advertise
+desktop worker with the installed stereo virtual input. Linux Hosts do not advertise
 this capability. Merely accepting an audio endpoint never authorizes capture.
 
 After authenticated capability agreement, the Client registers its first
@@ -13,21 +13,26 @@ audio sink with that ID. Both use AudioProtocol::UnreliableFec and the existing
 QUIC connection. Kyber needs no modification. Endpoint establishment belongs
 inside the existing session cancellation scope and has a bounded deadline.
 
-Audio is mono Opus, 48 kHz, 480 samples (10 ms) per packet. The KyProto codec
+Audio is stereo Opus, 48 kHz, 480 samples per channel (10 ms) per packet.
+The Client uses OPUS_APPLICATION_AUDIO, 192 kbps total, constrained VBR and
+forced stereo signaling. This is a quality-oriented lossy mode, not native PCM
+preservation. VBR is not a hard packet-size or instantaneous bitrate ceiling.
+Capture converts the selected source to interleaved stereo float at 48 kHz;
+a mono source cannot gain an independent second channel through conversion. The KyProto codec
 record uses OPUS and frame_size 480. A microphone media payload contains:
 
 | Offset | Bytes | Meaning |
 | --- | --- | --- |
 | 0 | 4 | ASCII PMIC |
-| 4 | 1 | Envelope version 1 |
-| 5 | 1 | Channels: 1 |
-| 6 | 2 | Samples: 480, big-endian |
+| 4 | 1 | Envelope version 2 |
+| 5 | 1 | Channels: 2 |
+| 6 | 2 | Samples per channel: 480, big-endian |
 | 8 | 8 | Nonzero activation generation, big-endian |
 | 16 | 8 | First sample index in activation, big-endian; multiple of 480 |
 | 24 | 1–1275 | One Opus packet |
 
 The complete envelope is bounded to 1299 bytes and validated before decoding.
-The Opus decoder must independently enforce one mono 480-sample frame; envelope
+The Opus decoder must independently enforce one stereo 480-sample frame; envelope
 metadata is not proof of valid compressed content. KyProto owns packetization
 and FEC. Oversize/bad-version/zero-generation/misaligned-time records fail
 validation. The unit suite includes a fixed byte vector.
@@ -47,7 +52,7 @@ discarded without terminating video. Endpoint creation/failure is bounded and
 does not stop otherwise healthy output audio/video. All endpoint futures share
 the session cancellation scope.
 
-The Host native Opus decoder validates mono/480 samples, then a bounded PCM
+The Host native Opus decoder validates stereo/480 samples per channel, then a bounded PCM
 producer absorbs independent clock drift and supplies silence on starvation.
 The existing root coordinator admits the signed current desktop worker using
 kernel UID/PID/audit-session identity plus its current registry generation.
@@ -55,6 +60,11 @@ A fresh shared region is allocated for each producer lease; retired producers
 never get a later session's region. Root admission expires independently of
 producer-writable PCM. XPC and mapping operations never run in the realtime
 HAL callback. The driver sanitizes fixed-size blocks into private sample history.
+The virtual input exposes 48 kHz, interleaved stereo float32 with left/right
+channels. Both channels share timestamps and drift correction. Shared-memory
+and control version 2 reject the previous mono layout; the Host checks the
+loaded device format before advertising microphone availability. Launch schema
+4 and microphone envelope version 1 are rejected, requiring matching candidates.
 
 Automatic selection is owned for the producer lifetime. It remembers the prior
 input UID and restores only if PLANK is still selected; later user choices win.

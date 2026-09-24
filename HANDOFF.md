@@ -1,10 +1,16 @@
 # PLANK handoff
 
-## Current task: native media forwarding investigation
+## Current task: native camera forwarding and stereo microphone implementation
 
 The operator requested preserving webcam/microphone native media output through
 transport without Client transcoding and explicitly requested a new branch.
-Native does not mean uncompressed.
+Native does not mean uncompressed. After live capture confirmed the camera's
+native formats, the operator chose stereo Opus at 192 kbps, constrained VBR,
+audio application mode and 10 ms packets for microphone forwarding. This
+supersedes native PCM/mSBC preservation as the microphone implementation goal.
+They explicitly approved proceeding with all implementation/test work and
+confirmed that the Mac virtual microphone must expose 48 kHz stereo.
+See [the implementation plan](docs/development/plans/native-media-forwarding.plan).
 
 Branch: `native-media-investigation`, isolated worktree
 `build/worktrees/native-media-investigation`. Original runtime base:
@@ -13,16 +19,16 @@ Synchronized with main `acb29884bff626c9381169fd94563ec79555984c`.
 Its runtime/package source remains `a4ea39eb6fd0c098ebe01e6eb516747b84c71800`;
 the latest main commit changes only package-validation documentation.
 The initial investigation checkpoint is `c12504c`; only this handoff required
-merge resolution. This checkpoint adds the synthetic camera probes and measured
-application-delivery results. Main's version, release notes, build runbook, packaging tests and
+merge resolution. The investigation commits add synthetic camera probes and measured
+application-delivery results; the current implementation adds stereo audio. Main's version, release notes, build runbook, packaging tests and
 Client gitlink are retained. The separate startup-fix worktree, main worktree
 and primary RK3576 research are untouched.
 
 The current base product version is **1.1.001**; this branch's candidate version
 is **1.1.001-native-media-investigation**. Preserve the padded patch component.
 Main already contains the accepted microphone and post-reboot certificate
-startup repairs. The new Client pin changes only its changelog. No release,
-package build or deployment has been performed by this synchronization.
+startup repairs. The synchronized Client base changed only its changelog. The current stereo
+work updates that Client. No native-media package or deployment exists yet.
 See [coordinated upgrade notes](docs/releases/1.1.001.md).
 
 Mainline **1.1.001** test packages are built and checksum/provenance-verified
@@ -72,8 +78,9 @@ device; audio-server ownership and user routing remain unchanged.
 
 V4L2 distinguishes compressed and emulated formats. SDL can expose MJPG bytes
 but can also convert requested formats. ALSA `hw:` avoids userspace PCM
-conversions. Current Client microphone capture requests converted 48 kHz mono
-float PCM and sends Opus; Mac virtual input is fixed at that PCM format.
+conversions. The measured baseline Client requested converted 48 kHz mono
+float PCM and sent 64 kbps Opus; its Mac virtual input was fixed to mono.
+The current stereo changes below supersede that baseline.
 New native format negotiation/validation and shared endpoint allocation need
 product work. Audio FEC's minimum two repair symbols affect wire-rate estimates.
 AVFoundation can request device-native compressed samples. Synthetic H.264
@@ -140,16 +147,34 @@ restored, the monitor module unloaded, and the existing microphone process,
 parameters and running state unchanged. Raw evidence and video samples remain
 private. No existing capture owner was displaced and no package was installed.
 
-Next: physical-input Mac decode and native camera/PCM preservation through PLANK,
-plus a supported audio capture API coexisting with the desktop graph. USB
-monitoring is a diagnostic reference, not product capture. Coordinate captures
-around existing camera/audio use. For headset microphone support, separately
-investigate encoded mSBC capture before PipeWire decoding and Host decoding;
-ordinary capture exposes only decoded PCM and would not preserve that codec.
-Do not take over the active Bluetooth transport. Target access details are only
-in protected private notes; passwords stay in the password
-manager. No product package build/install or product-code change has occurred
-in this investigation.
+Current stereo implementation: the Client requests 48 kHz interleaved stereo,
+encodes 192 kbps constrained-VBR Opus in audio mode with forced stereo signaling,
+and keeps 10 ms packets. PMIC version 2 and authenticated launch schema 5 reject
+old mono peers. The Mac decoder, producer, drift adaptation, shared-buffer
+version 2 and HAL device all use two channels. Device availability checks the
+loaded stereo format, preventing advertisement of a still-loaded mono driver.
+
+Validation passes on the authorized Ubuntu Client builder (Qt 6.10.2,
+SDL 3.4.2, Opus 1.6.1): dummy capture/mute/backpressure/reopen/failure cleanup,
+152 launch checks including old-schema rejection, and 300 synthetic stereo Opus
+packets. The fixture measured 193.44 kbps payload at a 192 kbps VBR target.
+On the authorized macOS 27/SDK27 development Mac: buffer stress (one million
+frames, two readers), HAL property/clock/multireader/silence tests, native Opus
+silence/reset/bounds, format/selection tests and all non-installing microphone
+probe builds pass with warnings as errors. Apple's decoder preserved the two
+independent tones from the Ubuntu encoder (left amplitude 0.062822, right
+0.031340, cross-tone amplitude below 0.000018). This qualifies component channel
+separation, not installed audio routing, microphone fidelity or lip sync.
+The encrypted microphone FFI mute/reopen/generation/bounds test passes locally.
+
+Next: finish stereo Host/Client build gates and installed-device testing; qualify
+physical H.264/MJPEG Mac decode and implement native camera capture/transport
+and authenticated extension production. Clock-drift/loss and real application
+acceptance remain required. USB monitoring is a diagnostic reference, not
+product capture. The selected microphone implementation is Opus; native PCM or
+Bluetooth mSBC preservation is no longer an implementation gate. Capture/test
+coordination and deployment details stay in private notes; credentials remain
+in the OS Keychain/password manager. No new package has been installed.
 
 Synchronization validation passes: all 62 CI-policy tests, seven package
 collection tests, main/feature release-version contracts, both microphone wire
@@ -168,12 +193,11 @@ Maintained gitlinks after synchronization:
 
 | Input | Commit |
 | --- | --- |
-| Shared Client | `cc511584c41c337569a1efd559a7c3362283d9cc` |
+| Shared Client | `9839f472265b84ebeaa7d1c6880c3fd7a09d7ebc` |
 | Kymux | `3f7a9d8618978287186e5d6ce0eaa067743cb06c` |
 | Linux Host | `5829bf7c335440a8b25c3330643eacb4d914f00a` |
 
 Prior package provenance and recursive pins remain in main's linked HANDOFF.
 No native-media candidate exists. Kymux is initialized at its exact pin from the verified
-local repository for transport tests. Client and Linux Host are uninitialized
-here; comparison against the retained Client repository confirms that its pin
-update changes only the changelog.
+local repository for transport tests. Client is initialized on the matching feature branch for stereo implementation.
+Linux Host remains uninitialized and unchanged.

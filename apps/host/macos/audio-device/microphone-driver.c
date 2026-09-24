@@ -13,8 +13,8 @@ enum { MicDevice = 2, MicStream = 3, MicPeriod = 480, MicMaxClients = 64 };
 static const AudioStreamBasicDescription micFormat = {
     .mSampleRate = PLANKMicRate, .mFormatID = kAudioFormatLinearPCM,
     .mFormatFlags = kAudioFormatFlagsNativeFloatPacked,
-    .mBytesPerPacket = sizeof(float), .mFramesPerPacket = 1,
-    .mBytesPerFrame = sizeof(float), .mChannelsPerFrame = 1,
+    .mBytesPerPacket = PLANKMicChannels * sizeof(float), .mFramesPerPacket = 1,
+    .mBytesPerFrame = PLANKMicChannels * sizeof(float), .mChannelsPerFrame = PLANKMicChannels,
     .mBitsPerChannel = 32,
 };
 static PLANKMicBuffer micBuffer;
@@ -273,7 +273,7 @@ static OSStatus get(AudioServerPlugInDriverRef driver, AudioObjectID object, pid
         }
         case kAudioDevicePropertyStreams: value = MicStream; break;
         case kAudioDevicePropertyPreferredChannelsForStereo: {
-            UInt32 channels[] = {1, 1}; memcpy(data, channels, sizeof(channels)); return noErr;
+            UInt32 channels[] = {1, 2}; memcpy(data, channels, sizeof(channels)); return noErr;
         }
         case kAudioStreamPropertyTerminalType: value = kAudioStreamTerminalTypeMicrophone; break;
         case kAudioStreamPropertyVirtualFormat: case kAudioStreamPropertyPhysicalFormat:
@@ -310,8 +310,8 @@ static OSStatus set(AudioServerPlugInDriverRef driver, AudioObjectID object, pid
     AudioStreamBasicDescription format; memcpy(&format, data, sizeof(format));
     return format.mSampleRate == micFormat.mSampleRate && format.mFormatID == micFormat.mFormatID &&
         format.mFormatFlags == micFormat.mFormatFlags && format.mBytesPerPacket == micFormat.mBytesPerPacket &&
-        format.mFramesPerPacket == 1 && format.mBytesPerFrame == sizeof(float) &&
-        format.mChannelsPerFrame == 1 && format.mBitsPerChannel == 32 ? noErr : kAudioDeviceUnsupportedFormatError;
+        format.mFramesPerPacket == 1 && format.mBytesPerFrame == PLANKMicChannels * sizeof(float) &&
+        format.mChannelsPerFrame == PLANKMicChannels && format.mBitsPerChannel == 32 ? noErr : kAudioDeviceUnsupportedFormatError;
 }
 static OSStatus changeIO(AudioServerPlugInDriverRef driver, AudioObjectID device, UInt32 client, bool start) {
     if (driver != DRIVER || device != MicDevice || !host) return kAudioHardwareBadObjectError;
@@ -376,7 +376,7 @@ static OSStatus performIO(AudioServerPlugInDriverRef driver, AudioObjectID devic
     if (driver != DRIVER || device != MicDevice || stream != MicStream ||
         operation != kAudioServerPlugInIOOperationReadInput || frames > PLANKMicMaxIO || !main || !cycle)
         return kAudioHardwareIllegalOperationError;
-    memset(main, 0, frames * sizeof(float));
+    memset(main, 0, frames * PLANKMicChannels * sizeof(float));
     double position = cycle->mInputTime.mSampleTime;
     if (!(cycle->mInputTime.mFlags & kAudioTimeStampSampleTimeValid) || !isfinite(position) ||
         position < 0 || position > (double)(UINT64_MAX / 2) || !atomic_load(&running)) return noErr;

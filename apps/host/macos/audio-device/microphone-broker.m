@@ -74,7 +74,7 @@ static BOOL micNumber(xpc_object_t message, const char *name, uint64_t *value) {
     if (!_driver || !lease) { completion(NO); return; }
     PLANKMicPeer *driver = _driver;
     xpc_object_t request = xpc_dictionary_create(NULL, NULL, 0);
-    xpc_dictionary_set_uint64(request, "version", 1);
+    xpc_dictionary_set_uint64(request, "version", PLANKMicLinkVersion);
     xpc_dictionary_set_uint64(request, "operation", operation);
     xpc_dictionary_set_uint64(request, "lease", lease);
     if (memory) xpc_dictionary_set_value(request, "memory", memory);
@@ -100,7 +100,7 @@ static BOOL micNumber(xpc_object_t message, const char *name, uint64_t *value) {
     if (peer.closed || _stopped) return;
     uint64_t version = 0;
     if (xpc_get_type(message) != XPC_TYPE_DICTIONARY ||
-        !micNumber(message, "version", &version) || version != 1) { [self close:peer]; return; }
+        !micNumber(message, "version", &version) || version != PLANKMicLinkVersion) { [self close:peer]; return; }
     if (peer.driver) {
         if (_driver || peer.registered || xpc_dictionary_get_count(message) != 1 ||
             xpc_connection_get_euid(peer.connection) != _audioUID) { [self close:peer]; return; }

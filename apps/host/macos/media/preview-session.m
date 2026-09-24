@@ -22,7 +22,7 @@ static BOOL integerInRange(id value, uint32_t minimum, uint32_t maximum) {
 BOOL PLANKMacPreviewRequestMatchesTopology(NSDictionary *request, NSDictionary *topology) {
     if (![request isKindOfClass:NSDictionary.class] || request.count != 11 ||
         ![topology isKindOfClass:NSDictionary.class] ||
-        !integerInRange(request[@"schema_version"], 4, 4) ||
+        !integerInRange(request[@"schema_version"], 5, 5) ||
         ![request[@"clipboard"] isKindOfClass:NSNumber.class] ||
         CFGetTypeID((__bridge CFTypeRef)request[@"clipboard"]) != CFBooleanGetTypeID() ||
         ![request[@"microphone"] isKindOfClass:NSNumber.class] ||

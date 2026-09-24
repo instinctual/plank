@@ -49,7 +49,7 @@ int main(int argc, char **argv) {
                 return;
             }
             if (xpc_get_type(message) != XPC_TYPE_DICTIONARY || xpc_connection_get_euid(peer) != audioUID ||
-                xpc_dictionary_get_count(message) != 2 || xpc_dictionary_get_uint64(message, "version") != 1 || driver) {
+                xpc_dictionary_get_count(message) != 2 || xpc_dictionary_get_uint64(message, "version") != 2 || driver) {
                 xpc_connection_cancel(peer); return;
             }
             xpc_object_t memory = xpc_dictionary_get_value(message, "memory");
@@ -64,7 +64,7 @@ int main(int argc, char **argv) {
             // incoming audio data. Mapping lasts only this 30-second process.
             if (size != mappedBytes || !mapping) exit(2);
             shared = mapping;
-            if (shared->version != 1 || !isfinite(shared->ticksPerFrame) || shared->ticksPerFrame < 1 ||
+            if (shared->version != 2 || !isfinite(shared->ticksPerFrame) || shared->ticksPerFrame < 1 ||
                 shared->ticksPerFrame > 1000000) exit(2);
             driver = peer; xpc_retain(driver);
             connected = true;
@@ -99,9 +99,11 @@ int main(int argc, char **argv) {
         }
         // At most four 10 ms blocks; no unbounded catch-up or packet RPC wait.
         for (unsigned n = 0; n < 4 && nextFrame < frame + 1440; n++) {
-            float samples[480];
-            for (unsigned i = 0; i < 480; i++)
-                samples[i] = .0625f * (float)sin((nextFrame + i) % 48 * 6.283185307179586 / 48);
+            float samples[480 * PLANKMicChannels];
+            for (unsigned i = 0; i < 480; i++) {
+                samples[2*i] = .0625f * (float)sin((nextFrame + i) % 48 * 6.283185307179586 / 48);
+                samples[2*i+1] = .03125f * (float)sin((nextFrame + i) % 32 * 6.283185307179586 / 32);
+            }
             if (!PLANKMicBufferWrite(&shared->buffer, nextFrame, samples, 480)) exit(2);
             nextFrame += 480; blocks++;
         }

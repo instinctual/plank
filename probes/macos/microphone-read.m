@@ -10,28 +10,39 @@
 #include <math.h>
 #include <stdio.h>
 #include <unistd.h>
+#include "../../apps/host/macos/audio-device/microphone-format.h"
 
 static _Atomic uint64_t frameCount;
 static _Atomic uint64_t audibleCount;
 static _Atomic uint64_t badCount;
+static _Atomic uint64_t differentCount;
+static _Atomic uint64_t channelEnergy[PLANKMicChannels];
 static OSStatus readInput(AudioDeviceID device, const AudioTimeStamp *now,
                           const AudioBufferList *input, const AudioTimeStamp *inputTime,
                           AudioBufferList *output, const AudioTimeStamp *outputTime, void *context) {
     (void)device; (void)now; (void)inputTime; (void)output; (void)outputTime; (void)context;
-    if (!input || input->mNumberBuffers != 1 || input->mBuffers[0].mNumberChannels != 1 ||
-        input->mBuffers[0].mDataByteSize % sizeof(float) || !input->mBuffers[0].mData) {
+    if (!input || input->mNumberBuffers != 1 || input->mBuffers[0].mNumberChannels != PLANKMicChannels ||
+        input->mBuffers[0].mDataByteSize % (PLANKMicChannels*sizeof(float)) || !input->mBuffers[0].mData) {
         atomic_fetch_add(&badCount, 1); return noErr;
     }
-    UInt32 count = input->mBuffers[0].mDataByteSize / sizeof(float);
+    UInt32 count = input->mBuffers[0].mDataByteSize / (PLANKMicChannels*sizeof(float));
     const float *samples = input->mBuffers[0].mData;
-    uint64_t audible = 0, bad = 0;
+    uint64_t audible = 0, bad = 0, different = 0, energy[PLANKMicChannels] = {0};
     for (UInt32 i = 0; i < count; i++) {
-        if (!isfinite(samples[i]) || fabsf(samples[i]) > .063f) bad++;
-        if (fabsf(samples[i]) > .01f) audible++;
+        different += samples[2*i] != samples[2*i+1];
+        for (unsigned channel = 0; channel < PLANKMicChannels; channel++) {
+            float value = samples[i*PLANKMicChannels+channel];
+            if (!isfinite(value) || fabsf(value) > .063f) { bad++; continue; }
+            if (fabsf(value) > .01f) audible++;
+            energy[channel] += (uint64_t)((double)value*value*1e12);
+        }
     }
     atomic_fetch_add(&frameCount, count);
     atomic_fetch_add(&audibleCount, audible);
     atomic_fetch_add(&badCount, bad);
+    atomic_fetch_add(&differentCount, different);
+    for (unsigned channel = 0; channel < PLANKMicChannels; channel++)
+        atomic_fetch_add(&channelEnergy[channel], energy[channel]);
     return noErr;
 }
 int main(int argc, const char *argv[]) { @autoreleasepool {
@@ -115,7 +126,12 @@ int main(int argc, const char *argv[]) { @autoreleasepool {
     uint64_t frames = atomic_load(&frameCount), audible = atomic_load(&audibleCount), bad = atomic_load(&badCount);
     printf("microphone_probe_frames=%llu audible=%llu invalid=%llu\n",
            (unsigned long long)frames, (unsigned long long)audible, (unsigned long long)bad);
-    BOOL pass = !status && frames >= 96000 && audible > frames / 2 && !bad;
+    double left = frames ? sqrt(atomic_load(&channelEnergy[0])/1e12/frames) : 0;
+    double right = frames ? sqrt(atomic_load(&channelEnergy[1])/1e12/frames) : 0;
+    printf("microphone_probe_channels=2 left_rms=%.6f right_rms=%.6f different_frames=%llu\n",
+        left, right, (unsigned long long)atomic_load(&differentCount));
+    BOOL pass = !status && frames >= 96000 && audible > frames / 2 && !bad &&
+        left > .02 && right > .01 && left > right*1.5 && atomic_load(&differentCount) > frames/2;
     printf("microphone_live_tone=%s\n", pass ? "pass" : "fail");
     return pass ? 0 : 1;
 } }

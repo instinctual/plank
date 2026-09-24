@@ -6,6 +6,7 @@
 #import <Security/Security.h>
 #include <unistd.h>
 #include <math.h>
+#include "../../apps/host/macos/audio-device/microphone-format.h"
 
 static NSString *requirement(void) {
     SecCodeRef code = NULL; SecRequirementRef rule = NULL; CFStringRef text = NULL;
@@ -45,9 +46,11 @@ int main(int argc, char **argv) { @autoreleasepool {
         __block uint64_t sampleTime = 0;
         dispatch_source_set_timer(timer, DISPATCH_TIME_NOW, 10*NSEC_PER_MSEC, NSEC_PER_MSEC);
         dispatch_source_set_event_handler(timer, ^{
-            float samples[480];
-            for (unsigned i = 0; i < 480; i++) samples[i] = constant ? .0625f :
-                .0625f * sin((sampleTime + i) % 48 * 6.283185307179586 / 48);
+            float samples[480 * PLANKMicChannels];
+            for (unsigned i = 0; i < 480; i++) {
+                samples[2*i] = constant ? .0625f : .0625f * sin((sampleTime + i) % 48 * 6.283185307179586 / 48);
+                samples[2*i+1] = constant ? -.03125f : .03125f * sin((sampleTime + i) % 32 * 6.283185307179586 / 32);
+            }
             if (![producer submit:samples count:480 sampleTime:sampleTime]) {
                 puts("managed_microphone_submit=failed"); [producer stop]; exit(1);
             }

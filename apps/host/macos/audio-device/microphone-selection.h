@@ -2,6 +2,7 @@
 #pragma once
 #import <Foundation/Foundation.h>
 #import <CoreAudio/CoreAudio.h>
+#include "microphone-format.h"
 
 #ifndef PLANK_MIC_DEVICE_UID
 #define PLANK_MIC_DEVICE_UID "la.instinctual.PLANK.Microphone"
@@ -23,6 +24,26 @@ static inline AudioObjectID PLANKMicDefaultInput(void) {
         kAudioObjectPropertyScopeGlobal, kAudioObjectPropertyElementMain};
     if (AudioObjectGetPropertyData(kAudioObjectSystemObject, &property, 0, NULL, &size, &device)) return kAudioObjectUnknown;
     return device;
+}
+// A matching UID alone is insufficient after a driver upgrade. A still-loaded
+// mono driver cannot accept the stereo producer layout and is not advertised.
+static inline BOOL PLANKMicDeviceHasCurrentFormat(AudioObjectID device) {
+    if (!device) return NO;
+    AudioStreamID stream = 0; UInt32 size = sizeof(stream);
+    AudioObjectPropertyAddress property = {kAudioDevicePropertyStreams,
+        kAudioObjectPropertyScopeInput, kAudioObjectPropertyElementMain};
+    if (AudioObjectGetPropertyData(device, &property, 0, NULL, &size, &stream) ||
+        size != sizeof(stream) || !stream) return NO;
+    AudioStreamBasicDescription format = {0}; size = sizeof(format);
+    property = (AudioObjectPropertyAddress){kAudioStreamPropertyVirtualFormat,
+        kAudioObjectPropertyScopeGlobal, kAudioObjectPropertyElementMain};
+    return !AudioObjectGetPropertyData(stream, &property, 0, NULL, &size, &format) &&
+        size == sizeof(format) && format.mSampleRate == PLANKMicRate &&
+        format.mFormatID == kAudioFormatLinearPCM &&
+        format.mFormatFlags == kAudioFormatFlagsNativeFloatPacked &&
+        format.mChannelsPerFrame == PLANKMicChannels && format.mBitsPerChannel == 32 &&
+        format.mFramesPerPacket == 1 && format.mBytesPerFrame == PLANKMicChannels * sizeof(float) &&
+        format.mBytesPerPacket == format.mBytesPerFrame;
 }
 static inline NSString *PLANKMicDeviceUID(AudioObjectID device) {
     if (!device) return nil;

@@ -30,7 +30,7 @@ static OSStatus probeInitialize(AudioServerPlugInDriverRef driver, AudioServerPl
     shared = mmap(NULL, mappedBytes, PROT_READ | PROT_WRITE, MAP_ANON | MAP_SHARED, -1, 0);
     if (shared == MAP_FAILED) { shared = NULL; return kAudioHardwareUnspecifiedError; }
     memset(shared, 0, mappedBytes);
-    shared->version = 1; shared->ticksPerFrame = ticksPerFrame;
+    shared->version = 2; shared->ticksPerFrame = ticksPerFrame;
     PLANKMicBufferInit(&shared->buffer);
     probeQueue = dispatch_queue_create("la.instinctual.PLANK.Microphone.probe",
         dispatch_queue_attr_make_with_qos_class(DISPATCH_QUEUE_SERIAL, QOS_CLASS_USER_INTERACTIVE, 0));
@@ -40,7 +40,7 @@ static OSStatus probeInitialize(AudioServerPlugInDriverRef driver, AudioServerPl
     xpc_connection_set_event_handler(probeConnection, ^(xpc_object_t message) { (void)message; clearFeed(); });
     xpc_connection_activate(probeConnection);
     xpc_object_t hello = xpc_dictionary_create(NULL, NULL, 0);
-    xpc_dictionary_set_uint64(hello, "version", 1);
+    xpc_dictionary_set_uint64(hello, "version", 2);
     xpc_object_t memory = xpc_shmem_create(shared, mappedBytes);
     if (!memory) return kAudioHardwareUnspecifiedError;
     xpc_dictionary_set_value(hello, "memory", memory); xpc_release(memory);

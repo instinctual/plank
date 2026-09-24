@@ -57,9 +57,10 @@ int main(void) {
     address = property(kAudioStreamPropertyVirtualFormat, kAudioObjectPropertyScopeGlobal);
     AudioStreamBasicDescription format = {0};
     assert(!get(DRIVER, MicStream, 0, &address, 0, NULL, sizeof(format), &size, &format));
-    assert(format.mSampleRate == 48000 && format.mChannelsPerFrame == 1 && format.mBitsPerChannel == 32);
+    assert(format.mSampleRate == 48000 && format.mChannelsPerFrame == 2 && format.mBitsPerChannel == 32);
+    assert(format.mBytesPerFrame == 2*sizeof(float) && format.mBytesPerPacket == 2*sizeof(float));
     assert(!set(DRIVER, MicStream, 0, &address, 0, NULL, sizeof(format), &format));
-    format.mChannelsPerFrame = 2;
+    format.mChannelsPerFrame = 1;
     assert(set(DRIVER, MicStream, 0, &address, 0, NULL, sizeof(format), &format) == kAudioDeviceUnsupportedFormatError);
     assert(get(DRIVER, MicStream, 0, &address, 0, NULL, 1, &size, &format) == kAudioHardwareBadPropertySizeError);
     assert(!has(DRIVER, 99, 0, &address));
@@ -85,8 +86,15 @@ int main(void) {
     usleep(21000);
     assert(!timestamp(DRIVER, MicDevice, 10, &after, &time, &laterSeed));
     assert(after >= before + 2 * MicPeriod && laterSeed == seed && time <= mach_absolute_time());
-    float tone[MicPeriod], received[MicPeriod], other[MicPeriod];
-    for (unsigned i = 0; i < MicPeriod; i++) tone[i] = .25f * sinf((float)i * 2 * (float)M_PI / 48);
+    address = property(kAudioDevicePropertyPreferredChannelsForStereo, kAudioObjectPropertyScopeInput);
+    UInt32 channels[2] = {0};
+    assert(!get(DRIVER, MicDevice, 0, &address, 0, NULL, sizeof(channels), &size, channels));
+    assert(channels[0] == 1 && channels[1] == 2);
+    float tone[MicPeriod * PLANKMicChannels], received[MicPeriod * PLANKMicChannels], other[MicPeriod * PLANKMicChannels];
+    for (unsigned i = 0; i < MicPeriod; i++) {
+        tone[2*i] = .25f * sinf((float)i * 2 * (float)M_PI / 48);
+        tone[2*i+1] = .125f * cosf((float)i * 2 * (float)M_PI / 32);
+    }
     AudioServerPlugInIOCycleInfo cycle = {0};
     cycle.mInputTime.mFlags = kAudioTimeStampSampleTimeValid;
     for (unsigned block = 0; block < 1000; block++) {
@@ -104,11 +112,11 @@ int main(void) {
     cycle.mInputTime.mSampleTime += MicPeriod;
     assert(!performIO(DRIVER, MicDevice, MicStream, 10, kAudioServerPlugInIOOperationReadInput,
                       MicPeriod, &cycle, received, NULL));
-    for (unsigned i = 0; i < MicPeriod; i++) assert(received[i] == 0);
+    for (unsigned i = 0; i < MicPeriod * PLANKMicChannels; i++) assert(received[i] == 0);
     cycle.mInputTime.mSampleTime = NAN;
     assert(!performIO(DRIVER, MicDevice, MicStream, 10, kAudioServerPlugInIOOperationReadInput,
                       MicPeriod, &cycle, received, NULL));
-    for (unsigned i = 0; i < MicPeriod; i++) assert(received[i] == 0);
+    for (unsigned i = 0; i < MicPeriod * PLANKMicChannels; i++) assert(received[i] == 0);
     assert(performIO(DRIVER, MicDevice, MicStream, 10, kAudioServerPlugInIOOperationReadInput,
                      PLANKMicMaxIO + 1, &cycle, received, NULL));
     assert(!stopIO(DRIVER, MicDevice, 10) && atomic_load(&running) == 1);
@@ -119,7 +127,7 @@ int main(void) {
     cycle.mInputTime.mSampleTime = 0;
     assert(!performIO(DRIVER, MicDevice, MicStream, 10, kAudioServerPlugInIOOperationReadInput,
                       MicPeriod, &cycle, received, NULL));
-    for (unsigned i = 0; i < MicPeriod; i++) assert(received[i] == 0);
+    for (unsigned i = 0; i < MicPeriod * PLANKMicChannels; i++) assert(received[i] == 0);
     assert(!removeClient(DRIVER, MicDevice, &first) && !atomic_load(&running));
     puts("microphone_driver=pass blocks=1000 readers=2 properties=1 lifecycle=1 clock=1 silence=1");
 }

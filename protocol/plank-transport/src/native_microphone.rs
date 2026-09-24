@@ -456,7 +456,7 @@ mod tests {
                         plank_transport_native_microphone_activate(&mut *client, generation),
                         PLANK_TRANSPORT_OK
                     );
-                    let input = [0xf0, 0xff, 0xfe];
+                    let input = [0xf4, 0xff, 0xfe];
                     assert_eq!(
                         plank_transport_native_microphone_send(
                             &mut *client,

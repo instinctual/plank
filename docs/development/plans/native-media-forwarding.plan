@@ -1,0 +1,46 @@
+# Native camera forwarding and stereo microphone implementation
+
+The operator approved proceeding through implementation and testing, stopping
+only when operator input is required. Work stays on `native-media-investigation`.
+The measured baseline is recorded in ../investigations/native-media-forwarding.md.
+
+## Agreed behavior
+
+- Forward camera-native H.264/MJPEG payloads from the Ubuntu Client without a
+  Client video encoder. Preserve coded payloads to Mac reception. One Mac camera
+  serves compatible compressed consumers and supplies decoded pixels as required.
+- Microphone audio uses stereo Opus at 192 kbps total, constrained VBR, audio
+  application mode and 10 ms packets. This intentionally replaces the earlier
+  native-PCM transport proposal. Preserve channel separation; do not claim
+  lossless audio. Mono sources may supply the ordinary stereo capture conversion.
+- The Mac virtual input exposes 48 kHz stereo float PCM. Update decoding, clock
+  adaptation, shared memory and the Core Audio format together. Both channels
+  follow the same frame clock and drift correction.
+- Capture remains user-controlled and session-bound. Keep authentication,
+  permissions, mute, disconnect, takeover, bounded queues and stale-generation
+  rejection. Optional camera failure must not terminate healthy desktop media.
+- Camera and microphone registration use an explicit endpoint allocation
+  contract. Format changes and reconnects cannot reuse stale payloads.
+
+## Required work and validation
+
+1. Stereo audio: version the wire and launch contracts; update Client capture
+   and Opus configuration, native Mac decode and virtual input. Test independent
+   channel tones, malformed/old-format rejection, mute/reopen, clock drift,
+   shared-buffer coherence and driver format negotiation. Compile on authorized
+   builders and test the installed candidate on authorized hardware.
+2. Native camera: validate physical captured H.264/MJPEG decode on the development
+   Mac; implement bounded Linux capture, negotiated reverse transport and Host
+   reception. Test payload equality, gaps, format/configuration bounds, keyframe
+   recovery and cancellation independently of application delivery.
+3. Mac camera: integrate a properly signed/provisioned camera extension and
+   session-authenticated producer. Qualify coded and pixel consumers, concurrent
+   readers, activation/removal and producer revocation. Only request operator
+   action for actual OS permission/approval prompts or unavailable credentials.
+4. Package and hardware gates: matching Host/Client builds, native video plus
+   stereo audio in real applications, sustained rates, controlled loss,
+   unplug/reopen, session cleanup and audio/video synchronization. Keep private
+   captures, deployment identities and signing material outside Git.
+
+The investigation commits are not implementation or hardware acceptance for
+these gates. Record completed validation and remaining limitations in HANDOFF.

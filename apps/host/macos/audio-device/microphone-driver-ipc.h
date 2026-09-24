@@ -44,7 +44,7 @@ static void micConnect(void) {
         }
         uint64_t version = 0, operation = 0, lease = 0;
         bool valid = xpc_connection_get_euid(peer) == 0 && xpc_get_type(message) == XPC_TYPE_DICTIONARY &&
-            micWord(message, "version", &version) && version == 1 &&
+            micWord(message, "version", &version) && version == PLANKMicLinkVersion &&
             micWord(message, "operation", &operation) && micWord(message, "lease", &lease) && lease;
         xpc_object_t reply = valid ? xpc_dictionary_create_reply(message) : NULL;
         if (!valid || !reply) { micDropLink(); xpc_connection_cancel(peer); return; }
@@ -74,7 +74,7 @@ static void micConnect(void) {
     });
     xpc_connection_activate(peer);
     xpc_object_t hello = xpc_dictionary_create(NULL, NULL, 0);
-    xpc_dictionary_set_uint64(hello, "version", 1);
+    xpc_dictionary_set_uint64(hello, "version", PLANKMicLinkVersion);
     xpc_connection_send_message(peer, hello); xpc_release(hello);
 }
 
@@ -108,9 +108,9 @@ static void micIPCTick(void) {
     frame = frame / MicPeriod * MicPeriod;
     if (frame >= MicPeriod) frame -= MicPeriod;
     for (unsigned block = 0; block < 5; block++) {
-        float samples[MicPeriod];
+        float samples[MicPeriod * PLANKMicChannels];
         PLANKMicBufferRead(&micLink->samples, frame, samples, MicPeriod);
-        for (unsigned i = 0; i < MicPeriod; i++)
+        for (unsigned i = 0; i < MicPeriod * PLANKMicChannels; i++)
             samples[i] = isfinite(samples[i]) ? fminf(1, fmaxf(-1, samples[i])) : 0;
         PLANKMicBufferWrite(&micBuffer, frame, samples, MicPeriod);
         frame += MicPeriod;
@@ -140,5 +140,5 @@ static void micIPCRead(uint64_t frame, float *samples, uint32_t count) {
     if (!lease || mach_absolute_time() >= atomic_load(&micInputDeadline)) return;
     PLANKMicBufferRead(&micBuffer, frame, samples, count);
     if (lease != atomic_load(&micInputLease) || mach_absolute_time() >= atomic_load(&micInputDeadline))
-        memset(samples, 0, count * sizeof(*samples));
+        memset(samples, 0, count * PLANKMicChannels * sizeof(*samples));
 }

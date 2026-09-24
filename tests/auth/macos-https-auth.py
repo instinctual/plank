@@ -168,7 +168,7 @@ def authenticate(tls, port, username, password, encoding_mode="hevc-10-420-video
 
 def preview(tls, port, token, topology, receiver, media, seconds=3):
     capture = topology["capture"]
-    body = {"schema_version": 4, "clipboard": False, "microphone": False, "capture_generation": topology["generation"], "capture_id": capture["id"],
+    body = {"schema_version": 5, "clipboard": False, "microphone": False, "capture_generation": topology["generation"], "capture_id": capture["id"],
             "width": capture["width"], "height": capture["height"], "encoding_mode": "hevc-10-420-videotoolbox",
             "frame_rate": 60, "bitrate_kbps": 50000, "max_udp_payload_size": 1200}
 
@@ -217,7 +217,7 @@ def preview(tls, port, token, topology, receiver, media, seconds=3):
             assert launch(body, token)[0] == 401
             token, _ = authenticate(tls, port, "synthetic", "test")
     status, reply = launch(body, token)
-    assert status == 200 and reply["schema_version"] == 4 and reply["state"] == "connecting"
+    assert status == 200 and reply["schema_version"] == 5 and reply["state"] == "connecting"
     assert reply["udp_port"] == port and reply["max_udp_payload_size"] == 1200
     assert reply["capture"] == capture and reply["transport_token"] != token
     assert reply["services"] == {"audio": True, "input": True, "pen": "normalized", "cursor": "embedded", "clipboard": False, "microphone": False}

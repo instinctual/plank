@@ -19,7 +19,7 @@
     BOOL _enabled, _stopped, _failed, _hasSample, _ackPending;
     BOOL _producerReady, _configured, _automaticInput;
 }
-+ (BOOL)available { return geteuid() != 0 && PLANKMicDeviceForUID(@PLANK_MIC_DEVICE_UID) != kAudioObjectUnknown; }
++ (BOOL)available { return geteuid() != 0 && PLANKMicDeviceHasCurrentFormat(PLANKMicDeviceForUID(@PLANK_MIC_DEVICE_UID)); }
 - (instancetype)initWithQueue:(dispatch_queue_t)queue endpoint:(PlankTransportNativeEndpoint *)endpoint
                    generation:(uint64_t)generation valid:(BOOL (^)(void))valid {
     if (!queue || !endpoint || !generation || !valid) return nil;
@@ -105,7 +105,7 @@
         if (result != PLANK_TRANSPORT_OK) { [self fail]; break; }
         if (generation != _activation) continue;
         if (_hasSample && sampleTime != _nextSample && !PLANKMicDecoderReset(&_decoder)) { [self fail]; break; }
-        float samples[480];
+        float samples[480 * PLANKMicChannels];
         if (!PLANKMicDecode(&_decoder, packet, size, samples) || !_valid() ||
             ![_producer submit:samples count:480 sampleTime:sampleTime]) { [self fail]; break; }
         _hasSample = YES; _nextSample = sampleTime + 480;

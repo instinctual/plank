@@ -4,7 +4,7 @@
 
 // Owned by one authenticated stream activation. All methods use the supplied
 // serial audio queue. No capture permissions, physical input or default-device
-// changes live here. Samples are already decoded mono 48 kHz float PCM.
+// changes live here. Samples are already decoded interleaved stereo 48 kHz float PCM.
 @interface PLANKMacMicrophoneProducer : NSObject
 - (instancetype)initWithQueue:(dispatch_queue_t)queue generation:(uint64_t)generation
                   requirement:(NSString *)requirement automaticInput:(BOOL)automaticInput
