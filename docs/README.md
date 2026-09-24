@@ -9,6 +9,8 @@
   artifacts and signing boundaries.
   [Dependency maintenance](development/dependency-maintenance.md) covers update
   automation, script-pinned inputs and upgrade qualification.
+  [Native media forwarding](development/investigations/native-media-forwarding.md)
+  investigates preserving webcam and microphone device payloads through transport.
 - [Security](security/): threat models and security-focused contracts.
   [Private information policy](security/private-information.md) defines the
   boundary between public development material and private operational notes.
