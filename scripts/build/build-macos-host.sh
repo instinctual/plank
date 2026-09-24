@@ -27,6 +27,7 @@ xcrun clang -O2 -mmacosx-version-min=27.0 -fobjc-arc -Wall -Wextra -Werror \
     tests/audio/macos-microphone-selection.m -framework Foundation -framework CoreAudio \
     -o "$output/microphone-selection-test"
 "$output/microphone-selection-test"
+bash "$source_root/scripts/test/build-macos-native-camera-sample.sh" "$source_root" "$output/camera-sample-tests"
 bash "$source_root/scripts/test/build-macos-agent-registry.sh" "$source_root" "$output/agent-registry-tests"
 xcrun clang -mmacosx-version-min=27.0 -fobjc-arc -Wall -Wextra -Werror \
     -Iapps/host/macos/session tests/auth/macos-machine-identity.m \
@@ -132,6 +133,7 @@ sources=(apps/host/macos/auth/authentication-session.m apps/host/macos/auth/grap
     apps/host/macos/media/native-video.m apps/host/macos/media/preview-session.m apps/host/macos/media/clipboard-sync.m apps/host/macos/media/screen-capture.m
     apps/host/macos/media/native-audio.m apps/host/macos/media/opus-encoder.m apps/host/macos/media/audio-tap.m
     apps/host/macos/media/microphone-session.m
+    apps/host/macos/media/native-camera-sample.m
     apps/host/macos/audio-device/microphone-broker.m apps/host/macos/audio-device/microphone-producer.m
     apps/host/macos/audio-device/microphone-selection.m
     apps/host/macos/input/input-events.m apps/host/macos/input/native-input.m apps/host/macos/input/quartz-input.m

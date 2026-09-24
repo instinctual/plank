@@ -19,7 +19,11 @@ static void encoded(void *context, void *frameContext, OSStatus status,
 }
 
 CMSampleBufferRef PLANKCameraFixtureCreate(void) {
-    const int width = 320, height = 240;
+    return PLANKCameraFixtureCreateSized(320, 240);
+}
+
+CMSampleBufferRef PLANKCameraFixtureCreateSized(unsigned width, unsigned height) {
+    if (width < 16 || height < 16 || width > 1920 || height > 1080) return NULL;
     CVPixelBufferRef pixels = NULL;
     VTCompressionSessionRef encoder = NULL;
     EncodedFrame frame = {NULL, noErr};
@@ -33,8 +37,8 @@ CMSampleBufferRef PLANKCameraFixtureCreate(void) {
     size_t stride = CVPixelBufferGetBytesPerRow(pixels);
     uint8_t *base = CVPixelBufferGetBaseAddress(pixels);
     memset(base, 0, stride * height);
-    for (int y = 0; y < height; y++) {
-        for (int x = 0; x < width; x++) {
+    for (unsigned y = 0; y < height; y++) {
+        for (unsigned x = 0; x < width; x++) {
             uint8_t *p = base + stride * y + 4 * x;
             p[0] = (uint8_t)(x * 255 / width);
             p[1] = (uint8_t)(y * 255 / height);
