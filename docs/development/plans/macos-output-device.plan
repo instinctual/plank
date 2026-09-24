@@ -1,0 +1,34 @@
+# PLANK Output
+
+The operator requested a named macOS playback destination because the selected
+physical speaker name obscures remote playback. Work stays on the native media
+feature branch; Host deployment remains macOS27/SDK27.
+
+Publish a real output-only Audio Server Plug-in device named PLANK Output,
+48kHz stereo Float32 with volume/mute controls. Its final mix is a silent sink.
+Retain the existing owned-process Core Audio tap upstream of that sink: this
+preserves active-user admission, system-alert validation, capture consent,
+applications pinned to other outputs, and the single Opus/Kymux media path.
+There is no public loopback input, PCM capture in root, second encoder or new
+network feature schema. Tap gain applies the selected output's controls once.
+
+After desktop audio is active, the signed admitted worker requests a renewable
+local routing lease from the root coordinator. The coordinator records stable
+UIDs for playback and system-alert defaults in a private recovery journal before
+selecting PLANK Output. No route change occurs before consent or for LoginWindow.
+Driver absence or incompatible format retains existing process capture.
+
+Normal disconnect, worker loss, expired heartbeat and graphical revocation
+restore owned defaults. A manual replacement wins. If an original device was
+unplugged, use an available built-in output; never guess an external replacement.
+HAL failure preserves the journal and retries off the authentication queue.
+Coordinator abnormal exit triggers launchd restart and journal recovery.
+Explicitly user-selected PLANK defaults are not owned or undone by the session.
+
+Validate driver format/control/IO bounds, gain handling, real journal recovery,
+partial selection, manual override, missing devices and malformed/unauthorized
+local XPC. Run existing tap/recovery/session and packaging gates. Deliver a new
+signed candidate with the native deferrable restart recommendation. Live gates:
+Sound Settings output selection, volume/mute, app and alert delivery, app-pinned
+outputs, connect/disconnect, worker/coordinator crash, unplug, and stereo checks.
+Component tests do not establish installed driver or application acceptance.

@@ -6,12 +6,14 @@
 <key>ProgramArguments</key><array><string>/Applications/PLANK Host.app/Contents/MacOS/plank-host</string><string>--machine</string><string>la.instinctual.PLANK.Host.machine</string></array>
 <key>MachServices</key><dict>
 <key>la.instinctual.PLANK.Host.machine</key><true/>
+<key>la.instinctual.PLANK.Host.output-routing</key><true/>
 <key>la.instinctual.PLANK.Host.microphone-driver</key><true/>
 <key>la.instinctual.PLANK.Host.microphone-producer</key><true/>
 <key>la.instinctual.PLANK.Host.camera-extension</key><true/>
 <key>la.instinctual.PLANK.Host.camera-producer</key><true/>
 </dict>
 <key>RunAtLoad</key><true/>
+<key>KeepAlive</key><dict><key>SuccessfulExit</key><false/></dict>
 <key>StandardOutPath</key><string>/Library/Logs/PLANK/host-machine.log</string>
 <key>StandardErrorPath</key><string>/Library/Logs/PLANK/host-machine.log</string>
 </dict></plist>

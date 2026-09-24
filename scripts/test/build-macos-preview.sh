@@ -30,7 +30,7 @@ sources=(apps/host/macos/auth/authentication-session.m apps/host/macos/auth/grap
     apps/host/macos/session/host-runtime.m
     apps/host/macos/control/http-request.m apps/host/macos/control/server-information.m
     apps/host/macos/control/fixed-capture.m apps/host/macos/control/https-auth-server.m
-    apps/host/macos/media/native-video.m apps/host/macos/media/preview-session.m apps/host/macos/media/clipboard-sync.m apps/host/macos/media/screen-capture.m
+    apps/host/macos/media/native-video.m apps/host/macos/media/preview-session.m apps/host/macos/media/clipboard-sync.m apps/host/macos/media/screen-capture.m apps/host/macos/audio-device/output-route.m
     apps/host/macos/media/camera-session.m apps/host/macos/camera-device/camera-producer.m apps/host/macos/camera-device/camera-signing.m \
     apps/host/macos/media/microphone-session.m apps/host/macos/audio-device/microphone-producer.m
     apps/host/macos/media/native-audio.m apps/host/macos/media/opus-encoder.m apps/host/macos/media/audio-tap.m

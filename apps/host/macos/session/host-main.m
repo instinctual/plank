@@ -3,6 +3,8 @@
 // loopback-only replacement server. Installation/signing remains a release gate.
 #import "host-runtime.h"
 #import "../audio-device/microphone-broker.h"
+#import "../audio-device/output-broker.h"
+#import "../audio-device/output-route.h"
 #import "../camera-device/camera-broker.h"
 #import "../camera-device/camera-signing.h"
 #import "../camera-device/camera-activation.h"
@@ -149,6 +151,12 @@ static int machine(const char *service) {
             return [weakRegistry admitsDesktopPeer:peer generation:generation];
         }];
     if (![microphone start]) { [registry stop]; return startupFailure("microphone-broker"); }
+    PLANKMacOutputBroker *output = [[PLANKMacOutputBroker alloc]
+        initWithQueue:dispatch_get_main_queue() requirement:requirement
+        authorize:^BOOL(PLANKMacAgentPeer peer, uint64_t generation) {
+            return [weakRegistry admitsDesktopPeer:peer generation:generation];
+        }];
+    if (![output start]) NSLog(@"PLANK Output routing unavailable; process audio capture remains available");
     PLANKMacCameraBroker *camera = [[PLANKMacCameraBroker alloc]
         initWithQueue:dispatch_get_main_queue() requirement:requirement
         extensionRequirement:PLANKCameraPeerRequirement(@"la.instinctual.PLANK.Host.Camera")
@@ -158,16 +166,21 @@ static int machine(const char *service) {
     if (![camera start]) NSLog(@"PLANK camera broker unavailable; other Host services remain available");
     xpc_connection_t listener = xpc_connection_create_mach_service(service, dispatch_get_main_queue(),
         XPC_CONNECTION_MACH_SERVICE_LISTENER);
-    if (!listener) { [camera stop]; [microphone stop]; [registry stop]; return 2; }
+    if (!listener) { [output stopWithCompletion:nil]; [camera stop]; [microphone stop]; [registry stop]; return 2; }
     xpc_connection_set_event_handler(listener, ^(xpc_object_t peer) {
         if (xpc_get_type(peer) == XPC_TYPE_CONNECTION) [registry accept:peer];
     });
     xpc_connection_activate(listener);
     if (![desktopStart start]) {
-        [camera stop]; [microphone stop]; [registry stop]; xpc_connection_cancel(listener);
+        [output stopWithCompletion:nil]; [camera stop]; [microphone stop]; [registry stop]; xpc_connection_cancel(listener);
         return startupFailure("desktop-start-observer");
     }
-    signals(^{ [camera stop]; [microphone stop]; [desktopStart stop]; [registry stop]; xpc_connection_cancel(listener); exit(0); });
+    signals(^{
+        [camera stop]; [microphone stop]; [desktopStart stop]; [registry stop]; xpc_connection_cancel(listener);
+        [output stopWithCompletion:^{ exit(0); }];
+        // Preserve the journal if HAL stalls; the next coordinator retries it.
+        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 3*NSEC_PER_SEC), dispatch_get_main_queue(), ^{ exit(0); });
+    });
     NSLog(@"PLANK Host machine coordinator started");
     [[NSRunLoop mainRunLoop] run]; return 0;
 }
@@ -284,7 +297,18 @@ static int graphical(const char *service, NSString *role, NSString *directory, B
         capture:^id<PLANKMacPreviewCapture> {
             // Root LoginWindow retains its existing session-scoped SCK path;
             // never construct a global root Core Audio tap.
-            return [[PLANKMacScreenCapture alloc] initWithDesktopAudioTap:phase == PLANKMacScopeDesktop];
+            PLANKMacScreenCapture *capture = [[PLANKMacScreenCapture alloc] initWithDesktopAudioTap:phase == PLANKMacScopeDesktop];
+            if (phase == PLANKMacScopeDesktop) capture.outputRoute = ^PLANKMacOutputRoute *(dispatch_queue_t queue) {
+                PLANKMacGraphicalIdentity scope = [weakAgent bindGraphicalScope:[authority snapshot]];
+                if (!plank_macos_graphical_identity_valid(scope)) return nil;
+                return [[PLANKMacOutputRoute alloc] initWithQueue:queue generation:scope.generation
+                    requirement:PLANKMacOwnSigningRequirement() valid:^BOOL {
+                        PLANKMacGraphicalIdentity current = [weakAgent bindGraphicalScope:[authority snapshot]];
+                        return plank_macos_graphical_identity_valid(current) && current.generation == scope.generation &&
+                            plank_macos_same_graphical_scope(scope, current);
+                    }];
+            };
+            return capture;
         }
         input:^id<PLANKMacInputDevice> { return [PLANKMacQuartzInput new]; }];
     runtime.prepareDisplay = ^BOOL(unsigned width, unsigned height, unsigned scale, NSString *encodingMode, BOOL (^valid)(void)) {

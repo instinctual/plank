@@ -27,6 +27,7 @@ xcrun clang -O2 -mmacosx-version-min=27.0 -fobjc-arc -Wall -Wextra -Werror \
     tests/audio/macos-microphone-selection.m -framework Foundation -framework CoreAudio \
     -o "$output/microphone-selection-test"
 "$output/microphone-selection-test"
+bash "$source_root/scripts/test/build-macos-output-device.sh" "$source_root" "$output/output-device-tests"
 bash "$source_root/scripts/test/build-macos-camera-device.sh" "$source_root" "$output/camera-device-tests"
 bash "$source_root/scripts/test/build-macos-native-camera-sample.sh" "$source_root" "$output/camera-sample-tests"
 bash "$source_root/scripts/test/build-macos-agent-registry.sh" "$source_root" "$output/agent-registry-tests"
@@ -104,7 +105,7 @@ xcrun clang -mmacosx-version-min=27.0 -fobjc-arc -Wall -Wextra -Werror \
 "$output/output-volume-test"
 xcrun clang -mmacosx-version-min=27.0 -fobjc-arc -Wall -Wextra -Werror \
     -Iapps/host/macos/media -Iapps/host/macos/auth -Iapps/host/macos/control -Iapps/host/macos/input -Iprotocol/plank-transport/include \
-    tests/audio/macos-audio-recovery.m apps/host/macos/media/screen-capture.m \
+    tests/audio/macos-audio-recovery.m apps/host/macos/media/screen-capture.m apps/host/macos/audio-device/output-route.m \
     apps/host/macos/media/audio-tap.m apps/host/macos/media/opus-encoder.m apps/host/macos/control/fixed-capture.m \
     -framework Foundation -framework CoreMedia -framework CoreAudio -framework Security \
     -framework CoreGraphics -framework CoreVideo -framework ScreenCaptureKit -framework VideoToolbox -framework AudioToolbox \
@@ -132,7 +133,7 @@ sources=(apps/host/macos/auth/authentication-session.m apps/host/macos/auth/grap
     apps/host/macos/auth/account-verifier.m apps/host/macos/auth/account-channel.m
     apps/host/macos/control/http-request.m apps/host/macos/control/server-information.m
     apps/host/macos/control/fixed-capture.m apps/host/macos/control/desktop-display.m apps/host/macos/control/https-auth-server.m
-    apps/host/macos/media/native-video.m apps/host/macos/media/preview-session.m apps/host/macos/media/clipboard-sync.m apps/host/macos/media/screen-capture.m
+    apps/host/macos/media/native-video.m apps/host/macos/media/preview-session.m apps/host/macos/media/clipboard-sync.m apps/host/macos/media/screen-capture.m apps/host/macos/audio-device/output-route.m
     apps/host/macos/media/native-audio.m apps/host/macos/media/opus-encoder.m apps/host/macos/media/audio-tap.m
     apps/host/macos/media/camera-session.m apps/host/macos/camera-device/camera-producer.m apps/host/macos/camera-device/camera-signing.m
     apps/host/macos/camera-device/camera-broker.m apps/host/macos/camera-device/camera-activation.m
@@ -141,6 +142,7 @@ sources=(apps/host/macos/auth/authentication-session.m apps/host/macos/auth/grap
     apps/host/macos/media/native-camera-output.m
     apps/host/macos/audio-device/microphone-broker.m apps/host/macos/audio-device/microphone-producer.m
     apps/host/macos/audio-device/microphone-selection.m
+    apps/host/macos/audio-device/output-broker.m apps/host/macos/audio-device/output-selection.m
     apps/host/macos/input/input-events.m apps/host/macos/input/native-input.m apps/host/macos/input/quartz-input.m
     apps/host/macos/session/agent-registry.m apps/host/macos/session/agent-connection.m
     apps/host/macos/session/desktop-provisioning.m apps/host/macos/session/machine-identity.m apps/host/macos/session/desktop-start.m
@@ -228,6 +230,18 @@ shasum -a 256 "$archive" "$output/plank-host"
         apps/host/macos/audio-device/microphone-driver.c -framework CoreAudio -framework CoreFoundation \
         -o "$driver/Contents/MacOS/plank-microphone"
     strip -S "$driver/Contents/MacOS/plank-microphone"
+    codesign --force --sign "$signing_identity" "${signing_flags[@]}" "$driver"
+    codesign --verify --strict "$driver"
+    driver="$output/PLANK Output.driver"
+    mkdir -p "$driver/Contents/MacOS"
+    install -m 0644 packaging/host/macos/output-info.plist "$driver/Contents/Info.plist"
+    /usr/libexec/PlistBuddy -c "Set :CFBundleVersion ${PLANK_MACOS_HOST_VERSION%%-*}" "$driver/Contents/Info.plist"
+    /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString ${PLANK_MACOS_HOST_VERSION%%-*}" "$driver/Contents/Info.plist"
+    xcrun clang "${PLANK_FILE_FLAGS[@]}" -std=c11 -O2 -mmacosx-version-min=27.0 \
+        -Wall -Wextra -Werror -fvisibility=hidden -bundle \
+        apps/host/macos/audio-device/output-driver.c -framework CoreAudio -framework CoreFoundation \
+        -o "$driver/Contents/MacOS/plank-output"
+    strip -S "$driver/Contents/MacOS/plank-output"
     codesign --force --sign "$signing_identity" "${signing_flags[@]}" "$driver"
     codesign --verify --strict "$driver"
     python3 "$source_root/scripts/test/check-macos-host-permissions.py" --app "$app"

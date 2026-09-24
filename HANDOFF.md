@@ -35,7 +35,9 @@ to reboot after this work is saved; stereo routing must be rechecked afterward.
 
 Installed native H.264 application delivery passes317 frames at1920x1080 over
 10.522 seconds; separate decoded NV12 delivery passes310 frames over10.307
-seconds. Both have zero invalid samples and application drops. The real camera
+seconds. Both have zero invalid samples and application drops. The operator additionally
+confirmed webcam capture in QuickTime Player, FaceTime and Zoom. These manual
+checks do not establish simultaneous-reader or stereo microphone acceptance. The real camera
 uses its native H.264 transport path without Client transcoding. Concurrent
 readers remain unqualified: one native-first/pixel-second run delivered only14
 pixel frames with241 application drops. Late-join keyframe recovery needs

@@ -50,11 +50,16 @@ class Permissions(unittest.TestCase):
                 path = self.root / gate.DRIVER / name
                 path.parent.mkdir(parents=True, exist_ok=True)
                 path.write_text("synthetic fixture\n")
+            for name in ("Contents/Info.plist", "Contents/MacOS/plank-output", "Contents/_CodeSignature/CodeResources"):
+                path = self.root / gate.OUTPUT_DRIVER / name
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_text("synthetic fixture\n")
         finally:
             os.umask(previous)
         for path in [self.root, *self.root.rglob("*")]:
             relative = path.relative_to(self.app).as_posix() if path.is_relative_to(self.app) else ""
-            driver_binary = path == self.root / gate.DRIVER / "Contents/MacOS/plank-microphone"
+            driver_binary = path in {self.root / gate.DRIVER / "Contents/MacOS/plank-microphone",
+                                     self.root / gate.OUTPUT_DRIVER / "Contents/MacOS/plank-output"}
             path.chmod(0o755 if path.is_dir() or relative in gate.EXECUTABLES or driver_binary else 0o644)
 
     def bom(self):

@@ -17,6 +17,10 @@ uninstall_host() {
         verify_microphone_driver
         /bin/rm -rf '/Library/Audio/Plug-Ins/HAL/PLANK Microphone.driver'
     fi
+    if present "$output_driver"; then
+        verify_output_driver
+        /bin/rm -rf '/Library/Audio/Plug-Ins/HAL/PLANK Output.driver'
+    fi
     for label in "$machine" "$desktop" "$signin"; do
         path=$(job_path "$label")
         if present "$path"; then /bin/rm "$path"; fi
@@ -28,6 +32,6 @@ uninstall_host() {
     if /usr/sbin/pkgutil --pkg-info la.instinctual.PLANK.Host >/dev/null 2>&1; then
         /usr/sbin/pkgutil --forget la.instinctual.PLANK.Host
     fi
-    echo 'PLANK Host removed. Configuration, certificates, logs and privacy permissions preserved. Restart the Mac to unload PLANK Microphone; it remains silent until then.'
+    echo 'PLANK Host removed. Configuration, certificates, logs and privacy permissions preserved. Restart the Mac to unload the PLANK audio devices.'
 }
 uninstall_host "$@"

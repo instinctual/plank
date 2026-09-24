@@ -2,6 +2,7 @@
 #import "screen-capture.h"
 #import "opus-encoder.h"
 #import "audio-tap.h"
+#import "../audio-device/output-route.h"
 #import "fixed-capture.h"
 #import <ScreenCaptureKit/ScreenCaptureKit.h>
 #import <VideoToolbox/VideoToolbox.h>
@@ -18,6 +19,7 @@
     PLANKMacNativeAudio *_audio;
     PLANKMacOpusEncoder *_audioEncoder;
     PLANKMacAudioTap *_audioTap;
+    PLANKMacOutputRoute *_outputSelection;
     BOOL _desktopAudioTap, _audioStopped;
     BOOL _audioReady, _audioRestartPending, _audioDiscontinuity;
     unsigned _audioRestarts;
@@ -151,6 +153,10 @@
         if (!capture || capture->_stopping) return;
         capture->_audioReady = ready;
         if (!ready) [capture disableDesktopAudio];
+        else if (capture.outputRoute) {
+            capture->_outputSelection = capture.outputRoute(capture->_queue);
+            [capture->_outputSelection start];
+        }
     }];
 }
 - (void)startWithTopology:(NSDictionary *)topology bitrate:(uint32_t)bitrate video:(PLANKMacNativeVideo *)video
@@ -255,20 +261,25 @@
     PLANKMacAudioTap *tap = _audioTap;
     if (!tap) return;
     _audioTap = nil; // one stop per tap, including failure followed by disconnect
-    [tap stopWithCompletion:^{
-        self->_audioStopped = YES;
-        [self finishStop];
-        if (self->_stopping || !self->_audioRestartPending) return;
-        // HAL teardown and release of the single-tap slot have completed.
-        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, NSEC_PER_SEC), self->_queue, ^{
+    PLANKMacOutputRoute *route = _outputSelection; _outputSelection = nil;
+    void (^stopTap)(void) = ^{
+        [tap stopWithCompletion:^{
+            self->_audioStopped = YES;
+            [self finishStop];
             if (self->_stopping || !self->_audioRestartPending) return;
-            self->_audioRestartPending = NO;
-            self->_audioDiscontinuity = YES; // new encoder clock/priming, same transport
-            [self createAudioEncoder];
-            [self createDesktopAudioTap];
-            [self startDesktopAudio];
-        });
-    }];
+            // HAL teardown and release of the single-tap slot have completed.
+            dispatch_after(dispatch_time(DISPATCH_TIME_NOW, NSEC_PER_SEC), self->_queue, ^{
+                if (self->_stopping || !self->_audioRestartPending) return;
+                self->_audioRestartPending = NO;
+                self->_audioDiscontinuity = YES; // new encoder clock/priming, same transport
+                [self createAudioEncoder];
+                [self createDesktopAudioTap];
+                [self startDesktopAudio];
+            });
+        }];
+    };
+    // Keep local suppression until routing restoration completes (or times out).
+    if (route) [route stopWithCompletion:stopTap]; else stopTap();
 }
 - (void)stream:(SCStream *)stream didOutputSampleBuffer:(CMSampleBufferRef)sample ofType:(SCStreamOutputType)type {
     (void)stream;
