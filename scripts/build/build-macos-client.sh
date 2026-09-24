@@ -30,6 +30,12 @@ test "$(qmake -query QT_VERSION)" = 6.10.2
 test "$(rustc --version | awk '{print $2}')" = 1.89.0
 python3 "$source_root/tests/packaging/test-macos-client-target.py"
 python3 "$source_root/tests/packaging/test-macos-fullscreen.py" "$source_root"
+mkdir -p "$build/tests"
+xcrun clang++ -std=c++17 -mmacosx-version-min=27.0 -Wall -Wextra -Werror \
+    -I"$source_root/apps/client/app/streaming" \
+    "$source_root/tests/display/macos-client-display-mode.cpp" \
+    -framework CoreFoundation -o "$build/tests/client-display-mode-test"
+"$build/tests/client-display-mode-test"
 python3 "$source_root/tests/packaging/test-macos-quit-lifecycle.py" "$source_root"
 python3 "$source_root/tests/packaging/test-macos-metal-overlay.py"
 python3 "$source_root/tests/packaging/test-macos-keyboard-capture.py"

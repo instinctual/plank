@@ -25,20 +25,31 @@ Client gitlink are retained. The separate startup-fix worktree, main worktree
 and primary RK3576 research are untouched.
 
 The operator authorized independent per-feature schemas and compatibility with
-older peers after a schema4 Client could not connect to the schema5 Host.
-The next candidate is **1.1.004-native-media-investigation**. Implementation
-adds authenticated feature negotiation, launch7 and exact schema4/5/6 adapters.
+older peers after a schema 4 Client could not connect to the schema 5 Host.
+The installed Host candidate is **1.1.004-native-media-investigation**. Implementation
+adds authenticated feature negotiation, launch 7 and exact schema 4/5/6 adapters.
 Schema4 disables its incompatible mono microphone; schemas5/6 retain stereo
-microphone, and camera requires schema6/7. New Clients bridge only known older
+microphone, and camera requires schema 6/7. New Clients bridge only known older
 Hosts after pinned HTTP404; authentication/TLS failures never trigger fallback.
 See [the contract](protocol/media-feature-negotiation.md) and
 [release notes](docs/releases/1.1.004.md). Compatibility checks pass at runtime source
 `c42252ba` with Client `04c307dd`: Ubuntu: 225 launch checks, 291 optional-service
 checks and 33 real Qt/TLS scenarios; Mac: 45 feature checks, 744 session checks
-across 24 scenarios and real HTTPS/QUIC launches for schemas4/5/6/7. TLS/auth
+across 24 scenarios and real HTTPS/QUIC launches for schemas 4/5/6/7. TLS/auth
 failure, redirects, malformed replies and unknown older versions do not trigger
-fallback. These are synthetic component/session results, not installed acceptance. Hold installation of
-1.1.003 while the compatibility candidate is completed. Installed1.1.002 remains.
+fallback. These are synthetic component/session results, not installed acceptance. The operator installed the signed 1.1.004 Host. Installed Host, camera extension
+and microphone driver hashes match the package, and both Host roles restarted.
+The production camera extension is activated and enabled. The older macOS
+Client still returns to bookmarks after desktop preparation; installed backward
+compatibility acceptance is therefore **not passed**. Client diagnostics identify
+a separate display-discovery failure before stream launch: the OS mode list has
+no native flag, although the current backing-pixel mode is valid. The fatal check
+was added in Client `a5ad0e94` on September 15 and is already present in1.0.156.
+Prior successful connections do not establish which display modes were reported
+then; do not attribute the changed result to a specific OS/driver update without
+evidence. The pending1.1.005 Client uses current backing pixels when the native
+flag is absent and shows an error if display discovery really fails. Host1.1.004
+can remain installed. Ubuntu Client remains on1.1.002. Never install superseded1.1.003.
 
 Camera integration includes Ubuntu device selection and toolbar activation,
 session-bound Host reception, root-brokered fresh shared mappings and a CMIO
@@ -75,7 +86,7 @@ Candidate source is `803383b588f1c56606cc0f7fdc7103c5c215f602`, Client
 [`35966387798`](https://github.com/instinctual/plank/actions/runs/35966387798)
 passes all four product jobs: both Linux packages and both unsigned Mac builds,
 including camera lifecycle/sample tests and the full Mac authentication/session
-fixtures. Initial source82fb419 found stale schema5 HTTPS/Client fixtures; those
+fixtures. Initial source 82fb419 found stale schema 5 HTTPS/Client fixtures; those
 are corrected in the passing candidate.
 
 Both Linux packages are checksum/provenance-verified and collected under
@@ -86,14 +97,14 @@ Both Linux packages are checksum/provenance-verified and collected under
 | Ubuntu Client DEB | `1f3207e4404c2ce27b4e10d4618013c188a3b082d999db1a7c716bb027df29cc` |
 | Linux Host RPM | `3ad58a8f124991cd1a30300a424ee31135aab9e4b93f7860f224e6f9c98e097f` |
 
-Signed Host run35968724357 and signed Client run35969255868 both pass at
-`5e84977c51e71a66f0e8dd084717a81da2242830` (runtime identical to803383b).
+Signed Host run 35968724357 and signed Client run 35969255868 both pass at
+`5e84977c51e71a66f0e8dd084717a81da2242830` (runtime identical to 803383b).
 The signed Host PKG SHA-256 is
 `04f4d5d6fb9ea14ac51fec2c501e931a269d135d3f6195d9075ddb30279cc5a3`.
 It is collected and staged. The signed Client DMG is collected with SHA-256
 `c20368813ae59675d00a3fe7e63ec159c1dd91606d94b598ba31f0ef5341b9cf`.
-Neither target was upgraded. Preserve these artifacts as the1.1.003 checkpoint;
-do not relabel them as1.1.004.
+These 1.1.003 packages were not installed. Preserve them as the 1.1.003 checkpoint;
+do not relabel them as 1.1.004.
 
 The operator supplied a new Developer ID profile for `la.instinctual.PLANK.Host`.
 Its exact app/team, existing application signing certificate, expiration and
@@ -101,294 +112,116 @@ system-extension installation permission pass validation. The protected
 `macos-signing` environment now contains `PLANK_MACOS_HOST_PROVISION_PROFILE`;
 the signing job consumes and removes its temporary decoded copy. Existing
 notarization credentials are unchanged. No profile or credentials were committed.
-Signed Host packaging passes; OS extension activation still needs
-normal approval on the dedicated Mac.
-Compatibility candidate packaging, installed broker/extension admission and application delivery,
+Signed Host packaging and production extension activation pass for1.1.004.
+Installed broker/extension admission and application delivery,
 concurrent readers, sustained/loss/unplug testing and A/V synchronization remain
 required. Presentation currently uses arrival in the Core Media Host clock;
 Client capture timestamps survive PCAM, but no lip-sync claim is justified.
 
-The synchronized base product version is **1.1.001**; the stereo test candidate
-is **1.1.002-native-media-investigation**. Preserve the padded patch component.
-Main already contains the accepted microphone and post-reboot certificate
-startup repairs. The synchronized Client base changed only its changelog. The current stereo
-work updates that Client. Stereo test packages are recorded below; live
-deployment and product camera integration remain pending.
-See [coordinated upgrade notes](docs/releases/1.1.001.md).
+Signed 1.1.004 packages at the exact source below are collected and transferred,
+with SHA-256, signatures and stapled tickets verified. Host bundle/extension/HAL
+signatures, camera installation entitlement and Gatekeeper also pass on the target.
 
-Mainline **1.1.001** test packages are built and checksum/provenance-verified
-from exact root `a4ea39eb6fd0c098ebe01e6eb516747b84c71800`. Hosted runs:
-Linux Host `35940461297`, Ubuntu Client `35940463873`, signed Mac Host
-`35940466159`, signed Mac Client `35940468319`. All four passed first attempt.
-They are retained in `artifacts/packages/releases/1.1.001/`; that catalog name
-does not mean publication. No installation, tag or GitHub release was performed
-by the package task. Matching Host/Client manual installation and live hardware
-acceptance, including post-reboot Mac startup, remain pending.
+| Package | Run | SHA-256 |
+| --- | --- | --- |
+| macOS Host PKG |35972375915|`c5e42d96364b0cdfa244e9a3b11a11c8e2d5107497d231e4cb781cf118017769`|
+| macOS Client DMG |35972378850|`22c05bc51f4c4a1c52d726b0c8b0002287685dd35a82fa73abb47cbf5593f614`|
 
-| Mainline package | SHA-256 |
-| --- | --- |
-| Linux Host RPM | `83999138c18b78001d4f503000b56faf34245b4635f676eb13a72814d3c163e1` |
-| Ubuntu Client DEB | `35b2c031cceb923cd0cccb5830c566eff15237bd545c90a04b00d71f035f02bf` |
-| macOS Host PKG | `6111c9ea85849813ddb6ce1d5a62e17b1e5c0428d28fa3d92932791b32ee351c` |
-| macOS Client DMG | `95dbd029e1665b0fde2b64fbff86e84968577318fbb9147fa7af7e3de4fe7685` |
+The Mac Client DMG is staged but not installed. Hosted run35972351358 passes
+all four product jobs. Both Linux packages are collected with verified source
+provenance: Client DEB SHA-256
+`db83bd8ad0a39a522aecf1886db0f53af4b0599f20227aba96925ddb979aa895`
+and Host RPM SHA-256
+`8db77a73a0d0d627f91c7a9753e2df795e89f861628b0e708752b62408d8e2a6`.
+The focused1.1.005 display regression and signed Client build are pending.
 
-Detailed package provenance, recursive pins and qualification results remain in
-[main's handoff at the synchronization point](https://github.com/instinctual/plank/blob/acb29884bff626c9381169fd94563ec79555984c/HANDOFF.md).
-These packages do not contain native-media work. Do not relabel them as feature
-candidates or mix their RaptorQ-2 transport with pre-upgrade published peers.
+## Installed state and source provenance
 
-Stereo candidate **1.1.002-native-media-investigation** is built from exact root
-`613765ba8e3b66f4b2e42685f1ed8230af2c8139`, Client
-`398b05a0` (full pin in the table below). Signed Mac Host run `35952211994`
-passes build/tests/signing/notarization/stapling. All four product jobs pass in
-hosted run `35952188885` (Mac jobs unsigned). Packages are collected with original provenance in
-`artifacts/packages/candidates/1.1.002-native-media-investigation/`.
+The prior stereo Host and the still-installed Ubuntu Client are **1.1.002-native-media-investigation**,
+from root `613765ba8e3b66f4b2e42685f1ed8230af2c8139` and Client
+`398b05a01cf84a894b8935bb0eb9fce7c8a271ca`. Signed Host run 35952211994 and
+all-product run 35952188885 passed. The Host PKG SHA-256 is
+`12ac1eeabc056b64486a234fb9cdbd68030988b12c25b38255ac3a0ae372136d`;
+the Client DEB SHA-256 is
+`5244de6797f6cc4327c1426a6f9ea62eeaa23fe3840578d7ab788f856b098942`.
+Their installed payloads were verified before the Host upgrade. After the earlier
+operator reboot, Core Audio reported
+PLANK Microphone as 48 kHz, two channels, Float32 and eight bytes per frame.
+Installed-device stereo routing and physical application acceptance are pending.
+The earlier synthetic extension was removed with approval. Enumeration now
+confirms the production camera extension1.1.004 is activated and enabled.
 
-| Stereo candidate | SHA-256 |
-| --- | --- |
-| Mac Host PKG | `12ac1eeabc056b64486a234fb9cdbd68030988b12c25b38255ac3a0ae372136d` |
-| Ubuntu Client DEB | `5244de6797f6cc4327c1426a6f9ea62eeaa23fe3840578d7ab788f856b098942` |
-
-Both candidates are installed on their authorized development targets. The
-operator completed the signed Mac installer and rebooted. Host and HAL binaries
-match the signed package payload; the machine service is running. Core Audio
-reports the loaded production input as 48 kHz, two channels, 32-bit float and
-eight bytes per frame. The matching Ubuntu package and installed executable
-hashes/version pass; it contains no service or autostart entry. The Client is
-open for operator authentication. Live stereo routing, mute/reopen and physical
-audio acceptance remain pending; format discovery alone does not qualify them.
-The operator is away and cannot provide interactive help. Continue unattended
-component/network work on the authorized targets; do not wait for that login.
-No tag, merge or release is published. Exact feature-branch signing permission
-is temporary; remove it when signed builds for this task are finished.
-
-The subsequent camera transport prototype is **not in those package bytes**.
-PCAM v1 has shared C/Rust bounds and a fixed synthetic wire vector, explicit
-camera-only versus microphone-plus-camera endpoint allocation, two/three-frame
-queues, activation isolation and H.264 keyframe recovery. Portable wire and
-queue tests pass; encrypted Rust C-ABI tests pass all four allocation/setup
-combinations with byte-identical synthetic payloads and mute/reopen. The
-microphone encrypted regression still passes after allocation coordination.
-Subsequent schema6 integration is described above; this earlier transport checkpoint was not advertised.
-The subsequent direct V4L2 capture component passes sanitizer tests on the
-authorized Client builder: unchanged payload copy, malformed framing, native
-mode requirements, coerced/busy-device rejection and partial-resource cleanup.
-Live execution as the existing graphical user passes 90 MJPEG and 90 H.264
-buffers at 720p, with restoration of the exact prior format/interval and no
-saved images. Descriptor-verified UVC H.264 IDR/SPS/PPS requests pass three of
-three recoveries below 140 ms. No encoder, persistent UVC mapping, bitrate or
-exposure-control change is involved. Later capture measured approximately 15 fps
-with dynamic frame rate enabled by the device's existing auto-exposure policy;
-do not present nominal 30 fps as measured delivery. The H.264 startup driver
-sequence gap remains and is conservatively marked for recovery. Product activation and extension integration are now implemented as described above; live gates remain pending.
-Full Linux/Mac lifecycle/performance gates for this new lane remain required.
-See [the camera contract](protocol/camera.md).
-
-The standalone physical camera/microphone network probe now passes on both
-authorized targets. It uses the actual Linux capture and microphone modules,
-the encrypted PLANK transport and the native Mac Opus decoder. With microphone
-mute/reopen during each 90-frame run, MJPEG delivered 90 frames and H.264 88;
-every received native payload matched its source SHA-256. All received frames
-decoded to NV12 on the Mac (hardware H.264, software JPEG). H.264 discarded two
-startup frames while obtaining one camera-generated recovery keyframe. Stereo
-audio decoded 403 and 425 packets respectively, with two activations and one
-mute per run. No audio recording was retained. Camera format/interval restoration
-passed in both runs.
-
-The first runs carried encrypted datagrams through temporary SSH connections
-because nonstandard test ports were filtered. The operator clarified that only
-SSH and standard PLANK ports are allowed. Subsequent direct tests on the idle
-standard UDP media port pass, without a tunnel or firewall/routing change.
-The first direct run delivered 90 MJPEG/84 H.264 frames, all byte-identical,
-and decoded 413 stereo audio packets in each mode. It had zero microphone gaps
-alongside MJPEG and eleven alongside H.264. A subsequent instrumented run
-confirmed continuous Client capture but avoidable source-queue drops: two with
-MJPEG and six with H.264. The source queue now accepts the Client's maximum
-six-packet capture batch; immediate draining, bounded overflow and the 100 ms
-stale-packet limit remain. With that fix, the direct repeat delivered all 411
-and 428 microphone packets respectively, with zero capture gaps, source drops,
-transport timeouts or receiver gaps in either camera mode. Payload bitrate was
-192.34/192.80 kbps. Camera delivery was 90 MJPEG/84 H.264 frames; all matched and
-decoded. H.264 recovered from startup and a later gap using two device keyframe
-requests. Release unit tests and encrypted microphone/camera regression tests
-pass on both authorized platforms. These changes are not in installed 1.1.002.
-Do not
-present these short tests as sustained performance or lip-sync acceptance.
-The probe does not
-inject the installed virtual microphone or camera, bypass product login, or
-establish application acceptance. Private captures and deployment details remain
-outside Git. See [the probe procedure](docs/development/investigations/native-camera-probe.md).
-
-Mac reception now has bounded native payload validation, generation/sequence/
-timestamp checks, JPEG coded-dimension checks and H.264 parameter-set dimension
-validation before sample creation. Annex B is adapted to Core Media framing
-without changing NAL bytes; JPEG payloads are unchanged. A separate output
-component retains compressed samples directly or creates an NV12 decoder only
-when requested, waits for a keyframe after a switch/discontinuity, and preserves
-mapped Host timestamps. Sanitizer tests on macOS27/SDK27 pass framing faults,
-false dimensions, replay rejection, mode switching and keyframe recovery. Both
-combined-test private captures pass through these production components:
-90 MJPEG and 84 H.264 frames decoded, with hardware H.264 and software JPEG.
-These components are compiled/tested but not attached to a product camera yet.
-CMIO stream formats are immutable for a stream's lifetime; extension admission
-must establish the actual native format before publishing that stream.
-
-Read [the investigation](docs/development/investigations/native-media-forwarding.md)
-for sources, preservation boundaries, integration constraints and probe gates.
-API/code evidence supports device-native camera/audio payload forwarding.
-Pilot device formats and H.264 extension controls are enumerated; component
-network preservation and physical-input Mac decode pass as described above.
-Production application delivery remains unverified. Camera:
-native H.264/MJPEG through
-1080p30. Read-only extension-unit queries advertise picture-type, bitrate,
-frame-rate and configuration controls. No extension-control writes were made;
-the subsequent operator-authorized captures are recorded below. The USB microphone
-exposes S16_LE stereo at 16/24/32 kHz. Latest operator selection is Bluetooth
-headphone playback only: A2DP SBC-XQ, internal 48 kHz stereo S16LE sink, with
-headset microphone suspended. Effective/configured input is the USB camera
-microphone, running at 32 kHz stereo S16LE and linked to PLANK's 48 kHz mono
-float input. PLANK's 48 kHz stereo float playback is linked to the headphones.
-Earlier headset-mode inventory confirmed mSBC with decoded 16 kHz mono S16LE
-in both directions. No streams or device settings were changed by inventory.
-All raw inventory and deployment details remain in protected private notes.
-
-The hardware-facing USB microphone format is S16LE/32 kHz/stereo, but its
-PipeWire adapter exposes float DSP ports and does not advertise passthrough
-port configuration. Disabling conversion only on PLANK's stream cannot prove
-original PCM preservation. The ALSA reference query refused a busy capture
-device; audio-server ownership and user routing remain unchanged.
-
-V4L2 distinguishes compressed and emulated formats. SDL can expose MJPG bytes
-but can also convert requested formats. ALSA `hw:` avoids userspace PCM
-conversions. The measured baseline Client requested converted 48 kHz mono
-float PCM and sent 64 kbps Opus; its Mac virtual input was fixed to mono.
-The current stereo changes below supersede that baseline.
-New native format negotiation/validation and shared endpoint allocation need
-product work. Audio FEC's minimum two repair symbols affect wire-rate estimates.
-AVFoundation can request device-native compressed samples. Synthetic H.264
-delivery through a Core Media I/O extension now passes; physical camera driver
-support and third-party applications remain unverified. Qualify application
-passthrough separately from decoded-frame output;
-a physical USB connection does not guarantee that an application preserves H.264.
-Target automatic format negotiation on one camera, preserving one native network
-stream and decoding on the Mac only when needed. The synthetic test demonstrates
-AVFoundation decoding and simultaneous consumers with different output formats;
-the extension's active format is a stream property, not a per-client promise.
-
-SSH key access and uncached passwordless sudo verification succeeded. Query-only
-inventory is complete; privileged V4L2 metadata queries were needed because the
-SSH account lacked camera-node access. No access policy was changed. The initial
-SSH-user PipeWire query was not the desktop graph; read-only queries as the
-active graphical user subsequently established the Bluetooth devices and routes.
-
-The synthetic Mac format probe passes native compilation with warnings as
-errors, H.264/NV12/BGRA/JPEG format construction, and H.264-to-NV12 decode at
-320x240. Generic keyed archiving fails for all four formats and is inconclusive
-for extension IPC. The standalone camera extension and consumer compile and
-pass strict certificate signing with a matching system-extension installation
-profile. Xcode export must retain the required entitlement and embed its
-authorizing profile. Notarization, stapling, strict signature, Gatekeeper,
-operator-approved extension activation and camera consent all pass.
-
-The application-delivery matrix passes unchanged H.264 and decoded NV12 through
-one camera. Explicit H.264 selection needs the macOS configuration lock through
-capture; releasing it before startup allowed AVFoundation to choose NV12.
-Thirty coded frames match the extension's source hash. A pixel consumer receives
-NV12 while the source stays H.264 and the extension performs no decoding,
-establishing framework-side adaptation. Explicit NV12 and automatic pixel output
-also pass. Native output with automatic source selection receives NV12, so
-advertising H.264 does not force every app to select it.
-
-Mixed readers pass in both startup orders: 180 coded plus 90 pixel frames with
-2.91 seconds overlap, and 180 pixel plus 90 coded frames with 2.97 seconds
-overlap. The reverse-order pixel run spans 7.28 seconds versus 5.97 nominal;
-seamless switching and sustained rate remain unqualified. Invalid frame bounds
-are rejected. These are repeated synthetic keyframes, not a physical webcam,
-network, motion/color, hardware-decoder or lip-sync qualification. No product
-camera capability has been added. Operator-approved deactivation completed;
-the temporary app is removed and probe GUI jobs are unloaded. The extension is
-inactive. After the operator's ordinary reboot, system-extension enumeration
-confirms that its registration is absent.
-Deployment paths, signed artifacts and raw evidence stay in private notes/audits.
-See [the probe procedure](docs/development/investigations/native-camera-probe.md).
-
-Physical capture now confirms 90 native H.264 and 90 MJPEG buffers at each of
-720p and 1080p, with no error-flagged buffers. H.264 headers describe Baseline
-level 4.0, 8-bit 4:2:0 with matching dimensions. Both H.264 runs skip V4L2 sequence 1
-at startup, but encoded frame numbers remain continuous; do not equate that with
-a lost coded picture. The strict no-sequence-gap criterion remains failed.
-MJPEG delivers approximately 30 fps with no sequence gaps. This proves bounded
-native capture/header validity. The subsequent private Mac decode below passes;
-color and sustained performance remain unqualified.
-
-An endpoint-filtered USB monitor observed the existing microphone stream before
-PipeWire conversion: 3,000 successful 128-byte completions in three seconds,
-96,000 stereo S16LE frames at 32 kHz, with no errors, truncation or monitor drops.
-USB descriptors identify PCM, Type I, two-byte samples and 16 significant bits.
-No audio file was saved. The video device is closed, its prior format/interval
-restored, the monitor module unloaded, and the existing microphone process,
-parameters and running state unchanged. Raw evidence and video samples remain
-private. No existing capture owner was displaced and no package was installed.
-
-Current stereo implementation: the Client requests 48 kHz interleaved stereo,
-encodes 192 kbps constrained-VBR Opus in audio mode with forced stereo signaling,
-and keeps 10 ms packets. PMIC version 2 and authenticated launch schema 5 reject
-old mono peers. The Mac decoder, producer, drift adaptation, shared-buffer
-version 2 and HAL device all use two channels. Device availability checks the
-loaded stereo format, preventing advertisement of a still-loaded mono driver.
-
-Validation passes on the authorized Ubuntu Client builder (Qt 6.10.2,
-SDL 3.4.2, Opus 1.6.1): dummy capture/mute/backpressure/reopen/failure cleanup,
-152 launch checks including old-schema rejection, and 300 synthetic stereo Opus
-packets. The fixture measured 193.44 kbps payload at a 192 kbps VBR target.
-On the authorized macOS 27/SDK27 development Mac: buffer stress (one million
-frames, two readers), HAL property/clock/multireader/silence tests, native Opus
-silence/reset/bounds, format/selection tests and all non-installing microphone
-probe builds pass with warnings as errors. Apple's decoder preserved the two
-independent tones from the Ubuntu encoder (left amplitude 0.062822, right
-0.031340, cross-tone amplitude below 0.000018). This qualifies component channel
-separation, not installed audio routing, microphone fidelity or lip sync.
-The encrypted microphone FFI mute/reopen/generation/bounds test passes locally.
-
-Physical Mac decode now passes all 360 captured frames (90 each of H.264 and
-MJPEG at 720p/1080p). VideoToolbox reports hardware acceleration for H.264 and
-software decoding for JPEG; output is matching-size NV12. H.264 NAL payloads
-are unchanged while Annex B framing is adapted to Core Media length prefixes.
-No Client encoder or new device capture was used. This is decode qualification,
-not color, sustained timing, network preservation or application acceptance.
-
-Next: finish stereo live session and installed-device audio testing;
-integrate camera capture/transport into authenticated sessions
-and implement the production camera extension. Clock-drift/loss and real application
-acceptance remain required. USB monitoring is a diagnostic reference, not
-product capture. The selected microphone implementation is Opus; native PCM or
-Bluetooth mSBC preservation is no longer an implementation gate. Capture/test
-coordination and deployment details stay in private notes; credentials remain
-in the OS Keychain/password manager. The stereo candidates above are installed.
-
-Synchronization validation passes: all 62 CI-policy tests, seven package
-collection tests, main/feature release-version contracts, both microphone wire
-and queue unit tests, and the encrypted microphone FFI test (direct and setup
-entry points, mute/reopen/generation/bounds). The portable microphone buffer
-stress test passes one million samples with two readers, bounds, silence and
-reset checks. These are Linux debug/portable checks, separate from the synthetic
-Mac probe results above; neither constitutes live camera, Core Audio, hardware
-or release-performance qualification. The default-feature
-Rust build emits two existing unused-telemetry warnings in vendored Quinn.
-The follow-up main merge changes documentation only; runtime sources and pins
-match the tested synchronization, so these test results remain applicable.
-Documentation whitespace/reference checks and commit privacy hooks pass.
-
-Current maintained gitlinks:
+Current compatibility package source:
+`9a858832db135b0ff62891b1b2faa0af7c8fa660`.
 
 | Input | Commit |
 | --- | --- |
-| Shared Client | `bfea688c287b0698123ea0fdf29aeaf21950290b` |
+| Shared Client | `04c307dd59a1f70b2b1e63ec1cad9e25f1912850` |
+| Client common-c | `060f6179f88343327b44d915007f1fb4cede71f1` |
 | Kymux | `3f7a9d8618978287186e5d6ce0eaa067743cb06c` |
 | Linux Host | `5829bf7c335440a8b25c3330643eacb4d914f00a` |
 
-Prior package provenance and recursive pins remain in main's linked HANDOFF.
-The stereo-only candidate above does not contain product camera support.
-Kymux is initialized at its exact pin from the verified
-local repository for transport tests. Client is initialized on the matching feature branch for stereo implementation.
-Linux Host remains uninitialized and unchanged.
+Root and Client are pushed to the feature branch. Linux Host is unchanged and
+uninitialized in this worktree. No merge, tag or GitHub release is authorized.
+The branch's temporary protected signing permission was removed after both signed
+builds completed; main remains allowed. Prior mainline package provenance is
+in [main's synchronized handoff](https://github.com/instinctual/plank/blob/acb29884bff626c9381169fd94563ec79555984c/HANDOFF.md).
+
+## Native media evidence and remaining gates
+
+Physical camera capture confirms native H.264 and MJPEG at 720p/1080p. H.264
+is Baseline level 4.0, 8-bit 4:2:0; its startup driver sequence gap is conservatively
+marked for recovery even when coded frame numbers remain continuous. MJPEG
+measured approximately 30 fps. Later H.264 measured approximately 15 fps under
+the camera's existing dynamic-frame-rate/auto-exposure policy; nominal 30 fps is
+not a measured delivery guarantee. UVC camera-generated recovery keyframes
+passed three of three requests below 140 ms. Prior device format and interval
+were restored after capture; no persistent UVC control changes remain.
+
+USB monitoring established the camera microphone's native S16LE stereo PCM at
+32 kHz, with 96,000 frames in three seconds and no USB errors. No audio recording
+was saved. PipeWire exposes converted float ports; preserving its API samples
+would not prove hardware-original PCM preservation. The operator selected
+192 kbps stereo Opus VBR instead. Encoder/decoder tone tests preserve independent
+channels; the Mac virtual input has the matching 48 kHz stereo format.
+
+Direct encrypted camera/audio probes pass on the normal PLANK UDP port without
+firewall changes or tunnels. The final short test received 90 MJPEG and 84 H.264
+frames; every received native payload matched its source hash and decoded to
+NV12 on the Mac. VideoToolbox used hardware for H.264 and software for JPEG.
+H.264 recovery used device keyframe requests. After allowing a complete
+six-packet Client capture batch in the bounded microphone queue, all 411/428
+microphone packets arrived in the two respective camera runs, with zero source
+drops, transport timeouts or receiver gaps. Opus payload rates measured
+192.34/192.80 kbps. Mute/reopen passed. The 100 ms stale-packet limit remains.
+These are short component tests, not sustained performance or lip-sync acceptance.
+
+Mac native sample validation checks bounds, dimensions, timestamps, generation
+and sequence. H.264 Annex B framing becomes Core Media length prefixes without
+changing NAL payload bytes; JPEG payloads remain unchanged. NV12 decoding is
+created only when requested. Sanitizer tests cover malformed framing, false
+dimensions, replay, output switching and keyframe recovery. The production
+extension lifecycle fixture covers native-format publication, fixed formats,
+stale generation and revocation before queued completion without OS activation.
+
+The earlier signed standalone CMIO probe passed native compressed H.264 delivery
+and NV12 application output, including simultaneous coded/pixel consumers in
+both startup orders. It used synthetic repeated keyframes. AVFoundation may
+choose pixel output automatically; native advertising does not force an app to
+preserve H.264. Configuration selection and consumer adaptation need explicit
+qualification. Its successful OS approval and subsequent removal do not approve
+the production Host extension.
+
+Required next steps: validate and package the1.1.005 Mac Client display fix,
+retry the installed connection, then exercise the matching Ubuntu Client's
+physical camera/stereo microphone. Verify installed broker and
+extension admission, native/pixel application delivery, concurrent readers,
+sustained loss/keyframe recovery, unplug/reopen, cleanup and A/V synchronization.
+Current presentation uses arrival in the Core Media Host clock. Client capture
+timestamps survive transport, but there is no qualified lip-sync result.
+
+Read [the investigation](docs/development/investigations/native-media-forwarding.md),
+[probe procedure](docs/development/investigations/native-camera-probe.md),
+[camera contract](protocol/camera.md) and [microphone contract](protocol/microphone.md).
+Machine inventory, paths, captures and raw evidence stay in private notes/audits;
+credentials remain in the OS Keychain or password manager. Do not copy them here.
