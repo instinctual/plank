@@ -24,8 +24,8 @@ application-delivery results; the current implementation adds stereo audio. Main
 Client gitlink are retained. The separate startup-fix worktree, main worktree
 and primary RK3576 research are untouched.
 
-The current base product version is **1.1.001**; this branch's candidate version
-is **1.1.001-native-media-investigation**. Preserve the padded patch component.
+The synchronized base product version is **1.1.001**; the stereo test candidate
+is **1.1.002-native-media-investigation**. Preserve the padded patch component.
 Main already contains the accepted microphone and post-reboot certificate
 startup repairs. The synchronized Client base changed only its changelog. The current stereo
 work updates that Client. No native-media package or deployment exists yet.
@@ -201,7 +201,7 @@ Maintained gitlinks after synchronization:
 
 | Input | Commit |
 | --- | --- |
-| Shared Client | `9839f472265b84ebeaa7d1c6880c3fd7a09d7ebc` |
+| Shared Client | `398b05a01cf84a894b8935bb0eb9fce7c8a271ca` |
 | Kymux | `3f7a9d8618978287186e5d6ce0eaa067743cb06c` |
 | Linux Host | `5829bf7c335440a8b25c3330643eacb4d914f00a` |
 
