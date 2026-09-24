@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // Read-only timing inventory of PLANK Output. No IO, capture, routing or writes.
 #include <CoreAudio/CoreAudio.h>
+#include <CoreAudio/AudioServerPlugIn.h>
 #include <CoreFoundation/CoreFoundation.h>
 #include <stdio.h>
 #include "../../apps/host/macos/audio-device/output-format.h"
