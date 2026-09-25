@@ -191,8 +191,16 @@ ok
 ok
 (
     console_uid() { echo 502; }
-    launchctl_cmd() { return 1; }
+    launchctl_cmd() { [[ $1 = print ]]; }
     [[ $(open_permission_setup) = *'open PLANK Host in Applications'* ]]
+)
+ok
+(
+    console_uid() { echo 502; }
+    launchctl_cmd() { [[ $1 = print ]] || fail 'Missing GUI must never launch setup'; return 1; }
+    [[ $(open_permission_setup) = *'Permission setup is pending'* ]]
+    console_uid() { return 1; }
+    [[ $(open_permission_setup) = *'Permission setup is pending'* ]]
 )
 ok
 

@@ -1,0 +1,38 @@
+#!/bin/bash
+# One-time interactive setup handoff, not a login item or background service.
+set -euo pipefail
+export PATH=/usr/bin:/bin:/usr/sbin:/sbin LC_ALL=C
+
+console_uid() { /usr/bin/stat -f %u /dev/console; }
+launchctl_cmd() { /bin/launchctl "$@"; }
+client_running() { /usr/bin/pgrep -u "$1" -x plank-client >/dev/null; }
+open_permission_setup() {
+    local uid running_status=0
+    uid=$(console_uid) || uid=''
+    if [[ ! $uid =~ ^[1-9][0-9]*$ ]] || ! launchctl_cmd print "gui/$uid" >/dev/null 2>&1; then
+        echo 'PLANK Client installed. Permission setup is pending; log in and open PLANK Client.'
+        return 0
+    fi
+    client_running "$uid" || running_status=$?
+    if [[ $running_status != 1 ]]; then
+        # Do not put native prompts over an existing session, or assume it is
+        # safe when process inspection itself failed.
+        echo 'PLANK Client installed. Quit PLANK Client, then reopen it to complete permission setup.'
+        return 0
+    fi
+    # LaunchServices must run with both the user's bootstrap context and UID.
+    # A separate setup-only instance cannot autoconnect or capture input.
+    if ! launchctl_cmd asuser "$uid" /usr/bin/sudo -n -u "#$uid" \
+            /usr/bin/open -n '/Applications/PLANK Client.app' --args --setup-permissions; then
+        echo 'PLANK Client installed. Open PLANK Client to complete permission setup.'
+    fi
+}
+postinstall() {
+    [[ $(/usr/bin/id -u) = 0 && ${1:-} = / ]] || exit 1
+    [[ -d '/Applications/PLANK Client.app' && ! -L '/Applications/PLANK Client.app' ]] || exit 1
+    /usr/bin/codesign --verify --deep --strict \
+        -R '=anchor apple generic and identifier "la.instinctual.PLANK.Client" and certificate leaf[field.1.2.840.113635.100.6.1.13] exists' \
+        '/Applications/PLANK Client.app'
+    open_permission_setup
+}
+postinstall "${3:-}"

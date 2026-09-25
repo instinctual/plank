@@ -86,6 +86,7 @@ fi
 }
 test "$(/usr/libexec/PlistBuddy -c 'Print :PLANKVersion' "$app/Contents/Info.plist")" = "$PLANK_PACKAGE_VERSION"
 install -m 0755 "$source_root/packaging/client/macos/pkg-preinstall" "$output/install-scripts/preinstall"
+install -m 0755 "$source_root/packaging/client/macos/pkg-postinstall" "$output/install-scripts/postinstall"
 install -m 0644 "$app/Contents/Resources/client.conf.example" "$output/install-scripts/client.conf.example"
 xcrun clang -O2 -mmacosx-version-min="$PLANK_MAC_CLIENT_MIN_MACOS" -fobjc-arc -Wall -Wextra -Werror \
     -I"$source_root/apps/host/macos/session" "$source_root/scripts/package/macos-configure.m" \

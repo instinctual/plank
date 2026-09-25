@@ -13,9 +13,13 @@ done
 "$PLANK_QT_ROOT/libexec/moc" "$client/app/backend/macpermissions.h" -o "$output/moc_macpermissions.cpp"
 xcrun clang++ -std=c++17 -fobjc-arc -include arm_acle.h -mmacosx-version-min=15.0 \
     -Wall -Wextra -Werror -F"$PLANK_QT_ROOT/lib" -I"$PLANK_QT_ROOT/include" "${qt_headers[@]}" \
-    "$source_root/tests/packaging/macos-client-permissions.mm" "$output/moc_macpermissions.cpp" \
+    -I"$client/app" "$source_root/tests/packaging/macos-client-permissions.mm" "$output/moc_macpermissions.cpp" \
+    "$client/app/cli/commandlineparser.cpp" \
     -framework QtCore -framework QtGui -framework QtQml -framework QtQuick \
     -framework Foundation -framework ApplicationServices -framework IOKit \
     -Wl,-rpath,"$PLANK_QT_ROOT/lib" -o "$output/client-permissions-test"
 QT_QPA_PLATFORM=offscreen QT_QUICK_BACKEND=software QT_QUICK_CONTROLS_STYLE=Material \
     "$output/client-permissions-test" "$client/app/gui" "$output/client-permissions.png"
+result=0
+QT_QPA_PLATFORM=offscreen "$output/client-permissions-test" --test-invalid-setup > "$output/invalid-setup.txt" 2>&1 || result=$?
+[[ $result = 1 ]] && grep -q 'Permission setup cannot be combined' "$output/invalid-setup.txt"

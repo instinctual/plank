@@ -9,6 +9,19 @@ HOST = ROOT / "apps/host/macos"
 
 
 class ClientPermissions(unittest.TestCase):
+    def test_installer_setup_cannot_start_a_stream(self):
+        main = (CLIENT / "main.cpp").read_text()
+        self.assertIn("GlobalCommandLineParser::PermissionsSetupRequested", main)
+        self.assertIn('QStringLiteral("qrc:/gui/MacPermissionSetup.qml")', main)
+        setup = (CLIENT / "gui/MacPermissionSetup.qml").read_text()
+        self.assertIn("MacPermissionsDialog", setup)
+        for forbidden in ("import ComputerManager", "PcView.qml", "CliStartStreamSegue", "startPolling("):
+            self.assertNotIn(forbidden, setup)
+        parser = (CLIENT / "cli/commandlineparser.cpp").read_text()
+        self.assertIn('if (!posArgs.isEmpty()) parser.showError("Permission setup cannot be combined', parser)
+        package = (ROOT / "scripts/package/build-macos-client-dmg.sh").read_text()
+        self.assertIn('packaging/client/macos/pkg-postinstall" "$output/install-scripts/postinstall"', package)
+
     def test_client_launcher_resolves_microphone_before_bookmarks(self):
         main = (CLIENT / "main.cpp").read_text()
         launch = main.split("// Resolve optional microphone consent", 1)[1]
@@ -83,8 +96,15 @@ class HostPermissions(unittest.TestCase):
         self.assertIn("CGRequestPostEventAccess()", setup)
         self.assertIn("AXIsProcessTrustedWithOptions", setup)
         self.assertIn("NSApplicationDidBecomeActiveNotification", setup)
-        self.assertIn('text:started ? @"Check in Settings" : @"Setup unavailable" verified:NO', setup)
+        self.assertNotIn('setRow:@"audio"', setup)
+        self.assertNotIn('@[@"audio",', setup)
+        self.assertIn('@"Open Audio Privacy Settings"', setup)
+        self.assertIn('!owner.closing && !started', setup)
         self.assertNotIn("NSAlert", setup)
+
+    def test_installer_opens_host_setup_after_starting_roles(self):
+        script = (ROOT / "packaging/host/macos/pkg-postinstall").read_text()
+        self.assertLess(script.index("start_roles"), script.index("open_permission_setup"))
 
     def test_host_consent_is_not_audio_forwarding_or_output_routing(self):
         source = (HOST / "session/audio-consent.m").read_text()

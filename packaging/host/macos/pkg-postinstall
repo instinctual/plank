@@ -10,5 +10,5 @@ configure_host finish
 prepare_machine_authority
 start_roles
 open_permission_setup
-echo 'PLANK Host installed. Open PLANK Host in Applications for privacy setup. Configuration and keys preserved.'
+echo 'PLANK Host installed. Complete approval in the PLANK Host setup window. Configuration and keys preserved.'
 echo 'Restart this Mac to finish loading the PLANK audio devices. Save your work first; restarting closes applications and remote sessions. You can restart later.'

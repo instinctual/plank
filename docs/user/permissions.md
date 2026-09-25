@@ -1,9 +1,25 @@
 # Permissions before connecting
 
-Open the installed **PLANK Client** before connecting, and open **PLANK Host**
-on the Mac before its first remote session. Permission approval belongs to the
-signed app and the current macOS user. Installing a package is not permission
-approval, and PLANK does not modify the system privacy database.
+Both macOS installers automatically open the installed app's permission setup
+for the active desktop user. Complete the macOS approval steps there before
+connecting; no manual app launch is needed after an interactive install.
+Client installer setup does not open bookmarks, poll hosts or start a session.
+Closing it exits the setup-only Client instance. It does not create a login item,
+background service or automatic connection.
+
+The signed application requests access, not the root installer. Installation is
+not permission approval: macOS controls each grant, and PLANK does not modify
+the privacy database. Some authorization is machine-wide; other consent belongs
+to the user. Another account may still need setup.
+
+At LoginWindow, with no usable desktop, or if setup cannot be opened, the
+installer reports that permission setup remains pending. Log in and open
+**PLANK Host** or **PLANK Client** to finish. Installation does not wait forever
+for consent, fail merely because an optional feature is declined, or start a
+persistent helper to retry. If the Client is already running during an upgrade,
+the installer defers setup instead of putting permission dialogs over a possible
+stream; quit and reopen the Client to finish. Normal Client launch retains permission checks for
+new users, revoked access and newly attached supported USB Wacom tablets.
 
 ## Reviewing status
 
@@ -18,8 +34,9 @@ components are separate. Each explanatory sentence has its own line.
 - Camera status distinguishes enabled, disabled, approval pending, removal
   pending and a failed status check. Setup still reconciles an already-enabled
   camera extension after an upgrade; first activation remains an explicit action.
-- System audio says **Check in Settings**, not Allowed: starting the empty
-  consent tap cannot prove that audio-recording permission was granted.
+- System audio has no permission-status indicator: starting the empty consent
+  tap cannot prove that audio-recording permission was granted. Its setup-time
+  consent request and **Open Audio Privacy Settings** action remain available.
 
 Statuses are read-only labels, not permission-granting checkboxes.
 Use the row's **Open Settings** or **Enable Camera** action when needed.
@@ -39,10 +56,10 @@ The Client panel is macOS-only. Linux settings and permission handling are uncha
 
 | Product | Permission | When PLANK requests it |
 | --- | --- | --- |
-| macOS Client | Accessibility for system keyboard shortcuts | Ordinary app launch when shortcut capture is enabled; also when enabling it in Settings outside a session. |
-| macOS Client | Microphone | Ordinary app launch, before the bookmark window becomes available. This only requests permission; it does not open a microphone or forward audio. |
-| macOS Client | Input Monitoring for raw Wacom forwarding | Ordinary app launch with a supported USB Wacom attached. It reads device metadata without opening or seizing the tablet. |
-| macOS Host | Screen Recording, Accessibility and event posting | Opening PLANK Host's setup app. Background workers use non-prompting permission checks. |
+| macOS Client | Accessibility for system keyboard shortcuts | Installer-launched setup and ordinary app launch when shortcut capture is enabled; also when enabling it in Settings outside a session. |
+| macOS Client | Microphone | Installer-launched setup and ordinary app launch, before bookmarks are available. This only requests permission; it does not open a microphone or forward audio. |
+| macOS Client | Input Monitoring for raw Wacom forwarding | Installer-launched setup and ordinary app launch with a supported USB Wacom attached. It reads device metadata without opening or seizing the tablet. |
+| macOS Host | Screen Recording, Accessibility and event posting | Installer-launched Host setup, or opening PLANK Host later. Background workers use non-prompting permission checks. |
 | macOS Host | System-audio recording | During Host setup, after screen/input approval. An empty, private process tap exercises macOS consent without capturing application audio, muting speakers or changing output routing. |
 | macOS Host | PLANK Camera extension activation | Explicit Host setup, or replacing an already-enabled extension there. Never triggered by a remote camera request. |
 

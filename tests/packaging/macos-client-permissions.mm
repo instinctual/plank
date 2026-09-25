@@ -11,6 +11,7 @@
 #import <ApplicationServices/ApplicationServices.h>
 #import <IOKit/hidsystem/IOHIDLib.h>
 #include "../../apps/client/app/backend/macpermissions.h"
+#include "../../apps/client/app/cli/commandlineparser.h"
 #include "../../apps/client/app/streaming/input/macrawwacom.h"
 #include <cassert>
 
@@ -45,6 +46,15 @@ public:
 int main(int argc, char** argv)
 {
     QGuiApplication app(argc, argv);
+    app.setQuitOnLastWindowClosed(false); // Verify setup close before ending the fixture.
+    GlobalCommandLineParser parser;
+    if (argc == 2 && QByteArray(argv[1]) == "--test-invalid-setup") {
+        parser.parse({"plank-client", "--setup-permissions", "stream", "example.invalid"});
+        return 99; // The real parser must reject combining setup and streaming.
+    }
+    assert(parser.parse({"plank-client"}) == GlobalCommandLineParser::NormalStartRequested);
+    assert(parser.parse({"plank-client", "stream", "example.invalid"}) == GlobalCommandLineParser::StreamRequested);
+    assert(parser.parse({"plank-client", "--setup-permissions"}) == GlobalCommandLineParser::PermissionsSetupRequested);
     MacPermissions permissions([] { return canConfigure; });
     auto row = [&](int i) { return permissions.rows().at(i).toMap(); };
     permissions.refresh();
@@ -79,14 +89,11 @@ int main(int argc, char** argv)
     QQmlApplicationEngine engine;
     engine.rootContext()->setContextProperty("macPermissions", &permissions);
     const QUrl source = QUrl::fromLocalFile(QDir(QString::fromLocal8Bit(argv[1])).absolutePath() + "/");
-    const QByteArray qml = "import QtQuick\nimport QtQuick.Controls\nimport QtQuick.Controls.Material\nimport \"" + source.toEncoded() +
-        "\"\nApplicationWindow { width: 900; height: 720; visible: true; Material.theme: Material.Dark; "
-        "MacPermissionsDialog { id: dialog; objectName: \"permissions\"; Component.onCompleted: open() } }";
     QObject::connect(&engine, &QQmlApplicationEngine::warnings, &app, [](const QList<QQmlError>& errors) {
         for (const auto& error : errors) qCritical() << error;
         std::abort();
     });
-    engine.loadData(qml);
+    engine.load(source.resolved(QUrl("MacPermissionSetup.qml")));
     assert(engine.rootObjects().size() == 1);
     QTimer::singleShot(500, &app, [&] {
         auto window = qobject_cast<QQuickWindow*>(engine.rootObjects().first());
@@ -96,8 +103,12 @@ int main(int argc, char** argv)
         assert(dialog->property("height").toReal() > 200);
         assert(dialog->property("height").toReal() < window->height());
         if (argc == 3) assert(window->grabWindow().save(QString::fromLocal8Bit(argv[2])));
-        puts("Client permissions: denied/unknown/granted/absent, active-stream guard, late callback and real QML layout passed");
-        app.quit();
+        assert(QMetaObject::invokeMethod(dialog, "close"));
+        QTimer::singleShot(300, &app, [&, window] {
+            assert(!window->isVisible());
+            puts("Client permissions: denied/unknown/granted/absent, active-stream guard, late callback, setup parser, QML layout and close passed");
+            app.quit();
+        });
     });
     return app.exec();
 }

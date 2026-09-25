@@ -159,8 +159,8 @@ gui_domains() {
 console_uid() { /usr/bin/stat -f %u /dev/console; }
 open_permission_setup() {
     local uid
-    uid=$(console_uid)
-    if [[ $uid =~ ^[1-9][0-9]*$ ]]; then
+    uid=$(console_uid) || uid=''
+    if [[ $uid =~ ^[1-9][0-9]*$ ]] && launchctl_cmd print "gui/$uid" >/dev/null 2>&1; then
         # Open the signed app as the existing console user, never as root.
         # The app uses normal macOS consent prompts; no TCC writes or reset.
         # The graphical worker shares this bundle ID. Without -n LaunchServices
@@ -169,7 +169,7 @@ open_permission_setup() {
             echo 'PLANK Host installed; open PLANK Host in Applications to complete privacy setup.'
         fi
     else
-        echo 'PLANK Host installed at LoginWindow. Log into the Mac and open PLANK Host once for privacy setup.'
+        echo 'PLANK Host installed. Permission setup is pending. Log into the Mac and open PLANK Host once for privacy setup.'
     fi
 }
 stop_roles() {

@@ -51,10 +51,9 @@ int main(void) {
     @autoreleasepool {
         [NSApplication.sharedApplication setActivationPolicy:NSApplicationActivationPolicyProhibited];
         PLANKPermissionSetup *view = [[PLANKPermissionSetup alloc] initWithVersion:@"1.2.3-test"];
-        assert(view.rows.count == 7);
+        assert(view.rows.count == 6 && !view.rows[@"audio"]);
         [view refresh];
         assert(rowContains(view, @"screen", @"! Required"));
-        assert(rowContains(view, @"audio", @"— Check in Settings"));
         assert(rowContains(view, @"output", @"— Not loaded"));
         assert(audioStarts == 0);
         [view requestPermissions]; assert(permissionRequests == 3);
@@ -64,10 +63,11 @@ int main(void) {
         [view refresh];
         assert(rowContains(view, @"screen", @"✓ Allowed"));
         assert(rowContains(view, @"microphone", @"✓ Loaded"));
-        assert(rowContains(view, @"audio", @"Requesting consent"));
         assert(audioStarts == 1);
         audioReply(YES);
-        assert(rowContains(view, @"audio", @"— Check in Settings"));
+        assert([view.audioHelp.stringValue containsString:@"when macOS asks"]);
+        audioReply(NO);
+        assert([view.audioHelp.stringValue containsString:@"could not start"]);
         cameraReply(PLANKCameraEnabled);
         assert(cameraActivations == 1);
         cameraReply(PLANKCameraEnabled); // Re-query after upgrade, not another activation.

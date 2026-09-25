@@ -18,6 +18,7 @@
 @interface PLANKPermissionSetup : NSWindowController <NSWindowDelegate>
 @property(strong) NSMutableDictionary<NSString *, PLANKSetupRow *> *rows;
 @property(strong) NSTextField *summary;
+@property(strong) NSTextField *audioHelp;
 @property(strong) PLANKMacAudioConsent *audio;
 @property BOOL closing, checkingCamera, activatingCamera, reconciledCamera;
 @property PLANKCameraStatus cameraStatus;
@@ -60,9 +61,15 @@ static NSTextField *label(NSString *text, CGFloat size, BOOL bold) {
     [self addRows:@[
         @[@"screen", @"Screen recording", @"View the remote desktop.", @"Open Settings"],
         @[@"accessibility", @"Accessibility", @"Control the keyboard and pointer.", @"Open Settings"],
-        @[@"events", @"Keyboard / mouse events", @"Send input to the desktop.", @"Open Settings"],
-        @[@"audio", @"System audio", @"Approve audio recording in System Settings.", @"Open Settings"]]
+        @[@"events", @"Keyboard / mouse events", @"Send input to the desktop.", @"Open Settings"]]
         toStack:stack];
+    _audioHelp = label(@"Allow system-audio recording when macOS asks during setup.", 12, NO);
+    _audioHelp.textColor = NSColor.secondaryLabelColor;
+    [stack addArrangedSubview:_audioHelp];
+    [_audioHelp.widthAnchor constraintEqualToAnchor:stack.widthAnchor].active = YES;
+    NSButton *audioSettings = [NSButton buttonWithTitle:@"Open Audio Privacy Settings" target:self action:@selector(rowAction:)];
+    audioSettings.identifier = @"audio";
+    [stack addArrangedSubview:audioSettings];
     [stack addArrangedSubview:label(@"Optional components", 13, YES)];
     [self addRows:@[
         @[@"output", @"PLANK Output", @"Stream application and alert sounds.", @""],
@@ -132,9 +139,6 @@ static NSTextField *label(NSString *text, CGFloat size, BOOL bold) {
     [self setRow:@"accessibility" text:access ? @"Allowed" : @"Required" verified:access required:!access];
     [self setRow:@"events" text:events ? @"Allowed" : @"Required" verified:events required:!events];
     _summary.stringValue = screen && access && events ? @"Desktop permissions are ready" : @"Allow the required desktop permissions below";
-    // An empty tap starting is not proof of TCC audio consent. Never show a
-    // green check based on the tap API's return value or Screen Recording alone.
-    if (!_audio) [self setRow:@"audio" text:@"Check in Settings" verified:NO required:NO];
     for (NSString *key in @[@"output", @"microphone"]) {
         NSString *uid = [key isEqualToString:@"output"] ? @PLANK_OUTPUT_DEVICE_UID : @PLANK_MIC_DEVICE_UID;
         BOOL available = PLANKMicDeviceForUID(uid) != kAudioObjectUnknown;
@@ -167,12 +171,12 @@ static NSTextField *label(NSString *text, CGFloat size, BOOL bold) {
     }
     if (screen && access && events && !_audio) {
         _audio = [PLANKMacAudioConsent new];
-        [self setRow:@"audio" text:@"Requesting consent…" verified:NO required:NO];
         __weak typeof(self) weakSelf = self;
         [_audio startWithCompletion:^(BOOL started) {
             PLANKPermissionSetup *owner = weakSelf;
-            if (owner && !owner.closing)
-                [owner setRow:@"audio" text:started ? @"Check in Settings" : @"Setup unavailable" verified:NO required:NO];
+            // Tap startup is not proof of consent; show only a real setup error.
+            if (owner && !owner.closing && !started)
+                owner.audioHelp.stringValue = @"Audio permission setup could not start.\nOpen Audio Privacy Settings to review access.";
         }];
     }
 }
@@ -213,7 +217,9 @@ static NSTextField *label(NSString *text, CGFloat size, BOOL bold) {
         @"Privacy_ScreenCapture" : @"Privacy_Accessibility";
     NSURL *url = [NSURL URLWithString:[@"x-apple.systempreferences:com.apple.preference.security?" stringByAppendingString:pane]];
     if (![NSWorkspace.sharedWorkspace openURL:url]) {
-        [self setRow:sender.identifier text:@"Open Settings manually" verified:NO required:NO];
+        if ([sender.identifier isEqualToString:@"audio"])
+            _audioHelp.stringValue = @"Open System Settings → Privacy & Security → Screen & System Audio Recording.";
+        else [self setRow:sender.identifier text:@"Open Settings manually" verified:NO required:NO];
     }
 }
 - (void)windowWillClose:(NSNotification *)notification {

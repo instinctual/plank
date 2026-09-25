@@ -44,7 +44,7 @@ class MacKeyboardCapture(unittest.TestCase):
         self.assertIn("&StreamingPreferences::captureSysKeysModeChanged", main)
         self.assertIn("captureSysKeysMode != StreamingPreferences::CSK_OFF", main)
         startup = main.index("auto requestKeyboardPermission =")
-        load = main.index('engine.load(QUrl(QStringLiteral("qrc:/gui/main.qml")))')
+        load = main.index('context->load(QUrl(startupView))')
         self.assertLess(startup, load)
         self.assertIn("GlobalCommandLineParser::NormalStartRequested", main[startup:load])
         self.assertIn("requestKeyboardPermission();", main[startup:load])

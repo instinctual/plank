@@ -2,13 +2,67 @@
 
 ## Current state
 
-Current candidate work is `macos-app-icons`, based on main
+Current work is `macos-app-icons`, based on main
 `9d2875297c96f54803723b4f69076e1c0d9f0232`, in the retained
-`build/worktrees/macos-session-takeover` worktree. The operator authorized commit,
-push and signed hosted macOS Host/Client candidates for the permission panels
-and uninstall follow-ups below. Source version is **1.1.019**; the visible and
-package version is **1.1.019-macos-app-icons**. No merge, Release or installation
-is authorized by this candidate step.
+`build/worktrees/macos-session-takeover` worktree. The operator approved
+installer-time permission setup for both macOS products and now requests signed
+candidate builds. Client implementation is committed/pushed at
+`c78271eea6be627ecc905874e95b57e2a94bef78`; root changes follow baseline
+`5c16ca10c64be850918c627b4df770d3c1718900`. Other pins below are unchanged.
+Source version is **1.1.020**; candidate version is
+**1.1.020-macos-app-icons**. Build through the existing protected hosted signing
+workflow with exact-input dependency caches. No merge, deployment or Release
+is requested. The primary worktree's unrelated RK3576 work is untouched.
+
+Client PKG postinstall verifies the installed signed app and opens its new
+`--setup-permissions` view as the active console user, not root. It requests
+the existing applicable launch-time permissions without loading bookmarks,
+polling Hosts or creating a session. The CLI rejects combining setup with a
+stream action. Close exits this instance; no service/login item is added.
+Absent desktop, failed launch, an already-running Client or failed process
+inspection defers setup with instructions. Host keeps its existing signed-app
+handoff and now handles unavailable GUI domains/console lookup explicitly.
+Normal launch checks remain for new users/revoked access/new tablets. Optional
+camera-extension activation still has its explicit setup action. No TCC writes,
+silent grants, permission reset, capture-policy or Linux runtime changes.
+
+The misleading Host System Audio **Check in Settings** status row is removed.
+An empty tap cannot verify permission. Consent setup, a Settings shortcut and
+a message for genuine setup failure remain; no unsupported Allowed status.
+
+Validation: portable permission timing11, keyboard guards5, installer handoff
+fixtures (including running-client/lookup/domain/launch failures), Host installer25,
+build-path10, version and repository-layout gates pass. Dedicated SDK27 component
+tests pass for the real Client parser/model/QML view, denied/unknown/granted
+states, active-stream rejection, close and late callbacks; Host view callbacks
+also pass ASan/UBSan. Host production setup and Client main/parser/QML resources
+compile (the latter at target27 using the existing qmake project; not a full
+package build). All16 native configuration/PKG-content tests and31 native Host
+installer checks pass. These tests use synthetic OS boundaries/filesystems:
+no installed app, real privacy grant, hardware device or live session changed.
+Next gate: signed 1.1.020 candidates and interactive installer approval testing;
+do not reset an existing user's grants without explicit authorization.
+
+Permission-scope investigation: the dedicated Mac's existing installed Host
+has allowed ScreenCapture and Accessibility records in the machine-wide TCC
+database. Its signed, non-prompting `--check-permissions` command launched through
+LaunchServices confirms valid graphical context and screen/input readiness in
+the current desktop. The same binary launched directly over SSH reports an
+invalid graphical context; that is not evidence of denied desktop consent.
+After the operator switched to an existing standard account, the identical
+installed signed Host also reported valid graphical context and all three
+screen/input checks allowed there, without requesting any grants. These core
+approvals are effective in both tested accounts. The installed Host/Client
+predate this candidate, so this is baseline evidence, not 1.1.020 acceptance
+or proof for every future account/OS. No grants were reset or changed. Audio
+consent and Client cross-account behavior remain unverified; do not generalize
+the Host screen/input result to those separate permissions.
+
+## Signed 1.1.019 candidates
+
+The previous permission panels and uninstall follow-ups were committed/pushed
+and built through hosted signing. The packages below do not include the new
+installer setup follow-up. No merge, Release or installation was performed.
 Signed Host source is `e0d11026f23a2dbb243eafd6f48943edad9eddc0`;
 run `36177470498` passed all package/signing/notarization/stapling/Gatekeeper
 and cleanup gates. Its checksum-verified PKG is collected below.
@@ -38,14 +92,10 @@ Client implementation is committed and pushed at
 `c684014752b511de489d6406e8bafb005bef5123`; other dependency pins are unchanged.
 The primary worktree's unrelated RK3576 changes must remain untouched.
 
-The operator likes the installed 1.1.019 Host setup window. Their screenshot
-confirms the aligned layout and green verified permission/device rows, but they
-questioned System Audio's **Check in Settings** despite its OS switch being on.
-That row deliberately does not infer audio consent from an empty tap starting.
-It is an unverified status, not denial. No follow-up UI change has been made;
-discuss a reliable audio-only permission query or clearer **Not verified** text
-before displaying an unsupported green Allowed status. Installed Client visual
-acceptance and actual uninstall/purge tests remain outstanding.
+The operator accepted the installed Host setup layout but questioned System
+Audio's unverified indicator. The 1.1.020 source change above removes it while
+preserving the consent workflow. Installed Client visual acceptance and actual
+uninstall/purge tests remain outstanding.
 
 ## Previous icon checkpoint
 
@@ -174,7 +224,7 @@ and installed visual acceptance remain untested. Existing uninstall/configuratio
 fixtures pass; no installed app, service, permission, capture or session changed.
 
 All three follow-ups are included in the signed 1.1.019 candidates, not in1.1.018
-installers. Next: finish installed acceptance and clarify the audio status above.
+installers. They predate the installer permission handoff and audio-status cleanup.
 Do not relabel
 existing packages or claim a full application/package build from component tests.
 
