@@ -13,6 +13,7 @@ source "$source_root/scripts/build/build-paths.sh"
 plank_build_path_flags "$source_root" "$output"
 mkdir "$output"
 cd "$source_root"
+bash "$source_root/scripts/test/build-macos-configuration.sh" "$source_root" "$output/configuration-tests"
 for component in buffer driver queue; do
     xcrun clang -std=c11 -O2 -mmacosx-version-min=27.0 -Wall -Wextra -Werror \
         -Iapps/host/macos/audio-device "tests/audio/macos-microphone-$component.c" \
@@ -85,7 +86,7 @@ xcrun clang -std=c11 -mmacosx-version-min=27.0 -Wall -Wextra -Werror \
     -Iapps/host/macos/session tests/auth/macos-permission-status.c -o "$output/permission-status-test"
 "$output/permission-status-test"
 xcrun clang -mmacosx-version-min=27.0 -fobjc-arc -Wall -Wextra -Werror \
-    -Iapps/host/macos/session tests/auth/macos-desktop-provisioning.m apps/host/macos/session/desktop-provisioning.m \
+    -Iapps/host/macos/session tests/auth/macos-desktop-provisioning.m apps/host/macos/session/{desktop-provisioning,host-configuration}.m \
     -framework Foundation -framework Security -o "$output/desktop-provisioning-test"
 "$output/desktop-provisioning-test"
 xcrun clang -mmacosx-version-min=27.0 -fobjc-arc -Wall -Wextra -Werror \
@@ -149,7 +150,7 @@ sources=(apps/host/macos/auth/authentication-session.m apps/host/macos/auth/grap
     apps/host/macos/audio-device/output-broker.m apps/host/macos/audio-device/output-selection.m
     apps/host/macos/input/input-events.m apps/host/macos/input/native-input.m apps/host/macos/input/quartz-input.m
     apps/host/macos/session/agent-registry.m apps/host/macos/session/agent-connection.m
-    apps/host/macos/session/desktop-provisioning.m apps/host/macos/session/machine-identity.m apps/host/macos/session/desktop-start.m
+    apps/host/macos/session/desktop-provisioning.m apps/host/macos/session/host-configuration.m apps/host/macos/session/machine-identity.m apps/host/macos/session/desktop-start.m
     apps/host/macos/session/host-runtime.m apps/host/macos/session/host-main.m)
 xcrun clang "${common[@]}" "-DPLANK_MACOS_HOST_VERSION=\"$PLANK_MACOS_HOST_VERSION\"" \
     "${sources[@]}" "$archive" -lpthread -lm -o "$output/plank-host"
@@ -182,6 +183,10 @@ shasum -a 256 "$archive" "$output/plank-host"
     test -s "$app/Contents/Resources/plank.icns"
     install -m 0755 "$output/plank-host" "$app/Contents/MacOS/plank-host"
     install -m 0644 packaging/host/macos/host-info.plist "$app/Contents/Info.plist"
+    xcrun clang "${PLANK_FILE_FLAGS[@]}" -O2 -mmacosx-version-min=27.0 -fobjc-arc -Wall -Wextra -Werror \
+        -Iapps/host/macos/session scripts/package/macos-configure.m apps/host/macos/session/host-configuration.m \
+        -framework Foundation -o "$app/Contents/Resources/plank-configure"
+    install -m 0644 packaging/host/macos/config/plank-host.conf "$app/Contents/Resources/host.conf.example"
     signing_flags=(--timestamp=none)
     case ${PLANK_MACOS_DISTRIBUTION:-0} in
       0) install -m 0644 scripts/maintenance/install-macos-host-development.py scripts/maintenance/uninstall-macos-host-development.py "$app/Contents/Resources/" ;;
@@ -197,6 +202,7 @@ shasum -a 256 "$archive" "$output/plank-host"
         ;;
       *) echo 'PLANK_MACOS_DISTRIBUTION must be 0 or 1' >&2; exit 2 ;;
     esac
+    codesign --force --sign "$signing_identity" "${signing_flags[@]}" "$app/Contents/Resources/plank-configure"
     /usr/libexec/PlistBuddy -c "Add :PLANKVersion string $PLANK_MACOS_HOST_VERSION" "$app/Contents/Info.plist"
     /usr/libexec/PlistBuddy -c "Set :CFBundleVersion ${PLANK_MACOS_HOST_VERSION%%-*}" "$app/Contents/Info.plist"
     /usr/libexec/PlistBuddy -c "Add :CFBundleShortVersionString string ${PLANK_MACOS_HOST_VERSION%%-*}" "$app/Contents/Info.plist"

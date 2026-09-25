@@ -127,9 +127,11 @@ Both roles retain independent virtual-display identities and the same bounded
 scope-checked transaction. This does not extend input or capture authority.
 
 The experimental role-private startup directory is owned by that role's UID,
-mode 0700. `host.plist`, `cert.der`, `key.der`, `cert.pem`, `key.pem` must each be
-regular, non-symlink, mode-0600 files owned by the same UID. The plist has exactly
-`Address` (explicit IPv4), `Port` (1–65535), `Name`, and `UUID`. PEM and DER must
+mode 0700. `host.conf`, `identity.plist`, `cert.der`, `key.der`, `cert.pem`, `key.pem`
+must each be regular, non-symlink, mode-0600 files owned by the same UID. The INI
+uses the production name/port schema; the identity plist contains only UUID.
+Synthetic qualification listens on loopback; installed workers listen on all
+interfaces. PEM and DER must
 represent the same certificate and PKCS#1 RSA private key; the native Security
 identity validates the key/certificate pair. This is developer startup wiring,
 not the final administrator configurator. Never copy the machine service's
@@ -168,8 +170,10 @@ Client must authenticate again. The desktop agent still runs as its OS user.
 
 The system-wide Aqua worker prepares missing TLS files as its non-root user,
 publishing a private directory atomically without replacing existing keys.
-Configuration is `/Library/Application Support/PLANK/host.plist`, root-owned
-0644 in a root-owned0755 directory. The separate SignIn directory remains0700.
+Configuration is `/etc/plank/host.conf`, root-owned0644 in a root-owned0755
+directory. Workstation UUID is separate identity-only state in
+`/Library/Application Support/PLANK/identity.plist`. The installer converts and
+retires the old public plist, not the runtime. The separate SignIn directory remains0700.
 Desktop logs are opened inside the signed app with the user's authority.
 New-user and account-isolation qualification remain open despite the accepted
 single-user LoginWindow input, logout/login and cold-boot test.

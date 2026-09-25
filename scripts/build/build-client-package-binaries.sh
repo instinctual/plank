@@ -1455,7 +1455,7 @@ for required_relay_wake_token in \
   'manualBookmark &&' \
   'relay_wake_port'; do
   rg -Fq "$required_relay_wake_token" \
-    "$source_dir/app" "$repo_dir/packaging/client/linux/config/plank-client.conf" || {
+    "$source_dir/app" "$repo_dir/packaging/client/config/plank-client.conf" || {
     echo "relay-mediated Wake PC invariant is missing: ${required_relay_wake_token}" >&2
     exit 1
   }
@@ -1532,7 +1532,7 @@ rg -Fq '\$$ORIGIN/../lib/plank' "$source_dir/app/app.pro" || {
   exit 1
 }
 echo "client_direct_runtime_gate=pass"
-client_policy="$repo_dir/packaging/client/linux/config/plank-client.conf"
+client_policy="$repo_dir/packaging/client/config/plank-client.conf"
 rg -Fxq '[network]' "$client_policy" || {
   echo "client administrator policy is missing its network section" >&2
   exit 1

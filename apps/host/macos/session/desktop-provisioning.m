@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 #import "desktop-provisioning.h"
+#import "host-configuration.h"
 #include <fcntl.h>
 #include <pwd.h>
 #include <signal.h>
@@ -27,44 +28,6 @@ static int openDirectory(NSString *path, BOOL create) {
 static BOOL ownedDirectory(int fd, uid_t owner, mode_t mode) {
     struct stat st;
     return fd >= 0 && !fstat(fd, &st) && st.st_uid == owner && (st.st_mode & 0777) == mode;
-}
-
-static NSData *readFile(int parent, const char *name, uid_t owner, mode_t mode) {
-    int fd = openat(parent, name, O_RDONLY | O_NOFOLLOW | O_CLOEXEC | O_NONBLOCK);
-    if (fd < 0) return nil;
-    struct stat st;
-    if (fstat(fd, &st) || !S_ISREG(st.st_mode) || st.st_uid != owner || st.st_nlink != 1 ||
-        (st.st_mode & 0777) != mode || st.st_size <= 0 || st.st_size > 32768) { close(fd); return nil; }
-    NSMutableData *data = [NSMutableData dataWithLength:(NSUInteger)st.st_size];
-    size_t count = 0;
-    while (count < data.length) {
-        ssize_t got = read(fd, (char *)data.mutableBytes + count, data.length - count);
-        if (got < 0 && errno == EINTR) continue;
-        if (got <= 0) break;
-        count += (size_t)got;
-    }
-    char extra;
-    BOOL ok = count == data.length && read(fd, &extra, 1) == 0;
-    close(fd);
-    if (!ok) return nil;
-    return data;
-}
-
-NSDictionary *PLANKMacReadPublicConfiguration(NSString *directory, uid_t owner) {
-    int fd = openDirectory(directory, NO);
-    if (!ownedDirectory(fd, owner, 0755)) { if (fd >= 0) close(fd); return nil; }
-    NSData *data = readFile(fd, "host.plist", owner, 0644);
-    close(fd);
-    id config = data ? [NSPropertyListSerialization propertyListWithData:data options:0 format:NULL error:NULL] : nil;
-    if (![config isKindOfClass:NSDictionary.class] || [config count] != 4 ||
-        ![config[@"Address"] isEqual:@"0.0.0.0"] ||
-        ![config[@"Name"] isKindOfClass:NSString.class] || ![config[@"Name"] length] ||
-        ![config[@"UUID"] isKindOfClass:NSString.class] || ![[NSUUID alloc] initWithUUIDString:config[@"UUID"]] ||
-        ![config[@"Port"] isKindOfClass:NSNumber.class] ||
-        CFGetTypeID((__bridge CFTypeRef)config[@"Port"]) == CFBooleanGetTypeID() ||
-        [config[@"Port"] doubleValue] != [config[@"Port"] unsignedShortValue] ||
-        [config[@"Port"] unsignedShortValue] == 0) return nil;
-    return config;
 }
 
 static BOOL completeIdentity(int fd) {
@@ -169,7 +132,7 @@ BOOL PLANKMacPrepareDesktop(NSString **directory, NSDictionary **configuration) 
     if (!valid) { if (log >= 0) close(log); return NO; }
     if (dup2(log, STDOUT_FILENO) < 0 || dup2(log, STDERR_FILENO) < 0) { close(log); return NO; }
     close(log);
-    *configuration = PLANKMacReadPublicConfiguration(@"/Library/Application Support/PLANK", 0);
+    *configuration = PLANKMacReadHostConfiguration(@"/private/etc/plank", @"/Library/Application Support/PLANK", 0, NO);
     if (!*configuration) return NO;
     *directory = [home stringByAppendingPathComponent:@"Library/Application Support/PLANK/Host"];
     return PLANKMacPrepareDesktopIdentity(*directory);

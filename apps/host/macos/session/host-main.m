@@ -15,6 +15,7 @@
 #import "screen-capture.h"
 #include "permission-status.h"
 #import "desktop-provisioning.h"
+#import "host-configuration.h"
 #import "machine-identity.h"
 #import "desktop-start.h"
 #import <AppKit/AppKit.h>
@@ -201,7 +202,7 @@ static int graphical(const char *service, NSString *role, NSString *directory, B
             authorityDER = PLANKMacAuthorizeDesktopIdentity(directory, service, PLANKMacOwnSigningRequirement());
             if (!authorityDER) return startupFailure("machine-identity");
         } else {
-            publicConfiguration = PLANKMacReadPublicConfiguration(@"/Library/Application Support/PLANK", 0);
+            publicConfiguration = PLANKMacReadHostConfiguration(@"/private/etc/plank", @"/Library/Application Support/PLANK", 0, NO);
             if (!publicConfiguration) return startupFailure("machine-configuration");
         }
         if (!plank_macos_same_graphical_scope(initial, [authority snapshot])) return startupFailure("provisioning-scope-changed");
@@ -213,12 +214,10 @@ static int graphical(const char *service, NSString *role, NSString *directory, B
     if (fstat(fd, &st) || st.st_uid != geteuid() || (st.st_mode & 0777) != 0700) {
         close(fd); return startupFailure("configuration-permissions");
     }
-    NSMutableData *configBytes = publicConfiguration ? nil : readPrivate(fd, "host.plist");
     NSMutableData *certificateBytes = readPrivate(fd, "cert.der"), *keyBytes = readPrivate(fd, "key.der");
     NSMutableData *certificatePEM = readPrivate(fd, "cert.pem"), *keyPEM = readPrivate(fd, "key.pem");
     close(fd);
-    NSDictionary *config = publicConfiguration ?: (configBytes ? [NSPropertyListSerialization propertyListWithData:configBytes
-        options:NSPropertyListImmutable format:NULL error:NULL] : nil);
+    NSDictionary *config = publicConfiguration ?: PLANKMacReadHostConfiguration(directory, directory, geteuid(), YES);
     if (![config isKindOfClass:NSDictionary.class] || config.count != 4 ||
         ![config[@"Address"] isKindOfClass:NSString.class] || ![config[@"Name"] isKindOfClass:NSString.class] ||
         ![config[@"UUID"] isKindOfClass:NSString.class] || ![config[@"Port"] isKindOfClass:NSNumber.class] ||

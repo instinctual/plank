@@ -12,6 +12,14 @@ microphone_driver='/Library/Audio/Plug-Ins/HAL/PLANK Microphone.driver'
 output_driver='/Library/Audio/Plug-Ins/HAL/PLANK Output.driver'
 executable="$app/Contents/MacOS/plank-host"
 state='/Library/Application Support/PLANK'
+configuration='/private/etc/plank'
+# PKG scripts carry the new helper; the standalone uninstaller lives beside
+# the same signed helper in the installed app. Never execute an older helper.
+configuration_resources="$(/usr/bin/dirname "${BASH_SOURCE[0]}")"
+configure_host() {
+    "$configuration_resources/plank-configure" "host-$1" "$configuration" "$state" \
+        "$configuration_resources/host.conf.example"
+}
 logs='/Library/Logs/PLANK'
 machine=la.instinctual.PLANK.Host.machine
 desktop=la.instinctual.PLANK.Host.desktop
@@ -192,17 +200,7 @@ start_roles() {
 }
 
 check_configuration() {
-    local port uuid
-    if present "$state/host.plist"; then
-        safe_file "$state/host.plist" 644
-        /usr/bin/plutil -lint "$state/host.plist" >/dev/null
-        [[ $(/usr/bin/plutil -extract Address raw -expect string "$state/host.plist") = 0.0.0.0 ]] || fail 'Host must listen on all interfaces'
-        port=$(/usr/bin/plutil -extract Port raw -expect integer "$state/host.plist")
-        [[ $port =~ ^[1-9][0-9]{0,4}$ ]] && ((port <= 65535)) || fail 'Invalid Host port'
-        [[ -n $(/usr/bin/plutil -extract Name raw -expect string "$state/host.plist") ]] || fail 'Invalid Host name'
-        uuid=$(/usr/bin/plutil -extract UUID raw -expect string "$state/host.plist")
-        [[ $uuid =~ ^[[:xdigit:]]{8}-[[:xdigit:]]{4}-[[:xdigit:]]{4}-[[:xdigit:]]{4}-[[:xdigit:]]{12}$ ]] || fail 'Invalid Host identity'
-    fi
+    configure_host check
     if present "$state/SignIn"; then
         safe_directory "$state/SignIn"
         [[ $(/usr/bin/stat -f %Lp "$state/SignIn") = 700 ]] || fail 'Identity directory must be private'
@@ -258,16 +256,7 @@ initialize_state() {
     # Public settings stay readable; routing recovery records require root-only
     # access and must exist before the machine coordinator starts.
     ensure_directory "$state/OutputRouting" 700
-    if ! present "$state/host.plist"; then
-        stage=$(/usr/bin/mktemp "$state/.config.XXXXXX")
-        /usr/bin/plutil -create xml1 "$stage"
-        /usr/bin/plutil -insert Address -string 0.0.0.0 "$stage"
-        /usr/bin/plutil -insert Port -integer 28989 "$stage"
-        /usr/bin/plutil -insert Name -string 'PLANK Mac Host' "$stage"
-        /usr/bin/plutil -insert UUID -string "$(/usr/bin/uuidgen)" "$stage"
-        /bin/chmod 644 "$stage"
-        /bin/mv "$stage" "$state/host.plist"
-    fi
+    configure_host prepare
     if ! present "$state/SignIn"; then
         stage=$(/usr/bin/mktemp -d "$state/.identity.XXXXXX")
         /usr/bin/openssl req -x509 -newkey rsa:3072 -nodes -sha256 -days 3650 \

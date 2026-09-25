@@ -10,7 +10,6 @@ import os
 from pathlib import Path
 import plistlib
 import pwd
-import stat
 
 ROOT = Path(__file__).resolve().parents[2]
 SPEC = importlib.util.spec_from_file_location("installer", ROOT / "scripts/maintenance/install-macos-host-development.py")
@@ -29,15 +28,6 @@ def main():
     domain = f"gui/{account.pw_uid}"
     INSTALLER.run("launchctl", "print", "system/" + machine)
     INSTALLER.run("launchctl", "print", domain)
-    # Read only public settings. Never read the LoginWindow private key.
-    path = Path("/Library/Application Support/PLANK/SignIn/host.plist")
-    fd = os.open(path, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)
-    with os.fdopen(fd, "rb") as source:
-        status = os.fstat(source.fileno())
-        assert stat.S_ISREG(status.st_mode) and status.st_uid == 0
-        assert stat.S_IMODE(status.st_mode) == 0o600 and 0 < status.st_size <= 32768
-        public = plistlib.loads(source.read(32769))
-    assert set(public) == {"Address", "Port", "Name", "UUID"}
     agent_path = Path(account.pw_dir) / "Library/LaunchAgents" / (label + ".plist")
     pid = os.fork()
     if pid == 0:
@@ -47,9 +37,6 @@ def main():
         os.setuid(account.pw_uid)
         os.umask(0o077)
         home = Path(account.pw_dir)
-        private = home / "Library/Application Support/PLANK/Host"
-        private.parent.mkdir(parents=True, mode=0o700, exist_ok=True)
-        INSTALLER.prepare_sign_in_identity(private, public)
         logs = home / "Library/Logs/PLANK"
         logs.mkdir(parents=True, mode=0o700, exist_ok=True)
         log = logs / "host-desktop.log"
@@ -57,7 +44,7 @@ def main():
         log.touch(mode=0o600, exist_ok=True)
         agent_path.parent.mkdir(parents=True, mode=0o755, exist_ok=True)
         agent = {"Label": label, "ProgramArguments": [str(app / "Contents/MacOS/plank-host"),
-                 "--graphical", machine, "desktop", str(private)], "RunAtLoad": True,
+                 "--desktop", machine], "RunAtLoad": True,
                  "KeepAlive": True, "ThrottleInterval": 2, "LimitLoadToSessionType": "Aqua",
                  "ProcessType": "Interactive", "StandardOutPath": str(log), "StandardErrorPath": str(log)}
         data = plistlib.dumps(agent)

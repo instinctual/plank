@@ -212,8 +212,11 @@ For the two explicitly provisioned development accounts, add
 `--retire-user-agent operator --retire-user-agent permission-test-user` on the first
 upgrade only. These old user jobs are renamed to `.plist.retired` with permanently
 dropped user privileges; no home enumeration or private-key deletion occurs.
-The shared public configuration is `/Library/Application Support/PLANK/host.plist`
-(root/0644, parent0755); LoginWindow keys remain in `SignIn` (root/0700/0600).
+The administrator configuration is `/etc/plank/host.conf`
+(root/0644, parent0755). Workstation UUID lives separately in
+`/Library/Application Support/PLANK/identity.plist`; LoginWindow keys remain in
+`SignIn` (root/0700/0600). PKG and development installation use the same native
+configuration validator/converter. No runtime plist configuration fallback remains.
 Desktop keys and logs are created by the signed app as the actual user, never
 by root launchd following a user-writable log path. This does not grant consent.
 

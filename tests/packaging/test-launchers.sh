@@ -5,7 +5,7 @@ set -euo pipefail
 repo_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd)
 host_launcher=${repo_dir}/packaging/host/linux/bin/plank-host
 host_profile=${repo_dir}/packaging/host/linux/config/plank-host.conf
-client_policy=${repo_dir}/packaging/client/linux/config/plank-client.conf
+client_policy=${repo_dir}/packaging/client/config/plank-client.conf
 client_main=${repo_dir}/apps/client/app/main.cpp
 client_path=${repo_dir}/apps/client/app/path.cpp
 client_project=${repo_dir}/apps/client/app/app.pro

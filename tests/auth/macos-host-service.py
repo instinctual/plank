@@ -77,7 +77,8 @@ def main():
             port = reservation.getsockname()[1]
         config = {"Address": "127.0.0.1", "Port": port, "Name": "PLANK Host assembly",
                   "UUID": str(uuid.uuid4())}
-        (identity / "host.plist").write_bytes(plistlib.dumps(config))
+        (identity / "host.conf").write_text(f'[general]\nhost_name = {config["Name"]}\n[network]\nport = {port}\n')
+        (identity / "identity.plist").write_bytes(plistlib.dumps({"UUID": config["UUID"]}))
         for path in identity.iterdir():
             os.chmod(path, 0o600)
             os.chown(path, args.desktop_uid, -1)

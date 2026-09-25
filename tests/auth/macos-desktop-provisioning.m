@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // Non-root filesystem/crypto qualification; no account, launchd, TCC or GUI work.
 #import "desktop-provisioning.h"
+#import "host-configuration.h"
 #import <Security/Security.h>
 #include <sys/stat.h>
 #include <unistd.h>
@@ -45,25 +46,25 @@ int main(void) {
         NSString *public = [root stringByAppendingPathComponent:@"public"];
         assert([fm createDirectoryAtPath:public withIntermediateDirectories:NO attributes:nil error:NULL]);
         assert(!chmod(public.fileSystemRepresentation, 0755));
-        NSString *path = [public stringByAppendingPathComponent:@"host.plist"];
-        NSMutableDictionary *config = [@{@"Address":@"0.0.0.0", @"Port":@28989,
-            @"Name":@"PLANK qualification", @"UUID":NSUUID.UUID.UUIDString} mutableCopy];
+        NSString *path = [public stringByAppendingPathComponent:@"identity.plist"];
+        NSMutableDictionary *config = [@{@"UUID":NSUUID.UUID.UUIDString} mutableCopy];
+        NSString *ini = [public stringByAppendingPathComponent:@"host.conf"];
+        assert([@"[network]\nport = 28989\n" writeToFile:ini atomically:YES encoding:NSUTF8StringEncoding error:NULL]);
+        assert(!chmod(ini.fileSystemRepresentation, 0644));
         void (^write)(void) = ^{
             NSData *data = [NSPropertyListSerialization dataWithPropertyList:config format:NSPropertyListXMLFormat_v1_0 options:0 error:NULL];
             assert([data writeToFile:path atomically:YES]); assert(!chmod(path.fileSystemRepresentation, 0644));
         };
-        write(); assert(PLANKMacReadPublicConfiguration(public, getuid()));
-        assert(!PLANKMacReadPublicConfiguration(public, 0));
-        config[@"Port"] = @YES; write(); assert(!PLANKMacReadPublicConfiguration(public, getuid()));
-        config[@"Port"] = @65536; write(); assert(!PLANKMacReadPublicConfiguration(public, getuid()));
-        config[@"Port"] = @28989; config[@"UUID"] = @"invalid"; write();
-        assert(!PLANKMacReadPublicConfiguration(public, getuid()));
+        write(); assert(PLANKMacReadHostConfiguration(public, public, getuid(), NO));
+        assert(!PLANKMacReadHostConfiguration(public, public, 0, NO));
+        config[@"UUID"] = @"invalid"; write();
+        assert(!PLANKMacReadHostConfiguration(public, public, getuid(), NO));
         config[@"UUID"] = NSUUID.UUID.UUIDString; write();
         assert(!chmod(path.fileSystemRepresentation, 0666));
-        assert(!PLANKMacReadPublicConfiguration(public, getuid()));
+        assert(!PLANKMacReadHostConfiguration(public, public, getuid(), NO));
         assert([fm removeItemAtPath:path error:NULL]);
         assert(!symlink(keyPath.fileSystemRepresentation, path.fileSystemRepresentation));
-        assert(!PLANKMacReadPublicConfiguration(public, getuid()));
+        assert(!PLANKMacReadHostConfiguration(public, public, getuid(), NO));
         assert([fm removeItemAtPath:root error:NULL]);
         puts("desktop_provisioning_pass=1 distinct_keys=1 preserve_keys=1 unsafe_paths_denied=1 permissions_unchanged=1");
     }

@@ -1,0 +1,9 @@
+#!/bin/bash
+# No launchd entry, autostart, background helper or user preference writes.
+set -euo pipefail
+export PATH=/usr/bin:/bin:/usr/sbin:/sbin LC_ALL=C
+[[ $(id -u) = 0 && ${3:-} = / ]] || { echo 'Install on the running system volume as administrator.' >&2; exit 1; }
+resources="$(dirname "$0")"
+# Fail before replacing the app if a policy file or its parents are unsafe.
+# Create the default only when absent; preserve existing administrator policy.
+"$resources/plank-configure" client /private/etc/plank /private/etc/plank "$resources/client.conf.example"

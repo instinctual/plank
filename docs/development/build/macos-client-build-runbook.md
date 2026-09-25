@@ -111,10 +111,11 @@ the operator must approve any new grant through System Settings. A signed
 development app remains unnotarized and is not a distributable release. Do not
 put signing-key passwords in scripts or environment variables.
 
-For a self-contained drag-to-Applications DMG, in the signing SSH session:
+For a self-contained PKG and DMG containing that installer, in the signing SSH session:
 
 ```bash
 export PLANK_MACOS_SIGNING_IDENTITY=DEVELOPER_ID_APPLICATION_SHA1
+export PLANK_MACOS_INSTALLER_IDENTITY=DEVELOPER_ID_INSTALLER_SHA1
 export PLANK_NOTARY_PROFILE=plank-notary
 bash "$PLANK_SOURCE_ROOT/scripts/package/build-macos-client-dmg.sh" \
   "$PLANK_SOURCE_ROOT" "$PLANK_WORK_ROOT/client-package"
@@ -124,10 +125,16 @@ Output must be a new directory. An optional absolute `PLANK_MAC_CLIENT_BUILD`
 may point to a retained build; qmake/make still run, and staging/closure/signing
 are fresh. Unlock the signing keychain interactively in that SSH session, not
 by putting a password in arguments, environment, scripts or notes. Preserve
-the session through signing. DMG must pass notarization, staple and Gatekeeper;
-transfer the exact file to `artifacts/packages` and compare SHA256 on both ends.
+the session through signing. PKG and DMG must pass notarization, staple and Gatekeeper;
+collect both exact files in the artifact catalog and compare SHA256 on both ends.
 No installer service/autostart is created; uninstall by quitting and moving
-the app to Trash. Host installation/permissions are separate and unchanged.
+the app to Trash. The PKG creates root-owned `/etc/plank/client.conf` only if
+absent; existing policy is preserved. It ships the latest reference template in
+app Resources. Host installation/permissions are separate and unchanged. See
+[macOS configuration](../../user/macos-configuration.md). Before packaging, run
+`scripts/test/build-macos-configuration.sh SOURCE NEW_OUTPUT`; this compiles and
+tests the actual configuration installer against temporary fixtures, not the
+installed machine. Signing CI already provisions both Developer ID identities.
 
 ## Known failure signatures
 

@@ -49,6 +49,8 @@ otool -L "$app/Contents/MacOS/plank-host"
 sed -e "s/@TEAM@/$PLANK_MACOS_TEAM_ID/g" -e "s/@VERSION@/$PLANK_PACKAGE_VERSION/g" \
   "$source_root/packaging/host/macos/pkg-common.sh" > "$output/install-scripts/pkg-common.sh"
 chmod 0644 "$output/install-scripts/pkg-common.sh"
+install -m 0755 "$app/Contents/Resources/plank-configure" "$output/install-scripts/"
+install -m 0644 "$app/Contents/Resources/host.conf.example" "$output/install-scripts/"
 mkdir -p "$output/payload/Library/LaunchDaemons" "$output/payload/Library/LaunchAgents"
 for role in machine desktop sign-in; do
   if [[ $role = machine ]]; then directory=LaunchDaemons; else directory=LaunchAgents; fi

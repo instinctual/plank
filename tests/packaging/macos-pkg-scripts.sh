@@ -160,7 +160,12 @@ if [[ ${1:-} = --filesystem ]]; then
     /bin/chmod 755 "$fixture"
     /usr/bin/cc -std=gnu11 -Wall -Wextra -Werror \
         "$root/tests/packaging/macos-log-access.c" -o "$fixture/log-access"
-    state="$fixture/state"; logs="$fixture/logs"
+    state="$fixture/state"; logs="$fixture/logs"; configuration="$fixture/etc"
+    configuration_resources="$fixture"
+    /usr/bin/xcrun clang -fobjc-arc -Wall -Wextra -Werror -I"$root/apps/host/macos/session" \
+        "$root/scripts/package/macos-configure.m" "$root/apps/host/macos/session/host-configuration.m" \
+        -framework Foundation -o "$fixture/plank-configure"
+    /usr/bin/install -m 0644 "$root/packaging/host/macos/config/plank-host.conf" "$fixture/host.conf.example"
     initialize_state
     prepare_machine_authority
     [[ $(/usr/bin/stat -f '%Su:%Lp' "$state") = root:755 ]]; ok
@@ -182,12 +187,12 @@ if [[ ${1:-} = --filesystem ]]; then
         "$fixture/log-access" "$logs" "$logs/$name" "$state/SignIn/key.pem" admin; ok
         "$fixture/log-access" "$logs" "$logs/$name" "$state/SignIn/key.pem" wheel; ok
     done
-    [[ $(/usr/libexec/PlistBuddy -c 'Print :Address' "$state/host.plist") = 0.0.0.0 ]]; ok
-    [[ $(/usr/libexec/PlistBuddy -c 'Print :Port' "$state/host.plist") = 28989 ]]; ok
-    /usr/bin/plutil -replace Port -integer 29999 "$state/host.plist"
-    before=$(/usr/bin/shasum -a 256 "$state/host.plist" "$state/SignIn/"* "$logs/"*)
+    [[ ! -e "$state/host.plist" && -s "$state/identity.plist" ]]; ok
+    /usr/bin/grep -qx 'port = 28989' "$configuration/host.conf"; ok
+    /usr/bin/sed -i '' 's/port = 28989/port = 29999/' "$configuration/host.conf"
+    before=$(/usr/bin/shasum -a 256 "$configuration/host.conf" "$state/identity.plist" "$state/SignIn/"* "$logs/"*)
     initialize_state
-    after=$(/usr/bin/shasum -a 256 "$state/host.plist" "$state/SignIn/"* "$logs/"*)
+    after=$(/usr/bin/shasum -a 256 "$configuration/host.conf" "$state/identity.plist" "$state/SignIn/"* "$logs/"*)
     [[ $before = "$after" ]]; ok
     # Renewal and the CA-profile upgrade retain the machine private key. No
     # root key is copied to desktop users, and a second install is idempotent.
@@ -197,15 +202,15 @@ if [[ ${1:-} = --filesystem ]]; then
     prepare_machine_authority
     /usr/bin/openssl x509 -in "$state/SignIn/cert.pem" -noout -checkend 2592000; ok
     [[ $machine_key_before = "$(/usr/bin/shasum -a 256 "$state/SignIn/key.pem" "$state/SignIn/key.der")" ]]; ok
-    before=$(/usr/bin/shasum -a 256 "$state/host.plist" "$state/SignIn/"* "$logs/"*)
+    before=$(/usr/bin/shasum -a 256 "$configuration/host.conf" "$state/identity.plist" "$state/SignIn/"* "$logs/"*)
     prepare_machine_authority
-    [[ $before = "$(/usr/bin/shasum -a 256 "$state/host.plist" "$state/SignIn/"* "$logs/"*)" ]]; ok
+    [[ $before = "$(/usr/bin/shasum -a 256 "$configuration/host.conf" "$state/identity.plist" "$state/SignIn/"* "$logs/"*)" ]]; ok
     # An interrupted certificate-pair update must be repaired on reinstall.
     printf 'damaged DER fixture' > "$state/SignIn/cert.der"
     prepare_machine_authority
     /usr/bin/cmp -s <(/usr/bin/openssl x509 -in "$state/SignIn/cert.pem" -outform DER) "$state/SignIn/cert.der"; ok
     [[ $machine_key_before = "$(/usr/bin/shasum -a 256 "$state/SignIn/key.pem" "$state/SignIn/key.der")" ]]; ok
-    before=$(/usr/bin/shasum -a 256 "$state/host.plist" "$state/SignIn/"* "$logs/"*)
+    before=$(/usr/bin/shasum -a 256 "$configuration/host.conf" "$state/identity.plist" "$state/SignIn/"* "$logs/"*)
     # Reproduce the real .82 failure without changing product paths/services.
     /bin/chmod 744 "$logs"
     /bin/chmod 644 "$logs/host-machine.log" "$logs/host-sign-in.log"
@@ -213,7 +218,7 @@ if [[ ${1:-} = --filesystem ]]; then
     [[ $(/usr/bin/stat -f '%Su:%Sg:%Lp' "$logs") = root:admin:750 ]]; ok
     safe_file "$logs/host-machine.log" 640; ok
     safe_file "$logs/host-sign-in.log" 640; ok
-    [[ $before = "$(/usr/bin/shasum -a 256 "$state/host.plist" "$state/SignIn/"* "$logs/"*)" ]]; ok
+    [[ $before = "$(/usr/bin/shasum -a 256 "$configuration/host.conf" "$state/identity.plist" "$state/SignIn/"* "$logs/"*)" ]]; ok
     # Upgrade the previous root-only policy without changing contents or keys.
     /usr/sbin/chown root:wheel "$logs" "$logs/host-machine.log" "$logs/host-sign-in.log"
     /bin/chmod 700 "$logs"
@@ -224,7 +229,7 @@ if [[ ${1:-} = --filesystem ]]; then
         [[ $(/usr/bin/stat -f '%Su:%Sg:%Lp' "$logs/$name") = root:admin:640 ]]; ok
     done
     check_configuration; ok
-    [[ $before = "$(/usr/bin/shasum -a 256 "$state/host.plist" "$state/SignIn/"* "$logs/"*)" ]]; ok
+    [[ $before = "$(/usr/bin/shasum -a 256 "$configuration/host.conf" "$state/identity.plist" "$state/SignIn/"* "$logs/"*)" ]]; ok
     /bin/chmod 660 "$logs/host-sign-in.log"
     reject prepare_logs
     /bin/chmod 640 "$logs/host-sign-in.log"
@@ -240,14 +245,14 @@ if [[ ${1:-} = --filesystem ]]; then
     /usr/sbin/chown nobody "$logs/host-machine.log"
     reject prepare_logs
     /usr/sbin/chown root "$logs/host-machine.log"
-    /bin/ln -s "$state/host.plist" "$fixture/symlink"
+    /bin/ln -s "$configuration/host.conf" "$fixture/symlink"
     reject safe_file "$fixture/symlink" 644
-    /bin/ln "$state/host.plist" "$fixture/hardlink"
-    reject safe_file "$state/host.plist" 644
+    /bin/ln "$configuration/host.conf" "$fixture/hardlink"
+    reject safe_file "$configuration/host.conf" 644
     /bin/rm "$fixture/hardlink"
-    /bin/chmod 666 "$state/host.plist"
+    /bin/chmod 666 "$configuration/host.conf"
     reject check_configuration
-    /bin/chmod 644 "$state/host.plist"
+    /bin/chmod 644 "$configuration/host.conf"
     /bin/ln -s "$state" "$fixture/directory-link"
     reject safe_directory "$fixture/directory-link"
     /bin/chmod 777 "$logs"

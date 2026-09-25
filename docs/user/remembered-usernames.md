@@ -8,8 +8,8 @@ On Linux and macOS Clients, an administrator can opt in through
 remember_username = true
 ```
 
-The default is `false`. On macOS, create the root-owned configuration file if
-it does not exist. Restart the Client after changing policy. There is no
+The default is `false`. The Linux DEB and macOS PKG install this root-owned
+configuration file when missing and preserve it on upgrade. Restart the Client after changing policy. There is no
 user-facing preference for this administrator-controlled option.
 
 The Client remembers the last successful sign-in username separately for each

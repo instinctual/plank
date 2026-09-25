@@ -72,10 +72,10 @@ class RoleIdentityTests(unittest.TestCase):
     def test_key_only_identity_preserved(self):
         with tempfile.TemporaryDirectory(prefix="plank-keys-") as temporary:
             directory = Path(temporary) / "identity"
-            INSTALLER.prepare_sign_in_identity(directory, None)
+            INSTALLER.prepare_sign_in_identity(directory)
             self.assertEqual({p.name for p in directory.iterdir()}, {"cert.pem", "key.pem", "cert.der", "key.der"})
             before = (directory / "key.der").read_bytes()
-            INSTALLER.prepare_sign_in_identity(directory, None)
+            INSTALLER.prepare_sign_in_identity(directory)
             self.assertEqual(before, (directory / "key.der").read_bytes())
 
     def test_system_agent_and_uninstall_scope(self):
@@ -192,23 +192,22 @@ class RoleIdentityTests(unittest.TestCase):
         build = (ROOT / "scripts/build/build-macos-host.sh").read_text()
         self.assertIn('branding/assets/plank-logo.png', build)
         self.assertIn('Contents/Resources/plank.icns', build)
-        self.assertLess(build.index('iconutil -c icns'), build.index('codesign --force --sign "$PLANK_MACOS_SIGNING_IDENTITY"'))
+        self.assertLess(build.index('iconutil -c icns'), build.index('--entitlements "$output/camera-host-entitlements.plist"'))
 
     def test_preserves_private_identity_and_does_not_share_keys(self):
         with tempfile.TemporaryDirectory(prefix="plank-role-identity-") as temporary:
             first, second = Path(temporary) / "first", Path(temporary) / "second"
-            INSTALLER.prepare_sign_in_identity(first, PUBLIC)
+            INSTALLER.prepare_sign_in_identity(first)
             before = {p.name: p.read_bytes() for p in first.iterdir()}
-            INSTALLER.prepare_sign_in_identity(first, PUBLIC)
+            INSTALLER.prepare_sign_in_identity(first)
             self.assertEqual(before, {p.name: p.read_bytes() for p in first.iterdir()})
-            INSTALLER.prepare_sign_in_identity(second, PUBLIC)
+            INSTALLER.prepare_sign_in_identity(second)
             self.assertNotEqual((first / "key.der").read_bytes(), (second / "key.der").read_bytes())
-            self.assertEqual((first / "host.plist").read_bytes(), (second / "host.plist").read_bytes())
+            self.assertEqual(set(before), {"cert.pem", "key.pem", "cert.der", "key.der"})
             self.assertEqual(first.stat().st_mode & 0o777, 0o700)
             for path in first.iterdir():
                 self.assertEqual(path.stat().st_mode & 0o777, 0o600)
-            with self.assertRaises(AssertionError):
-                INSTALLER.prepare_sign_in_identity(first, dict(PUBLIC, Port=12345))
+            INSTALLER.prepare_sign_in_identity(first)
             self.assertEqual(before, {p.name: p.read_bytes() for p in first.iterdir()})
 
     def test_rejects_partial_identity_without_overwriting_it(self):
@@ -217,7 +216,7 @@ class RoleIdentityTests(unittest.TestCase):
             private.mkdir(mode=0o700)
             (private / "key.pem").write_text("preserve")
             with self.assertRaises(AssertionError):
-                INSTALLER.prepare_sign_in_identity(private, PUBLIC)
+                INSTALLER.prepare_sign_in_identity(private)
             self.assertEqual((private / "key.pem").read_text(), "preserve")
 
     def test_rejects_symlink_and_public_directory(self):
@@ -226,10 +225,10 @@ class RoleIdentityTests(unittest.TestCase):
             private.mkdir(mode=0o700)
             link.symlink_to(private, target_is_directory=True)
             with self.assertRaises(AssertionError):
-                INSTALLER.prepare_sign_in_identity(link, PUBLIC)
+                INSTALLER.prepare_sign_in_identity(link)
             os.chmod(private, 0o755)
             with self.assertRaises(AssertionError):
-                INSTALLER.prepare_sign_in_identity(private, PUBLIC)
+                INSTALLER.prepare_sign_in_identity(private)
             self.assertFalse(any(private.iterdir()))
 
 

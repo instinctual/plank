@@ -122,7 +122,7 @@ install -D -m 0755 "$moonlight_binary" \
 # Static Cargo dependencies may carry assembly DWARF even in a release build.
 # Drop debug sections during package assembly; retain symbols and executable code.
 strip --strip-debug "$stage_dir/usr/bin/plank-client"
-install -D -m 0644 "$repo_dir/packaging/client/linux/config/plank-client.conf" \
+install -D -m 0644 "$repo_dir/packaging/client/config/plank-client.conf" \
   "$stage_dir/etc/plank/client.conf"
 printf '%s\n' '/etc/plank/client.conf' \
   >"$stage_dir/DEBIAN/conffiles"

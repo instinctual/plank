@@ -16,7 +16,6 @@ import stat
 import subprocess
 import tempfile
 import time
-import uuid
 
 
 def run(*args, check=True):
@@ -105,7 +104,7 @@ def verify_upgrade_identity(source, installed):
                              "Qualify permission continuity before changing signer or designated requirement.")
 
 
-def prepare_sign_in_identity(private, public_config):
+def prepare_sign_in_identity(private):
     """Root LoginWindow gets its own key, never a copy of the desktop key.
 
     Only public discovery values are shared. The existing Client profile-TLS
@@ -115,15 +114,11 @@ def prepare_sign_in_identity(private, public_config):
     private.mkdir(mode=0o700, exist_ok=True)
     assert not private.is_symlink() and private.stat().st_uid == os.geteuid()
     assert stat.S_IMODE(private.stat().st_mode) == 0o700
-    config_path = private / "host.plist"
-    if config_path.exists() or config_path.is_symlink() or (private / "cert.pem").exists():
-        for name in (("host.plist",) if public_config is not None else ()) + ("cert.pem", "key.pem", "cert.der", "key.der"):
+    if (private / "cert.pem").exists():
+        for name in ("cert.pem", "key.pem", "cert.der", "key.der"):
             path = private / name
             assert not path.is_symlink() and path.is_file()
             assert path.stat().st_uid == os.geteuid() and stat.S_IMODE(path.stat().st_mode) == 0o600
-        if public_config is not None:
-            existing = plistlib.loads(config_path.read_bytes())
-            assert existing == public_config, "Installed sign-in identity/configuration must be preserved"
         return
     assert not any(private.iterdir()), "Refusing a partial sign-in identity"
     with tempfile.TemporaryDirectory(prefix=".identity-", dir=private) as temporary:
@@ -134,26 +129,9 @@ def prepare_sign_in_identity(private, public_config):
         run("openssl", "rsa", "-in", str(stage / "initial.pem"), "-out", str(stage / "key.pem"))
         run("openssl", "rsa", "-in", str(stage / "key.pem"), "-outform", "DER", "-out", str(stage / "key.der"))
         run("openssl", "x509", "-in", str(stage / "cert.pem"), "-outform", "DER", "-out", str(stage / "cert.der"))
-        if public_config is not None:
-            (stage / "host.plist").write_bytes(plistlib.dumps(public_config))
-        for name in ("cert.pem", "key.pem", "cert.der", "key.der") + (("host.plist",) if public_config is not None else ()):
+        for name in ("cert.pem", "key.pem", "cert.der", "key.der"):
             os.chmod(stage / name, 0o600)
             os.replace(stage / name, private / name)
-
-
-def read_public(path, mode=0o644):
-    fd = os.open(path, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)
-    with os.fdopen(fd, "rb") as source:
-        st = os.fstat(source.fileno())
-        if not stat.S_ISREG(st.st_mode) or st.st_uid != 0 or st.st_nlink != 1 or \
-                stat.S_IMODE(st.st_mode) != mode or not 0 < st.st_size <= 32768:
-            raise ValueError("Invalid administrator-owned public configuration")
-        config = plistlib.loads(source.read(32769))
-    if set(config) != {"Address", "Port", "Name", "UUID"} or config["Address"] != "0.0.0.0" or \
-            type(config["Port"]) is not int or not 1 <= config["Port"] <= 65535 or \
-            not isinstance(config["Name"], str) or not config["Name"] or not uuid.UUID(config["UUID"]):
-        raise ValueError("Invalid public configuration values")
-    return config
 
 
 MACHINE_LABEL = "la.instinctual.PLANK.Host.machine"
@@ -240,11 +218,9 @@ def main():
     parser.add_argument("--app", type=Path, required=True)
     parser.add_argument("--retire-user-agent", action="append", default=[], metavar="USER",
                         help="Retire an explicitly named prior development-install user job; no home scanning")
-    parser.add_argument("--port", type=int, help="First-install port; existing administrator value is preserved")
     args = parser.parse_args()
     assert os.getuid() == 0 and os.uname().sysname == "Darwin"
     assert int(run("sw_vers", "-productVersion").stdout.split(".")[0]) >= 27
-    assert args.port is None or 1 <= args.port <= 65535
     console_uid = os.stat("/dev/console").st_uid
     active_domain = "loginwindow" if console_uid == 0 else f"gui/{console_uid}"
     # Installation may occur before first login. This proves that launchd has
@@ -259,28 +235,13 @@ def main():
     verify_upgrade_identity(source, installed)
 
     machine_state = Path("/Library/Application Support/PLANK")
-    machine_state.mkdir(mode=0o700, exist_ok=True)
+    machine_state.mkdir(mode=0o755, exist_ok=True)
     assert not machine_state.is_symlink() and machine_state.stat().st_uid == 0
     sign_in_private = machine_state / "SignIn"
-    public_path = machine_state / "host.plist"
-    if public_path.exists() or public_path.is_symlink():
-        public_config = read_public(public_path)
-    elif (sign_in_private / "host.plist").exists():
-        # Upgrade only the prior PLANK development installation's public data.
-        assert not sign_in_private.is_symlink() and sign_in_private.stat().st_uid == 0
-        public_config = read_public(sign_in_private / "host.plist", 0o600)
-    else:
-        public_config = {"Address": "0.0.0.0", "Port": args.port or 28989,
-                         "Name": "PLANK Mac Host", "UUID": str(uuid.uuid4())}
-    if args.port is not None and args.port != public_config["Port"]:
-        raise ValueError("Existing administrator port is preserved")
-    prepare_sign_in_identity(sign_in_private, None)
-    if not public_path.exists():
-        with public_path.open("xb") as target:
-            target.write(plistlib.dumps(public_config))
-        os.chmod(public_path, 0o644)
-    # Only public settings become readable. SignIn remains root-only 0700/0600.
-    os.chmod(machine_state, 0o755)
+    resources = source / "Contents/Resources"
+    config_arguments = ("/private/etc/plank", str(machine_state), str(resources / "host.conf.example"))
+    run(str(resources / "plank-configure"), "host-prepare", *config_arguments)
+    prepare_sign_in_identity(sign_in_private)
 
     machine_label = "la.instinctual.PLANK.Host.machine"
     graphical_label = "la.instinctual.PLANK.Host.desktop"
@@ -298,6 +259,7 @@ def main():
     for path in [installed, *installed.rglob("*")]:
         os.chown(path, 0, 0)
     run("codesign", "--verify", "--strict", str(installed))
+    run(str(installed / "Contents/Resources/plank-configure"), "host-finish", *config_arguments)
     executable = str(installed / "Contents/MacOS/plank-host")
     machine_logs = Path("/Library/Logs/PLANK")
     machine_logs.mkdir(mode=0o700, exist_ok=True)

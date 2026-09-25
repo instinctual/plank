@@ -6,6 +6,7 @@ verify_app
 verify_microphone_driver
 [[ $(/usr/libexec/PlistBuddy -c 'Print :PLANKVersion' "$app/Contents/Info.plist") = "$version" ]] || fail 'Payload version mismatch'
 initialize_state
+configure_host finish
 prepare_machine_authority
 start_roles
 open_permission_setup

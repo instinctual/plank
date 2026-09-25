@@ -42,6 +42,7 @@ case $role in
     fi
     ;;
   macos-client)
+    bash "$PLANK_SOURCE_ROOT/scripts/test/build-macos-configuration.sh" "$PLANK_SOURCE_ROOT" "$PLANK_WORK_ROOT/client-config-tests"
     export PLANK_MAC_CLIENT_DEPS="$PLANK_DEP_ROOT/macos-client" PLANK_QT_ROOT="$PLANK_DEP_ROOT/qt/6.10.2/macos"
     if [[ ${PLANK_CI_SIGNED:-false} = true ]]; then
       bash "$PLANK_SOURCE_ROOT/scripts/package/build-macos-client-dmg.sh" "$PLANK_SOURCE_ROOT" "$PLANK_WORK_ROOT/client-package"
