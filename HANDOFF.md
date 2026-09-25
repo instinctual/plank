@@ -28,7 +28,12 @@ Client 1.1.010 remains compatible. The next Host uses the corrected HAL drivers.
 | Kymux | `3f7a9d8618978287186e5d6ce0eaa067743cb06c` |
 | Linux Host | `5829bf7c335440a8b25c3330643eacb4d914f00a` |
 
-Candidate qualification and publication are in progress. Package manifests retain per-product source provenance;
+Runtime correction source is `730c5d48f36b792d4de6506e8cfda28aec46f6da`.
+SDK27 ASan/UBSan tests pass for both driver clocks, multi-reader/restart behavior,
+bounded stereo history and output tap/routing/XPC. The100000-block tap ring,
+one-million-frame microphone history and full microphone component build pass.
+The offline production Opus fixture passes12216 checks for each synthetic tone.
+Candidate publication is in progress. Package manifests retain per-product source provenance;
 never relabel a signed package or rebuild different bytes into an existing catalog
 entry. Temporary signing permission was removed after Host 1.1.013 completed;
 main-only policy is verified. No signing credentials were read, changed or committed.
@@ -53,8 +58,8 @@ A confirmed SDK contract violation exists in both virtual HAL drivers: the live
 Output device advertises480 frames for `kAudioDevicePropertyZeroTimeStampPeriod`,
 while SDK27's `AudioServerPlugIn.h` requires at least10923. The driver correction
 uses15840 frames to match the measured built-in output, separates microphone IPC's unchanged480-frame packets and
-permits bounded HAL reads through the8192-frame sample history. Qualification
-and a fresh Host candidate are in progress; no installed fix is claimed. The
+permits bounded HAL reads through the8192-frame sample history. Component
+qualification passes; a fresh Host candidate is in progress; no installed fix is claimed. The
 built-in output reports a512-frame IO buffer and15–4096 supported range; both
 installed PLANK devices report180 frames and15–180 range. All run at48kHz.
 
@@ -134,7 +139,7 @@ Core Audio. Current active sessions must be preserved during staging.
 The Host 1.1.013 package is collected at
 `artifacts/packages/candidates/1.1.013-native-media-investigation/macos/plank-host_1.1.013-native-media-investigation_arm64.pkg`.
 SHA-256: `6c9595a0db9ecaad2c8b239e5d65bcfb34566f60f20aa2d3f4786884e2a24108`.
-It uses the current source/gitlinks above. Signed
+It uses root8aeca421 and Cliente8e1030eff04759e30645f26b08e0d27c707aee7. Signed
 [Host run 36071264074](https://github.com/instinctual/plank/actions/runs/36071264074)
 passes all build, test, signing, notarization and package gates. The test target's
 Downloads copy passes transfer hash, package signature, Gatekeeper, version,
