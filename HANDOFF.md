@@ -2,17 +2,24 @@
 
 ## Current task and source
 
-Continue native camera forwarding and stereo microphone work on
-`native-media-investigation`, isolated worktree
-`build/worktrees/native-media-investigation`. The operator authorized implementation,
-packages and hardware tests, stopping only for necessary operator action. They also
-requested Manual as the default Client microphone activation mode; existing saved
-choices must be preserved. See [the implementation plan](docs/development/plans/native-media-forwarding.plan).
+The operator authorized committing, pushing and merging
+`native-media-investigation` into `main`, including its Client dependency.
+The tested feature worktree is `build/worktrees/native-media-investigation`;
+main integration uses the existing clean main worktree. Preserve the separate
+RK3576 work. See [the implementation plan](docs/development/plans/native-media-forwarding.plan).
 
-The branch was synchronized with main `acb29884bff626c9381169fd94563ec79555984c`.
-Its original runtime base was `af71d2b404486a9846bca464ddd646b5ab9c738a`.
-The separate main/startup-fix and RK3576 work remain untouched. No merge, tag or
-GitHub Release is authorized. Candidate version is **1.1.014-native-media-investigation** (HAL clock-period correction).
+Both main branches are ancestors of the tested feature tips, permitting
+fast-forward integration without conflict resolution. The root's previous main
+is `acb29884bff626c9381169fd94563ec79555984c`; the Client's previous main is
+`cc511584c41c337569a1efd559a7c3362283d9cc`. Root feature `3bef4f6d6407ab0d8cb978896527f9e2db7533db`
+passes all four product jobs in [run36078190861](https://github.com/instinctual/plank/actions/runs/36078190861),
+plus privacy and clipboard regression checks. Integration preparation changes only
+documentation. Kymux, common-c, qmdnsengine and Linux Host gitlinks are unchanged
+from main. No merge requires new runtime code or a replacement installed package.
+
+Source version is **1.1.014**. Existing feature-qualified artifacts retain their
+original filenames and provenance; never relabel them as main builds. No new
+signed package, tag or GitHub Release is requested by this integration.
 
 Host1.1.014 package source is `c12f325fb5df8fdc21549cca97de5670ee71c282`.
 It corrects both HAL driver clock periods while retaining PLANK Output as the
@@ -97,6 +104,15 @@ blocking media/input. The500ms interval reduces scheduled queries from50 to2 per
 second; it is not proven to have cured the distortion. Profiled dropout/overrun
 counts cannot quantify the original fault.
 
+## Installed microphone follow-up
+
+Two simultaneous Mac application readers pass delivery checks for12 and8 seconds:
+576000 and384000 frames,48kHz stereo, no invalid or over-full-scale samples.
+Both runs receive identical left/right samples. This proves concurrent delivery
+in stereo format, not independent stereo source preservation; the active physical
+source was not verified. Physical left/right source tests are deferred until the
+operator can access the office Client. All readers exited and no media was saved.
+
 ## Implemented behavior
 
 Camera capture on Ubuntu preserves native H.264 Annex B/MJPEG coded payloads
@@ -105,6 +121,10 @@ The Mac camera extension supplies compatible compressed samples or decoded NV12
 pixels according to the active application format. Native H.264 NAL framing is
 adapted for Core Media; this is not recompression. Camera starts off on connection
 and reconnect. Missing selected devices fail explicitly without selecting another.
+Camera discovery has no vendor/model whitelist. The current Ubuntu capture path
+requires native H.264 or baseline MJPEG at720p/1080p nominal30fps. Raw-only modes,
+other sizes/rates and macOS Client camera capture are not implemented. The tested
+physical camera does not qualify broad model compatibility.
 
 Microphone audio deliberately uses Opus at192kbps total, constrained VBR,
 48kHz stereo and10ms packets, following the operator's choice over native PCM

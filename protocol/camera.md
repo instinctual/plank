@@ -2,13 +2,17 @@
 
 Mac launch schema6 or independently negotiated camera feature1 in schema7
 enables this optional lane separately from microphone. Earlier peers keep camera
-disabled while retaining desktop connectivity. It is not in the installed stereo candidate.
+disabled while retaining desktop connectivity. This lane is integrated into the
+Ubuntu Client and macOS Host. macOS Client camera capture is not implemented.
 The Ubuntu Client starts with camera off; the toolbar explicitly enables it.
 The selected device uses native H.264 when available, then MJPEG, preferring
 1080p over 720p within a codec. An explicitly selected missing device fails;
 it does not select another camera. Automatic selection uses the first native
 compressed camera reported by read-only V4L2 enumeration. No encoder is used.
-Existing native/2 desktop lanes and their IDs are unchanged.
+Existing native/2 desktop lanes and their IDs are unchanged. Discovery uses
+advertised V4L2 capabilities, without a vendor/model whitelist. The fixed modes
+below exclude raw-only cameras and other resolutions/rates; capability matching
+does not establish broad hardware qualification.
 
 The Linux capture component now reads direct V4L2 MMAP buffers without a video
 encoder or libv4l conversion. It rejects emulated/coerced modes, bounds buffers,
@@ -27,9 +31,11 @@ Annex-B-to-length-prefix adaptation; JPEG remains byte-identical. Its output
 component returns compressed samples directly or lazily decodes NV12 when pixels
 are requested. Switching to pixels and recovering from discontinuity require an
 independent frame. The production extension adds producer admission and camera registration as
-described below. Its integrated signing, activation and application gates remain
-pending. Arrival timestamps use the Core Media Host clock; capture timestamps
-remain in PCAM. Audio/video clock alignment and lip sync remain unqualified.
+described below. Signed installed candidates pass camera activation and separate native/pixel
+application delivery tests. Concurrent-reader recovery, broad device support,
+loss/reconnect and physical lip sync remain qualification gates. Camera-only
+arrival timestamps use the Core Media Host clock; capture timestamps remain in
+PCAM. Microphone3 clock mapping is described at the end of this document.
 
 The pilot's driver sequence skips an index at H.264 startup despite continuous
 coded frame numbers. Capture conservatively marks that discontinuity so the
