@@ -1,14 +1,31 @@
 # PLANK handoff
 
-## Current follow-up (candidate builds requested)
+## Current checkpoint — signed1.1.021 setup UI candidates
 
-Setup-layout changes on `macos-app-icons`, following root
-`78ab41c845c6386df861083077c662528d9cf7b3` and Client
-`c78271eea6be627ecc905874e95b57e2a94bef78`. Source version is now **1.1.021**.
-The operator requested signed1.1.021 Host/Client candidates for manual testing.
-Source/tests are being committed and pushed before hosted signing builds;
-no1.1.021 package is available yet. No deployment, merge or Release is requested.
-The signed1.1.020 packages below do not contain these changes.
+Setup-layout changes are committed/pushed on `macos-app-icons`: root
+`3fd849c8950c35b464cebf333c916adf29122779`, Client
+`feb9f8fa5060633b9a9edcf754f44bc93ecef6ae`. Source version **1.1.021**;
+candidate version **1.1.021-macos-app-icons**. Other pins below are unchanged.
+Signed hosted Host run `36189240196` and Client run `36189243504` both passed
+from this exact root. Both restored verified dependency caches and completed
+fresh application builds/tests, signing, notarization, stapling, Gatekeeper
+and temporary-signing cleanup. Client native and Material permission-view tests
+both passed on the runner, along with its target/dependency/package gates.
+No installation, merge, tag or Release was performed; main is unchanged.
+
+Both original PKGs are downloaded and checksum-verified in the canonical catalog
+at `artifacts/packages/candidates/1.1.021-macos-app-icons/macos/`, with manifest,
+SHA256SUMS and per-package sidecars in the documented catalog layout:
+
+- `plank-host_1.1.021-macos-app-icons_arm64.pkg`: 6,991,431 bytes,
+  SHA256 `371fe495fb788463c7d8f2a796733d2950fa103fc6cc007a1334d9e5a6950255`.
+- `plank-client_1.1.021-macos-app-icons_arm64.pkg`: 72,864,636 bytes,
+  SHA256 `ebada98608c2f224adbd4fa44f3139bd8cebb47cc57bbe912efe55ea3e4efb7d`.
+
+The redundant generated Client DMG remains outside the catalog. Automatic run
+`36189240060` passed Ubuntu and both unsigned Macs; Linux Host is still running
+at this checkpoint. Privacy `36189240033` and clipboard `36189240153` passed.
+The signed1.1.020 packages below do not contain these UI changes.
 
 Host setup disables window cascading and geometrically centers its final frame
 in the usable desktop only on creation. Returning from Settings preserves user
@@ -31,10 +48,11 @@ did not open real permission prompts, change an installed app or touch sessions.
 The operator confirmed the missing Client installer setup was because the Client
 was already open. The intentional running-client guard remains; in-app Review
 permissions is available without reinstalling. No remote diagnosis was needed.
-Next: build/download fresh1.1.021 candidates, then verify both setup windows
-through the actual installer. Preserve the unrelated primary RK3576 worktree.
+Next: operator tests both setup windows through the actual installer. Quit the
+Client first so its running-client guard does not defer setup. Do not reset
+existing permission grants. Preserve the unrelated primary RK3576 worktree.
 
-## Latest built checkpoint
+## Previous signed1.1.020 checkpoint
 
 Current work is `macos-app-icons`, based on main
 `9d2875297c96f54803723b4f69076e1c0d9f0232`, in the retained
@@ -51,8 +69,8 @@ notarization, stapling, Gatekeeper and temporary-signing cleanup. Client also
 passed its exact-target/dependency closure and offscreen launch/version gates.
 Both PKGs are downloaded and checksum-verified in the canonical catalog below.
 The redundant generated Client DMG stays outside the catalog. Automatic run
-`36185270001` passed Ubuntu and both unsigned Mac jobs; its Linux Host job is
-still running. Privacy `36185270052` and clipboard `36185270031` passed.
+`36185270001` passed all four products. Privacy `36185270052` and clipboard
+`36185270031` passed.
 No merge, deployment or Release was performed. The primary worktree's unrelated
 RK3576 work is untouched.
 
