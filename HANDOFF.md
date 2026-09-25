@@ -12,23 +12,23 @@ choices must be preserved. See [the implementation plan](docs/development/plans/
 The branch was synchronized with main `acb29884bff626c9381169fd94563ec79555984c`.
 Its original runtime base was `af71d2b404486a9846bca464ddd646b5ab9c738a`.
 The separate main/startup-fix and RK3576 work remain untouched. No merge, tag or
-GitHub Release is authorized. Candidate version is **1.1.013-native-media-investigation** (Mac capture clock investigation).
+GitHub Release is authorized. Candidate version is **1.1.014-native-media-investigation** (HAL clock-period correction).
 
 Host 1.1.013 source is `8aeca421d6bed09f1ad6c45aa5f7d2b98e071ce3`.
 It explicitly clocks the capture aggregate from PLANK Output and adds bounded
 source/clock/queue gap diagnostics. It retains the 500ms observer and 1-second
 maximum observation age. Client changes are release notes only; installed
-Client 1.1.010 remains compatible. Current inputs:
+Client 1.1.010 remains compatible. The next Host uses the corrected HAL drivers. Current inputs:
 
 | Input | Commit |
 | --- | --- |
-| Client | `e8e1030eff04759e30645f26b08e0d27c707aee7` |
+| Client | `b5c3a7a5ddd37e010155883054931be3010fc5a2` |
 | Client common-c | `060f6179f88343327b44d915007f1fb4cede71f1` |
 | Client qmdnsengine | `920c097ffa742e2968290f15d4dde6693aec02e5` |
 | Kymux | `3f7a9d8618978287186e5d6ce0eaa067743cb06c` |
 | Linux Host | `5829bf7c335440a8b25c3330643eacb4d914f00a` |
 
-Root and Client are pushed. Package manifests retain per-product source provenance;
+Candidate qualification and publication are in progress. Package manifests retain per-product source provenance;
 never relabel a signed package or rebuild different bytes into an existing catalog
 entry. Temporary signing permission was removed after Host 1.1.013 completed;
 main-only policy is verified. No signing credentials were read, changed or committed.
@@ -52,9 +52,11 @@ investigation to the live Mac path but does not independently prove its cause.
 A confirmed SDK contract violation exists in both virtual HAL drivers: the live
 Output device advertises480 frames for `kAudioDevicePropertyZeroTimeStampPeriod`,
 while SDK27's `AudioServerPlugIn.h` requires at least10923. The driver correction
-uses16384 frames, separates microphone IPC's unchanged480-frame packets and
+uses15840 frames to match the measured built-in output, separates microphone IPC's unchanged480-frame packets and
 permits bounded HAL reads through the8192-frame sample history. Qualification
-and a fresh Host candidate are in progress; no installed fix is claimed.
+and a fresh Host candidate are in progress; no installed fix is claimed. The
+built-in output reports a512-frame IO buffer and15–4096 supported range; both
+installed PLANK devices report180 frames and15–180 range. All run at48kHz.
 
 Earlier source-gap traces were contaminated by Host stack sampling: the bursts
 of299/336 irregular source timestamps coincide exactly with profiler windows.

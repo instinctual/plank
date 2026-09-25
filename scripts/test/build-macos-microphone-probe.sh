@@ -14,7 +14,8 @@ source_root=$1
 output=$2
 mkdir "$output"
 cd "$source_root"
-shasum -a 256 apps/host/macos/audio-device/microphone-{format.h,buffer.h,queue.h,driver.c} \
+shasum -a 256 apps/host/macos/audio-device/driver-clock.h \
+    apps/host/macos/audio-device/microphone-{format.h,buffer.h,queue.h,driver.c} \
     apps/host/macos/audio-device/microphone-{link.h,driver-ipc.h,broker.h,broker.m,producer.h,producer.m,selection.h,selection.m} \
     tests/audio/macos-microphone-{buffer,driver,queue}.c packaging/host/macos/microphone-info.plist \
     probes/macos/microphone-{tone-driver.c,read.m,reader-info.plist} \
@@ -85,6 +86,7 @@ codesign --verify --strict "$managed"
 xcrun --sdk macosx clang -O2 -g -fobjc-arc -mmacosx-version-min=27.0 -Wall -Wextra -Werror \
     -include probes/macos/microphone-managed-config.h probes/macos/microphone-managed.m \
     apps/host/macos/audio-device/microphone-{broker,producer,selection}.m \
-    -framework Foundation -framework Security -framework CoreAudio -o "$output/microphone-managed"
+    apps/host/macos/media/reverse-media-clock.m \
+    -framework Foundation -framework Security -framework CoreAudio -framework CoreMedia -o "$output/microphone-managed"
 codesign --force --sign - --identifier la.instinctual.PLANK.Microphone.Probe.Managed "$output/microphone-managed"
 echo "microphone_component_gate=pass installed=no production_injection=not-qualified"

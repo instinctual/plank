@@ -22,7 +22,7 @@ virtual output buffers. Physical speakers and microphone devices are not members
 of this aggregate. This replaces the earlier tap-only aggregate's implicit clock
 selection; live recurrence testing of this clock change remains required.
 
-Both virtual audio drivers advertise a 16384-frame zero-timestamp period.
+Both virtual audio drivers advertise a 15840-frame zero-timestamp period.
 SDK27's `AudioServerPlugIn.h` requires at least10923; the previous480-frame
 period violated that contract. This clock interval is separate from HAL IO
 buffer size and from the5ms playback/10ms microphone packets. Microphone IPC
