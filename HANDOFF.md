@@ -38,35 +38,45 @@ never relabel a signed package or rebuild different bytes into an existing catal
 entry. Temporary signing permission was removed after Host1.1.014 completed;
 main-only policy is verified. No signing credentials were read, changed or committed.
 
-## Active audio regression
+## Audio regression and installed correction
 
-Host1.1.013 and Ubuntu Client1.1.010 are installed; the Host executable matches
-its signed package. Recurring continuous distortion remains. Preserve the active
-session: do not restart services, toggle forwarding, close applications, change
-permissions or install automatically.
+Host1.1.014 and Ubuntu Client1.1.010 are installed. All four installed Host
+component hashes match the signed package. Read-only HAL queries confirm both
+PLANK devices now report a15840-frame clock period and512-frame IO buffer,
+matching the built-in output. The operator reports that the correction appears
+to have fixed the distortion and confirms the repeated quiet1kHz tone is clean.
+Six steady tone seconds measure coherence above0.99996 at the Client decoder,
+PipeWire handoff and ALSA output. The start overlapped existing playback and is
+excluded from the pure-tone metric. A40-second metadata trace receives8052
+packets with continuous5ms source timestamps and no missing-sample markers;
+the Host audio log remains unchanged. Arrival jitter reaches93.5ms and nine
+SDL input-queue-empty observations occur; these do not independently establish
+audible underruns. Prolonged recurrence and duplex soak remain separate gates. Preserve the working
+session; no automatic restarts, permission changes or capture toggles.
 
-Controlled synthetic1kHz tone tests distinguish the routes: the operator hears
-a clean tone played directly through Ubuntu's normal output and distortion when
-the same tone traverses the Mac/PLANK route. Bounded aggregate measurements find
+Before the correction, controlled synthetic1kHz tone tests distinguished the
+routes: the operator heard a clean tone directly through Ubuntu's normal output
+and distortion when the same tone traversed the Mac/PLANK route. Bounded aggregate measurements find
 phase/energy distortion already at the Client Opus decoder. The production Mac
 Opus encoder passes offline tests across180/512/960-frame interleaved and uneven
 planar inputs with byte-identical packets; the exact installed Client decoder
 reproduces the synthetic tone with coherence greater than0.999. This narrows the
 investigation to the live Mac path but does not independently prove its cause.
 
-A confirmed SDK contract violation exists in both virtual HAL drivers: the live
-Output device advertises480 frames for `kAudioDevicePropertyZeroTimeStampPeriod`,
+The previous virtual HAL drivers violated the SDK contract: the installed
+Output device advertised480 frames for `kAudioDevicePropertyZeroTimeStampPeriod`,
 while SDK27's `AudioServerPlugIn.h` requires at least10923. The driver correction
 uses15840 frames to match the measured built-in output. It keeps microphone IPC
 at480-frame packets and permits bounded HAL reads through the8192-frame history. Component
-qualification passes; no installed fix is claimed. The built-in output reports a512-frame IO buffer and15–4096 supported range; both
-installed PLANK devices report180 frames and15–180 range. All use the same48kHz
+qualification passes. Before the correction, the built-in output reported a
+512-frame IO buffer and15–4096 range; both PLANK devices reported180 frames and
+15–180 range. All use the same48kHz
 stereo Float32 interleaved format. The built-in output explicitly uses simple IIR
 clock smoothing and a stable clock; PLANK inherits those SDK defaults. Physical
 output latency60 and safety offset48 frames must not be copied into the virtual
 sink. Clock-domain identifiers must not falsely claim shared hardware timing.
-After installation, inspect the actual IO buffer selection; the working built-in
-baseline is512 frames. No buffer-size setter or physical routing change was added.
+After installation, HAL selects512-frame IO buffers for both PLANK devices.
+No buffer-size setter or physical routing change was added.
 
 Earlier source-gap traces were contaminated by Host stack sampling: the bursts
 of299/336 irregular source timestamps coincide exactly with profiler windows.
@@ -152,9 +162,11 @@ passes the full build, tests, signing, notarization and package gates at
 root`c12f325fb5df8fdc21549cca97de5670ee71c282`, with the current gitlinks above.
 The Host test target's Downloads copy passes transfer hash, package signature,
 Gatekeeper, exact version, RecommendRestart and all four component signatures.
-It remains uninstalled. Temporary branch signing permission is removed and
-main-only policy verified. No credentials were read or changed. The active
-session was preserved; driver reload requires operator installation/reboot.
+The operator installed it; all four installed component hashes match this
+package, and both loaded audio drivers report the corrected period and512-frame
+buffers. The operator reports audible recovery and confirms a clean repeat tone. Temporary branch signing
+permission is removed and main-only policy verified. No credentials were read
+or changed; no agent-initiated installation or service restart occurred.
 
 The Host 1.1.013 package is collected at
 `artifacts/packages/candidates/1.1.013-native-media-investigation/macos/plank-host_1.1.013-native-media-investigation_arm64.pkg`.
@@ -164,11 +176,10 @@ It uses root8aeca421 and Cliente8e1030eff04759e30645f26b08e0d27c707aee7. Signed
 passes all build, test, signing, notarization and package gates. The test target's
 Downloads copy passes transfer hash, package signature, Gatekeeper, version,
 RecommendRestart and all four component signature checks. The operator installed it and rebooted; the running executable matches the
-signed package. Distortion remains under the controlled tone test above.
+signed package. That version still distorted the controlled tone and is superseded.
 
 Previous Host1.1.011/012 artifact provenance remains in the immutable package
-catalog. These packages are superseded by the installed1.1.013 baseline and
-staged candidate described here.
+catalog. These packages are superseded by the installed1.1.014 candidate.
 
 Signed [Host run36061559638](https://github.com/instinctual/plank/actions/runs/36061559638)
 and [Client run36061563286](https://github.com/instinctual/plank/actions/runs/36061563286)
@@ -192,7 +203,7 @@ Both Mac installers are staged in the office Host test target's Downloads;
 Ubuntu Client is staged in the development Client's Downloads. Transfer hashes
 and package versions pass; Mac signatures/Gatekeeper and Host RecommendRestart
 also pass on the target. Ubuntu Client 1.1.010 remains installed; the Host was
-subsequently updated to 1.1.013. The Mac Client installer remains staged.
+subsequently updated to 1.1.014. The Mac Client installer remains staged.
 Completed Ubuntu component worktrees, builds,
 bundles and the temporary extracted SDK were removed; private reports remain.
 
@@ -222,9 +233,9 @@ SDK27 development Mac or authorized hosted workers. The office Mac is test-only.
 Machine addresses, accounts, deployment details and reports remain in private
 notes outside Git; read their local README before machine work.
 
-Host 1.1.013's installed executable matches its signed package. The active
+Host1.1.014's four installed components match its signed package. The active
 Ubuntu Client reports 1.1.010. Host 1.1.009's working output routing is retained;
-the current residual audio regression and candidate are described above.
+initial audio recovery and remaining validation are described above.
 The separate Mac Client1.1.005 display-mode fallback was installed and its
 connection succeeded; do not restore the fatal missing-native-flag check.
 
@@ -236,12 +247,9 @@ and Zoom capture. One simultaneous native-first/pixel-second run delivered only
 repeating that installed test. Other application formats may inherit an existing
 pixel stream; automatic output does not guarantee native coded delivery.
 
-Next: the verified Host1.1.014 is in the test target's Downloads.
-Keep the active diagnostic session until the operator chooses to install/reboot.
-Then verify loaded driver clock properties, repeat the quiet synthetic tone and
-website camera permission/start/stop trigger, and compare aggregate signal/timing
-statistics without Host stack sampling. Confirm normal typing and playback with
-both capture devices disabled and enabled.
+The authorized installed-version, driver-clock, quiet-tone and40-second timing
+checks are complete; all probes exited. Next: continue recurrence testing during ordinary use and repeat the website camera
+permission/start/stop trigger with playback; do not use Host stack sampling.
 Then qualify:
 
 1. Manual default and mute/reopen, physical channel separation and cleanup.

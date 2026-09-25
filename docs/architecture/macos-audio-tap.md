@@ -28,7 +28,11 @@ period violated that contract. This clock interval is separate from HAL IO
 buffer size and from the5ms playback/10ms microphone packets. Microphone IPC
 still copies480-frame blocks; HAL reads remain bounded by the8192-frame history.
 Deterministic driver tests check the SDK minimum, boundary interpolation and
-clock generations. Installed distortion recovery still requires a live test.
+clock generations. Installed Host1.1.014 verification finds both corrected
+clock periods and512-frame IO buffers without a buffer-size setter. The operator
+reports clean playback and a clean repeated1kHz tone; six steady seconds measure
+coherence above0.99996 from Client decoding through its physical playback buffer.
+This is initial recovery validation; sustained duplex/recurrence testing remains.
 
 Capture diagnostics retain HAL sample position, host time and callback time with
 each bounded ring entry. The consumer logs timing gaps at exponentially spaced
