@@ -8,9 +8,16 @@ override; invalid/unavailable OS names fall back to `PLANK`. No DNS lookup,
 per-poll account work, Client runtime or protocol change. The installer retires
 only its exact old generated INI name block and the old plist placeholder,
 preserving custom/edited blocks, other settings, UUID and TLS material.
-Source version is now **1.1.017**; no 1.1.017 package exists yet. Portable
-settings5 and development-installer17 checks pass. Native parser, upgrade and
-provisioning validation is in progress; do not claim installed acceptance.
+Implementation is locally committed at root `4642fe4716f15a54f96994e501b603cfc390850b`,
+Client changelog `9cb38c3a` (no Client runtime change). Source version is now
+**1.1.017**; no 1.1.017 package exists yet. Portable settings5,
+development-installer17 and CI62 checks pass. On a clean verified-bundle SDK27
+worktree, the native parser (also ASan/UBSan), all16 configuration/upgrade
+fixtures, actual OS hostname/identity provisioning, permission/package9,
+authentication525, account-policy27, account-channel19, HTTP215 and discovery
+XML/control tests pass. Fixtures never alter the OS hostname, installed app,
+permissions or active sessions. Changes are not pushed, merged, deployed or
+published as a release; signed packaging and installed acceptance remain pending.
 The user requested implementation, not merging or deployment. The completed
 1.1.016 package below does not contain this hostname correction.
 
@@ -102,8 +109,8 @@ Package: `artifacts/packages/candidates/1.1.016-session-indicator/macos/plank-ho
   provenance, `manifest.json`, `SHA256SUMS` and a checksum sidecar.
 - Not installed or published as a GitHub Release; hardware acceptance is pending.
 
-Automatic push run `36111686759` also passed Linux Client and both unsigned
-macOS product builds; its Linux Host job was still running at this checkpoint.
+Automatic push run `36111686759` also passed both Linux packages and both unsigned
+macOS product builds.
 Privacy run `36111686784` and clipboard regression run `36111686774` passed.
 Unsigned macOS build success is not a signed Client installation artifact.
 
