@@ -55,7 +55,13 @@ int main(void) {
             NSData *data = [NSPropertyListSerialization dataWithPropertyList:config format:NSPropertyListXMLFormat_v1_0 options:0 error:NULL];
             assert([data writeToFile:path atomically:YES]); assert(!chmod(path.fileSystemRepresentation, 0644));
         };
-        write(); assert(PLANKMacReadHostConfiguration(public, public, getuid(), NO));
+        write();
+        NSDictionary *automatic = PLANKMacReadHostConfiguration(public, public, getuid(), NO);
+        assert(automatic);
+        char hostname[256] = {0};
+        assert(!gethostname(hostname, sizeof(hostname)));
+        assert([automatic[@"Name"] isEqual:[NSString stringWithUTF8String:hostname]]);
+        assert([automatic[@"UUID"] isEqual:config[@"UUID"]]);
         assert(!PLANKMacReadHostConfiguration(public, public, 0, NO));
         config[@"UUID"] = @"invalid"; write();
         assert(!PLANKMacReadHostConfiguration(public, public, getuid(), NO));

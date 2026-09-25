@@ -78,3 +78,20 @@ Wait/Disconnect policy unchanged. Reject invalid Mac INI values, test boundary
 values and upgrade preservation, and correct Linux's legacy media-ping comments
 without changing Linux runtime behavior. Existing Client metadata-v1 parsing
 already handles optional Mac names; no new feature bit or fallback is needed.
+
+## Follow-up: automatic macOS workstation name (issue19)
+
+When `[general] host_name` is absent, resolve the local OS hostname at startup
+through `gethostname()`, matching Linux. Validate length/UTF-8/control characters;
+fall back to `PLANK` if the OS lookup fails or returns unusable data. Explicit
+administrator overrides always win. Do not add DNS queries, per-poll lookups,
+another preference source, a watcher or an install-time hostname snapshot.
+
+Ship a fully documented commented-out override. Retire only the exact old
+installer-generated INI name block, with validated ownership/mode/content and
+an atomic replacement; retain all other bytes and preserve edited/custom blocks.
+The existing one-time plist conversion omits the old generic placeholder and
+still retains custom names, ports, UUID and TLS material. Validate defaults,
+hostname changes/failure, custom overrides, idempotent upgrades, interrupted
+installation, and rejection of unsafe files before any configuration rewrite.
+No Client runtime, protocol, authentication or Linux behavior change is needed.

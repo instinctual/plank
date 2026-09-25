@@ -1,8 +1,50 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 #import "host-configuration.h"
 #include <assert.h>
+#include <errno.h>
+#include <string.h>
+#include <unistd.h>
+
+// Only this test executable substitutes the OS lookup. Production has no test
+// environment override, and no fixture changes the machine's actual hostname.
+static const char *testHostName = "workstation-a";
+static unsigned int hostnameCalls;
+static BOOL unterminatedHostName;
+int gethostname(char *name, size_t length) {
+    hostnameCalls++;
+    if (!testHostName) { errno = EIO; return -1; }
+    if (unterminatedHostName) { memset(name, 'x', length); return 0; }
+    if (strlen(testHostName) >= length) { errno = ENAMETOOLONG; return -1; }
+    memcpy(name, testHostName, strlen(testHostName) + 1);
+    return 0;
+}
+
 static NSDictionary *parse(NSString *text) { return PLANKMacParseHostConfiguration([text dataUsingEncoding:NSUTF8StringEncoding]); }
 int main(void) { @autoreleasepool {
+    assert([parse(@"# Defaults\n")[@"Name"] isEqual:@"workstation-a"]);
+    assert(hostnameCalls == 1);
+    testHostName = "workstation-b.example.test";
+    assert([parse(@"[general]\n# host_name = workstation-name\n")[@"Name"] isEqual:@"workstation-b.example.test"]);
+    assert(hostnameCalls == 2); // Resolve again on configuration reload, never cache the installer name.
+    assert([parse(@"[general]\nhost_name = Custom Host\n")[@"Name"] isEqual:@"Custom Host"]);
+    assert([parse(@"[general]\nhost_name = PLANK Mac Host\n")[@"Name"] isEqual:@"PLANK Mac Host"]);
+    assert(hostnameCalls == 2); // Explicit overrides always win, including the old generic label.
+    for (const char **candidate = (const char *[]){"", "bad\nname", "bad\x01", "\xff", NULL}; *candidate; candidate++) {
+        testHostName = *candidate;
+        assert([parse(@"# Defaults\n")[@"Name"] isEqual:@"PLANK"]);
+    }
+    testHostName = NULL;
+    assert([parse(@"# Defaults\n")[@"Name"] isEqual:@"PLANK"]);
+    assert([parse(@"[general]\nhost_name = Still Custom\n")[@"Name"] isEqual:@"Still Custom"]);
+    char longestName[257];
+    memset(longestName, 'x', sizeof(longestName));
+    longestName[255] = '\0'; testHostName = longestName;
+    assert([parse(@"# Defaults\n")[@"Name"] length] == 255);
+    longestName[255] = 'x'; longestName[256] = '\0';
+    assert([parse(@"# Defaults\n")[@"Name"] isEqual:@"PLANK"]);
+    unterminatedHostName = YES;
+    assert([parse(@"# Defaults\n")[@"Name"] isEqual:@"PLANK"]);
+    unterminatedHostName = NO; testHostName = "workstation-a";
     assert([parse(@"# Defaults\n")[@"Port"] isEqual:@28989]);
     NSDictionary *config = parse(@"; comment\r\n[general]\r\nhost_name = Example Host\r\n[network]\r\nport = 30000\r\n");
     assert([config[@"Name"] isEqual:@"Example Host"] && [config[@"Port"] isEqual:@30000]);

@@ -2,6 +2,21 @@
 #import "host-configuration.h"
 #import "configuration-files.h"
 #include "host-network-policy.h"
+#include <string.h>
+
+static BOOL validHostName(NSString *name) {
+    return name.length && [name lengthOfBytesUsingEncoding:NSUTF8StringEncoding] <= 255 &&
+        [name rangeOfCharacterFromSet:NSCharacterSet.controlCharacterSet].location == NSNotFound;
+}
+
+static NSString *systemHostName(void) {
+    // Local OS lookup only: no reverse DNS, user account name or cached installer
+    // value. Match Linux's fallback if the OS cannot supply a usable hostname.
+    char name[256] = {0};
+    if (gethostname(name, sizeof(name)) || !memchr(name, '\0', sizeof(name))) return @"PLANK";
+    NSString *result = [NSString stringWithUTF8String:name];
+    return validHostName(result) ? result : @"PLANK";
+}
 
 NSDictionary *PLANKMacParseHostConfiguration(NSData *data) {
     if (!data.length || data.length > 32768) return nil;
@@ -27,9 +42,8 @@ NSDictionary *PLANKMacParseHostConfiguration(NSData *data) {
              ![key isEqual:@"network.ping_timeout"] && ![key isEqual:@"security.publish_session_user"]) || values[key]) return nil;
         values[key] = value;
     }
-    NSString *name = values[@"general.host_name"] ?: @"PLANK Mac Host";
-    if (!name.length || [name lengthOfBytesUsingEncoding:NSUTF8StringEncoding] > 255 ||
-        [name rangeOfCharacterFromSet:NSCharacterSet.controlCharacterSet].location != NSNotFound) return nil;
+    NSString *name = values[@"general.host_name"] ?: systemHostName();
+    if (!validHostName(name)) return nil;
     NSString *port = values[@"network.port"] ?: @"28989";
     if (!port.length || port.length > 5 || [port rangeOfCharacterFromSet:
         [[NSCharacterSet characterSetWithCharactersInString:@"0123456789"] invertedSet]].location != NSNotFound ||

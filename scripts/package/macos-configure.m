@@ -4,12 +4,41 @@
 #import "configuration-files.h"
 
 static int failure(const char *reason) {
-    fprintf(stderr, "PLANK configuration: %s; existing configuration and keys were not replaced\n", reason);
+    fprintf(stderr, "PLANK configuration: %s; installation stopped\n", reason);
     return 1;
 }
 
 static NSData *propertyList(id object) {
     return [NSPropertyListSerialization dataWithPropertyList:object format:NSPropertyListXMLFormat_v1_0 options:0 error:NULL];
+}
+
+static NSData *automaticHostnameINI(NSData *ini) {
+    // Recognize only the old installer's exact generated block. Do not infer
+    // intent from a matching name alone or rewrite an administrator's own block.
+    NSString *text = [[NSString alloc] initWithData:ini encoding:NSUTF8StringEncoding];
+    NSString *generated = @"[general]\n"
+        "# Workstation name advertised to Clients. 1-255 UTF-8 bytes, no control characters.\n"
+        "# Omitted key defaults to PLANK Mac Host. This does not change the OS computer name.\n"
+        "host_name = PLANK Mac Host\n";
+    NSString *automatic = @"[general]\n"
+        "# Workstation name defaults to the OS hostname at Host startup, matching Linux.\n"
+        "# Uncomment to override it; this does not change the OS hostname or identity.\n"
+        "# host_name = workstation-name\n";
+    NSRange block = [text rangeOfString:generated];
+    if (block.location == NSNotFound || (block.location && [text characterAtIndex:block.location - 1] != '\n'))
+        return ini;
+    return [[text stringByReplacingCharactersInRange:block withString:automatic] dataUsingEncoding:NSUTF8StringEncoding];
+}
+
+static BOOL replaceGeneratedConfiguration(int directory, NSData *previous, NSData *updated, uid_t owner) {
+    NSString *temporary = [@".plank-host-name-" stringByAppendingString:NSUUID.UUID.UUIDString];
+    // Publish a complete file atomically, retaining the safe-owner/mode/link
+    // checks and refusing to replace content changed since initial validation.
+    BOOL ok = plank_config_create(directory, temporary.UTF8String, updated) &&
+        [plank_config_read(directory, "host.conf", owner, 0644) isEqual:previous] &&
+        !renameat(directory, temporary.UTF8String, directory, "host.conf");
+    unlinkat(directory, temporary.UTF8String, 0);
+    return ok && !fsync(directory);
 }
 
 static NSData *legacyINI(NSData *data, NSData *reference, NSString **uuid) {
@@ -24,11 +53,13 @@ static NSData *legacyINI(NSData *data, NSData *reference, NSString **uuid) {
     NSString *text = [[NSString alloc] initWithData:reference encoding:NSUTF8StringEncoding];
     text = [text stringByReplacingOccurrencesOfString:@"port = 28989"
         withString:[NSString stringWithFormat:@"port = %@", old[@"Port"]]];
-    text = [text stringByReplacingOccurrencesOfString:@"host_name = PLANK Mac Host"
+    BOOL automaticName = [old[@"Name"] isEqual:@"PLANK Mac Host"];
+    if (!automaticName) text = [text stringByReplacingOccurrencesOfString:@"# host_name = workstation-name"
         withString:[@"host_name = " stringByAppendingString:old[@"Name"]]];
     NSData *ini = [text dataUsingEncoding:NSUTF8StringEncoding];
     NSDictionary *parsed = PLANKMacParseHostConfiguration(ini);
-    return [parsed[@"Name"] isEqual:old[@"Name"]] && [parsed[@"Port"] isEqual:old[@"Port"]] ? ini : nil;
+    return (automaticName || [parsed[@"Name"] isEqual:old[@"Name"]]) &&
+        [parsed[@"Port"] isEqual:old[@"Port"]] ? ini : nil;
 }
 
 int main(int argc, const char *argv[]) { @autoreleasepool {
@@ -68,6 +99,12 @@ int main(int argc, const char *argv[]) { @autoreleasepool {
     if (!uuid && !oldUUID && plank_config_exists(state, "SignIn"))
         return failure("TLS identity exists without workstation UUID; restore its identity record");
     if (check) { if (config >= 0) close(config); close(state); return 0; }
+    if (hasConfig && !finish) {
+        NSData *automatic = automaticHostnameINI(ini);
+        if (![automatic isEqual:ini] && (!PLANKMacParseHostConfiguration(automatic) ||
+            !replaceGeneratedConfiguration(config, ini, automatic, owner)))
+            return failure("cannot retire generated Host name");
+    }
     if (finish) {
         if (!hasConfig || !hasIdentity) return failure("conversion is incomplete");
         // Preinstall retains the old file until the replacement app is installed.

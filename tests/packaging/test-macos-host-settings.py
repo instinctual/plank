@@ -48,6 +48,18 @@ class HostSettings(unittest.TestCase):
                       "200 through 120000", "Unreachable host timeout", "LoginWindow"):
             self.assertIn(value, template)
 
+    def test_hostname_reference_uses_an_optional_override(self):
+        template = (ROOT / "packaging/host/macos/config/plank-host.conf").read_text()
+        self.assertIn("# host_name = workstation-name", template)
+        self.assertIn("gethostname()", template)
+        self.assertIn("fall back to PLANK", template)
+        self.assertNotIn("\nhost_name =", template)
+        parser = (HOST / "session/host-configuration.m").read_text()
+        self.assertIn('values[@"general.host_name"] ?: systemHostName()', parser)
+        self.assertNotIn('"PLANK Mac Host"', parser)
+        for forbidden in ("getaddrinfo", "getnameinfo", "NSHost", "NSUserName"):
+            self.assertNotIn(forbidden, parser)
+
 
 if __name__ == "__main__":
     unittest.main()

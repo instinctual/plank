@@ -2,6 +2,18 @@
 
 ## Current task
 
+Issue19 follow-up: macOS Host now resolves the OS hostname at startup when
+`[general] host_name` is omitted, matching Linux. The template uses a commented
+override; invalid/unavailable OS names fall back to `PLANK`. No DNS lookup,
+per-poll account work, Client runtime or protocol change. The installer retires
+only its exact old generated INI name block and the old plist placeholder,
+preserving custom/edited blocks, other settings, UUID and TLS material.
+Source version is now **1.1.017**; no 1.1.017 package exists yet. Portable
+settings5 and development-installer17 checks pass. Native parser, upgrade and
+provisioning validation is in progress; do not claim installed acceptance.
+The user requested implementation, not merging or deployment. The completed
+1.1.016 package below does not contain this hostname correction.
+
 Issue20 follow-up: macOS Host now accepts `[security] publish_session_user`
 (default false) and `[network] ping_timeout` (default 10000 ms, range 200–120000).
 Both keys have full reference comments, including pre-auth disclosure, accepted
@@ -28,7 +40,7 @@ performed. The user explicitly requested that this branch not be merged.
 
 Branch `session-indicator` in `build/worktrees/session-indicator`, based on latest
 main `5593932d5e8bc9fea2f52292fc0a5665b5c650a0` and Client
-`b5c3a7a5ddd37e010155883054931be3010fc5a2`. Source version **1.1.016**;
+`b5c3a7a5ddd37e010155883054931be3010fc5a2`. Latest built version **1.1.016**;
 candidate versions must include `-session-indicator`. Main and the unrelated
 primary RK3576 worktree are untouched. No merge to main, deployment or Release.
 Candidate packaging for all four products is now authorized. Use hosted builders

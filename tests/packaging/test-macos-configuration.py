@@ -14,6 +14,10 @@ ROOT = Path(__file__).resolve().parents[2]
 BINARY = os.environ.get("PLANK_CONFIGURE_TEST_BINARY")
 HOST_TEMPLATE = ROOT / "packaging/host/macos/config/plank-host.conf"
 CLIENT_TEMPLATE = ROOT / "packaging/client/config/plank-client.conf"
+GENERATED_NAME = (b"[general]\n"
+    b"# Workstation name advertised to Clients. 1-255 UTF-8 bytes, no control characters.\n"
+    b"# Omitted key defaults to PLANK Mac Host. This does not change the OS computer name.\n"
+    b"host_name = PLANK Mac Host\n")
 
 
 @unittest.skipUnless(sys.platform == "darwin" and BINARY, "run build-macos-configuration.sh on an authorized Mac builder")
@@ -97,6 +101,87 @@ class Configuration(unittest.TestCase):
         self.invoke()
         self.invoke("host-finish")
         self.assertEqual(custom.read_bytes(), original)
+
+    def test_generated_ini_name_returns_to_automatic_without_other_changes(self):
+        self.invoke()
+        path = self.config / "host.conf"
+        prefix = b"# Retain administrator notes\n"
+        suffix = b"\n[network]\nport = 30123\nping_timeout = 25000\n[security]\npublish_session_user = true\n"
+        original = prefix + GENERATED_NAME + suffix
+        path.write_bytes(original)
+        tls = self.state / "SignIn"
+        tls.mkdir(mode=0o700)
+        key = tls / "key.pem"
+        key.write_bytes(b"synthetic key fixture")
+        key.chmod(0o600)
+        identity = (self.state / "identity.plist").read_bytes()
+        before = self.snapshot()
+        self.invoke("host-check")
+        self.assertEqual(self.snapshot(), before)  # Validation never edits config.
+        self.invoke()
+        updated = path.read_bytes()
+        self.assertTrue(updated.startswith(prefix))
+        self.assertTrue(updated.endswith(suffix))
+        self.assertNotIn(b"\nhost_name =", updated)
+        self.assertIn(b"# host_name = workstation-name", updated)
+        self.assertEqual((self.state / "identity.plist").read_bytes(), identity)
+        self.assertEqual(key.read_bytes(), b"synthetic key fixture")
+        self.assertEqual(path.stat().st_mode & 0o777, 0o644)
+        self.assertFalse(list(self.config.glob(".plank-*")))
+        before = self.snapshot()
+        self.invoke()  # Safe retry after interruption before payload installation.
+        self.invoke("host-finish")
+        self.assertEqual(self.snapshot(), before)
+
+    def test_custom_names_and_edited_generic_block_are_not_rewritten(self):
+        self.invoke()
+        path = self.config / "host.conf"
+        for custom in (GENERATED_NAME.replace(b"host_name = PLANK Mac Host", b"host_name = Example Custom"),
+                       GENERATED_NAME.replace(b"Workstation name advertised", b"My chosen name advertised"),
+                       b"[general]\nhost_name = PLANK Mac Host\n"):
+            path.write_bytes(custom)
+            before = self.snapshot()
+            self.invoke()
+            self.invoke("host-finish")
+            self.assertEqual(self.snapshot(), before)
+
+    def test_legacy_generated_name_is_not_pinned_during_conversion(self):
+        legacy = self.legacy(Name="PLANK Mac Host")
+        self.invoke()
+        text = (self.config / "host.conf").read_text()
+        self.assertNotIn("\nhost_name =", text)
+        self.assertIn("# host_name = workstation-name", text)
+        self.assertIn("port = 29999", text)
+        self.assertEqual(plistlib.loads((self.state / "identity.plist").read_bytes()), {"UUID": self.uuid})
+        self.invoke("host-finish")
+        self.assertFalse(legacy.exists())
+
+    def test_generated_name_does_not_bypass_invalid_state(self):
+        self.invoke()
+        path = self.config / "host.conf"
+        path.write_bytes(GENERATED_NAME)
+        for invalid in (GENERATED_NAME + b"[network]\nport = 0\n",
+                        GENERATED_NAME + b"host_name = duplicate\n"):
+            path.write_bytes(invalid)
+            before = self.snapshot()
+            self.invoke(success=False)
+            self.assertEqual(self.snapshot(), before)
+        path.write_bytes(GENERATED_NAME)
+        path.chmod(0o666)
+        before = self.snapshot()
+        self.invoke(success=False)
+        self.assertEqual(self.snapshot(), before)
+        path.chmod(0o644)
+        alias = self.root / "linked-config"
+        os.link(path, alias)
+        before = self.snapshot()
+        self.invoke(success=False)
+        self.assertEqual(self.snapshot(), before)
+        alias.unlink()
+        (self.state / "identity.plist").write_bytes(b"bad identity")
+        before = self.snapshot()
+        self.invoke(success=False)
+        self.assertEqual(self.snapshot(), before)
 
     def test_bad_legacy_rejected_without_new_identity(self):
         for changes in ({"Port": True}, {"Port": 65536}, {"UUID": "bad"}, {"Address": "127.0.0.1"},
