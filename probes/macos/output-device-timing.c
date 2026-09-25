@@ -25,6 +25,8 @@ static void inspect(AudioObjectID device) {
     const struct { const char *name; AudioObjectPropertySelector selector; } integers[] = {
         {"buffer_frames", kAudioDevicePropertyBufferFrameSize},
         {"clock_domain", kAudioDevicePropertyClockDomain},
+        {"clock_algorithm", kAudioDevicePropertyClockAlgorithm},
+        {"clock_stable", kAudioDevicePropertyClockIsStable},
         {"timestamp_period", kAudioDevicePropertyZeroTimeStampPeriod},
         {"running", kAudioDevicePropertyDeviceIsRunning},
     };
@@ -41,6 +43,36 @@ static void inspect(AudioObjectID device) {
         Float64 value = 0; size = sizeof(value); address = property(rates[i].selector);
         status = AudioObjectGetPropertyData(device, &address, 0, NULL, &size, &value);
         printf("%s=%.6f status=%d\n", rates[i].name, value, (int)status);
+    }
+    const UInt32 scopes[] = {kAudioObjectPropertyScopeOutput, kAudioObjectPropertyScopeInput};
+    const char *directions[] = {"output", "input"};
+    for (unsigned scope = 0; scope < 2; ++scope) {
+        const UInt32 selectors[] = {kAudioDevicePropertyLatency, kAudioDevicePropertySafetyOffset};
+        const char *names[] = {"latency", "safety_offset"};
+        for (unsigned item = 0; item < 2; ++item) {
+            UInt32 value = 0; size = sizeof(value);
+            address = property(selectors[item]); address.mScope = scopes[scope];
+            status = AudioObjectGetPropertyData(device, &address, 0, NULL, &size, &value);
+            printf("%s_%s=%u status=%d\n", directions[scope], names[item], (unsigned)value, (int)status);
+        }
+        AudioObjectID streams[32]; size = sizeof(streams);
+        address = property(kAudioDevicePropertyStreams); address.mScope = scopes[scope];
+        status = AudioObjectGetPropertyData(device, &address, 0, NULL, &size, streams);
+        if (status || size > sizeof(streams) || size % sizeof(streams[0])) continue;
+        unsigned streamCount = size / sizeof(streams[0]);
+        for (unsigned stream = 0; stream < streamCount; ++stream) {
+            const UInt32 formats[] = {kAudioStreamPropertyVirtualFormat, kAudioStreamPropertyPhysicalFormat};
+            for (unsigned physical = 0; physical < 2; ++physical) {
+                AudioStreamBasicDescription format = {0}; UInt32 bytes = sizeof(format);
+                address = property(formats[physical]);
+                status = AudioObjectGetPropertyData(streams[stream], &address, 0, NULL, &bytes, &format);
+                printf("%s_stream%u_%s rate=%.0f channels=%u bits=%u bytes_per_frame=%u flags=0x%x format=0x%x status=%d\n",
+                    directions[scope], stream, physical ? "physical" : "virtual", format.mSampleRate,
+                    (unsigned)format.mChannelsPerFrame, (unsigned)format.mBitsPerChannel,
+                    (unsigned)format.mBytesPerFrame, (unsigned)format.mFormatFlags,
+                    (unsigned)format.mFormatID, (int)status);
+            }
+        }
     }
     AudioValueRange range = {0}; size = sizeof(range);
     address = property(kAudioDevicePropertyBufferFrameSizeRange);
