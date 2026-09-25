@@ -11,7 +11,9 @@
 // same samples for the same device time. A stalled reader never holds up the
 // producer or replays an old queue. One serialized writer; any number of readers.
 // Real-time reads perform only bounded, lock-free loads and memory writes.
-enum { PLANKMicFrames = 8192, PLANKMicMaxIO = 4096 };
+// Accept HAL IO up to the bounded history capacity, independently of the
+// 480-frame producer packets and the longer zero-timestamp clock period.
+enum { PLANKMicFrames = 8192, PLANKMicMaxIO = 8192 };
 typedef struct {
     _Atomic uint64_t frame;
     // One atomic payload keeps left and right from different writes from mixing.

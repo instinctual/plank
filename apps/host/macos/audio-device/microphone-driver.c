@@ -5,11 +5,12 @@
 #include <CoreAudio/AudioServerPlugIn.h>
 #include <CoreFoundation/CFPlugInCOM.h>
 #include <mach/mach_time.h>
+#include "driver-clock.h"
 #include <pthread.h>
 #include <limits.h>
 #include "microphone-buffer.h"
 
-enum { MicDevice = 2, MicStream = 3, MicPeriod = 480, MicMaxClients = 64 };
+enum { MicDevice = 2, MicStream = 3, MicMaxClients = 64 };
 static const AudioStreamBasicDescription micFormat = {
     .mSampleRate = PLANKMicRate, .mFormatID = kAudioFormatLinearPCM,
     .mFormatFlags = kAudioFormatFlagsNativeFloatPacked,
@@ -264,7 +265,7 @@ static OSStatus get(AudioServerPlugInDriverRef driver, AudioObjectID object, pid
         case kAudioStreamPropertyDirection: case kAudioStreamPropertyStartingChannel: value = 1; break;
         case kAudioDevicePropertyDeviceIsRunning: value = atomic_load(&running) != 0; break;
         case kAudioDevicePropertyDeviceCanBeDefaultDevice: value = address->mScope == kAudioObjectPropertyScopeInput; break;
-        case kAudioDevicePropertyZeroTimeStampPeriod: value = MicPeriod; break;
+        case kAudioDevicePropertyZeroTimeStampPeriod: value = PLANKAudioZeroTimeStampPeriod; break;
         case kAudioDevicePropertyNominalSampleRate: {
             Float64 rate = PLANKMicRate; memcpy(data, &rate, sizeof(rate)); return noErr;
         }
@@ -349,8 +350,8 @@ static OSStatus timestamp(AudioServerPlugInDriverRef driver, AudioObjectID devic
     if (driver != DRIVER || device != MicDevice || !sample || !time || !seed || !host)
         return kAudioHardwareIllegalOperationError;
     UInt64 base = atomic_load(&anchor), now = mach_absolute_time();
-    double periods = floor((double)(now - base) / (ticksPerFrame * MicPeriod));
-    *sample = periods * MicPeriod;
+    double periods = floor((double)(now - base) / (ticksPerFrame * PLANKAudioZeroTimeStampPeriod));
+    *sample = periods * PLANKAudioZeroTimeStampPeriod;
     *time = base + (UInt64)(*sample * ticksPerFrame);
     *seed = atomic_load(&clockSeed);
     return noErr;

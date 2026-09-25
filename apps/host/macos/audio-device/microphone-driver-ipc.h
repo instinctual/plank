@@ -105,15 +105,15 @@ static void micIPCTick(void) {
         pthread_mutex_unlock(&stateLock); return;
     }
     uint64_t frame = (uint64_t)((now - base) / ticksPerFrame);
-    frame = frame / MicPeriod * MicPeriod;
-    if (frame >= MicPeriod) frame -= MicPeriod;
+    frame = frame / PLANKMicPacketFrames * PLANKMicPacketFrames;
+    if (frame >= PLANKMicPacketFrames) frame -= PLANKMicPacketFrames;
     for (unsigned block = 0; block < 5; block++) {
-        float samples[MicPeriod * PLANKMicChannels];
-        PLANKMicBufferRead(&micLink->samples, frame, samples, MicPeriod);
-        for (unsigned i = 0; i < MicPeriod * PLANKMicChannels; i++)
+        float samples[PLANKMicPacketFrames * PLANKMicChannels];
+        PLANKMicBufferRead(&micLink->samples, frame, samples, PLANKMicPacketFrames);
+        for (unsigned i = 0; i < PLANKMicPacketFrames * PLANKMicChannels; i++)
             samples[i] = isfinite(samples[i]) ? fminf(1, fmaxf(-1, samples[i])) : 0;
-        PLANKMicBufferWrite(&micBuffer, frame, samples, MicPeriod);
-        frame += MicPeriod;
+        PLANKMicBufferWrite(&micBuffer, frame, samples, PLANKMicPacketFrames);
+        frame += PLANKMicPacketFrames;
     }
     uint64_t cap = now + (uint64_t)(ticksPerFrame * PLANKMicRate / 2);
     if (deadline > cap) deadline = cap;

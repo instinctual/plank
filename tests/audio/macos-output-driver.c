@@ -1,6 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // The real HAL implementation, hosted in-process without installation or IO.
+#include <mach/mach_time.h>
+static uint64_t testNow = 10000000000;
+static uint64_t testAbsoluteTime(void) { return testNow; }
+#define mach_absolute_time testAbsoluteTime
 #include "../../apps/host/macos/audio-device/output-driver.c"
+#undef mach_absolute_time
 #include <assert.h>
 #include <stdio.h>
 #include <unistd.h>
@@ -82,6 +87,25 @@ int main(void) {
     Float64 sample; UInt64 time, seed;
     assert(!timestamp(DRIVER, OutputDevice, 10, &sample, &time, &seed));
     assert(time && seed && sample >= 0);
+    // Independent SDK contract assertion: packet cadence must not set this property.
+    UInt32 period = scalar(OutputDevice, kAudioDevicePropertyZeroTimeStampPeriod, kAudioObjectPropertyScopeGlobal);
+    assert(period >= 10923);
+    UInt64 base = atomic_load(&anchor);
+    double periodTicks = period * ticksPerFrame;
+    Float64 clockSample; UInt64 clockTime, clockGeneration;
+    assert(!timestamp(DRIVER, OutputDevice, 10, &clockSample, &clockTime, &clockGeneration));
+    assert(clockSample == 0 && clockTime == base && clockGeneration);
+    for (unsigned step = 1; step <= 4; ++step) {
+        // Just before a boundary, then the first tick at/after it.
+        testNow = base + (UInt64)ceil(step * periodTicks) - 1;
+        assert(!timestamp(DRIVER, OutputDevice, 10, &clockSample, &clockTime, &clockGeneration));
+        assert(clockSample == (step - 1) * period);
+        testNow++;
+        assert(!timestamp(DRIVER, OutputDevice, 10, &clockSample, &clockTime, &clockGeneration));
+        assert(clockSample == step * period);
+        assert(clockTime == base + (UInt64)(clockSample * ticksPerFrame) && clockTime <= testNow);
+        assert(clockGeneration == atomic_load(&clockSeed));
+    }
     Boolean will, inPlace;
     assert(!willIO(DRIVER, OutputDevice, 10, kAudioServerPlugInIOOperationWriteMix, &will, &inPlace) && will && inPlace);
     assert(!willIO(DRIVER, OutputDevice, 10, kAudioServerPlugInIOOperationReadInput, &will, &inPlace) && !will);
@@ -92,7 +116,20 @@ int main(void) {
     assert(!memcmp(samples, before, sizeof(samples))); // sink never transforms or retains PCM
     assert(performIO(DRIVER, OutputDevice, OutputStream, 10, kAudioServerPlugInIOOperationReadInput, 480, &cycle, samples, NULL));
     assert(performIO(DRIVER, OutputDevice, OutputStream, 10, kAudioServerPlugInIOOperationWriteMix, PLANKOutputMaxIO + 1, &cycle, samples, NULL));
-    assert(!stopIO(DRIVER, OutputDevice, 10)); assert(!removeClient(DRIVER, OutputDevice, &client));
+    AudioServerPlugInClientInfo second = {.mClientID = 20, .mProcessID = getpid()};
+    assert(!addClient(DRIVER, OutputDevice, &second));
+    assert(!startIO(DRIVER, OutputDevice, 20));
+    assert(!stopIO(DRIVER, OutputDevice, 10));
+    assert(!timestamp(DRIVER, OutputDevice, 20, &sample, &time, &seed));
+    assert(seed == clockGeneration && sample == clockSample && time == clockTime);
+    assert(!stopIO(DRIVER, OutputDevice, 20));
+    testNow += (UInt64)ceil(periodTicks);
+    assert(!startIO(DRIVER, OutputDevice, 10));
+    assert(!timestamp(DRIVER, OutputDevice, 10, &sample, &time, &seed));
+    assert(seed != clockGeneration && sample == 0 && time == testNow);
+    assert(!stopIO(DRIVER, OutputDevice, 10));
+    assert(!removeClient(DRIVER, OutputDevice, &second));
+    assert(!removeClient(DRIVER, OutputDevice, &client));
     assert(!atomic_load(&running));
     puts("output_driver_format_controls_clock_sink_bounds=pass");
 }

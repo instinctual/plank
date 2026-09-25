@@ -22,6 +22,14 @@ virtual output buffers. Physical speakers and microphone devices are not members
 of this aggregate. This replaces the earlier tap-only aggregate's implicit clock
 selection; live recurrence testing of this clock change remains required.
 
+Both virtual audio drivers advertise a 16384-frame zero-timestamp period.
+SDK27's `AudioServerPlugIn.h` requires at least10923; the previous480-frame
+period violated that contract. This clock interval is separate from HAL IO
+buffer size and from the5ms playback/10ms microphone packets. Microphone IPC
+still copies480-frame blocks; HAL reads remain bounded by the8192-frame history.
+Deterministic driver tests check the SDK minimum, boundary interpolation and
+clock generations. Installed distortion recovery still requires a live test.
+
 Capture diagnostics retain HAL sample position, host time and callback time with
 each bounded ring entry. The consumer logs timing gaps at exponentially spaced
 counts, distinguishing source sample gaps, clock changes and delivery delay.

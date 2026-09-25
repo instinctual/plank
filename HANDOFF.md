@@ -35,54 +35,42 @@ main-only policy is verified. No signing credentials were read, changed or commi
 
 ## Active audio regression
 
-Host 1.1.012 and Ubuntu Client 1.1.010 are installed. The Host binary matches its
-signed package. The earlier Client-only reboot briefly cleared the crackling,
-but it has since returned and cleared repeatedly without any restart. The
-operator reports a trigger: granting camera access at
-[WebcamMicTest](https://webcammictest.com/). Inspection of its public capture code
-confirms the webcam test requests camera plus audio, falling back to video-only
-if the combined request fails. Typing and pointer movement remain normal.
-Preserve the current session: do not restart services, toggle forwarding, close
-apps, change permissions or install automatically.
+Host1.1.013 and Ubuntu Client1.1.010 are installed; the Host executable matches
+its signed package. Recurring continuous distortion remains. Preserve the active
+session: do not restart services, toggle forwarding, close applications, change
+permissions or install automatically.
 
-A metadata-only trace captured 299 non-5ms source timestamp intervals in a
-nine-second degraded window. Most intervals were 10–15ms although each packet
-contained 240 samples (5ms); these packets had no missing-sample markers. The
-three-minute trace contained 302 such intervals and 202 empty SDL queue
-observations. The Host also logged a burst of Opus reanchors. A clear-audio trace
-returned to continuous 5ms source timestamps and no empty queue observations.
-This establishes upstream timeline discontinuities; it does not establish the
-exact cause or prove that the new clock selection fixes them. Later zero-PTS
-transport hole markers are distinct and must not be counted as source-clock
-jumps. Raw reports remain private outside Git; no media payload was recorded.
-All bounded diagnostic probes have exited.
+Controlled synthetic1kHz tone tests distinguish the routes: the operator hears
+a clean tone played directly through Ubuntu's normal output and distortion when
+the same tone traverses the Mac/PLANK route. Bounded aggregate measurements find
+phase/energy distortion already at the Client Opus decoder. The production Mac
+Opus encoder passes offline tests across180/512/960-frame interleaved and uneven
+planar inputs with byte-identical packets; the exact installed Client decoder
+reproduces the synthetic tone with coherence greater than0.999. This narrows the
+investigation to the live Mac path but does not independently prove its cause.
 
-Candidate 1.1.013 replaces the tap-only aggregate's implicit clock with PLANK
-Output as its sole main audio subdevice. The tap remains restricted to verified
-processes on PLANK Output; physical outputs and microphones are excluded. The
-returned clock UID must match, and partial startup failure releases both tap
-and aggregate. The callback clears the aggregate's virtual output and carries
-HAL sample position, source host time and callback time into the existing bounded
-ring. Gap diagnostics run on the consumer, rate-limited to powers of two.
-See [audio capture architecture](docs/architecture/macos-audio-tap.md).
+A confirmed SDK contract violation exists in both virtual HAL drivers: the live
+Output device advertises480 frames for `kAudioDevicePropertyZeroTimeStampPeriod`,
+while SDK27's `AudioServerPlugIn.h` requires at least10923. The driver correction
+uses16384 frames, separates microphone IPC's unchanged480-frame packets and
+permits bounded HAL reads through the8192-frame sample history. Qualification
+and a fresh Host candidate are in progress; no installed fix is claimed.
 
-SDK27 ASan/UBSan tests pass for output format/controls/clock, tap composition,
-unexpected-clock cleanup, routing/restoration and XPC ownership. The concurrent
-100,000-block ring test verifies timing metadata with sample content through
-index wrap. The portable C ring also passes locally without sanitizers; the
-local GCC ASan runtime could not link, so sanitizer coverage is from the
-qualified Mac. Live candidate benefit remains unverified; after an operator
-installation, repeat the website permission/start/stop trigger with continuous
-playback and compare sample/host/callback/handoff timing and overrun counters.
+Earlier source-gap traces were contaminated by Host stack sampling: the bursts
+of299/336 irregular source timestamps coincide exactly with profiler windows.
+They must not be used as proof of the original fault. With that profiler stopped,
+a40-second trace contains8058 packets with continuous5ms source timestamps,
+no missing samples and one empty SDL queue observation despite audible distortion.
+Do not run Host stack sampling again during audio qualification. All bounded
+probes have exited. Reports stay private; only generated tones and aggregate
+statistics were retained, with no recording of user media.
 
-Host 1.1.012's separate observer fix remains in place. Earlier 1.1.010 samples
-spent 75.6%/74.2% of serial media-queue sampled time in synchronous OS account
-queries, with slow typing, 64+ tap overruns and 512+ reanchors. New samples no
-longer show those queries on the media queue. The observer still polls every
-500ms, expires observations after one second from read start and revokes on
-user-switch/sleep notifications. Its 457 lifecycle checks passed normally and
-under sanitizers; machine admission checks remain independent. The residual
-capture regression must not be conflated with that previous bottleneck.
+Host1.1.013 retains PLANK Output as the aggregate's explicit main clock and
+bounded capture diagnostics. Its installed benefit is unproven. Host1.1.012's
+separate500ms background ownership observer remains:457 lifecycle checks pass,
+with one-second freshness and immediate user-switch/sleep revocation. Previous
+samples exposed synchronous account queries on the media queue; that contention
+was removed. Profiled dropout/overrun counts cannot quantify the original fault.
 
 ## Implemented behavior
 
@@ -148,9 +136,8 @@ It uses the current source/gitlinks above. Signed
 [Host run 36071264074](https://github.com/instinctual/plank/actions/runs/36071264074)
 passes all build, test, signing, notarization and package gates. The test target's
 Downloads copy passes transfer hash, package signature, Gatekeeper, version,
-RecommendRestart and all four component signature checks. It remains uninstalled;
-the running session is preserved. Clock-change benefit requires the live
-website/capture-app reproduction test described above.
+RecommendRestart and all four component signature checks. The operator installed it and rebooted; the running executable matches the
+signed package. Distortion remains under the controlled tone test above.
 
 The preceding Host 1.1.012 package is collected at
 `artifacts/packages/candidates/1.1.012-native-media-investigation/macos/plank-host_1.1.012-native-media-investigation_arm64.pkg`.
@@ -195,7 +182,7 @@ Both Mac installers are staged in the office Host test target's Downloads;
 Ubuntu Client is staged in the development Client's Downloads. Transfer hashes
 and package versions pass; Mac signatures/Gatekeeper and Host RecommendRestart
 also pass on the target. Ubuntu Client 1.1.010 remains installed; the Host was
-subsequently updated to 1.1.012. The Mac Client installer remains staged.
+subsequently updated to 1.1.013. The Mac Client installer remains staged.
 Completed Ubuntu component worktrees, builds,
 bundles and the temporary extracted SDK were removed; private reports remain.
 
@@ -225,7 +212,7 @@ SDK27 development Mac or authorized hosted workers. The office Mac is test-only.
 Machine addresses, accounts, deployment details and reports remain in private
 notes outside Git; read their local README before machine work.
 
-Host 1.1.012's installed executable matches its signed package. The active
+Host 1.1.013's installed executable matches its signed package. The active
 Ubuntu Client reports 1.1.010. Host 1.1.009's working output routing is retained;
 the current residual audio regression and candidate are described above.
 The separate Mac Client1.1.005 display-mode fallback was installed and its
@@ -239,13 +226,12 @@ and Zoom capture. One simultaneous native-first/pixel-second run delivered only
 repeating that installed test. Other application formats may inherit an existing
 pixel stream; automatic output does not guarantee native coded delivery.
 
-Next: preserve the session until the operator chooses to install the
-verified Host 1.1.013 from Downloads. The Host test target requires the
-operator's administrator Installer interaction; wait for their decision to end
-this diagnostic session. After installation,
-repeat the website camera permission/start/stop trigger with continuous playback.
-Inspect source sample gaps, host-clock gaps, callback spacing, handoff delay and
-ring overruns. Confirm normal typing and repeat simultaneous camera/audio use.
+Next: validate and stage Host1.1.014 with the HAL clock-period correction.
+Keep the active diagnostic session until the operator chooses to install/reboot.
+Then verify loaded driver clock properties, repeat the quiet synthetic tone and
+website camera permission/start/stop trigger, and compare aggregate signal/timing
+statistics without Host stack sampling. Confirm normal typing and playback with
+both capture devices disabled and enabled.
 Then qualify:
 
 1. Manual default and mute/reopen, physical channel separation and cleanup.

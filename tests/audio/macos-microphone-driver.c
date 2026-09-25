@@ -2,7 +2,12 @@
 // In-process HAL host: no installed device, microphone access or audio restart.
 // Including the implementation lets the fixture feed the private sample buffer
 // without adding an injection backdoor or test switch to the product plug-in.
+#include <mach/mach_time.h>
+static uint64_t testNow = 10000000000;
+static uint64_t testAbsoluteTime(void) { return testNow; }
+#define mach_absolute_time testAbsoluteTime
 #include "../../apps/host/macos/audio-device/microphone-driver.c"
+#undef mach_absolute_time
 #include <assert.h>
 #include <stdio.h>
 #include <unistd.h>
@@ -76,47 +81,82 @@ int main(void) {
     assert(!startIO(DRIVER, MicDevice, first.mClientID));
     assert(!startIO(DRIVER, MicDevice, second.mClientID));
     assert(atomic_load(&running) == 2 && notifications == 0);
+    // Independent SDK contract assertion: packet cadence must not set this property.
+    UInt32 period = scalar(MicDevice, kAudioDevicePropertyZeroTimeStampPeriod, kAudioObjectPropertyScopeGlobal);
+    assert(period >= 10923);
+    UInt64 base = atomic_load(&anchor);
+    double periodTicks = period * ticksPerFrame;
+    Float64 clockSample; UInt64 clockTime, clockGeneration;
+    assert(!timestamp(DRIVER, MicDevice, 10, &clockSample, &clockTime, &clockGeneration));
+    assert(clockSample == 0 && clockTime == base && clockGeneration);
+    for (unsigned step = 1; step <= 4; ++step) {
+        // Just before a boundary, then the first tick at/after it.
+        testNow = base + (UInt64)ceil(step * periodTicks) - 1;
+        assert(!timestamp(DRIVER, MicDevice, 10, &clockSample, &clockTime, &clockGeneration));
+        assert(clockSample == (step - 1) * period);
+        testNow++;
+        assert(!timestamp(DRIVER, MicDevice, 10, &clockSample, &clockTime, &clockGeneration));
+        assert(clockSample == step * period);
+        assert(clockTime == base + (UInt64)(clockSample * ticksPerFrame) && clockTime <= testNow);
+        assert(clockGeneration == atomic_load(&clockSeed));
+    }
     Boolean will = false, inPlace = false;
     assert(!willIO(DRIVER, MicDevice, 10, kAudioServerPlugInIOOperationReadInput, &will, &inPlace));
     assert(will && inPlace);
     assert(!willIO(DRIVER, MicDevice, 10, kAudioServerPlugInIOOperationWriteMix, &will, &inPlace));
     assert(!will);
-    double before, after; UInt64 time, seed, laterSeed;
-    assert(!timestamp(DRIVER, MicDevice, 10, &before, &time, &seed));
-    usleep(21000);
-    assert(!timestamp(DRIVER, MicDevice, 10, &after, &time, &laterSeed));
-    assert(after >= before + 2 * MicPeriod && laterSeed == seed && time <= mach_absolute_time());
+    double after; UInt64 time, laterSeed;
+    UInt64 seed = clockGeneration;
+    assert(PLANKMicPacketFrames == 480);
     address = property(kAudioDevicePropertyPreferredChannelsForStereo, kAudioObjectPropertyScopeInput);
     UInt32 channels[2] = {0};
     assert(!get(DRIVER, MicDevice, 0, &address, 0, NULL, sizeof(channels), &size, channels));
     assert(channels[0] == 1 && channels[1] == 2);
-    float tone[MicPeriod * PLANKMicChannels], received[MicPeriod * PLANKMicChannels], other[MicPeriod * PLANKMicChannels];
-    for (unsigned i = 0; i < MicPeriod; i++) {
+    float tone[PLANKMicPacketFrames * PLANKMicChannels], received[PLANKMicPacketFrames * PLANKMicChannels], other[PLANKMicPacketFrames * PLANKMicChannels];
+    for (unsigned i = 0; i < PLANKMicPacketFrames; i++) {
         tone[2*i] = .25f * sinf((float)i * 2 * (float)M_PI / 48);
         tone[2*i+1] = .125f * cosf((float)i * 2 * (float)M_PI / 32);
     }
     AudioServerPlugInIOCycleInfo cycle = {0};
     cycle.mInputTime.mFlags = kAudioTimeStampSampleTimeValid;
     for (unsigned block = 0; block < 1000; block++) {
-        UInt64 frame = (UInt64)block * MicPeriod;
+        UInt64 frame = (UInt64)block * PLANKMicPacketFrames;
         cycle.mInputTime.mSampleTime = (double)frame;
-        assert(PLANKMicBufferWrite(&micBuffer, frame, tone, MicPeriod));
+        assert(PLANKMicBufferWrite(&micBuffer, frame, tone, PLANKMicPacketFrames));
         assert(!performIO(DRIVER, MicDevice, MicStream, 10, kAudioServerPlugInIOOperationReadInput,
-                          MicPeriod, &cycle, received, NULL));
+                          PLANKMicPacketFrames, &cycle, received, NULL));
         assert(!performIO(DRIVER, MicDevice, MicStream, 20, kAudioServerPlugInIOOperationReadInput,
-                          MicPeriod, &cycle, other, NULL));
+                          PLANKMicPacketFrames, &cycle, other, NULL));
         assert(!memcmp(tone, received, sizeof(tone)));
         assert(!memcmp(other, received, sizeof(tone)));
     }
+    // A valid large HAL buffer spans packet and ring boundaries. Both readers
+    // get identical stereo data; neither consumes the other's history.
+    assert(PLANKMicMaxIO >= 6144);
+    static float large[PLANKMicMaxIO * PLANKMicChannels], largeRead[PLANKMicMaxIO * PLANKMicChannels];
+    UInt64 largeFrame = 1000 * PLANKMicPacketFrames + PLANKMicFrames - 17;
+    for (unsigned i = 0; i < PLANKMicMaxIO; ++i) {
+        large[2*i] = (float)(i % 127) / 128;
+        large[2*i+1] = -large[2*i];
+    }
+    assert(PLANKMicBufferWrite(&micBuffer, largeFrame, large, PLANKMicMaxIO));
+    cycle.mInputTime.mSampleTime = (double)largeFrame;
+    for (unsigned reader = 10; reader <= 20; reader += 10) {
+        assert(!boundaryIO(DRIVER, MicDevice, reader, kAudioServerPlugInIOOperationReadInput, PLANKMicMaxIO, &cycle));
+        assert(!performIO(DRIVER, MicDevice, MicStream, reader, kAudioServerPlugInIOOperationReadInput,
+                          PLANKMicMaxIO, &cycle, largeRead, NULL));
+        assert(!memcmp(large, largeRead, sizeof(large)));
+    }
+    cycle.mInputTime.mSampleTime += PLANKMicMaxIO;
     // Underflow and invalid timestamps return silence, never stale audio.
-    cycle.mInputTime.mSampleTime += MicPeriod;
+    cycle.mInputTime.mSampleTime += PLANKMicPacketFrames;
     assert(!performIO(DRIVER, MicDevice, MicStream, 10, kAudioServerPlugInIOOperationReadInput,
-                      MicPeriod, &cycle, received, NULL));
-    for (unsigned i = 0; i < MicPeriod * PLANKMicChannels; i++) assert(received[i] == 0);
+                      PLANKMicPacketFrames, &cycle, received, NULL));
+    for (unsigned i = 0; i < PLANKMicPacketFrames * PLANKMicChannels; i++) assert(received[i] == 0);
     cycle.mInputTime.mSampleTime = NAN;
     assert(!performIO(DRIVER, MicDevice, MicStream, 10, kAudioServerPlugInIOOperationReadInput,
-                      MicPeriod, &cycle, received, NULL));
-    for (unsigned i = 0; i < MicPeriod * PLANKMicChannels; i++) assert(received[i] == 0);
+                      PLANKMicPacketFrames, &cycle, received, NULL));
+    for (unsigned i = 0; i < PLANKMicPacketFrames * PLANKMicChannels; i++) assert(received[i] == 0);
     assert(performIO(DRIVER, MicDevice, MicStream, 10, kAudioServerPlugInIOOperationReadInput,
                      PLANKMicMaxIO + 1, &cycle, received, NULL));
     assert(!stopIO(DRIVER, MicDevice, 10) && atomic_load(&running) == 1);
@@ -126,8 +166,8 @@ int main(void) {
     assert(!timestamp(DRIVER, MicDevice, 10, &after, &time, &laterSeed) && laterSeed != seed);
     cycle.mInputTime.mSampleTime = 0;
     assert(!performIO(DRIVER, MicDevice, MicStream, 10, kAudioServerPlugInIOOperationReadInput,
-                      MicPeriod, &cycle, received, NULL));
-    for (unsigned i = 0; i < MicPeriod * PLANKMicChannels; i++) assert(received[i] == 0);
+                      PLANKMicPacketFrames, &cycle, received, NULL));
+    for (unsigned i = 0; i < PLANKMicPacketFrames * PLANKMicChannels; i++) assert(received[i] == 0);
     assert(!removeClient(DRIVER, MicDevice, &first) && !atomic_load(&running));
     puts("microphone_driver=pass blocks=1000 readers=2 properties=1 lifecycle=1 clock=1 silence=1");
 }

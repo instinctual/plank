@@ -6,6 +6,7 @@
 #include <CoreAudio/CoreAudio.h>
 #include <CoreFoundation/CFPlugInCOM.h>
 #include <mach/mach_time.h>
+#include "driver-clock.h"
 #include <pthread.h>
 #include <limits.h>
 #include "output-format.h"
@@ -14,7 +15,7 @@
 #include <math.h>
 #include <string.h>
 
-enum { OutputDevice = 2, OutputStream = 3, OutputVolume = 4, OutputMute = 5, OutputPeriod = 480, OutputMaxClients = 64 };
+enum { OutputDevice = 2, OutputStream = 3, OutputVolume = 4, OutputMute = 5, OutputMaxClients = 64 };
 static const AudioStreamBasicDescription outputFormat = {
     .mSampleRate = PLANKOutputRate, .mFormatID = kAudioFormatLinearPCM,
     .mFormatFlags = kAudioFormatFlagsNativeFloatPacked,
@@ -306,7 +307,7 @@ static OSStatus get(AudioServerPlugInDriverRef driver, AudioObjectID object, pid
         case kAudioDevicePropertyDeviceIsRunning: value = atomic_load(&running) != 0; break;
         case kAudioDevicePropertyDeviceCanBeDefaultDevice: case kAudioDevicePropertyDeviceCanBeDefaultSystemDevice:
             value = address->mScope == kAudioObjectPropertyScopeOutput; break;
-        case kAudioDevicePropertyZeroTimeStampPeriod: value = OutputPeriod; break;
+        case kAudioDevicePropertyZeroTimeStampPeriod: value = PLANKAudioZeroTimeStampPeriod; break;
         case kAudioDevicePropertyNominalSampleRate: {
             Float64 rate = PLANKOutputRate; memcpy(data, &rate, sizeof(rate)); return noErr;
         }
@@ -422,8 +423,8 @@ static OSStatus timestamp(AudioServerPlugInDriverRef driver, AudioObjectID devic
     if (driver != DRIVER || device != OutputDevice || !sample || !time || !seed || !host)
         return kAudioHardwareIllegalOperationError;
     UInt64 base = atomic_load(&anchor), now = mach_absolute_time();
-    double periods = floor((double)(now - base) / (ticksPerFrame * OutputPeriod));
-    *sample = periods * OutputPeriod;
+    double periods = floor((double)(now - base) / (ticksPerFrame * PLANKAudioZeroTimeStampPeriod));
+    *sample = periods * PLANKAudioZeroTimeStampPeriod;
     *time = base + (UInt64)(*sample * ticksPerFrame);
     *seed = atomic_load(&clockSeed);
     return noErr;
