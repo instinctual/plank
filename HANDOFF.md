@@ -9,15 +9,19 @@ candidate versions must include `-session-indicator`. Main and the unrelated
 primary RK3576 worktree are untouched. No merge to main, deployment or Release.
 Changes are committed locally, not pushed.
 
-Implementation checkpoint: root `67f2837b0a3e53223276f3b3f25f24c9c9bfe1ba`,
+Username implementation checkpoint: root `67f2837b0a3e53223276f3b3f25f24c9c9bfe1ba`,
 Client `417ac6bcf9427d8364a4c0613159ee32cae2b1c9`, Linux Host
-`aabaf34c171a7620b7467883e6f4948a3f2659b0`. Later handoff-only commits do not
-change these tested components. Dependency commits must be pushed before root.
+`aabaf34c171a7620b7467883e6f4948a3f2659b0`. Issue16's follow-up advances Client
+to `b3b6bcada422728cb09e2a0ce583919ce2788ee7` for the Match Host label and its
+regression tests. Dependency commits must be pushed before root.
 
 Integrates root PR13 (5830df9), Client PR8 (2bd72178) and Linux Host PR10
 (8f49a7c1), with the targeted repairs in
 [the plan](docs/development/plans/session-indicator.plan).
 Also implements issue17's administrator-opt-in remembered sign-in username.
+Issue16 renames Physical displays to Match Host in bookmark creation and editing;
+the headless-host hint uses the same name. Saved layout values, option indices,
+protocol and display behavior are unchanged. macOS layout choices are unchanged.
 The newer native camera, stereo microphone, feature negotiation and Mac virtual
 audio clock work remains in the ancestry, not replaced by the older PR pins.
 
@@ -69,6 +73,10 @@ Passed:
   names, no tokens, address edits, stale authentication destinations and cleanup
   of primary/orphaned backup entries. These tests are included in the existing
   Linux Client build gates. No end-to-end Host login was performed for this option.
+- Issue16 at Client `b3b6bcad`: Ubuntu Qt6.10.2 hostchoices suite passes all five
+  cases, including the actual create/edit layout dropdowns for both Linux
+  capture sources and macOS. Both full QML files pass qmlformat syntax checks.
+  No package build or installed visual acceptance was performed for this rename.
 
 The earlier occupancy Mac and Ubuntu component tests used clean worktrees at
 root `b0ec487` and Client `d990292e`. Subsequent Linux pending occupancy has its

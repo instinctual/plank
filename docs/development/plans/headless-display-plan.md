@@ -143,9 +143,10 @@ cannot silently change the active input/video mapping.
 
 The former `Use the host's configured layout` bookmark policy is removed. It
 made a bookmark depend on whichever topology happened to be active on the host
-and provided no deterministic deployment behavior. `Physical displays`
-remains an explicit choice for workstations that should use real attached host
-monitors.
+and provided no deterministic deployment behavior. `Match Host` (formerly
+`Physical displays`) remains an explicit choice for workstations that should use
+real attached host monitors. This label change leaves the stored and wire
+`physical` layout value unchanged.
 
 ### 3. Session lifecycle
 
