@@ -18,7 +18,7 @@ configuration='/private/etc/plank'
 configuration_resources="$(/usr/bin/dirname "${BASH_SOURCE[0]}")"
 configure_host() {
     "$configuration_resources/plank-configure" "host-$1" "$configuration" "$state" \
-        "$configuration_resources/host.conf.example"
+        "$configuration_resources/host.conf.example" || fail 'Host configuration validation failed'
 }
 logs='/Library/Logs/PLANK'
 machine=la.instinctual.PLANK.Host.machine

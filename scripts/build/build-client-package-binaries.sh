@@ -1391,7 +1391,7 @@ for required_display_policy_token in \
   'displayPolicyKnown' \
   'allowedLayoutKinds' \
   'TemporaryPhysicalLayoutFeature' \
-  'This headless workstation does not provide physical displays.' \
+  'Match Host requires physical displays attached to the workstation.' \
   'This workstation does not support the display layout selected by the bookmark.'; do
   rg -Fq "$required_display_policy_token" "$source_dir/app" || {
     echo "host display-policy invariant is missing: ${required_display_policy_token}" >&2

@@ -57,6 +57,15 @@ reject missing_job system/example 'Could not find service "unrelated"'
 reject missing_job system/example 'Operation not permitted'
 reject preflight /Volumes/Other
 
+# A native helper error must terminate validation even when the caller tests
+# its status with `if` (which disables Bash errexit throughout nested calls).
+(
+    configuration_resources='/nonexistent-plank-package-test'
+    present() { return 1; }
+    reject check_configuration
+)
+ok
+
 # Test actual job_state failure handling; never invoke launchctl.
 (
     launchctl_cmd() { echo 'Operation not permitted'; return 1; }

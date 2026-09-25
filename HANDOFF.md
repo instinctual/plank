@@ -12,6 +12,15 @@ and protected macOS signing; publish only the feature branches needed by CI.
 No deployment, main merge, GitHub Release or hardware acceptance is authorized
 by this build request.
 
+The first hosted candidate pass stopped at two preflight gates before packaging:
+the Linux Client text gate still expected the old Physical displays hint, and
+the macOS root filesystem fixture exposed a helper-status propagation issue.
+The native helper rejected unsafe config permissions, but a shell caller in a
+conditional context could lose that status. Explicit fail-closed propagation
+and a portable regression test now cover this; the native root fixture must
+pass in the rebuilt candidates. Superseded runs: `36104286424`, `36104286273`,
+`36104288898`. Do not install artifacts from these runs.
+
 Issue12 implementation checkpoints: root `00682c9b` and `6893445f`. macOS Host
 now reads only `/etc/plank/host.conf`; workstation UUID is identity-only state in
 Application Support, separate from TLS keys. The installer converts the prior
