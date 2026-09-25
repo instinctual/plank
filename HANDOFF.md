@@ -14,11 +14,11 @@ Its original runtime base was `af71d2b404486a9846bca464ddd646b5ab9c738a`.
 The separate main/startup-fix and RK3576 work remain untouched. No merge, tag or
 GitHub Release is authorized. Candidate version is **1.1.014-native-media-investigation** (HAL clock-period correction).
 
-Host 1.1.013 source is `8aeca421d6bed09f1ad6c45aa5f7d2b98e071ce3`.
-It explicitly clocks the capture aggregate from PLANK Output and adds bounded
-source/clock/queue gap diagnostics. It retains the 500ms observer and 1-second
+Host1.1.014 package source is `c12f325fb5df8fdc21549cca97de5670ee71c282`.
+It corrects both HAL driver clock periods while retaining PLANK Output as the
+explicit aggregate clock, the500ms background session observer and one-second
 maximum observation age. Client changes are release notes only; installed
-Client 1.1.010 remains compatible. The next Host uses the corrected HAL drivers. Current inputs:
+Client1.1.010 remains compatible. Current inputs:
 
 | Input | Commit |
 | --- | --- |
@@ -33,9 +33,9 @@ SDK27 ASan/UBSan tests pass for both driver clocks, multi-reader/restart behavio
 bounded stereo history and output tap/routing/XPC. The100000-block tap ring,
 one-million-frame microphone history and full microphone component build pass.
 The offline production Opus fixture passes12216 checks for each synthetic tone.
-Candidate publication is in progress. Package manifests retain per-product source provenance;
+Root and Client source are pushed; Host1.1.014 is signed, collected and staged. Package manifests retain per-product source provenance;
 never relabel a signed package or rebuild different bytes into an existing catalog
-entry. Temporary signing permission was removed after Host 1.1.013 completed;
+entry. Temporary signing permission was removed after Host1.1.014 completed;
 main-only policy is verified. No signing credentials were read, changed or committed.
 
 ## Active audio regression
@@ -57,11 +57,16 @@ investigation to the live Mac path but does not independently prove its cause.
 A confirmed SDK contract violation exists in both virtual HAL drivers: the live
 Output device advertises480 frames for `kAudioDevicePropertyZeroTimeStampPeriod`,
 while SDK27's `AudioServerPlugIn.h` requires at least10923. The driver correction
-uses15840 frames to match the measured built-in output, separates microphone IPC's unchanged480-frame packets and
-permits bounded HAL reads through the8192-frame sample history. Component
-qualification passes; a fresh Host candidate is in progress; no installed fix is claimed. The
-built-in output reports a512-frame IO buffer and15–4096 supported range; both
-installed PLANK devices report180 frames and15–180 range. All run at48kHz.
+uses15840 frames to match the measured built-in output. It keeps microphone IPC
+at480-frame packets and permits bounded HAL reads through the8192-frame history. Component
+qualification passes; no installed fix is claimed. The built-in output reports a512-frame IO buffer and15–4096 supported range; both
+installed PLANK devices report180 frames and15–180 range. All use the same48kHz
+stereo Float32 interleaved format. The built-in output explicitly uses simple IIR
+clock smoothing and a stable clock; PLANK inherits those SDK defaults. Physical
+output latency60 and safety offset48 frames must not be copied into the virtual
+sink. Clock-domain identifiers must not falsely claim shared hardware timing.
+After installation, inspect the actual IO buffer selection; the working built-in
+baseline is512 frames. No buffer-size setter or physical routing change was added.
 
 Earlier source-gap traces were contaminated by Host stack sampling: the bursts
 of299/336 irregular source timestamps coincide exactly with profiler windows.
@@ -77,7 +82,10 @@ bounded capture diagnostics. Its installed benefit is unproven. Host1.1.012's
 separate500ms background ownership observer remains:457 lifecycle checks pass,
 with one-second freshness and immediate user-switch/sleep revocation. Previous
 samples exposed synchronous account queries on the media queue; that contention
-was removed. Profiled dropout/overrun counts cannot quantify the original fault.
+was removed. Keep this scheduling change: it prevents slow OS queries from
+blocking media/input. The500ms interval reduces scheduled queries from50 to2 per
+second; it is not proven to have cured the distortion. Profiled dropout/overrun
+counts cannot quantify the original fault.
 
 ## Implemented behavior
 
@@ -136,6 +144,18 @@ Core Audio. Current active sessions must be preserved during staging.
 
 ## Packages and validation
 
+Host1.1.014 is collected at
+`artifacts/packages/candidates/1.1.014-native-media-investigation/macos/plank-host_1.1.014-native-media-investigation_arm64.pkg`.
+SHA-256: `e785833fceafa737d7249edf6991a68ae3272d8f08f2f976c26ecd0dd3ba9f00`.
+Signed [Host run36076189576](https://github.com/instinctual/plank/actions/runs/36076189576)
+passes the full build, tests, signing, notarization and package gates at
+root`c12f325fb5df8fdc21549cca97de5670ee71c282`, with the current gitlinks above.
+The Host test target's Downloads copy passes transfer hash, package signature,
+Gatekeeper, exact version, RecommendRestart and all four component signatures.
+It remains uninstalled. Temporary branch signing permission is removed and
+main-only policy verified. No credentials were read or changed. The active
+session was preserved; driver reload requires operator installation/reboot.
+
 The Host 1.1.013 package is collected at
 `artifacts/packages/candidates/1.1.013-native-media-investigation/macos/plank-host_1.1.013-native-media-investigation_arm64.pkg`.
 SHA-256: `6c9595a0db9ecaad2c8b239e5d65bcfb34566f60f20aa2d3f4786884e2a24108`.
@@ -146,33 +166,16 @@ Downloads copy passes transfer hash, package signature, Gatekeeper, version,
 RecommendRestart and all four component signature checks. The operator installed it and rebooted; the running executable matches the
 signed package. Distortion remains under the controlled tone test above.
 
-The preceding Host 1.1.012 package is collected at
-`artifacts/packages/candidates/1.1.012-native-media-investigation/macos/plank-host_1.1.012-native-media-investigation_arm64.pkg`.
-SHA-256: `187053e123263fbcefc843d9f335b15c33b81a18529c79a02a159804c6ab7d7a`.
-Its source is root `177061ffda5012a30d33a89fcb27f051f1bc0a26`,
-Client `72c6267ce7bec8788a1256382841ecbe54a75262`, signed run36067300678.
-The test target's Downloads copy passes transfer hash, package signature,
-Gatekeeper, version, RecommendRestart and all four payload component signature
-checks. The operator installed it and rebooted the Host; its installed Host
-binary matches the signed package. Residual crackling cleared only after the
-operator subsequently rebooted the Client. The agent did not restart services
-or change forwarding configuration.
-
-Host1.1.011 is collected at
-`artifacts/packages/candidates/1.1.011-native-media-investigation/macos/plank-host_1.1.011-native-media-investigation_arm64.pkg`.
-SHA-256: `4188d0b4bf9f4b33928af7f0115f0f3d04c89e3cdd0a9ce20c8a2f48173114a4`.
-Its source is root `b7c2b6fb57b5ab4d6233ba4554c1efb5e92b60b0`,
-Client `b5423392b312200a9ef4cac2da63d547338733f2`, signed run36066019394. The
-Downloads copy passes transfer hash, package signature, Gatekeeper, version,
-RecommendRestart and all four payload component signature checks. No install,
-reboot or CoreAudio/service restart occurred. Client1.1.010 is compatible.
+Previous Host1.1.011/012 artifact provenance remains in the immutable package
+catalog. These packages are superseded by the installed1.1.013 baseline and
+staged candidate described here.
 
 Signed [Host run36061559638](https://github.com/instinctual/plank/actions/runs/36061559638)
 and [Client run36061563286](https://github.com/instinctual/plank/actions/runs/36061563286)
 pass the full builds, tests, signing, notarization and package gates.
 [Corrected run36062636492](https://github.com/instinctual/plank/actions/runs/36062636492)
 passes all four product jobs, including Linux Host. The table below retains
-the previously staged1.1.010 packages, separately from the1.1.011 Host above.
+the1.1.010 packages, including the currently installed Ubuntu Client.
 Mac 1.1.010 source is `f006f95cb85e0bb9a3a13bdca74914f6d110cb44`;
 Ubuntu 1.1.010 source is `2b09aba2bc8a34262e1e0d366917e5c54d5772a1` (tests-only
 difference), both with Client `9921712feca1346fe627e6c650c0ac646b7df4c4`.
@@ -233,7 +236,7 @@ and Zoom capture. One simultaneous native-first/pixel-second run delivered only
 repeating that installed test. Other application formats may inherit an existing
 pixel stream; automatic output does not guarantee native coded delivery.
 
-Next: validate and stage Host1.1.014 with the HAL clock-period correction.
+Next: the verified Host1.1.014 is in the test target's Downloads.
 Keep the active diagnostic session until the operator chooses to install/reboot.
 Then verify loaded driver clock properties, repeat the quiet synthetic tone and
 website camera permission/start/stop trigger, and compare aggregate signal/timing
