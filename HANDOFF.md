@@ -17,9 +17,17 @@ gate before notarization: the uninstaller's inline Directory Services account
 lookup resembled a home-directory path. This was a script-literal false positive,
 not a private build path. Separating the account lookup resolves it without
 weakening the scanner. The early uninstall fixture and build-path suite now
-exercise that shipped script. Retry only the signed Client; Host code is unchanged.
+exercise that shipped script. Signed Client retry `36178693716` uses root
+`0a7e10397fc5e5c89aa4ce2a8a63814862e26f06`; Host code and all dependency pins
+are unchanged by that Client-only packaging correction. The retry passed full
+build/tests, payload path/target checks, offscreen launch/version, signing,
+notarization/stapling, Gatekeeper and signing cleanup. Its PKG is collected;
+the redundant generated DMG wrapper was not copied into the canonical catalog.
+Both signed jobs restored and verified exact dependency caches.
 Automatic four-product run `36177430110` passed Ubuntu and both unsigned Macs;
-Linux Host was still running at this checkpoint.
+its remaining Linux Host job was superseded/cancelled by the correction push.
+Replacement automatic run `36178693950` passed Ubuntu and both unsigned Mac
+jobs; Linux Host is still in progress. Do not claim all-platform completion.
 Privacy `36177429921` and clipboard `36177430038` passed.
 Local CI policy/cache/signing fixtures62,
 permission timing9, keyboard guards5, build-path10, portable Host uninstall24,
@@ -29,6 +37,15 @@ dedicated-Mac results below and hosted reruns are separate.
 Client implementation is committed and pushed at
 `c684014752b511de489d6406e8bafb005bef5123`; other dependency pins are unchanged.
 The primary worktree's unrelated RK3576 changes must remain untouched.
+
+The operator likes the installed 1.1.019 Host setup window. Their screenshot
+confirms the aligned layout and green verified permission/device rows, but they
+questioned System Audio's **Check in Settings** despite its OS switch being on.
+That row deliberately does not infer audio consent from an empty tap starting.
+It is an unverified status, not denial. No follow-up UI change has been made;
+discuss a reliable audio-only permission query or clearer **Not verified** text
+before displaying an unsupported green Allowed status. Installed Client visual
+acceptance and actual uninstall/purge tests remain outstanding.
 
 ## Previous icon checkpoint
 
@@ -101,7 +118,7 @@ with warnings-as-errors, permission/package9 and Host timing4. These are isolate
 fixtures, not a real uninstall: no installed app, service, extension, permission
 or active session was changed. Live signed-app deactivation/approval remains an
 installed test gate. The existing 1.1.018 packages do **not** contain this follow-up;
-it is included in the 1.1.019 source candidate, not yet packaged or merged.
+it is included in the signed 1.1.019 Host candidate, not merged.
 
 ## 1.1.019: Client uninstall
 
@@ -123,8 +140,8 @@ read-only path test is now a Client build gate. The new fixture uses the same
 configuration/installer tests pass, including the PKG roundtrip which verifies
 the embedded executable script. Signing occurs after embedding the script.
 No installed Client, actual user data or privacy permissions were changed.
-Both uninstall follow-ups are absent from the existing1.1.018 packages;
-a new signed build and installed acceptance remain.
+Both uninstall follow-ups are included in the signed1.1.019 candidates;
+installed uninstall acceptance remains.
 
 ## 1.1.019: permission status UI
 
@@ -156,9 +173,9 @@ Host view geometry was checked with synthetic data. Actual Apple permission dial
 and installed visual acceptance remain untested. Existing uninstall/configuration
 fixtures pass; no installed app, service, permission, capture or session changed.
 
-All three follow-ups are included in the 1.1.019 source candidate, not in1.1.018
-installers. Next: finish the signed hosted builds and test the setup window and
-Client panel in installed applications. Do not relabel
+All three follow-ups are included in the signed 1.1.019 candidates, not in1.1.018
+installers. Next: finish installed acceptance and clarify the audio status above.
+Do not relabel
 existing packages or claim a full application/package build from component tests.
 
 ## Previous mainline integration
@@ -278,7 +295,13 @@ Client pin `c684014752b511de489d6406e8bafb005bef5123`, other pins unchanged.
 Package: `1.1.019-macos-app-icons/macos/plank-host_1.1.019-macos-app-icons_arm64.pkg`.
 SHA-256: `366eb7cdd59e36dbb362c8753456a046cc9c93a850be335b6145fd8b60ddabc9`
 (6,990,659 bytes). SDK27, macOS27 minimum. No installation performed.
-The signed Client retry is pending; do not use the failed package attempt.
+Client from root `0a7e10397fc5e5c89aa4ce2a8a63814862e26f06`, with the same
+dependency pins and a Client-uninstaller-only packaging correction:
+`1.1.019-macos-app-icons/macos/plank-client_1.1.019-macos-app-icons_arm64.pkg`.
+SHA-256: `900cde876ee9e820451cf53bdb53dd4b081c99313996693db65e8489a0fa4c64`
+(72,861,320 bytes). SDK27, macOS15 minimum. Both collected checksums verify.
+No automatic installation or Release. The failed first Client attempt is not
+an available installer; the catalog contains only the successful retry.
 
 ### 1.1.018-macos-app-icons
 
@@ -327,8 +350,9 @@ or streaming acceptance from package/signature gates.
 
 ## Next gates
 
-1. Complete the signed 1.1.019 Host and Client candidates, then verify the installed
-   permission/status UI and icons. Camera deactivation and Client uninstall/purge
+1. Check the remaining automatic Linux Host job in run36178693950. Complete
+   installed Client permission/status UI acceptance and clarify Host System Audio
+   status as above. Camera deactivation and Client uninstall/purge
    require separate operator-supervised tests; component fixtures did not remove
    installed apps or user data. No cache resets or app modifications are automatic.
 2. Test fresh/upgrade configuration on an authorized Mac: generated-name
