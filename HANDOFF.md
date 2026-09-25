@@ -22,9 +22,24 @@ Existing screen/input and camera-extension requests stay in Host setup.
 See [the audit and OS-controlled exceptions](docs/user/permissions.md). A new
 Host account that has not run setup may still encounter Apple's first-use audio
 consent during a session; no synthetic approval or TCC bypass is introduced.
-Portable gates pass; native compilation and fake-API lifecycle tests are next.
+Implementation is locally committed at root `8f8f9009`/`a141c2d1`, Client
+`9568b28a92c8b5b3f4dbce1c62c5fc49a407d718`; not pushed yet. SDK27 validation
+on a clean verified-bundle worktree passes: actual Client main/raw-Wacom/mic
+objects; Host entry/setup syntax with warnings as errors; fake Core Audio
+partial-failure/reverse-cleanup lifecycle; fake AVFoundation grant/deny/existing
+decision callbacks; real microphone worker with SDL dummy capture and denied/
+undetermined consent. Existing keyboard capture27 and raw-Wacom11 Qt cases pass.
+Eight timing guards, five keyboard wiring checks and all nine native Host
+permission/package-metadata tests pass. The native tests never request actual
+TCC consent, record audio, open a tablet or install a product. Component tests
+ran on macOS27 using retained development libraries, not qualified distributable
+macOS15 dependencies. Neither final package linking nor live consent UI is proven.
 No 1.1.016 package exists yet; the completed 1.1.015 packages below do not contain
 this follow-up. No live permission reset or installed app change was performed.
+Next for this follow-up: build signed 1.1.016 candidates with the hosted inputs,
+then verify fresh allow/deny startup, reconnect without prompts, tablet attached
+before launch, and Host empty-tap consent with an operator present. Do not reset
+existing TCC grants merely to manufacture a fresh test without approval.
 
 ## Candidate builds
 

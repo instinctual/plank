@@ -138,6 +138,14 @@ installed machine. Signing CI already provisions both Developer ID identities.
 
 ## Known failure signatures
 
+- Optional media permission requests belong to the ordinary launcher, not
+  session constructors: microphone consent completes asynchronously before the
+  bookmark UI is created; attached USB Wacom Input Monitoring is requested there
+  without opening devices. CLI autoconnect and toolbar toggles query grants
+  only. See [permission timing](../../user/permissions.md), including denial,
+  hot-plug and OS-controlled exceptions. `macos-microphone-permission.mm` uses
+  fake AVFoundation authorization and `client-microphone` uses SDL dummy input;
+  neither native build test may request real TCC consent or open hardware.
 - macOS system shortcuts require the Client's Accessibility authorization when
   Capture system keyboard shortcuts is enabled. The session-scoped public
   Core Graphics modifying tap queues keyboard input for the existing input
