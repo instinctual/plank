@@ -2,14 +2,15 @@
 
 ## Current task and source
 
-The operator authorized committing, pushing and merging
-`native-media-investigation` into `main`, including its Client dependency.
+The operator-authorized integration of `native-media-investigation` into `main`
+is committed and pushed, including its Client dependency. Root main reached
+`2a0701d92c4412f25807c517943bf01cdc9ed566`; Client main reached the commit below.
 The tested feature worktree is `build/worktrees/native-media-investigation`;
 main integration uses the existing clean main worktree. Preserve the separate
 RK3576 work. See [the implementation plan](docs/development/plans/native-media-forwarding.plan).
 
-Both main branches are ancestors of the tested feature tips, permitting
-fast-forward integration without conflict resolution. The root's previous main
+Both main branches fast-forwarded to the tested feature tips without conflict
+resolution, with the Client pushed first. The root's previous main
 is `acb29884bff626c9381169fd94563ec79555984c`; the Client's previous main is
 `cc511584c41c337569a1efd559a7c3362283d9cc`. Root feature `3bef4f6d6407ab0d8cb978896527f9e2db7533db`
 passes all four product jobs in [run36078190861](https://github.com/instinctual/plank/actions/runs/36078190861),
@@ -110,8 +111,14 @@ Two simultaneous Mac application readers pass delivery checks for12 and8 seconds
 576000 and384000 frames,48kHz stereo, no invalid or over-full-scale samples.
 Both runs receive identical left/right samples. This proves concurrent delivery
 in stereo format, not independent stereo source preservation; the active physical
-source was not verified. Physical left/right source tests are deferred until the
-operator can access the office Client. All readers exited and no media was saved.
+source was not verified. All readers exited and no media was saved.
+
+On 2026-09-24, the operator tested a physical stereo-microphone webcam with the
+home Ubuntu Client and confirmed distinct left/right channels. This closes the
+audible channel-distinctness check for that setup. The report does not specify
+the webcam model, Host or installed versions; it is operator confirmation,
+not an instrumented channel-mapping or crosstalk measurement. It does not change
+the earlier concurrent-reader measurements or qualify camera/microphone lip sync.
 
 ## Implemented behavior
 
@@ -272,7 +279,8 @@ checks are complete; all probes exited. Next: continue recurrence testing during
 permission/start/stop trigger with playback; do not use Host stack sampling.
 Then qualify:
 
-1. Manual default and mute/reopen, physical channel separation and cleanup.
+1. Manual default, mute/reopen and cleanup; controlled channel identity/crosstalk.
+   Distinct stereo channels are operator-confirmed on the home setup above.
 2. Native-first/pixel-second and reverse-order concurrent readers for sustained delivery.
 3. Combined camera/microphone lip sync, timestamp mapping through load/loss, unplug/reopen
    and reconnect; native payload preservation remains required.

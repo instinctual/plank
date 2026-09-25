@@ -1,7 +1,8 @@
 # Native camera forwarding and stereo microphone implementation
 
 The operator approved proceeding through implementation and testing, stopping
-only when operator input is required. Work stays on `native-media-investigation`.
+only when operator input is required. Implementation from
+`native-media-investigation` and its Client dependency is merged into `main`.
 The measured baseline is recorded in ../investigations/native-media-forwarding.md.
 
 ## Agreed behavior
@@ -54,5 +55,9 @@ Opus and rendered stereo samples onto the Host camera presentation clock. See
 ../../../protocol/microphone.md for timing limits and fallback semantics.
 Synthetic clock/queue, encrypted transport, SDK27 camera lifecycle and Ubuntu
 capture tests pass. The live source timing probe passes without storing audio.
-Installed simultaneous readers, physical channel separation and measured camera/
-microphone sync under load remain explicit hardware gates.
+Installed simultaneous microphone readers pass stereo-format delivery checks.
+On 2026-09-24, the operator confirmed distinct channels from a physical stereo
+webcam microphone on the home Ubuntu Client. This qualifies audible channel
+distinctness for that setup; controlled channel identity/crosstalk is unmeasured.
+Sustained simultaneous native/pixel camera readers and measured camera/microphone
+sync under load remain explicit hardware gates. See HANDOFF for evidence scope.
