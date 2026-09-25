@@ -5,6 +5,11 @@
 The operator-authorized integration of `native-media-investigation` into `main`
 is committed and pushed, including its Client dependency. Root main reached
 `2a0701d92c4412f25807c517943bf01cdc9ed566`; Client main reached the commit below.
+Stereo validation is recorded in root `b9b1036bb5dff2915483c565f070332b2b8151f0`:
+the operator confirms distinct physical webcam microphone channels on the home
+Client. The implementation is saved; remaining work is the installed hardware
+qualification listed below. No further implementation change follows from that
+confirmation.
 The tested feature worktree is `build/worktrees/native-media-investigation`;
 main integration uses the existing clean main worktree. Preserve the separate
 RK3576 work. See [the implementation plan](docs/development/plans/native-media-forwarding.plan).
@@ -254,14 +259,15 @@ this probe and synthetic clock tests do not establish physical lip sync.
 
 ## Installed baseline and next test
 
-The operator uses the authorized development Ubuntu Client with the authorized
-office Mac Host test target. Build Mac components/probes only on the dedicated
+The last instrumented baseline uses the authorized development Ubuntu Client
+with the authorized office Mac Host test target. The newer home stereo report
+does not identify its Host or package versions. Build Mac components/probes only on the dedicated
 SDK27 development Mac or authorized hosted workers. The office Mac is test-only.
 Machine addresses, accounts, deployment details and reports remain in private
 notes outside Git; read their local README before machine work.
 
-Host1.1.014's four installed components match its signed package. The active
-Ubuntu Client reports 1.1.010. Host 1.1.009's working output routing is retained;
+Host1.1.014's four installed components match its signed package. At that check,
+the Ubuntu Client reported 1.1.010. Host 1.1.009's working output routing is retained;
 initial audio recovery and remaining validation are described above.
 The separate Mac Client1.1.005 display-mode fallback was installed and its
 connection succeeded; do not restore the fatal missing-native-flag check.
