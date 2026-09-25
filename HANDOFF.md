@@ -10,12 +10,24 @@ unchanged in `branding/assets/plank-{host,client}-macos.png`: open landscape
 for Host, monitor-framed landscape for Client. The original artwork/PXD and
 Linux icons are unchanged. No media, authentication, input or protocol changes.
 
+Implementation checkpoint: root `d8f9372fe88464e4efb322b967c8a2dd44a87622`,
+Client `944cf2b0ff32a7ca5c318d38eaaa3ecc0317f2a0` (changelog only).
+Linux Host, common-C, qmdnsengine and Kymux pins remain as listed below.
 Source version is **1.1.018**. The Client base build now generates its ICNS
 before either development or distribution packaging; Host selects its own
 artwork. The native converter adds no new padding or circular mask. See
-`docs/user/branding.md` for sources and generation brief. Portable icon6,
-development-installer17 and Client-target5 tests pass; native icon tests are
-pending. No new installer, deployment, push, merge or Release for this change.
+`docs/user/branding.md` for sources and generation brief.
+
+Native SDK27 validation passed from a clean verified-bundle worktree: all9 icon
+tests (approved-source hashes, product selection, ten representations per icon,
+ICNS compile/extract roundtrip and controlled conversion failures), all17
+development-installer cases, all9 permission/package fixtures and all6
+Client-target cases. These compile and check real icon assets and isolated
+synthetic bundles, not the full applications. No GUI or installed app was
+started, and no active session, permission or service was changed.
+Portable build-path9, repository layout, release-version contract, shell syntax,
+privacy hooks and whitespace checks also pass. The source PNG/PXD and Linux
+runtime icon are unchanged. No new installer, deployment, push, merge or Release.
 The primary worktree's unrelated RK3576 work remains untouched.
 
 ## Previous mainline integration
@@ -162,8 +174,8 @@ or streaming acceptance from package/signature gates.
 
 ## Next gates
 
-1. Finish native icon conversion/roundtrip tests, then build 1.1.018 candidates
-   when requested, using the release runbook and protected hosted signing.
+1. Build 1.1.018 candidates when requested, using the release runbook and
+   protected hosted signing; push local Client then root icon commits first.
    Verify the installed Host and Client icons in Dock/Finder before claiming
    visual acceptance; no cache resets or app modifications are automatic.
 2. Test fresh/upgrade configuration on an authorized Mac: generated-name
