@@ -7,7 +7,10 @@ main `5593932d5e8bc9fea2f52292fc0a5665b5c650a0` and Client
 `b5c3a7a5ddd37e010155883054931be3010fc5a2`. Source version **1.1.015**;
 candidate versions must include `-session-indicator`. Main and the unrelated
 primary RK3576 worktree are untouched. No merge to main, deployment or Release.
-Changes are committed locally, not pushed.
+Candidate packaging for all four products is now authorized. Use hosted builders
+and protected macOS signing; publish only the feature branches needed by CI.
+No deployment, main merge, GitHub Release or hardware acceptance is authorized
+by this build request.
 
 Issue12 implementation checkpoints: root `00682c9b` and `6893445f`. macOS Host
 now reads only `/etc/plank/host.conf`; workstation UUID is identity-only state in
@@ -25,8 +28,9 @@ Username implementation checkpoint: root `67f2837b0a3e53223276f3b3f25f24c9c9bfe1
 Client `417ac6bcf9427d8364a4c0613159ee32cae2b1c9`, Linux Host
 `aabaf34c171a7620b7467883e6f4948a3f2659b0`. Issue16's Match Host label checkpoint
 is Client `b3b6bcada422728cb09e2a0ce583919ce2788ee7`. Current Client is
-`b97b4ed1623e700e23983720051def93635a817f`, including issue15's toolbar notch
-offset removal. Dependency commits must be pushed before root.
+`4038bddc` (changelog update after `b97b4ed1623e700e23983720051def93635a817f`),
+including issue15's toolbar notch offset removal. Dependency commits must be
+pushed before root.
 
 Integrates root PR13 (5830df9), Client PR8 (2bd72178) and Linux Host PR10
 (8f49a7c1), with the targeted repairs in
@@ -118,10 +122,10 @@ own passing production-owner test at `b2e809b`. Username tests use the newer
 root/Client checkpoint above; macOS-specific username UI acceptance is pending.
 No live workstation, installed package or active session has been modified.
 
-Known unrelated baseline gate: `tests/packaging/test-host-supervisor-package.sh`
-still expects an obsolete `layout_arguments(request.mode_1, request.mode_2)`
-call and old reconnect-loop spelling. Both differ already on the main commits
-above. The gate was left unchanged, not bypassed; full packaging is not claimed.
+The stale `test-host-supervisor-package.sh` source guards are now reconciled:
+the layout lambda captures validated request modes, and reconnect consults its
+bounded policy gate before requests. The complete shell gate passes, with its
+other assertions retained; no product display or reconnect code changed.
 
 Next: build signed Host/Client candidates when requested, including the new
 Client PKG and DMG; run the privileged isolated package fixture and fresh/upgrade

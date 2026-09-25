@@ -333,7 +333,13 @@ if rg -q 'reboot|systemctl_path, \{"restart", "display-manager' \
   echo 'physical display recovery retained a reboot or display-manager restart path' >&2
   exit 1
 fi
-rg -Fq 'layout_arguments(request.mode_1, request.mode_2)' \
+# The layout builder captures the already-validated request, including output
+# ordering. Keep guarding both selected modes and the actual bounded call.
+rg -Fq 'plank::topology::virtual_mode_size(request.mode_1)' \
+  "$repo_dir/apps/host/linux/src/session/host_supervisor.cpp"
+rg -Fq 'plank::topology::virtual_mode_size(request.mode_2)' \
+  "$repo_dir/apps/host/linux/src/session/host_supervisor.cpp"
+rg -Fq 'layout_arguments(),' \
   "$repo_dir/apps/host/linux/src/session/host_supervisor.cpp"
 rg -Fq '"--fb", std::to_string(canvas_width) + "x" + std::to_string(canvas_height)' \
   "$repo_dir/apps/host/linux/src/session/host_supervisor.cpp"
@@ -395,7 +401,9 @@ client_manager="$repo_dir/apps/client/app/backend/computermanager.cpp"
 client_input="$repo_dir/apps/client/app/streaming/input/input.cpp"
 client_raw_wacom="$repo_dir/apps/client/app/streaming/input/linuxrawwacom.cpp"
 rg -Fq 'PLANK transport ended' "$client_session"
-rg -Fq 'for (int attempt = 1; !m_ReconnectCancelled.load(); ++attempt)' "$client_session"
+# Reconnect now consults the bounded policy gate before every request, rather
+# than running a cancellation-only loop that can retry indefinitely.
+rg -Fq 'for (int attempt = 1; waitForPlankReconnectRequest(); ++attempt)' "$client_session"
 rg -Fq 'constexpr int RetryDelayMs = 1000' "$client_session"
 rg -Fq 'replacement worker has no app to resume' "$client_session"
 rg -Fq 'worker already has an active Desktop stream' "$client_session"
