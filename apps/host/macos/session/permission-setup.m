@@ -21,10 +21,12 @@
 @property(strong) NSTextField *audioHelp;
 @property(strong) PLANKMacAudioConsent *audio;
 @property BOOL closing, checkingCamera, activatingCamera, reconciledCamera;
+@property BOOL userPositioned, positioningWindow, positionUpdatePending;
 @property PLANKCameraStatus cameraStatus;
 - (instancetype)initWithVersion:(NSString *)version;
 - (void)refresh;
 - (void)requestPermissions;
+- (void)centerInCurrentScreen;
 @end
 
 static NSTextField *label(NSString *text, CGFloat size, BOOL bold) {
@@ -37,6 +39,12 @@ static NSTextField *label(NSString *text, CGFloat size, BOOL bold) {
 static NSPoint centeredSetupOrigin(NSSize size, NSRect visibleFrame) {
     return NSMakePoint(NSMidX(visibleFrame) - size.width / 2,
                        NSMidY(visibleFrame) - size.height / 2);
+}
+
+static BOOL setupMoveIsUserDrag(NSWindow *window, NSWindow *eventWindow,
+                               NSEventType type, NSUInteger pressedButtons) {
+    return window && eventWindow == window && (pressedButtons & 1) &&
+        (type == NSEventTypeLeftMouseDown || type == NSEventTypeLeftMouseDragged);
 }
 
 @implementation PLANKPermissionSetup
@@ -108,12 +116,49 @@ static NSPoint centeredSetupOrigin(NSSize size, NSRect visibleFrame) {
     [window.contentView layoutSubtreeIfNeeded];
     [window setContentSize:NSMakeSize(650, stack.fittingSize.height + 44)];
     // NSWindow's center method intentionally sits above the vertical midpoint.
-    // Center the final frame in the usable desktop instead, including its title
-    // bar and excluding the menu bar/Dock. Do this only on initial creation so
-    // returning from Settings does not undo the user's own window placement.
-    NSScreen *screen = NSScreen.mainScreen ?: window.screen;
-    if (screen) [window setFrameOrigin:centeredSetupOrigin(window.frame.size, screen.visibleFrame)];
+    // The installer restarts the worker before launching setup. Its virtual
+    // display can appear/resize after this first placement, so follow AppKit's
+    // display notifications until the user deliberately moves the window.
+    [NSNotificationCenter.defaultCenter addObserver:self selector:@selector(screenParametersChanged:)
+        name:NSApplicationDidChangeScreenParametersNotification object:nil];
+    [self centerInCurrentScreen];
     return self;
+}
+- (NSRect)setupVisibleFrame {
+    NSWindow *window = self.window;
+    NSScreen *screen = NSScreen.mainScreen ?: window.screen;
+    return screen ? screen.visibleFrame : NSZeroRect;
+}
+- (void)centerInCurrentScreen {
+    if (_closing || _userPositioned) return;
+    NSRect visible = [self setupVisibleFrame];
+    if (NSIsEmptyRect(visible)) return;
+    _positioningWindow = YES;
+    [self.window setFrameOrigin:centeredSetupOrigin(self.window.frame.size, visible)];
+    _positioningWindow = NO;
+}
+- (void)screenParametersChanged:(NSNotification *)notification {
+    (void)notification;
+    if (_closing || _userPositioned || _positionUpdatePending) return;
+    _positionUpdatePending = YES;
+    // Coalesce notifications and let AppKit finish updating screen geometry.
+    // No timer, polling or assumption about when the remote desktop is ready.
+    __weak typeof(self) weakSelf = self;
+    dispatch_async(dispatch_get_main_queue(), ^{
+        PLANKPermissionSetup *owner = weakSelf;
+        if (!owner) return;
+        owner.positionUpdatePending = NO;
+        [owner centerInCurrentScreen];
+    });
+}
+- (void)windowWillMove:(NSNotification *)notification {
+    NSEvent *event = NSApp.currentEvent;
+    if (notification.object == self.window && !_closing && !_positioningWindow &&
+            setupMoveIsUserDrag(self.window, event.window, event.type, NSEvent.pressedMouseButtons))
+        _userPositioned = YES;
+}
+- (void)dealloc {
+    [NSNotificationCenter.defaultCenter removeObserver:self];
 }
 - (void)addRows:(NSArray<NSArray<NSString *> *> *)specs toStack:(NSStackView *)stack {
     NSMutableArray *views = [NSMutableArray array];

@@ -1,6 +1,35 @@
 # PLANK handoff
 
-## Current checkpoint — signed1.1.021 setup UI candidates
+## Current follow-up — Host setup display-change centering
+
+The operator accepted Client1.1.021 setup, but Host setup still appeared at the
+upper left after installation. Read-only investigation found setup launched
+before the restarted worker restored the requested desktop mode. The initial
+screen size was not logged; the screenshot placement is consistent with the
+smaller interim desktop. No installed service, display or permission changed
+during diagnosis.
+
+Source version **1.1.022** on `macos-app-icons` responds to AppKit screen-change
+notifications, coalescing them on the main queue and reading fresh visible-screen
+geometry. A real mouse-initiated window move disables automatic placement.
+Programmatic/OS moves do not count as user intent. Pending updates respect both
+manual placement and closure; observers are removed on close/destruction. No
+polling, startup delay, fixed production resolution, permission or streaming
+change. Client code is unchanged; its submodule change is release notes only.
+
+Native SDK27 tests pass for initial1080p→5K restoration, coalescing, logical-point
+and negative-origin geometry, temporarily absent displays, drag discrimination,
+manual placement before a queued update, closure and existing permission states.
+ASan/UBSan and production warnings-as-errors compilation pass. Tests use synthetic
+screen inventory and hidden AppKit windows, not real display/input changes.
+Portable permission11, Host installer25, layout, version and whitespace gates pass.
+
+Next: commit/push and build/download a signed1.1.022 Host candidate for manual
+installer acceptance. Keep Client1.1.021; no Client rebuild is necessary.
+No merge, Release or deployment is requested. Cache cleanup was deferred when
+the operator redirected work back to this fix; no cache files were deleted.
+
+## Previous checkpoint — signed1.1.021 setup UI candidates
 
 Setup-layout changes are committed/pushed on `macos-app-icons`: root
 `3fd849c8950c35b464cebf333c916adf29122779`, Client
