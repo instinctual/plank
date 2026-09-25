@@ -5,6 +5,38 @@ on the Mac before its first remote session. Permission approval belongs to the
 signed app and the current macOS user. Installing a package is not permission
 approval, and PLANK does not modify the system privacy database.
 
+## Reviewing status
+
+Opening **PLANK Host** displays a single setup window, with aligned feature,
+status and action columns. Desktop permissions and optional audio/camera
+components are separate. Each explanatory sentence has its own line.
+
+- **✓ Allowed** means the OS permission query succeeded.
+- **! Required** identifies missing desktop access.
+- **✓ Loaded** means the optional audio device is present in Core Audio, not
+  that a microphone is forwarding or application audio is playing.
+- Camera status distinguishes enabled, disabled, approval pending, removal
+  pending and a failed status check. Setup still reconciles an already-enabled
+  camera extension after an upgrade; first activation remains an explicit action.
+- System audio says **Check in Settings**, not Allowed: starting the empty
+  consent tap cannot prove that audio-recording permission was granted.
+
+Statuses are read-only labels, not permission-granting checkboxes.
+Use the row's **Open Settings** or **Enable Camera** action when needed.
+Status refreshes when returning from System Settings; **Refresh** checks again
+without continuously polling. If an installed audio component is not loaded,
+restart the Mac when convenient. This window does not start a remote session.
+
+On **PLANK Client for macOS**, open **Configuration → Input Settings → Review
+permissions** for Accessibility, Microphone and Input Monitoring status. Input
+Monitoring is only requested with a supported USB Wacom attached. There is no
+extra all-ready popup at launch. Permission actions are blocked during a stream;
+normal launcher-time consent requests still happen before connecting.
+
+The Client panel is macOS-only. Linux settings and permission handling are unchanged.
+
+## Request timing
+
 | Product | Permission | When PLANK requests it |
 | --- | --- | --- |
 | macOS Client | Accessibility for system keyboard shortcuts | Ordinary app launch when shortcut capture is enabled; also when enabling it in Settings outside a session. |
@@ -24,8 +56,9 @@ session from working. Microphone forwarding is unavailable until permission is
 granted. Session creation, reconnect and toolbar toggles never call the
 microphone/Input Monitoring request APIs. Command-line autoconnect also does
 not request these permissions: provision them through the ordinary launcher.
-If a Wacom is attached for the first time after launch, reopen the Client with
-it attached to request Input Monitoring before streaming. Denied permissions
+If a Wacom is attached for the first time after launch, use **Refresh** in the
+permissions panel, then **Open Settings** for Input Monitoring before streaming,
+or reopen the Client with it attached. Denied permissions
 must be changed in System Settings; PLANK does not repeatedly prompt.
 
 ## OS-controlled prompts

@@ -18,7 +18,7 @@
 #import "host-configuration.h"
 #import "machine-identity.h"
 #import "desktop-start.h"
-#import "audio-consent.h"
+#import "permission-setup.h"
 #import <AppKit/AppKit.h>
 #include <fcntl.h>
 #include <signal.h>
@@ -31,23 +31,6 @@
 #ifndef PLANK_MACOS_HOST_VERSION
 #error Build must supply an explicit branch-qualified Host version
 #endif
-
-static void finishPermissionSetup(NSApplication *app) {
-    PLANKMacAudioConsent *audio = [PLANKMacAudioConsent new];
-    [audio startWithCompletion:^(BOOL started) {
-        if (!started) {
-            NSAlert *alert = [NSAlert new];
-            alert.messageText = @"PLANK Host system audio setup";
-            alert.informativeText = @"System audio permission setup could not start. Check PLANK Host in "
-                "System Settings → Privacy & Security → Screen & System Audio Recording, then reopen PLANK Host. "
-                "Screen and input permissions remain enabled.";
-            [alert addButtonWithTitle:@"Continue"]; [app activate]; [alert runModal];
-        }
-        PLANKMacShowCameraSetup(^{
-            [audio stopWithCompletion:^{ [app terminate:nil]; }];
-        });
-    }];
-}
 
 static int startupFailure(const char *stage) {
     fprintf(stderr, "PLANK Host startup rejected: %s\n", stage);
@@ -402,7 +385,13 @@ int main(int argc, const char **argv) {
             [app setActivationPolicy:NSApplicationActivationPolicyRegular];
             BOOL enable = !strcmp(argv[1], "--enable-camera");
             dispatch_async(dispatch_get_main_queue(), ^{
-                PLANKMacRequestCameraExtension(enable, ^(BOOL success) { (void)success; [app terminate:nil]; });
+                if (enable) {
+                    PLANKMacRequestCameraExtension(YES, ^(BOOL success) { exit(success ? 0 : 1); });
+                } else {
+                    // This is a standalone setup process, not a media worker.
+                    // Propagate completion/reboot/failure to the uninstaller.
+                    PLANKMacRemoveCameraExtension(^(PLANKCameraRemovalResult result) { exit((int)result); });
+                }
             });
             [app run]; return 0;
         }
@@ -410,40 +399,7 @@ int main(int argc, const char **argv) {
             NSApplication *app = NSApplication.sharedApplication;
             [app setActivationPolicy:NSApplicationActivationPolicyRegular];
             dispatch_async(dispatch_get_main_queue(), ^{
-                BOOL screen = CGPreflightScreenCaptureAccess();
-                BOOL input = AXIsProcessTrusted();
-                BOOL post = CGPreflightPostEventAccess();
-                if (screen && input && post) {
-                    finishPermissionSetup(app);
-                    return;
-                }
-                if (!screen) screen = CGRequestScreenCaptureAccess();
-                if (!input) {
-                    NSDictionary *options = @{(__bridge id)kAXTrustedCheckOptionPrompt: @YES};
-                    input = AXIsProcessTrustedWithOptions((__bridge CFDictionaryRef)options);
-                }
-                if (!post) post = CGRequestPostEventAccess();
-                // A permission request may complete before returning. Do not
-                // show stale setup instructions after permission was granted.
-                screen = CGPreflightScreenCaptureAccess();
-                input = AXIsProcessTrusted();
-                post = CGPreflightPostEventAccess();
-                if (screen && input && post) {
-                    finishPermissionSetup(app);
-                    return;
-                }
-                NSAlert *alert = [NSAlert new];
-                alert.messageText = @"PLANK Host permission required";
-                alert.informativeText = [NSString stringWithFormat:
-                    @"Version %s\n\nScreen & System Audio Recording: %@\nAccessibility: %@\nKeyboard/Mouse Event Posting: %@\n\n"
-                     "Enable PLANK Host in System Settings → Privacy & Security. These permissions belong to "
-                     "PLANK Host, separately from PLANK Host Probe. Reopen this app after enabling them. "
-                     "System audio consent is requested here once screen and input access are enabled. "
-                     "This permission window does not start a remote session.",
-                    PLANK_MACOS_HOST_VERSION, screen ? @"Allowed" : @"Required", input ? @"Allowed" : @"Required",
-                    post ? @"Allowed" : @"Required"];
-                [alert addButtonWithTitle:@"Close"];
-                [app activate]; [alert runModal]; [app terminate:nil];
+                PLANKMacShowPermissionSetup(@PLANK_MACOS_HOST_VERSION);
             });
             [app run]; return 0;
         }

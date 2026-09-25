@@ -63,7 +63,54 @@ app is installed, then is removed after validating the conversion. Retrying an
 interrupted upgrade is safe. Runtime never falls back to the old plist. A missing
 UUID beside existing TLS state is an error, not permission to create a new identity.
 
-Host uninstall retains configuration, identity and logs for reinstall. Client
-uninstall remains quitting and moving its app to Trash; administrator policy and
-per-user settings are retained. Removing retained configuration is a separate,
-deliberate administrator action, especially when Host and Client share `/etc/plank`.
+Host uninstall retains configuration, identity and logs for reinstall. Removing
+retained configuration is a separate, deliberate administrator action, especially
+when Host and Client share `/etc/plank`.
+
+Run Host uninstall from Terminal:
+
+```bash
+sudo "/Applications/PLANK Host.app/Contents/Resources/uninstall.sh"
+```
+
+The script requests PLANK Camera removal automatically using the signed Host app
+in the active console user's desktop session. Approve the macOS prompt if shown;
+there is no separate camera command. If no camera extension is registered, no
+desktop session is required. Cancellation, a two-minute request timeout, or an
+unverifiable extension state leaves the Host installed. If macOS requires a
+restart, restart when ready and rerun the same uninstall command. The script
+never restarts the Mac itself or directly deletes macOS-managed extension files.
+Once camera removal is verified, it stops Host services and removes the app,
+launchd entries, PLANK Output and PLANK Microphone drivers, and package receipt.
+Restart afterward to unload the audio drivers from Core Audio.
+
+## Client uninstall
+
+Quit PLANK Client in all user sessions, then run:
+
+```bash
+sudo "/Applications/PLANK Client.app/Contents/Resources/uninstall.sh"
+```
+
+This removes only `/Applications/PLANK Client.app` and its installer receipt.
+The script checks the app's signature and refuses to terminate a running Client.
+There are no Client services, drivers or extensions to unload, and no restart
+is required. Moving the closed app to Trash also remains a valid way to remove
+the application, but leaves its installer receipt.
+
+To also permanently remove Client configuration and **your own** saved data:
+
+```bash
+sudo "/Applications/PLANK Client.app/Contents/Resources/uninstall.sh" --purge
+```
+
+Run this from your normal account, not a root shell. After you type `DELETE` to
+confirm, it removes `/etc/plank/client.conf` and the invoking user's bookmarks,
+preferences, trusted-Host records, caches, logs and saved window state. User data
+is removed without root privileges. Other users' saved data is not searched or
+removed. Clearing trust records makes future connections first-use connections;
+back up anything you want to retain before purging.
+
+The normal uninstall preserves all configuration and user data. Both modes leave
+Host components, Host settings/logs, shared parent directories and macOS privacy
+permissions alone. Neither resets TCC or removes an entire shared PLANK folder.

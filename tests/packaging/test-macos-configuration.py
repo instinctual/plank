@@ -284,6 +284,9 @@ class Configuration(unittest.TestCase):
         shutil.copyfile(BINARY, app / "Contents/MacOS/plank-client")
         (app / "Contents/MacOS/plank-client").chmod(0o755)
         shutil.copyfile(CLIENT_TEMPLATE, app / "Contents/Resources/client.conf.example")
+        uninstall = app / "Contents/Resources/uninstall.sh"
+        uninstall.write_text((ROOT / "packaging/client/macos/uninstall.sh").read_text().replace("@TEAM@", "ABCDEFGHIJ"))
+        uninstall.chmod(0o755)
         scripts = self.root / "scripts"
         scripts.mkdir()
         shutil.copyfile(ROOT / "packaging/client/macos/pkg-preinstall", scripts / "preinstall")
@@ -306,6 +309,10 @@ class Configuration(unittest.TestCase):
         expanded = self.root / "expanded"
         self.assertEqual(len(list(expanded.rglob("client.conf.example"))), 2)
         self.assertEqual(len(list(expanded.rglob("preinstall"))), 1)
+        uninstaller = list(expanded.rglob("uninstall.sh"))
+        self.assertEqual(len(uninstaller), 1)
+        self.assertEqual(uninstaller[0].read_bytes(), uninstall.read_bytes())
+        self.assertEqual(uninstaller[0].stat().st_mode & 0o777, 0o755)
         self.assertFalse(list(expanded.rglob("LaunchAgents")))
         self.assertFalse(list(expanded.rglob("LaunchDaemons")))
         self.assertFalse(list(expanded.rglob("client.conf")))  # Config created only if absent, never overwritten by payload.

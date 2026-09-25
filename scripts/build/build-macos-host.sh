@@ -23,6 +23,10 @@ xcrun clang -mmacosx-version-min=27.0 -fobjc-arc -Wall -Wextra -Werror \
     tests/auth/macos-audio-consent.m -framework Foundation -framework CoreAudio \
     -o "$output/audio-consent-test"
 "$output/audio-consent-test"
+xcrun clang -mmacosx-version-min=27.0 -fobjc-arc -Wall -Wextra -Werror \
+    tests/auth/macos-permission-setup.m -framework Foundation -framework AppKit \
+    -framework ApplicationServices -framework CoreAudio -o "$output/permission-setup-test"
+"$output/permission-setup-test"
 # Host-only checkouts deliberately do not initialize the Client submodule.
 python3 tests/packaging/test-startup-permissions.py HostPermissions
 for component in buffer driver queue; do
@@ -162,7 +166,8 @@ sources=(apps/host/macos/auth/authentication-session.m apps/host/macos/auth/grap
     apps/host/macos/input/input-events.m apps/host/macos/input/native-input.m apps/host/macos/input/quartz-input.m
     apps/host/macos/session/agent-registry.m apps/host/macos/session/agent-connection.m
     apps/host/macos/session/desktop-provisioning.m apps/host/macos/session/host-configuration.m apps/host/macos/session/machine-identity.m apps/host/macos/session/desktop-start.m
-    apps/host/macos/session/audio-consent.m apps/host/macos/session/host-runtime.m apps/host/macos/session/host-main.m)
+    apps/host/macos/session/audio-consent.m apps/host/macos/session/permission-setup.m
+    apps/host/macos/session/host-runtime.m apps/host/macos/session/host-main.m)
 xcrun clang "${common[@]}" "-DPLANK_MACOS_HOST_VERSION=\"$PLANK_MACOS_HOST_VERSION\"" \
     "${sources[@]}" "$archive" -lpthread -lm -o "$output/plank-host"
 strip -S "$output/plank-host"

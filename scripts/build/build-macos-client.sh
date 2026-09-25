@@ -30,8 +30,14 @@ test "$(qmake -query QT_VERSION)" = 6.10.2
 test "$(rustc --version | awk '{print $2}')" = 1.89.0
 python3 "$source_root/tests/packaging/test-macos-client-target.py"
 python3 "$source_root/tests/packaging/test-macos-app-icons.py"
+bash "$source_root/tests/packaging/macos-client-uninstall.sh"
 python3 "$source_root/tests/packaging/test-macos-fullscreen.py" "$source_root"
 mkdir -p "$build/tests"
+xcrun clang++ -std=c++17 -include arm_acle.h -mmacosx-version-min="$MACOSX_DEPLOYMENT_TARGET" -Wall -Wextra -Werror \
+    -F"$PLANK_QT_ROOT/lib" "$source_root/tests/packaging/macos-client-paths.cpp" \
+    -framework QtCore -Wl,-rpath,"$PLANK_QT_ROOT/lib" -o "$build/tests/client-paths-test"
+"$build/tests/client-paths-test"
+bash "$source_root/scripts/test/build-macos-client-permissions.sh" "$source_root" "$build/tests/permissions"
 xcrun clang++ -std=c++17 -mmacosx-version-min=27.0 -Wall -Wextra -Werror \
     -I"$source_root/apps/client/app/streaming" \
     "$source_root/tests/display/macos-client-display-mode.cpp" \

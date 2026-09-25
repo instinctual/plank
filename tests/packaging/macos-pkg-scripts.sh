@@ -27,17 +27,67 @@ done
     remove_cmd() { calls="$calls|remove:$*"; }
     receipt_cmd() { calls="$calls|receipt:$*"; }
     extension_cmd() { [[ $1 = list ]]; }
+    console_uid() { echo 502; }
+    launchctl_cmd() { fail 'Absent camera must not launch anything'; }
     reject uninstall_host unexpected-argument
     uninstall_host >/dev/null
     [[ $calls = "|preflight|stop|verify-microphone|remove:-rf /Library/Audio/Plug-Ins/HAL/PLANK Microphone.driver|verify-output|remove:-rf /Library/Audio/Plug-Ins/HAL/PLANK Output.driver|remove:/Library/LaunchDaemons/$machine.plist|remove:/Library/LaunchAgents/$desktop.plist|remove:/Library/LaunchAgents/$signin.plist|verify|remove:-rf /Applications/PLANK Host.app|receipt:--pkg-info la.instinctual.PLANK.Host|receipt:--forget la.instinctual.PLANK.Host" ]]
-    # Never remove anything when preflight or bounded shutdown fails.
+    # Registered camera: automatically request removal as the console user,
+    # wait for verified disappearance, then stop services/remove the app.
+    calls=''; removed=0
+    extension_cmd() { [[ $1 = list ]]; if [[ $removed = 0 ]]; then echo 'la.instinctual.PLANK.Host.Camera'; fi; }
+    launchctl_cmd() {
+        if [[ $* = 'print gui/502' ]]; then return; fi
+        [[ $* = "asuser 502 /usr/bin/sudo -n -u #502 $executable --disable-camera" ]]
+        calls="$calls|deactivate"; removed=1
+    }
+    uninstall_host >/dev/null
+    [[ $calls = '|preflight|deactivate|stop|verify-microphone|'* && $calls = *"|remove:-rf $app|receipt:"* ]]
+
+    # Never remove anything or stop working services on camera failure.
     remove_cmd() { echo 'unexpected removal'; exit 90; }
+    stop_roles() { fail 'Must not stop Host before camera removal completes'; }
     extension_cmd() { echo 'la.instinctual.PLANK.Host.Camera'; }
+    pause_drain() { :; }
+    launchctl_cmd() { if [[ $1 = print ]]; then return 0; fi; return 2; }
+    [[ $(uninstall_host 2>&1 || true) = *'requires a restart'* ]]
+    launchctl_cmd() { if [[ $1 = print ]]; then return 0; fi; return 1; }
+    [[ $(uninstall_host 2>&1 || true) = *'Camera removal did not complete'* ]]
+    launchctl_cmd() { return 0; }
+    [[ $(uninstall_host 2>&1 || true) = *'still registered'* ]]
+    launchctl_cmd() { return 1; }
+    [[ $(uninstall_host 2>&1 || true) = *'No active desktop'* ]]
+    console_uid() { echo 0; }
+    launchctl_cmd() { fail 'Never run camera removal as root'; }
+    [[ $(uninstall_host 2>&1 || true) = *'Log into the Mac desktop'* ]]
+    console_uid() { echo 'invalid'; }
     reject uninstall_host
+    console_uid() { return 1; }
+    reject uninstall_host
+    console_uid() { echo 502; }
+    present() { [[ $1 != "$app" ]]; }
+    [[ $(uninstall_host 2>&1 || true) = *'reinstall Host'* ]]
+    present() { return 0; }
+    # Registry failure after a successful request is not proof of removal.
+    removed=0
+    extension_cmd() { if [[ $removed = 0 ]]; then echo 'la.instinctual.PLANK.Host.Camera'; else return 1; fi; }
+    launchctl_cmd() { if [[ $1 = asuser ]]; then removed=1; fi; }
+    [[ $(uninstall_host 2>&1 || true) = *'Cannot verify camera removal'* ]]
+    # A short registry delay is retried, with a bounded total wait.
+    removed=0; delays=0
+    extension_cmd() { if [[ $delays -lt 2 ]]; then echo 'la.instinctual.PLANK.Host.Camera'; fi; }
+    pause_drain() { delays=$((delays+1)); }
+    remove_camera >/dev/null
+    [[ $removed = 1 && $delays = 2 ]]
     extension_cmd() { return 1; }
     reject uninstall_host
+    # An unregistered camera does not require a desktop at all.
     extension_cmd() { :; }
+    console_uid() { fail 'Unregistered camera needs no console'; }
+    remove_camera
+    # Never remove anything when preflight or bounded shutdown fails.
     preflight() { fail 'fixture unsafe metadata'; }
+    reject uninstall_host
     [[ $(uninstall_host 2>&1 || true) = 'PLANK: fixture unsafe metadata' ]]
     preflight() { :; }
     stop_roles() { fail 'fixture drain timeout'; }

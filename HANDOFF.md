@@ -2,9 +2,20 @@
 
 ## Current state
 
-Current local work is `macos-app-icons`, based on main
+Current candidate work is `macos-app-icons`, based on main
 `9d2875297c96f54803723b4f69076e1c0d9f0232`, in the retained
-`build/worktrees/macos-session-takeover` worktree. The operator approved the
+`build/worktrees/macos-session-takeover` worktree. The operator authorized commit,
+push and signed hosted macOS Host/Client candidates for the permission panels
+and uninstall follow-ups below. Source version is **1.1.019**; the visible and
+package version is **1.1.019-macos-app-icons**. No merge, Release or installation
+is authorized by this candidate step. Full package builds remain pending.
+Client implementation is committed and pushed at
+`c684014752b511de489d6406e8bafb005bef5123`; other dependency pins are unchanged.
+The primary worktree's unrelated RK3576 changes must remain untouched.
+
+## Previous icon checkpoint
+
+The operator approved the
 second generated Host/Client icon pair. Both approved PNGs are retained
 unchanged in `branding/assets/plank-{host,client}-macos.png`: open landscape
 for Host, monitor-framed landscape for Client. The original artwork/PXD and
@@ -13,7 +24,7 @@ Linux icons are unchanged. No media, authentication, input or protocol changes.
 Implementation checkpoint: root `d8f9372fe88464e4efb322b967c8a2dd44a87622`,
 Client `944cf2b0ff32a7ca5c318d38eaaa3ecc0317f2a0` (changelog only).
 Linux Host, common-C, qmdnsengine and Kymux pins remain as listed below.
-Source version is **1.1.018**. The Client base build now generates its ICNS
+Checkpoint version is **1.1.018**. The Client base build now generates its ICNS
 before either development or distribution packaging; Host selects its own
 artwork. The native converter adds no new padding or circular mask. See
 `docs/user/branding.md` for sources and generation brief.
@@ -40,9 +51,9 @@ offscreen launch/version, signing, notarization/stapling, Gatekeeper and cleanup
 Its PKG is collected with verified source/SHA-256; the redundant DMG wrapper is
 not copied into the local catalog. Both signed jobs restored exact dependency
 caches. Automatic all-product run
-`36116578450` passed both unsigned Mac builds and Ubuntu packaging; Linux Host
-is still running. Privacy `36116578586` and clipboard `36116578547` passed.
-Do not mark the pending Linux job successful or infer installed icon acceptance.
+`36116578450` passed all four products, including Linux Host. Privacy `36116578586`
+and clipboard `36116578547` passed. These gates do not prove installed icon
+acceptance.
 
 At the operator's request, closed resolved root issues12,15,16,17,19,20 with
 merged implementation/test references. Closed Client PR8 as already integrated:
@@ -51,6 +62,87 @@ both original commits' stable patch IDs match the retained Client cherry-picks
 were already merged/closed. Root issues14 (cold-boot connection) and18 (audio
 sync), Client PR7, Linux Host PR6, Kymux PR2 and build-deps PR3/4/5 remain open;
 this bookkeeping does not qualify or merge those separate changes.
+
+## 1.1.019: automatic camera uninstall
+
+The operator requested automatic camera removal through the existing Host
+uninstaller. Local changes on `macos-app-icons` invoke the signed installed Host
+in the active console user's GUI domain to submit a SystemExtensions deactivation
+request. The command reports completed/restart-required/failure exit statuses;
+there is no PLANK modal alert blocking its two-minute timeout. The script verifies
+that camera registration is gone before stopping services or removing drivers
+and the app. Missing desktop, cancellation, timeout, inspection failure or
+restart-required keeps the Host intact. A restart, when macOS requires one, is
+manual, followed by the same uninstall command. No direct OS extension deletion,
+SIP/TCC changes, reboot automation or new persistent helper.
+
+Portable uninstall fixtures (24 checks), permission timing8, camera-profile1 and
+package metadata checks pass. Dedicated SDK27/arm64 validation passed native
+uninstall fixtures30, camera setup/removal callbacks with ASan/UBSan, shared-memory
+and protocol tests, camera lifecycle, production camera/Host-main compilation
+with warnings-as-errors, permission/package9 and Host timing4. These are isolated
+fixtures, not a real uninstall: no installed app, service, extension, permission
+or active session was changed. Live signed-app deactivation/approval remains an
+installed test gate. The existing 1.1.018 packages do **not** contain this follow-up;
+it is included in the 1.1.019 source candidate, not yet packaged or merged.
+
+## 1.1.019: Client uninstall
+
+The operator approved a lightweight Client uninstaller and optional data cleanup.
+The signed distribution Client will include `Contents/Resources/uninstall.sh`.
+Normal uninstall verifies the Client signature, requires all Client instances to
+be closed, and removes only the exact Client app and package receipt. `--purge`
+requires typed confirmation and also removes `client.conf` plus the invoking
+sudo user's preferences/bookmarks, Host trust store, caches, logs and saved
+window state. User cleanup drops root privileges, validates exact paths and
+rejects symlinks; no other home directories are enumerated. Host files, shared
+directories and TCC grants are untouched. There is no service/helper or reboot.
+
+Portable lifecycle guards pass. Native SDK27 tests passed isolated data removal,
+idempotency, leaf/parent symlink rejection and Host/other-user preservation.
+The actual Qt6.10.2 preferences/data/cache paths match the cleanup list; this
+read-only path test is now a Client build gate. The new fixture uses the same
+`arm_acle.h` include required by the other SDK27 Qt fixtures. All16 native
+configuration/installer tests pass, including the PKG roundtrip which verifies
+the embedded executable script. Signing occurs after embedding the script.
+No installed Client, actual user data or privacy permissions were changed.
+Both uninstall follow-ups are absent from the existing1.1.018 packages;
+a new signed build and installed acceptance remain.
+
+## 1.1.019: permission status UI
+
+The operator approved replacing the paragraph-heavy Host alerts with a status
+window and adding a smaller Client review panel. Local changes on the same branch
+give Host setup aligned feature/status/action rows, separate desktop permissions
+from optional devices, and put each guidance sentence on its own line. OS-verified
+permissions get checkmarks; missing required access has an explicit warning.
+Audio devices report loaded/not loaded; camera inspection distinguishes approval,
+removal, enabled and unknown states. Successful empty audio-tap startup is never
+presented as proven audio consent. Existing automatic camera-version reconciliation
+is retained, but first activation remains explicit. Close is bounded even if HAL
+is still waiting for consent; no background worker gains permission-request UI.
+
+The macOS Client's Configuration/Input Settings opens a compact permission panel
+for Accessibility, Microphone and supported USB Wacom Input Monitoring. Normal
+startup consent timing is unchanged; there is no additional all-ready popup.
+Settings return/manual Refresh updates the panel without continuous polling.
+Actions reject active sessions. Status is read-only; no checkbox can claim to grant
+OS permission. Linux UI/runtime and forwarding policies are unchanged.
+
+Native SDK27 Host view/production compilation and ASan/UBSan camera-status,
+activation/removal callbacks pass. Native Qt6.10.2 tests exercise the actual Client
+model and QML panel with simulated permission boundaries, including denied/unknown/
+granted states, missing tablets, active-stream rejection and destroyed-object
+callbacks. Changed Client main, backend, moc, raw-Wacom and QML resources compile
+through the real application qmake project. The Client panel was rendered offscreen;
+Host view geometry was checked with synthetic data. Actual Apple permission dialogs
+and installed visual acceptance remain untested. Existing uninstall/configuration
+fixtures pass; no installed app, service, permission, capture or session changed.
+
+All three follow-ups are included in the 1.1.019 source candidate, not in1.1.018
+installers. Next: finish the signed hosted builds and test the setup window and
+Client panel in installed applications. Do not relabel
+existing packages or claim a full application/package build from component tests.
 
 ## Previous mainline integration
 
@@ -209,10 +301,10 @@ or streaming acceptance from package/signature gates.
 
 ## Next gates
 
-1. Check automatic Linux Host run36116578450 separately; its result was pending
-   at this Mac-candidate handoff. Verify the installed Host and Client icons
-   in Dock/Finder before claiming
-   visual acceptance; no cache resets or app modifications are automatic.
+1. Complete the signed 1.1.019 Host and Client candidates, then verify the installed
+   permission/status UI and icons. Camera deactivation and Client uninstall/purge
+   require separate operator-supervised tests; component fixtures did not remove
+   installed apps or user data. No cache resets or app modifications are automatic.
 2. Test fresh/upgrade configuration on an authorized Mac: generated-name
    retirement, custom policy retention, interrupted retry, UUID/TLS preservation.
 3. Verify installed local-to-remote access, login/logout, takeover, offline status,

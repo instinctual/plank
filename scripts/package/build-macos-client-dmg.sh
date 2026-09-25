@@ -8,6 +8,8 @@ source "$source_root/scripts/build/macos-client-target.sh"
 plank_macos_client_target
 : "${PLANK_MACOS_SIGNING_IDENTITY:?Developer ID Application SHA1 required}"
 : "${PLANK_MACOS_INSTALLER_IDENTITY:?Developer ID Installer SHA1 required}"
+: "${PLANK_MACOS_TEAM_ID:?Developer Team ID required}"
+[[ $PLANK_MACOS_TEAM_ID =~ ^[A-Z0-9]{10}$ ]] || exit 2
 : "${PLANK_NOTARY_PROFILE:?Keychain profile required}"
 : "${PLANK_QT_ROOT:?}"
 test -z "$(git -C "$source_root" status --porcelain)"
@@ -41,6 +43,10 @@ cmp "$build/app/plank-client.app/Contents/Resources/plank.icns" "$app/Contents/R
 test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIconFile' "$app/Contents/Info.plist")" = plank
 mkdir -p "$app/Contents/Resources/licenses"
 install -m 0644 "$source_root/packaging/client/config/plank-client.conf" "$app/Contents/Resources/client.conf.example"
+sed "s/@TEAM@/$PLANK_MACOS_TEAM_ID/g" "$source_root/packaging/client/macos/uninstall.sh" \
+    > "$app/Contents/Resources/uninstall.sh"
+chmod 0755 "$app/Contents/Resources/uninstall.sh"
+bash -n "$app/Contents/Resources/uninstall.sh"
 cp "$source_root/apps/client/LICENSE" "$app/Contents/Resources/licenses/client.txt"
 for name in SDL3-3.4.2 SDL3_ttf-3.2.2 opus-1.5.2 openssl-3.5.5 freetype-2.14.1 ffmpeg-9.0.1; do
     mkdir "$app/Contents/Resources/licenses/$name"

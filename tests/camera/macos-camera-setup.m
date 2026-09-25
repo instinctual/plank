@@ -52,11 +52,12 @@ static NSModalResponse response;
 @end
 
 static unsigned completions;
+static PLANKCameraStatus cameraState;
 static OSSystemExtensionRequest *begin(void) {
     assert(!pending && !pendingStatus);
     requests = [NSMutableArray array]; alerts = [NSMutableArray array];
     completions = 0; response = NSAlertFirstButtonReturn;
-    PLANKMacShowCameraSetup(^{ ++completions; });
+    PLANKMacCheckCameraExtension(^(PLANKCameraStatus state) { cameraState = state; ++completions; });
     assert(requests.count == 1 && alerts.count == 0 && completions == 0);
     return requests.firstObject;
 }
@@ -68,83 +69,106 @@ static TestProperties *properties(BOOL enabled) {
 static void found(OSSystemExtensionRequest *request, NSArray *values) {
     [request.delegate request:request foundProperties:values];
 }
-static void completeActivation(OSSystemExtensionRequestResult result) {
-    assert(requests.count == 2);
-    OSSystemExtensionRequest *request = requests.lastObject;
-    [request.delegate request:request didFinishWithResult:result];
-    assert(!pending && !pendingStatus && completions == 1);
-}
-static void enabledCamera(void) {
+static void statusTest(NSArray *values, PLANKCameraStatus expected) {
     OSSystemExtensionRequest *request = begin();
-    id<OSSystemExtensionRequestDelegate> status = request.delegate;
-    TestProperties *old = properties(YES); old.isUninstalling = YES;
-    found(request, @[old, properties(YES)]);
-    assert(requests.count == 2 && alerts.count == 0 && completions == 0);
-    // A duplicate properties completion cannot finish setup while activation
-    // is still resolving the bundled version.
-    [status request:request didFinishWithResult:OSSystemExtensionRequestCompleted];
-    assert(completions == 0 && alerts.count == 0);
-    OSSystemExtensionRequest *activation = requests.lastObject;
-    assert([activation.delegate request:activation actionForReplacingExtension:(id)properties(YES)
-        withExtension:(id)properties(YES)] == OSSystemExtensionReplacementActionReplace);
-    completeActivation(OSSystemExtensionRequestCompleted);
-    assert(alerts.count == 1 && alerts.lastObject.buttons.count == 1);
-    assert([alerts.lastObject.buttons.firstObject isEqualToString:@"Close"]);
-    assert([alerts.lastObject.informativeText containsString:@"PLANK Camera is enabled."]);
+    id<OSSystemExtensionRequestDelegate> delegate = request.delegate;
+    found(request, values);
+    assert(cameraState == expected && completions == 1 && requests.count == 1 && alerts.count == 0);
+    [delegate request:request foundProperties:(id)@[properties(YES)]];
+    assert(completions == 1 && cameraState == expected && !pendingStatus);
 }
-static void optionalCamera(NSArray *values) {
-    OSSystemExtensionRequest *request = begin(); found(request, values);
-    assert(requests.count == 1 && completions == 1 && alerts.count == 1);
-    assert(([alerts.lastObject.buttons isEqualToArray:@[@"Close", @"Enable Camera"]]));
+static void removalTests(void) {
+    for (int scenario = 0; scenario < 5; ++scenario) {
+        requests = [NSMutableArray array]; alerts = [NSMutableArray array]; completions = 0;
+        __block PLANKCameraRemovalResult result = PLANKCameraRemovalFailed;
+        PLANKMacRemoveCameraExtension(^(PLANKCameraRemovalResult value) { result = value; ++completions; });
+        assert(requests.count == 1 && completions == 0);
+        OSSystemExtensionRequest *request = requests.lastObject;
+        PLANKCameraActivation *delegate = (id)request.delegate;
+        assert([delegate request:request actionForReplacingExtension:(id)properties(YES)
+            withExtension:(id)properties(YES)] == OSSystemExtensionReplacementActionCancel);
+        __block unsigned refused = 0;
+        PLANKMacRemoveCameraExtension(^(PLANKCameraRemovalResult value) {
+            assert(value == PLANKCameraRemovalFailed); ++refused;
+        });
+        assert(refused == 1 && requests.count == 1);
+        // Any OS approval prompt stays OS-owned. No PLANK modal can hide the
+        // terminal status or prevent its deadline from expiring.
+        [delegate requestNeedsUserApproval:request];
+        assert(alerts.count == 0 && completions == 0);
+        if (scenario < 2) {
+            [delegate request:request didFinishWithResult:scenario == 0 ?
+                OSSystemExtensionRequestCompleted : OSSystemExtensionRequestWillCompleteAfterReboot];
+        } else if (scenario == 2) {
+            [delegate request:request didFailWithError:[NSError errorWithDomain:OSSystemExtensionErrorDomain
+                code:OSSystemExtensionErrorRequestCanceled userInfo:nil]];
+        } else if (scenario == 3) {
+            [delegate removalTimedOut];
+        } else {
+            [delegate request:request didFinishWithResult:(OSSystemExtensionRequestResult)99];
+        }
+        assert(result == (scenario == 0 ? PLANKCameraRemovalComplete :
+            scenario == 1 ? PLANKCameraRemovalRestartRequired : PLANKCameraRemovalFailed));
+        assert(completions == 1 && alerts.count == 0 && !pending);
+        // A late completion/approval/deadline never changes the final result,
+        // displays a setup dialog, or clears a subsequent request.
+        PLANKMacRemoveCameraExtension(^(PLANKCameraRemovalResult value) { (void)value; });
+        PLANKCameraActivation *next = pending;
+        [delegate request:request didFinishWithResult:OSSystemExtensionRequestCompleted];
+        [delegate requestNeedsUserApproval:request];
+        [delegate removalTimedOut];
+        assert(completions == 1 && alerts.count == 0 && pending == next);
+        [next removalTimedOut];
+        assert(!pending);
+    }
 }
 static void tests(void) {
-    enabledCamera();
-    optionalCamera(@[]); // First install: no automatic activation.
-    optionalCamera(@[properties(NO)]); // User disabled it.
+    removalTests();
+    statusTest(@[], PLANKCameraDisabled);
+    statusTest(@[properties(YES)], PLANKCameraEnabled);
+    statusTest(@[properties(NO)], PLANKCameraDisabled);
     TestProperties *old = properties(YES); old.isUninstalling = YES;
-    optionalCamera(@[old, properties(NO)]); // Retired copy must not override disabled state.
+    statusTest(@[old], PLANKCameraRemoving);
+    statusTest(@[old, properties(YES)], PLANKCameraEnabled);
     TestProperties *awaiting = properties(YES); awaiting.isAwaitingUserApproval = YES;
-    optionalCamera(@[awaiting]);
+    statusTest(@[awaiting], PLANKCameraAwaitingApproval);
     TestProperties *unrelated = properties(YES); unrelated.bundleIdentifier = @"org.example.OtherCamera";
-    optionalCamera(@[unrelated]);
+    statusTest(@[unrelated], PLANKCameraDisabled);
 
     OSSystemExtensionRequest *request = begin();
     [request.delegate request:request didFailWithError:[NSError errorWithDomain:OSSystemExtensionErrorDomain
         code:OSSystemExtensionErrorMissingEntitlement userInfo:nil]];
-    assert(requests.count == 1 && completions == 1 && alerts.count == 1);
-    assert([alerts.lastObject.informativeText containsString:@"could not be checked"]);
-    assert([alerts.lastObject.buttons.lastObject isEqualToString:@"Set Up Camera"]);
+    assert(completions == 1 && cameraState == PLANKCameraUnknown && alerts.count == 0);
 
-    request = begin(); response = NSAlertSecondButtonReturn;
-    found(request, @[]); // Only an explicit click enables a first-time camera.
-    assert(requests.count == 2 && completions == 0);
-    response = NSAlertFirstButtonReturn;
-    OSSystemExtensionRequest *activation = requests.lastObject;
-    [activation.delegate requestNeedsUserApproval:activation];
-    assert(completions == 0 && [alerts.lastObject.informativeText containsString:@"Approve PLANK Camera"]);
-    completeActivation(OSSystemExtensionRequestCompleted);
-
-    request = begin(); found(request, @[properties(YES)]);
-    completeActivation(OSSystemExtensionRequestWillCompleteAfterReboot);
-    assert(alerts.count == 1 && [alerts.lastObject.informativeText containsString:@"Restart this Mac"]);
-    assert(![alerts.lastObject.informativeText containsString:@"Camera is enabled"]);
-
-    request = begin(); found(request, @[properties(YES)]);
-    activation = requests.lastObject;
-    [activation.delegate request:activation didFailWithError:[NSError errorWithDomain:OSSystemExtensionErrorDomain
-        code:OSSystemExtensionErrorValidationFailed userInfo:nil]];
-    assert(completions == 1 && alerts.count == 1);
-    assert([alerts.lastObject.informativeText containsString:@"setup did not complete"]);
-
+    // Inspection never activates an extension. Explicit setup still supports
+    // approved-version replacement and explains approval/reboot/failure.
+    for (int scenario = 0; scenario < 3; ++scenario) {
+        requests = [NSMutableArray array]; alerts = [NSMutableArray array]; completions = 0;
+        PLANKMacRequestCameraExtension(YES, ^(BOOL success) {
+            assert(success == (scenario == 0)); ++completions;
+        });
+        request = requests.lastObject;
+        assert([request.delegate request:request actionForReplacingExtension:(id)properties(YES)
+            withExtension:(id)properties(YES)] == OSSystemExtensionReplacementActionReplace);
+        [request.delegate requestNeedsUserApproval:request];
+        assert(alerts.count == 1 && [alerts.lastObject.informativeText containsString:@"\n"]);
+        if (scenario < 2)
+            [request.delegate request:request didFinishWithResult:scenario == 0 ?
+                OSSystemExtensionRequestCompleted : OSSystemExtensionRequestWillCompleteAfterReboot];
+        else [request.delegate request:request didFailWithError:[NSError errorWithDomain:OSSystemExtensionErrorDomain
+            code:OSSystemExtensionErrorValidationFailed userInfo:nil]];
+        assert(completions == 1 && !pending);
+    }
     request = begin();
     id<OSSystemExtensionRequestDelegate> status = request.delegate;
-    // Let the real timeout run, then deliver a stale response. No auto-activation.
-    // Return to the main queue so its production timeout can execute.
+    __block unsigned busy = 0;
+    PLANKMacCheckCameraExtension(^(PLANKCameraStatus state) { assert(state == PLANKCameraUnknown); ++busy; });
+    assert(busy == 1 && requests.count == 1);
     dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 6*NSEC_PER_SEC), dispatch_get_main_queue(), ^{
-        assert(completions == 1 && requests.count == 1);
+        assert(completions == 1 && cameraState == PLANKCameraUnknown);
         [status request:request foundProperties:(id)@[properties(YES)]];
-        assert(completions == 1 && requests.count == 1 && alerts.count == 1);
-        puts("Camera setup: enabled/upgrade, disabled, first use, errors, approval, reboot and timeout passed");
+        assert(completions == 1 && requests.count == 1 && alerts.count == 0);
+        puts("Camera status/activation/removal: verified states, upgrade, approval, cancellation, reboot, timeout and stale callbacks passed");
         exit(0);
     });
 }

@@ -40,7 +40,7 @@ class ClientPermissions(unittest.TestCase):
         self.assertIn("IOServiceGetMatchingServices", startup)
         self.assertIn('CFEqual(transport, CFSTR("USB"))', startup)
         self.assertIn("PlankWacomTransport::ExactRawHid", startup)
-        self.assertIn("if (attached) IOHIDRequestAccess", startup)
+        self.assertIn("if (supportedTabletPresence() == 1) IOHIDRequestAccess", startup)
         self.assertNotIn("IOHIDDeviceOpen", startup)
         self.assertNotIn("IOHIDRequestAccess", runtime)
         self.assertIn("kIOHIDAccessTypeGranted", runtime)
@@ -49,23 +49,42 @@ class ClientPermissions(unittest.TestCase):
         camera = (CLIENT / "streaming/camera/camera.cpp").read_text()
         self.assertNotIn("requestAccessForMediaType", camera)
 
+    def test_client_status_panel_is_mac_only_and_session_guarded(self):
+        main = (CLIENT / "main.cpp").read_text()
+        self.assertIn("new MacPermissions([] { return Session::get() == nullptr; }, &engine)", main)
+        model = (CLIENT / "backend/macpermissions.mm").read_text()
+        query, action = model.split("void MacPermissions::request", 1)
+        self.assertNotIn("requestPermissionIfNeeded", query)
+        self.assertNotIn("plankMacRequestMicrophonePermission", query)
+        self.assertLess(action.index("!m_CanConfigure()"), action.index("plankMacRequestMicrophonePermission"))
+        settings = (CLIENT / "gui/SettingsView.qml").read_text()
+        loader = settings.split("id: macPermissionsDialog", 1)[1].split("}", 1)[0]
+        self.assertIn('active: Qt.platform.os === "osx"', loader)
+        dialog = (CLIENT / "gui/MacPermissionsDialog.qml").read_text()
+        self.assertNotIn("CheckBox", dialog)
+        self.assertIn("Qt.ApplicationActive", dialog)
+
 
 class HostPermissions(unittest.TestCase):
     def test_host_setup_not_diagnostic_or_worker(self):
         source = (HOST / "session/host-main.m").read_text()
         check = source.split("static int checkPermissions(void)", 1)[1].split("// Read only", 1)[0]
         self.assertNotIn("Request", check)
-        self.assertNotIn("finishPermissionSetup", check)
+        self.assertNotIn("PLANKMacShowPermissionSetup", check)
         self.assertIn('@"audio_tap_permission": @"not-checked"', check)
         workers = source.split("static int machine(", 1)[1].split("int main(", 1)[0]
-        self.assertNotIn("finishPermissionSetup", workers)
+        self.assertNotIn("PLANKMacShowPermissionSetup", workers)
         self.assertNotIn("PLANKMacAudioConsent", workers)
         gui = source.split('!strcmp(argv[1], "--request-permissions")', 1)[1].split(
             'if (argc == 3 && !strcmp(argv[1], "--machine"))', 1)[0]
-        self.assertEqual(gui.count("finishPermissionSetup(app);"), 2)
-        self.assertIn("CGRequestScreenCaptureAccess()", gui)
-        self.assertIn("CGRequestPostEventAccess()", gui)
-        self.assertIn("AXIsProcessTrustedWithOptions", gui)
+        self.assertEqual(gui.count("PLANKMacShowPermissionSetup(@PLANK_MACOS_HOST_VERSION);"), 1)
+        setup = (HOST / "session/permission-setup.m").read_text()
+        self.assertIn("CGRequestScreenCaptureAccess()", setup)
+        self.assertIn("CGRequestPostEventAccess()", setup)
+        self.assertIn("AXIsProcessTrustedWithOptions", setup)
+        self.assertIn("NSApplicationDidBecomeActiveNotification", setup)
+        self.assertIn('text:started ? @"Check in Settings" : @"Setup unavailable" verified:NO', setup)
+        self.assertNotIn("NSAlert", setup)
 
     def test_host_consent_is_not_audio_forwarding_or_output_routing(self):
         source = (HOST / "session/audio-consent.m").read_text()
