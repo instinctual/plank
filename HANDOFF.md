@@ -9,8 +9,8 @@ values, keepalives, QUIC peer/recovery limits and the separate Client wait polic
 Username metadata reuses the desktop provisioning account lookup; the existing
 Client parser handles it. LoginWindow stays nameless. Native QUIC uses the configured
 idle limit; its initial handshake remains bounded separately. Linux runtime is
-unchanged; its stale ping documentation is corrected. Implementation is locally
-committed at root `3838956ba6785b65d079481a8273ef19728890c4`, Client changelog
+unchanged; its stale ping documentation is corrected. Implementation is committed
+and pushed at root `3838956ba6785b65d079481a8273ef19728890c4`, Client changelog
 `86d1b343` (no Client runtime change). Portable assembly4, startup-permission8,
 all timeout/keepalive boundary checks and launcher guards pass. Native SDK27
 parser and12 isolated configuration/upgrade tests pass, as do discovery XML,
@@ -22,8 +22,9 @@ and metadata vectors are blob-identical to this branch. An initial ad hoc Client
 test lacked its common-C include input; rerunning with the verified pinned source
 passed, without a dependency download or product change. These tests use synthetic
 accounts/OS events and temporary files; installed graphical login/logout and
-network-outage acceptance remain pending. No new package/install, push, merge,
-release or issue closure has been performed for this follow-up.
+network-outage acceptance remain pending. The signed macOS Host candidate below
+includes this follow-up. No installation, merge, release or issue closure was
+performed. The user explicitly requested that this branch not be merged.
 
 Branch `session-indicator` in `build/worktrees/session-indicator`, based on latest
 main `5593932d5e8bc9fea2f52292fc0a5665b5c650a0` and Client
@@ -45,8 +46,8 @@ Existing screen/input and camera-extension requests stay in Host setup.
 See [the audit and OS-controlled exceptions](docs/user/permissions.md). A new
 Host account that has not run setup may still encounter Apple's first-use audio
 consent during a session; no synthetic approval or TCC bypass is introduced.
-Implementation is locally committed at root `8f8f9009`/`a141c2d1`, Client
-`9568b28a92c8b5b3f4dbce1c62c5fc49a407d718`; not pushed yet. SDK27 validation
+Implementation is committed and pushed at root `8f8f9009`/`a141c2d1`, Client
+`9568b28a92c8b5b3f4dbce1c62c5fc49a407d718`. SDK27 validation
 on a clean verified-bundle worktree passes: actual Client main/raw-Wacom/mic
 objects; Host entry/setup syntax with warnings as errors; fake Core Audio
 partial-failure/reverse-cleanup lifecycle; fake AVFoundation grant/deny/existing
@@ -56,15 +57,45 @@ Eight timing guards, five keyboard wiring checks and all nine native Host
 permission/package-metadata tests pass. The native tests never request actual
 TCC consent, record audio, open a tablet or install a product. Component tests
 ran on macOS27 using retained development libraries, not qualified distributable
-macOS15 dependencies. Neither final package linking nor live consent UI is proven.
-No 1.1.016 package exists yet; the completed 1.1.015 packages below do not contain
-this follow-up. No live permission reset or installed app change was performed.
-Next for this follow-up: build signed 1.1.016 candidates with the hosted inputs,
-then verify fresh allow/deny startup, reconnect without prompts, tablet attached
-before launch, and Host empty-tap consent with an operator present. Do not reset
-existing TCC grants merely to manufacture a fresh test without approval.
+macOS15 dependencies. Hosted Host linking and signed packaging now pass; live
+consent UI remains untested. The signed 1.1.016 Host package includes this work;
+the earlier 1.1.015 packages do not. No signed 1.1.016 Client installer was
+requested or produced in this packaging follow-up. No live permission reset or
+installed app change was performed. Next: verify Host empty-tap consent with an
+operator present. For Client startup acceptance, first build a signed 1.1.016
+Client candidate, then verify fresh allow/deny startup, reconnect without prompts
+and tablet attached before launch. Do not reset existing TCC grants merely to
+manufacture a fresh test without approval.
 
 ## Candidate builds
+
+### Current macOS Host candidate: 1.1.016-session-indicator
+
+Exact package source: root `34b19f38f9ecb2443d9e7b5c1267201975c20462`, Client
+`86d1b3433f3e80ae3de874ef80cd066410dd4f28`, Linux Host
+`aabaf34c171a7620b7467883e6f4948a3f2659b0`, Kymux
+`3f7a9d8618978287186e5d6ce0eaa067743cb06c`. All feature commits are pushed;
+main remains `5593932d5e8bc9fea2f52292fc0a5665b5c650a0`.
+
+Protected hosted run `36111685826` passed native tests, signing, notarization,
+stapling and Gatekeeper assessment. The 71-check package filesystem fixture
+passed without installing PLANK or starting its services. Dependencies used
+the qualified cache; this was not a clean dependency-bootstrap qualification.
+
+Package: `artifacts/packages/candidates/1.1.016-session-indicator/macos/plank-host_1.1.016-session-indicator_arm64.pkg`
+
+- Size: 6,858,860 bytes.
+- SHA-256: `0ede82a1387796d6f991c05d59da0c35f7c73bd9315366a8050850fb26d338a1`.
+- Download verified against the runner manifest and collected with exact source
+  provenance, `manifest.json`, `SHA256SUMS` and a checksum sidecar.
+- Not installed or published as a GitHub Release; hardware acceptance is pending.
+
+Automatic push run `36111686759` also passed Linux Client and both unsigned
+macOS product builds; its Linux Host job was still running at this checkpoint.
+Privacy run `36111686784` and clipboard regression run `36111686774` passed.
+Unsigned macOS build success is not a signed Client installation artifact.
+
+### Prior four-product candidates: 1.1.015-session-indicator
 
 Exact package source: root `812770480deca1b896f6f3b7e59df8129677a46e`, Client
 `4038bddc5c970a25a74371c0134c96f895fcbedc`, Linux Host
@@ -114,7 +145,7 @@ See [macOS configuration](docs/user/macos-configuration.md).
 Username implementation checkpoint: root `67f2837b0a3e53223276f3b3f25f24c9c9bfe1ba`,
 Client `417ac6bcf9427d8364a4c0613159ee32cae2b1c9`, Linux Host
 `aabaf34c171a7620b7467883e6f4948a3f2659b0`. Issue16's Match Host label checkpoint
-is Client `b3b6bcada422728cb09e2a0ce583919ce2788ee7`. Current Client is
+is Client `b3b6bcada422728cb09e2a0ce583919ce2788ee7`. The 1.1.015 Client was
 `4038bddc` (changelog update after `b97b4ed1623e700e23983720051def93635a817f`),
 including issue15's toolbar notch offset removal. Dependency commits must be
 pushed before root.
