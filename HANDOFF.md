@@ -11,9 +11,10 @@ Changes are committed locally, not pushed.
 
 Username implementation checkpoint: root `67f2837b0a3e53223276f3b3f25f24c9c9bfe1ba`,
 Client `417ac6bcf9427d8364a4c0613159ee32cae2b1c9`, Linux Host
-`aabaf34c171a7620b7467883e6f4948a3f2659b0`. Issue16's follow-up advances Client
-to `b3b6bcada422728cb09e2a0ce583919ce2788ee7` for the Match Host label and its
-regression tests. Dependency commits must be pushed before root.
+`aabaf34c171a7620b7467883e6f4948a3f2659b0`. Issue16's Match Host label checkpoint
+is Client `b3b6bcada422728cb09e2a0ce583919ce2788ee7`. Current Client is
+`b97b4ed1623e700e23983720051def93635a817f`, including issue15's toolbar notch
+offset removal. Dependency commits must be pushed before root.
 
 Integrates root PR13 (5830df9), Client PR8 (2bd72178) and Linux Host PR10
 (8f49a7c1), with the targeted repairs in
@@ -22,6 +23,10 @@ Also implements issue17's administrator-opt-in remembered sign-in username.
 Issue16 renames Physical displays to Match Host in bookmark creation and editing;
 the headless-host hint uses the same name. Saved layout values, option indices,
 protocol and display behavior are unchanged. macOS layout choices are unchanged.
+Issue15 removes the obsolete horizontal toolbar notch avoidance and its unused
+helpers. Native fullscreen already excludes the camera area. Centered initial
+placement and normal dragged-position preservation remain; fullscreen geometry,
+reveal timing, pinning, input routing and Linux behavior are unchanged.
 The newer native camera, stereo microphone, feature negotiation and Mac virtual
 audio clock work remains in the ancestry, not replaced by the older PR pins.
 
@@ -77,6 +82,11 @@ Passed:
   cases, including the actual create/edit layout dropdowns for both Linux
   capture sources and macOS. Both full QML files pass qmlformat syntax checks.
   No package build or installed visual acceptance was performed for this rename.
+- Issue15 at Client `b97b4ed1`: Ubuntu Qt6.10.2 toolbar suite23 cases pass,
+  including centered/dragged positions, narrow windows, scale changes and button
+  ownership. Eight fullscreen checks pass, including compiled safe-area geometry
+  and a guard against reintroducing the notch offset. Native macOS compilation
+  and notched-laptop visual acceptance remain pending; no package was built.
 
 The earlier occupancy Mac and Ubuntu component tests used clean worktrees at
 root `b0ec487` and Client `d990292e`. Subsequent Linux pending occupancy has its
@@ -91,7 +101,8 @@ above. The gate was left unchanged, not bypassed; full packaging is not claimed.
 
 Next: build candidates when requested, reconcile that stale source-pattern gate,
 then verify installed local-to-remote access, login/logout, takeover, offline
-clearing and long-name UI. No full package or hardware acceptance yet.
+clearing and long-name UI. Check centered toolbar reveal/drag and fullscreen/
+windowed transitions on a notched Mac. No full package or hardware acceptance yet.
 
 ## Preserved baseline
 

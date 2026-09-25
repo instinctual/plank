@@ -125,8 +125,20 @@ int main() {
         self.assertIn('MacWindow::logGeometry(eventWindow)', session)
         mac = (client / 'app/streaming/macwindow.mm').read_text()
         self.assertIn('SDL_GetWindowSizeInPixels', mac)
-        self.assertIn('screen.auxiliaryTopLeftArea', mac)
-        self.assertIn('screen.auxiliaryTopRightArea', mac)
+
+    def test_toolbar_uses_window_position_without_notch_offset(self):
+        toolbar = (client / 'app/streaming/planktoolbar.cpp').read_text()
+        layout = toolbar.split('void PlankToolbar::notifyWindowChanged()', 1)[1].split(
+            '\nvoid PlankToolbar::', 1)[0]
+        self.assertIn('std::max(0, (m_WindowWidth - m_Width) / 2)', layout)
+        self.assertIn('PlankToolbarLogic::logicalLeftFromPosition(', layout)
+        self.assertEqual(self.preprocess_platform(layout, True),
+                         self.preprocess_platform(layout, False))
+        for filename in ('planktoolbar.cpp', 'planktoolbarlogic.h', 'macwindow.h', 'macwindow.mm'):
+            source = (client / 'app/streaming' / filename).read_text()
+            self.assertNotIn('unobscuredToolbarLeft', source)
+            self.assertNotIn('auxiliaryTopLeftArea', source)
+            self.assertNotIn('auxiliaryTopRightArea', source)
 
 
 unittest.main()

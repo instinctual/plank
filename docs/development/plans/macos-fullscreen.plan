@@ -22,6 +22,14 @@ live checks; compiled geometry tests and source guards are not visual proof.
 
 The following investigation is retained as evidence, not an active build policy.
 
+Issue15 follow-up: remove the old horizontal toolbar notch avoidance. Native
+fullscreen already places the content below the camera area, so the toolbar
+uses ordinary centered initial placement and preserves dragged positions on
+layout refresh. Keep the fullscreen top inset, Retina geometry, reveal timing,
+pinning and input routing unchanged. Verify centered reveal, dragging and
+fullscreen/windowed transitions on a notched laptop before visual acceptance.
+The older auxiliary-area placement described below is superseded.
+
 Candidate 1.0.119 passed signed hosted run 35131997746 from root
 9167fd8412172fee9d47be9eb2bc67cc155d7750 / Client
 6f0c25269c5a8bf1051814317440f2cd57fda005. Cold bootstrap, compiled geometry,
