@@ -3,6 +3,7 @@
 set -euo pipefail
 root=$(cd "$(dirname "$0")/../.." && pwd)
 bash -n "$root/packaging/client/macos/uninstall.sh"
+python3 "$root/scripts/test/check-package-build-paths.py" "$root/packaging/client/macos/uninstall.sh"
 # The uninstaller is sealed before distribution signing, not injected later.
 python3 - "$root" <<'PY'
 from pathlib import Path

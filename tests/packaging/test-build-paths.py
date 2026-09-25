@@ -115,6 +115,11 @@ make -s -f "$2"
             self.assertIn('check-package-build-paths.py',
                           (ROOT / 'scripts/package' / ('build-' + name + '.sh')).read_text())
 
+    def test_client_uninstaller_passes_payload_gate(self):
+        # Directory Services uses a /Users record path, not a build-machine
+        # home. Keep the shipped shell script unambiguous without exemptions.
+        self.assertEqual(check(ROOT / 'packaging/client/macos/uninstall.sh'), 0)
+
 
 if __name__ == '__main__':
     unittest.main()

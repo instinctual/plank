@@ -8,7 +8,24 @@ Current candidate work is `macos-app-icons`, based on main
 push and signed hosted macOS Host/Client candidates for the permission panels
 and uninstall follow-ups below. Source version is **1.1.019**; the visible and
 package version is **1.1.019-macos-app-icons**. No merge, Release or installation
-is authorized by this candidate step. Full package builds remain pending.
+is authorized by this candidate step.
+Signed Host source is `e0d11026f23a2dbb243eafd6f48943edad9eddc0`;
+run `36177470498` passed all package/signing/notarization/stapling/Gatekeeper
+and cleanup gates. Its checksum-verified PKG is collected below.
+Client run `36177473821` compiled and passed tests but failed the payload-path
+gate before notarization: the uninstaller's inline Directory Services account
+lookup resembled a home-directory path. This was a script-literal false positive,
+not a private build path. Separating the account lookup resolves it without
+weakening the scanner. The early uninstall fixture and build-path suite now
+exercise that shipped script. Retry only the signed Client; Host code is unchanged.
+Automatic four-product run `36177430110` passed Ubuntu and both unsigned Macs;
+Linux Host was still running at this checkpoint.
+Privacy `36177429921` and clipboard `36177430038` passed.
+Local CI policy/cache/signing fixtures62,
+permission timing9, keyboard guards5, build-path10, portable Host uninstall24,
+Client uninstall2 groups, version and whitespace gates pass. Native-only
+configuration tests correctly skip on the Linux orchestration machine; their
+dedicated-Mac results below and hosted reruns are separate.
 Client implementation is committed and pushed at
 `c684014752b511de489d6406e8bafb005bef5123`; other dependency pins are unchanged.
 The primary worktree's unrelated RK3576 changes must remain untouched.
@@ -253,6 +270,15 @@ are preserved in this file's Git history.
 
 Catalog: `artifacts/packages/candidates/`. Checksums and exact root/gitlink
 provenance live in each version's `manifest.json`, `SHA256SUMS` and sidecars.
+
+### 1.1.019-macos-app-icons
+
+Signed/notarized Host from root `e0d11026f23a2dbb243eafd6f48943edad9eddc0`,
+Client pin `c684014752b511de489d6406e8bafb005bef5123`, other pins unchanged.
+Package: `1.1.019-macos-app-icons/macos/plank-host_1.1.019-macos-app-icons_arm64.pkg`.
+SHA-256: `366eb7cdd59e36dbb362c8753456a046cc9c93a850be335b6145fd8b60ddabc9`
+(6,990,659 bytes). SDK27, macOS27 minimum. No installation performed.
+The signed Client retry is pending; do not use the failed package attempt.
 
 ### 1.1.018-macos-app-icons
 

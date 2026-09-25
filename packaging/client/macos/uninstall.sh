@@ -60,8 +60,9 @@ verify_policy() {
 # Never use root's HOME or walk other users' homes. This phase runs without
 # administrator privileges, in a separate invocation of the signed script.
 client_user_home() {
-    local record
-    record=$(/usr/bin/dscl /Search -read "/Users/$(/usr/bin/id -un)" NFSHomeDirectory) || fail 'Cannot find your account home directory.'
+    local record account
+    account=$(/usr/bin/id -un) || fail 'Cannot identify your account.'
+    record=$(/usr/bin/dscl /Search -read "/Users/$account" NFSHomeDirectory) || fail 'Cannot find your account home directory.'
     [[ $record = 'NFSHomeDirectory: /'* ]] || fail 'Invalid account home directory.'
     printf '%s\n' "${record#NFSHomeDirectory: }"
 }
