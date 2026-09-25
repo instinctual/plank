@@ -2,6 +2,7 @@
 #import "host-runtime.h"
 #import "fixed-capture.h"
 #import "media-features.h"
+#include "host-network-policy.h"
 #include <arpa/inet.h>
 #include <stdatomic.h>
 #include <time.h>
@@ -20,6 +21,7 @@
     NSString *_takeoverToken;
     NSData *_takeoverPeer;
     uint64_t _takeoverDeadline;
+    uint32_t _idleTimeoutMs;
 }
 - (instancetype)init { return nil; }
 - (instancetype)initWithIdentity:(SecIdentityRef)identity
@@ -27,16 +29,19 @@
                      information:(PLANKMacServerInformation *)information
                         snapshot:(PLANKMacGraphicalSnapshot)snapshot
                         topology:(NSDictionary *(^)(void))topology address:(NSString *)address
+         idleTimeoutMilliseconds:(uint32_t)idleTimeoutMilliseconds
                      certificate:(NSString *)certificate privateKey:(NSString *)privateKey
                          capture:(id<PLANKMacPreviewCapture> (^)(void))capture
                            input:(id<PLANKMacInputDevice> (^)(void))input {
     struct in_addr ip;
     if (!identity || !information || !snapshot || !topology || !capture || !input ||
         !address || inet_pton(AF_INET, address.UTF8String, &ip) != 1 ||
-        !certificate.isAbsolutePath || !privateKey.isAbsolutePath) return nil;
+        !certificate.isAbsolutePath || !privateKey.isAbsolutePath ||
+        !plank_macos_valid_ping_timeout(idleTimeoutMilliseconds)) return nil;
     self = [super init];
     if (!self) return nil;
     _snapshot = [snapshot copy]; _topology = [topology copy];
+    _idleTimeoutMs = idleTimeoutMilliseconds;
     _capture = [capture copy]; _input = [input copy];
     _address = [address copy]; _certificate = [certificate copy]; _privateKey = [privateKey copy];
     _sessions = [[PLANKMacAuthenticationSession alloc] initWithGraphicalSnapshot:snapshot];
@@ -203,7 +208,8 @@
         config.bind_address = bind.UTF8String;
         config.certificate_path = _certificate.UTF8String;
         config.private_key_path = _privateKey.UTF8String;
-        config.idle_timeout_ms = 10000; config.keep_alive_interval_ms = 1000;
+        config.idle_timeout_ms = _idleTimeoutMs;
+        config.keep_alive_interval_ms = plank_macos_keep_alive_interval(_idleTimeoutMs);
         _stream = [[PLANKMacPreviewSession alloc] initWithSessions:_sessions token:token peer:peer
             request:request topology:_topology config:&config capture:_capture() input:_input()
             microphoneGeneration:_snapshot().generation];

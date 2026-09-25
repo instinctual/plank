@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 #import "host-configuration.h"
 #import "configuration-files.h"
+#include "host-network-policy.h"
 
 NSDictionary *PLANKMacParseHostConfiguration(NSData *data) {
     if (!data.length || data.length > 32768) return nil;
@@ -14,7 +15,7 @@ NSDictionary *PLANKMacParseHostConfiguration(NSData *data) {
         if (!line.length || [line hasPrefix:@"#"] || [line hasPrefix:@";"]) continue;
         if ([line hasPrefix:@"["] && [line hasSuffix:@"]"]) {
             section = [line substringWithRange:NSMakeRange(1, line.length - 2)];
-            if (![section isEqual:@"general"] && ![section isEqual:@"network"]) return nil;
+            if (![section isEqual:@"general"] && ![section isEqual:@"network"] && ![section isEqual:@"security"]) return nil;
             continue;
         }
         NSRange separator = [line rangeOfString:@"="];
@@ -22,7 +23,8 @@ NSDictionary *PLANKMacParseHostConfiguration(NSData *data) {
         NSString *key = [[line substringToIndex:separator.location] stringByTrimmingCharactersInSet:spaces];
         NSString *value = [[line substringFromIndex:separator.location + 1] stringByTrimmingCharactersInSet:spaces];
         key = [NSString stringWithFormat:@"%@.%@", section, key];
-        if ((![key isEqual:@"general.host_name"] && ![key isEqual:@"network.port"]) || values[key]) return nil;
+        if ((![key isEqual:@"general.host_name"] && ![key isEqual:@"network.port"] &&
+             ![key isEqual:@"network.ping_timeout"] && ![key isEqual:@"security.publish_session_user"]) || values[key]) return nil;
         values[key] = value;
     }
     NSString *name = values[@"general.host_name"] ?: @"PLANK Mac Host";
@@ -32,8 +34,15 @@ NSDictionary *PLANKMacParseHostConfiguration(NSData *data) {
     if (!port.length || port.length > 5 || [port rangeOfCharacterFromSet:
         [[NSCharacterSet characterSetWithCharactersInString:@"0123456789"] invertedSet]].location != NSNotFound ||
         port.integerValue < 1 || port.integerValue > 65535) return nil;
+    NSString *timeout = values[@"network.ping_timeout"] ?: @(PLANKMacDefaultPingTimeoutMs).stringValue;
+    if (!timeout.length || timeout.length > 6 || [timeout rangeOfCharacterFromSet:
+        [[NSCharacterSet characterSetWithCharactersInString:@"0123456789"] invertedSet]].location != NSNotFound ||
+        !plank_macos_valid_ping_timeout((uint32_t)timeout.integerValue)) return nil;
+    NSString *publishUser = values[@"security.publish_session_user"] ?: @"false";
+    if (![publishUser isEqual:@"true"] && ![publishUser isEqual:@"false"]) return nil;
     // Listening on all interfaces is product policy, not a second configuration key.
-    return @{@"Address": @"0.0.0.0", @"Name": name, @"Port": @(port.integerValue)};
+    return @{@"Address": @"0.0.0.0", @"Name": name, @"Port": @(port.integerValue),
+             @"PingTimeoutMs": @(timeout.integerValue), @"PublishSessionUser": @([publishUser isEqual:@"true"])};
 }
 
 NSString *PLANKMacReadWorkstationUUID(NSData *data) {

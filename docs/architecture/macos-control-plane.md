@@ -54,9 +54,12 @@ name or hardware identity. Persistent service state is still a future gate.
 The advertised control port is the actual bound listener port, not a copied
 default. There are no alternate address or port-discovery rules.
 
-Discovery does not consult or disclose the active account, username, UID,
-desktop geometry, tokens or hardware serials. Unauthenticated `/serverinfo`
-includes a nameless `PlankOccupied` bit: `1` for an Aqua user desktop or a
+Discovery does not look up accounts or disclose UIDs, desktop geometry, tokens
+or hardware serials. By default it does not disclose usernames either.
+`[security] publish_session_user = true` permits a sanitized, cached OS desktop
+login name as `PlankSessionUser`; the installer defaults this privacy-sensitive
+option off. It is never an authentication identity and is absent at LoginWindow.
+Unauthenticated `/serverinfo` includes a `PlankOccupied` bit: `1` for an Aqua user desktop or a
 reserved/live stream, including a connection to LoginWindow; otherwise `0`.
 Occupancy is a courtesy indicator only; it does not replace authentication or
 block a locally logged-in user from connecting remotely. Query strings are

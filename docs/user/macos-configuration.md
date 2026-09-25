@@ -12,6 +12,19 @@ Administrator settings are installed as root-owned, mode0644 files in
   `[network] port` sets its TCP/UDP port. Default port28989. The Host always
   listens on all IPv4 interfaces. Restart the Host roles or restart the Mac after
   changing Host configuration. Firewall changes remain administrator-managed.
+  `[network] ping_timeout` sets QUIC inactivity tolerance in milliseconds,
+  default 10000 and range 200–120000. Invalid values fail startup, not silently
+  clamp. Keepalives maintain idle desktops; this is not an input-idle timer or
+  video/audio buffering setting. QUIC recovery and the peer's timeout also
+  affect closure. Initial handshakes retain a separate 10-second deadline, and
+  the Client's Unreachable host timeout/Wait/Disconnect policy is independent.
+  `[security] publish_session_user` accepts `true`/`false`, default false. Opting
+  in exposes the active desktop's short login name to anyone reaching discovery
+  **before authentication**. Locked desktops retain their name; logout and user
+  switching retire the old worker's metadata. LoginWindow remains nameless.
+  Names must fit the shared 1–64-character ASCII metadata format; an `@realm`
+  suffix is omitted and unsupported names are not published. No per-poll account
+  lookup, authorization change or automatic takeover is introduced.
 - Client: `client.conf`. `[network] port` controls the default bookmark port;
   optional `mdns_discovery` controls discovery policy; `[authentication]
   `remember_username` controls per-bookmark username retention. Restart the app
@@ -20,7 +33,7 @@ Administrator settings are installed as root-owned, mode0644 files in
 Both templates document all public administrator settings for that product.
 These are INI files, not shell scripts. Use whole-line `#` or `;` comments and
 unquoted values. Host rejects unknown keys, duplicates, invalid names and invalid
-ports rather than silently using a different configuration. Linux Host has its
+ports/timeouts/booleans rather than silently using a different configuration. Linux Host has its
 own platform-specific template; do not copy its capture/encoder keys to macOS.
 
 Upgrades preserve existing files byte-for-byte, including administrator comments.

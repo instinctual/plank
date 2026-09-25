@@ -11,11 +11,11 @@ newer native camera, stereo microphone or audio-clock work.
 - Show In Session for a logged-in local desktop or reserved/live PLANK stream.
 - Advisory only: same-user local-to-remote access, explicit remote takeover and
   different-user ownership enforcement are unchanged.
-- Optional Linux username publication remains administrator-controlled and off
+- Optional Linux/macOS username publication remains administrator-controlled and off
   by default. Opt-in exposes the sanitized name before authentication.
 - No extra poll, account lookup, auth queue work or teardown from discovery.
 - No persistent usernames in Client bookmarks. Preserve readable status while
-  truncating long names. macOS publishes only nameless occupancy.
+  truncating long names. LoginWindow never publishes a remote user's name.
 
 ## Implementation
 
@@ -61,3 +61,20 @@ startup. Preserve the current same-user access and takeover rules.
 Production policy/parser/persistence tests and the actual inline login dialog
 run offscreen on the Ubuntu builder. All pass; package and live-session tests
 remain separate. Documentation: `docs/user/remembered-usernames.md`.
+
+## Follow-up: macOS Host settings (issue20)
+
+Expose `[security] publish_session_user = false` and `[network] ping_timeout =
+10000` in the macOS INI reader and fully commented reference template. Reuse the
+desktop provisioning account lookup, sanitize/cache the short name only after
+administrator opt-in, and never publish an authenticated remote name at
+LoginWindow. Existing graphical-worker retirement handles logout/user switching;
+locking keeps the same desktop scope. No discovery-time resolver or new service.
+
+Pass the validated 200–120000 ms inactivity limit into native QUIC; preserve
+the existing one-second keepalive at the default and shorten it for smaller
+timeouts. Keep the independent 10-second handshake deadline and Client
+Wait/Disconnect policy unchanged. Reject invalid Mac INI values, test boundary
+values and upgrade preservation, and correct Linux's legacy media-ping comments
+without changing Linux runtime behavior. Existing Client metadata-v1 parsing
+already handles optional Mac names; no new feature bit or fallback is needed.

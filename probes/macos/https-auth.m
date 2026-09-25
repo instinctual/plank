@@ -114,6 +114,7 @@ int main(int argc, const char *argv[]) {
         // loopback address and synthetic devices only in the synthetic build.
         PLANKMacHostRuntime *runtime = [[PLANKMacHostRuntime alloc] initWithIdentity:identity authority:machineAuthority
             information:information snapshot:snapshot topology:topology address:@"127.0.0.1"
+            idleTimeoutMilliseconds:10000
             certificate:[directory stringByAppendingPathComponent:@"cert.pem"]
             privateKey:[directory stringByAppendingPathComponent:@"key.pem"]
             capture:^id<PLANKMacPreviewCapture> {

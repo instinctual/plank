@@ -27,8 +27,7 @@ int main(int argc, const char *argv[]) {
             @"PlankAuth": @"1", @"ServerCodecModeSupport": @"0", @"PlankTopologyVersion": @"0",
             @"PlankFeatureFlags": @"0", @"PairStatus": @"0", @"PlankOccupied": @"0"
         };
-        // Exact public-field allowlist: occupancy is a nameless 0/1 bit.
-        // Adding owner, username, UID, or topology data must still fail.
+        // Exact default allowlist: names require administrator opt-in.
         assert(root.childCount == expected.count);
         for (NSString *key in expected) {
             NSArray<NSXMLElement *> *nodes = [root elementsForName:key];
@@ -69,7 +68,7 @@ int main(int argc, const char *argv[]) {
         assert([expectedDocument.rootElement.XMLString isEqual:actualDocument.rootElement.XMLString]);
         PLANKMacServerInformation *desktop = [[PLANKMacServerInformation alloc]
             initWithName:@"PLANK Mac qualification" workstationUUID:uuid
-            version:@"macos-host-qualification" streaming:YES occupied:YES];
+            version:@"macos-host-qualification" streaming:YES occupied:YES sessionUser:nil];
         NSXMLDocument *occupiedDocument = [[NSXMLDocument alloc]
             initWithData:[desktop XMLForControlPort:28989] options:0 error:NULL];
         NSArray<NSXMLElement *> *occupied = [occupiedDocument.rootElement elementsForName:@"PlankOccupied"];
@@ -89,6 +88,39 @@ int main(int argc, const char *argv[]) {
         }
         for (NSString *secret in @[@"username", @"uid", @"user", @"account", @"session"]) {
             assert([occupiedDocument.rootElement elementsForName:secret].count == 0);
+        }
+        NSMutableString *account = [@"example-user@EXAMPLE.TEST" mutableCopy];
+        PLANKMacServerInformation *named = [[PLANKMacServerInformation alloc] initWithName:@"Test"
+            workstationUUID:uuid version:@"test" streaming:YES occupied:YES sessionUser:account];
+        [account setString:@"changed-after-construction"];
+        for (NSNumber *stream in @[@YES, @NO]) for (NSNumber *authorized in @[@YES, @NO]) {
+            // Local or locked desktops retain their identity, independently of
+            // the remote stream/auth state. No account query during XML reads.
+            for (unsigned poll = 0; poll < 100; ++poll) {
+                NSXMLDocument *live = [[NSXMLDocument alloc] initWithData:[named XMLForControlPort:28989
+                    authorized:authorized.boolValue streamOccupied:stream.boolValue] options:0 error:NULL];
+                assert([[[live.rootElement elementsForName:@"PlankSessionUser"] firstObject].stringValue isEqual:@"example-user"]);
+                assert(live.rootElement.childCount == expected.count + 1);
+            }
+        }
+        NSArray *validNames = @[@"Example.User_2-3", [@"x" stringByPaddingToLength:64 withString:@"x" startingAtIndex:0]];
+        NSArray *invalidNames = @[@"", @"<owner>", @"bad name", @"bad\nname", @"bad/name", @"écran", @"@EXAMPLE.TEST",
+            [@"x" stringByPaddingToLength:65 withString:@"x" startingAtIndex:0],
+            [@"x" stringByPaddingToLength:257 withString:@"x" startingAtIndex:0]];
+        for (NSString *candidate in [validNames arrayByAddingObjectsFromArray:invalidNames]) {
+            for (NSNumber *desktopActive in @[@YES, @NO]) {
+                PLANKMacServerInformation *next = [[PLANKMacServerInformation alloc] initWithName:@"Test"
+                    workstationUUID:uuid version:@"test" streaming:YES occupied:desktopActive.boolValue sessionUser:candidate];
+                assert(next); // An unsupported advisory name must not prevent login.
+                NSXMLDocument *live = [[NSXMLDocument alloc] initWithData:[next XMLForControlPort:28989
+                    authorized:YES streamOccupied:YES] options:0 error:NULL];
+                NSArray<NSXMLElement *> *names = [live.rootElement elementsForName:@"PlankSessionUser"];
+                BOOL visible = desktopActive.boolValue && [validNames containsObject:candidate];
+                assert(names.count == (visible ? 1u : 0u));
+                if (visible) assert([names.firstObject.stringValue isEqual:candidate]);
+                // LoginWindow after logout is nameless even if given an old name
+                // and even when occupied by a new authenticated remote stream.
+            }
         }
         puts("macos_server_information=pass public_allowlist=1 no_media_claim=1 escaped_xml=1 bounded_query=1 nameless_occupancy=1");
     }

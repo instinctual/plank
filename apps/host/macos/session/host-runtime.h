@@ -23,6 +23,7 @@
                         snapshot:(PLANKMacGraphicalSnapshot)snapshot
                         topology:(NSDictionary *(^)(void))topology
                          address:(NSString *)address
+         idleTimeoutMilliseconds:(uint32_t)idleTimeoutMilliseconds
                      certificate:(NSString *)certificate privateKey:(NSString *)privateKey
                          capture:(id<PLANKMacPreviewCapture> (^)(void))capture
                            input:(id<PLANKMacInputDevice> (^)(void))input;

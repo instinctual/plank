@@ -213,10 +213,11 @@ static int graphical(const char *service, NSString *role, NSString *directory, B
     PLANKMacGraphicalIdentity initial = [authority snapshot];
     if (!plank_macos_graphical_identity_valid(initial)) return startupFailure("graphical-scope");
     NSDictionary *publicConfiguration = nil;
+    NSString *desktopAccountName = nil;
     NSData *authorityDER = nil;
     if (systemProvisioning) {
         if (phase == PLANKMacScopeDesktop) {
-            if (!PLANKMacPrepareDesktop(&directory, &publicConfiguration)) return startupFailure("desktop-provisioning");
+            if (!PLANKMacPrepareDesktop(&directory, &publicConfiguration, &desktopAccountName)) return startupFailure("desktop-provisioning");
             authorityDER = PLANKMacAuthorizeDesktopIdentity(directory, service, PLANKMacOwnSigningRequirement());
             if (!authorityDER) return startupFailure("machine-identity");
         } else {
@@ -236,7 +237,7 @@ static int graphical(const char *service, NSString *role, NSString *directory, B
     NSMutableData *certificatePEM = readPrivate(fd, "cert.pem"), *keyPEM = readPrivate(fd, "key.pem");
     close(fd);
     NSDictionary *config = publicConfiguration ?: PLANKMacReadHostConfiguration(directory, directory, geteuid(), YES);
-    if (![config isKindOfClass:NSDictionary.class] || config.count != 4 ||
+    if (![config isKindOfClass:NSDictionary.class] || config.count != 6 ||
         ![config[@"Address"] isKindOfClass:NSString.class] || ![config[@"Name"] isKindOfClass:NSString.class] ||
         ![config[@"UUID"] isKindOfClass:NSString.class] || ![config[@"Port"] isKindOfClass:NSNumber.class] ||
         CFGetTypeID((__bridge CFTypeRef)config[@"Port"]) == CFBooleanGetTypeID() ||
@@ -256,7 +257,8 @@ static int graphical(const char *service, NSString *role, NSString *directory, B
     if (!identity) return startupFailure("tls-identity");
     PLANKMacServerInformation *information = [[PLANKMacServerInformation alloc] initWithName:config[@"Name"]
         workstationUUID:[[NSUUID alloc] initWithUUIDString:config[@"UUID"]] version:@PLANK_MACOS_HOST_VERSION
-        streaming:YES occupied:(phase == PLANKMacScopeDesktop)];
+        streaming:YES occupied:(phase == PLANKMacScopeDesktop)
+        sessionUser:[config[@"PublishSessionUser"] boolValue] ? desktopAccountName : nil];
     PLANKMacFixedCapture *capture = [PLANKMacFixedCapture new];
     PLANKMacDesktopDisplay *desktopDisplay = phase == PLANKMacScopeSignIn ?
         [[PLANKMacDesktopDisplay alloc] initForSignIn] : [PLANKMacDesktopDisplay new];
@@ -310,6 +312,7 @@ static int graphical(const char *service, NSString *role, NSString *directory, B
     runtime = [[PLANKMacHostRuntime alloc] initWithIdentity:identity authority:authorityDER information:information
         snapshot:^{ return [weakAgent bindGraphicalScope:[authority snapshot]]; }
         topology:^{ return [capture snapshot]; } address:config[@"Address"]
+        idleTimeoutMilliseconds:[config[@"PingTimeoutMs"] unsignedIntValue]
         certificate:[directory stringByAppendingPathComponent:@"cert.pem"]
         privateKey:[directory stringByAppendingPathComponent:@"key.pem"]
         capture:^id<PLANKMacPreviewCapture> {

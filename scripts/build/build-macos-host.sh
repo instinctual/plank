@@ -15,6 +15,10 @@ mkdir "$output"
 cd "$source_root"
 bash "$source_root/scripts/test/build-macos-configuration.sh" "$source_root" "$output/configuration-tests"
 xcrun clang -mmacosx-version-min=27.0 -fobjc-arc -Wall -Wextra -Werror \
+    -Iapps/host/macos/control apps/host/macos/control/server-information.m \
+    tests/auth/macos-server-information.m -framework Foundation -o "$output/server-information-test"
+"$output/server-information-test" "$source_root/tests/protocol/macos-server-information.xml"
+xcrun clang -mmacosx-version-min=27.0 -fobjc-arc -Wall -Wextra -Werror \
     tests/auth/macos-audio-consent.m -framework Foundation -framework CoreAudio \
     -o "$output/audio-consent-test"
 "$output/audio-consent-test"

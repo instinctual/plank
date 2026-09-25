@@ -116,11 +116,14 @@ BOOL PLANKMacPrepareDesktopIdentity(NSString *directory) {
     return ok;
 }
 
-BOOL PLANKMacPrepareDesktop(NSString **directory, NSDictionary **configuration) {
+BOOL PLANKMacPrepareDesktop(NSString **directory, NSDictionary **configuration, NSString **accountName) {
+    *accountName = nil;
     if (!getuid() || getuid() != geteuid()) return NO;
     struct passwd *account = getpwuid(getuid());
-    if (!account || !account->pw_dir) return NO;
+    if (!account || account->pw_uid != getuid() || !account->pw_dir) return NO;
     NSString *home = [NSString stringWithUTF8String:account->pw_dir];
+    // Copy before any subsequent library call can replace the passwd storage.
+    NSString *name = account->pw_name ? [NSString stringWithUTF8String:account->pw_name] : nil;
     // Logs are opened as the user, not by root launchd following a home path.
     int logs = openDirectory([home stringByAppendingPathComponent:@"Library/Logs/PLANK"], YES);
     if (!ownedDirectory(logs, geteuid(), 0700)) { if (logs >= 0) close(logs); return NO; }
@@ -135,5 +138,7 @@ BOOL PLANKMacPrepareDesktop(NSString **directory, NSDictionary **configuration) 
     *configuration = PLANKMacReadHostConfiguration(@"/private/etc/plank", @"/Library/Application Support/PLANK", 0, NO);
     if (!*configuration) return NO;
     *directory = [home stringByAppendingPathComponent:@"Library/Application Support/PLANK/Host"];
-    return PLANKMacPrepareDesktopIdentity(*directory);
+    if (!PLANKMacPrepareDesktopIdentity(*directory)) return NO;
+    *accountName = name;
+    return YES;
 }

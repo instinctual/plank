@@ -2,6 +2,18 @@
 
 ## Current task
 
+Issue20 follow-up: macOS Host now accepts `[security] publish_session_user`
+(default false) and `[network] ping_timeout` (default 10000 ms, range 200–120000).
+Both keys have full reference comments, including pre-auth disclosure, accepted
+values, keepalives, QUIC peer/recovery limits and the separate Client wait policy.
+Username metadata reuses the desktop provisioning account lookup; the existing
+Client parser handles it. LoginWindow stays nameless. Native QUIC uses the configured
+idle limit; its initial handshake remains bounded separately. Linux runtime is
+unchanged; its stale ping documentation is corrected. Portable assembly guards
+and all timeout/keepalive boundary checks pass. Native SDK27 configuration,
+discovery and lifecycle regression validation is pending. No new package/install,
+push, merge, release or issue closure has been performed for this follow-up.
+
 Branch `session-indicator` in `build/worktrees/session-indicator`, based on latest
 main `5593932d5e8bc9fea2f52292fc0a5665b5c650a0` and Client
 `b5c3a7a5ddd37e010155883054931be3010fc5a2`. Source version **1.1.016**;
@@ -116,8 +128,8 @@ audio clock work remains in the ancestry, not replaced by the older PR pins.
   including a Mac login-screen stream. It is advisory, not an access gate.
 - The same locally logged-in user can connect from home. Existing explicit
   remote takeover and different-user ownership protections are unchanged.
-- Linux `security.publish_session_user` defaults false. Opting in publishes the
-  sanitized desktop name before authentication; macOS remains nameless.
+- Linux/macOS `security.publish_session_user` defaults false. Opting in publishes
+  the sanitized desktop name before authentication; LoginWindow stays nameless.
 - Linux reuses the already-resolved supervisor account, bound to the private
   `SC-SESSION-3` attachment record. Discovery reads local logind state and an
   atomic stream bit, never NSS or session cleanup. Both private-channel ends

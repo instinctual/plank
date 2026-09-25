@@ -90,7 +90,8 @@ class Configuration(unittest.TestCase):
         self.config.mkdir(mode=0o755)
         self.config.chmod(0o755)
         custom = self.config / "host.conf"
-        custom.write_bytes(b"# Keep my comment\n[network]\nport = 30123\n[general]\nhost_name = Custom\n")
+        custom.write_bytes(b"# Keep my comment\n[network]\nport = 30123\nping_timeout = 25000\n"
+                           b"[security]\npublish_session_user = true\n[general]\nhost_name = Custom\n")
         custom.chmod(0o644)
         original = custom.read_bytes()
         self.invoke()
@@ -122,7 +123,8 @@ class Configuration(unittest.TestCase):
         self.legacy()
         self.invoke()
         path = self.config / "host.conf"
-        for data in (b"[network]\nport=0", b"[video]\ncapture=anything", b"x" * 32769):
+        for data in (b"[network]\nport=0", b"[video]\ncapture=anything", b"x" * 32769,
+                     b"[network]\nping_timeout=0", b"[security]\npublish_session_user=maybe"):
             path.write_bytes(data)
             before = self.snapshot()
             self.invoke(success=False)

@@ -48,10 +48,14 @@ same Host package; old private records are rejected, not reinterpreted.
 macOS retains the immutable agent desktop bit and a lock-free stream-lease bit.
 Discovery selects cached free/occupied XML without waiting for authentication,
 account lookup, display preparation or teardown. This does not grant authority
-or expose the stream owner's name at LoginWindow.
+or expose the stream owner's name at LoginWindow. When configured, the desktop
+worker reuses its already-resolved OS short account name during provisioning.
+The name is cached for that worker's admitted graphical scope; locking keeps
+the same scope/name, while logout or user switching retires it. No per-poll
+resolver or Client-supplied username is used.
 
-By default the response includes no account name, UID, or session id. A Linux
-Host administrator may opt in with `publish_session_user = true` in
+By default the response includes no account name, UID, or session id. A Linux or
+macOS Host administrator may opt in with `[security] publish_session_user = true` in
 `/etc/plank/host.conf`. While that setting is true and a user desktop is
 active, `/serverinfo` may add the login name of that desktop. A directory
 login is published as the name before `@`:
