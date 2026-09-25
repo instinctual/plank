@@ -26,6 +26,7 @@
     PLANKMacAuthenticationSession *_sessions;
     PLANKMacServerInformation *_information;
     NSData *_serverInformationXML;
+    NSData *_occupiedServerInformationXML;
     NSDictionary *(^_topology)(void);
     PLANKMacLaunchHandler _launch;
     uint16_t _controlPort;
@@ -228,7 +229,9 @@
                 if ([method isEqual:@"GET"]) {
                     BOOL information = PLANKMacIsServerInformationTarget(path) && owner->_serverInformationXML;
                     if (information && !authorization.length) {
-                        [owner replyBytes:owner->_serverInformationXML type:@"application/xml; charset=utf-8"
+                        NSData *xml = [owner->_sessions hasStreamLease] ?
+                            owner->_occupiedServerInformationXML : owner->_serverInformationXML;
+                        [owner replyBytes:xml type:@"application/xml; charset=utf-8"
                                     token:nil status:200 request:request];
                     } else if (information || PLANKMacIsTopologyTarget(path) || PLANKMacIsDesktopTarget(path)) {
                         if (owner->_authBusy) { [owner reply:@{@"state": @"denied"} status:503 request:request]; return; }
@@ -292,7 +295,8 @@
                                 }
                                 dispatch_async(owner->_networkQueue, ^{
                                     if (information) {
-                                        NSData *xml = [owner->_information XMLForControlPort:owner->_controlPort authorized:authorized];
+                                        NSData *xml = [owner->_information XMLForControlPort:owner->_controlPort
+                                            authorized:authorized streamOccupied:[owner->_sessions hasStreamLease]];
                                         [owner replyBytes:xml type:@"application/xml; charset=utf-8" token:nil
                                                   status:200 request:request];
                                     } else if (status == 200 && PLANKMacIsDesktopTarget(path)) {
@@ -413,7 +417,11 @@
             uint16_t boundPort = nw_listener_get_port(owner->_listener);
             owner->_controlPort = boundPort;
             owner->_serverInformationXML = [owner->_information XMLForControlPort:boundPort];
-            if (!owner->_serverInformationXML) { [owner stop]; if (failed) failed(); return; }
+            owner->_occupiedServerInformationXML = [owner->_information XMLForControlPort:boundPort
+                authorized:NO streamOccupied:YES];
+            if (!owner->_serverInformationXML || !owner->_occupiedServerInformationXML) {
+                [owner stop]; if (failed) failed(); return;
+            }
             ready(boundPort);
         }
         else if (state == nw_listener_state_failed) {

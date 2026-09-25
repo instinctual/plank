@@ -25,10 +25,10 @@ int main(int argc, const char *argv[]) {
             @"hostname": @"Test <Mac> & desktop", @"uniqueid": uuid.UUIDString.lowercaseString,
             @"HttpsPort": @"28987", @"PlankHostMetadataVersion": @"1", @"PlankHostVersion": @"1.0.0-macos-host",
             @"PlankAuth": @"1", @"ServerCodecModeSupport": @"0", @"PlankTopologyVersion": @"0",
-            @"PlankFeatureFlags": @"0", @"PairStatus": @"0"
+            @"PlankFeatureFlags": @"0", @"PairStatus": @"0", @"PlankOccupied": @"0"
         };
-        // Exact public-field allowlist: adding any session/owner/topology data
-        // must fail this test rather than silently disclosing it before auth.
+        // Exact public-field allowlist: occupancy is a nameless 0/1 bit.
+        // Adding owner, username, UID, or topology data must still fail.
         assert(root.childCount == expected.count);
         for (NSString *key in expected) {
             NSArray<NSXMLElement *> *nodes = [root elementsForName:key];
@@ -67,6 +67,29 @@ int main(int argc, const char *argv[]) {
         NSXMLDocument *actualDocument = [[NSXMLDocument alloc]
             initWithData:[qualified XMLForControlPort:28989] options:0 error:NULL];
         assert([expectedDocument.rootElement.XMLString isEqual:actualDocument.rootElement.XMLString]);
-        puts("macos_server_information=pass public_allowlist=1 no_media_claim=1 escaped_xml=1 bounded_query=1");
+        PLANKMacServerInformation *desktop = [[PLANKMacServerInformation alloc]
+            initWithName:@"PLANK Mac qualification" workstationUUID:uuid
+            version:@"macos-host-qualification" streaming:YES occupied:YES];
+        NSXMLDocument *occupiedDocument = [[NSXMLDocument alloc]
+            initWithData:[desktop XMLForControlPort:28989] options:0 error:NULL];
+        NSArray<NSXMLElement *> *occupied = [occupiedDocument.rootElement elementsForName:@"PlankOccupied"];
+        assert(occupied.count == 1 && [occupied.firstObject.stringValue isEqual:@"1"]);
+        // LoginWindow occupancy follows stream claim/end without changing auth.
+        for (NSNumber *stream in @[@YES, @NO, @YES, @NO]) {
+            for (NSNumber *authorized in @[@NO, @YES]) {
+                NSXMLDocument *live = [[NSXMLDocument alloc] initWithData:
+                    [qualified XMLForControlPort:28989 authorized:authorized.boolValue
+                        streamOccupied:stream.boolValue] options:0 error:NULL];
+                assert([[[live.rootElement elementsForName:@"PlankOccupied"] firstObject].stringValue
+                    isEqual:(stream.boolValue ? @"1" : @"0")]);
+                assert([[[live.rootElement elementsForName:@"PairStatus"] firstObject].stringValue
+                    isEqual:(authorized.boolValue ? @"1" : @"0")]);
+                assert(live.rootElement.childCount == expected.count);
+            }
+        }
+        for (NSString *secret in @[@"username", @"uid", @"user", @"account", @"session"]) {
+            assert([occupiedDocument.rootElement elementsForName:secret].count == 0);
+        }
+        puts("macos_server_information=pass public_allowlist=1 no_media_claim=1 escaped_xml=1 bounded_query=1 nameless_occupancy=1");
     }
 }

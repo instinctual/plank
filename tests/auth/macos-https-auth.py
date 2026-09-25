@@ -115,10 +115,10 @@ def discovery(tls, port):
                 "HttpsPort": str(port), "PlankHostMetadataVersion": "1",
                 "PlankHostVersion": "macos-host-qualification", "PlankAuth": "1",
                 "ServerCodecModeSupport": "0", "PlankTopologyVersion": "0",
-                "PlankFeatureFlags": "0", "PairStatus": "0"}
+                "PlankFeatureFlags": "0", "PairStatus": "0", "PlankOccupied": "0"}
     assert len(root) == len(expected) and {node.tag: node.text for node in root} == expected
-    # Discovery is public, but must neither expose session state nor create an
-    # alternative GET authentication path. Reject bearer tokens in query strings.
+    # Discovery is public. Occupancy is a nameless bit only; it must not
+    # expose an account, UID, or an alternative GET authentication path.
     for path in ["/plank/auth/start", "/plank/auth/respond", "/serverinfo?session_token=abc",
                  "/serverinfo?uuid=abc&uuid=def", "/serverinfo?uuid=%61",
                  "/serverinfo?uniqueid=0123456789ABCDEF", "/serverinfo?uuid=abc"]:

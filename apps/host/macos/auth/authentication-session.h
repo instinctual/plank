@@ -45,6 +45,9 @@ typedef PLANKMacGraphicalIdentity (^PLANKMacGraphicalSnapshot)(void);
 // encoding, socket waits, callbacks into UI, or account verification in action.
 - (BOOL)performWithStreamLease:(PLANKMacStreamLease *)lease action:(void (^)(void))action;
 - (void)endStreamLease:(PLANKMacStreamLease *)lease;
+// Advisory, lock-free snapshot for discovery. Includes pending stream setup;
+// never prunes tokens, queries accounts or grants authorization.
+- (BOOL)hasStreamLease;
 - (void)revokeToken:(NSString *)token;
 - (void)revokeAll;
 @end

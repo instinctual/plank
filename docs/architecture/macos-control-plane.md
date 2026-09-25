@@ -54,13 +54,16 @@ name or hardware identity. Persistent service state is still a future gate.
 The advertised control port is the actual bound listener port, not a copied
 default. There are no alternate address or port-discovery rules.
 
-Discovery does not consult or disclose the active account, session state,
-desktop geometry, tokens or hardware serials. Its only optional query keys are
-the current Client's ignored `uniqueid`/`uuid` cache busters, with bounded
-hex/hyphen values and no duplicates. Unknown keys, percent-encoded values and
-credentials in URLs are rejected. GET cannot invoke an authentication route.
-Discovery serialization is cached at listener readiness and does not occupy
-the authentication worker queue.
+Discovery does not consult or disclose the active account, username, UID,
+desktop geometry, tokens or hardware serials. Unauthenticated `/serverinfo`
+includes a nameless `PlankOccupied` bit: `1` for an Aqua user desktop or a
+reserved/live stream, including a connection to LoginWindow; otherwise `0`.
+Occupancy is a courtesy indicator only; it does not replace authentication or
+block a locally logged-in user from connecting remotely. Query strings are
+rejected, including retired `uniqueid`/`uuid` metadata. GET cannot invoke an
+authentication route. Free/occupied discovery XML is cached at listener readiness
+and selected using an atomic stream-lease snapshot. Polls neither occupy the
+authentication queue nor run account lookup, token pruning or session teardown.
 
 `PlankAuth=1` describes the implemented authentication conversation, not a
 desktop grant. `ServerCodecModeSupport=0`, `PlankTopologyVersion=0` and

@@ -74,7 +74,7 @@ int main() {
     return 8;
   }
   if (session::parse_session_update(message.substr(0, message.size() - 1)) ||
-      session::parse_session_update(std::string_view {"SC-SESSION-2\0bad", 16})) {
+      session::parse_session_update(std::string_view {"SC-SESSION-3\0bad", 16})) {
     std::cerr << "malformed session update was accepted\n";
     return 9;
   }

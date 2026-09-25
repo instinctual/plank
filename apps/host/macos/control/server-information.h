@@ -3,7 +3,8 @@
 #import <Foundation/Foundation.h>
 
 // Public, immutable discovery metadata. No account, desktop geometry, token,
-// hardware serial number or active-session state belongs in this object.
+// or hardware serial number belongs in this object. Occupancy is a nameless
+// bit only: a user desktop or a reserved/live stream is occupied.
 // The installer/service must supply its persisted workstation UUID; do not
 // derive it from an account or regenerate it for every graphical agent.
 @interface PLANKMacServerInformation : NSObject
@@ -11,9 +12,16 @@
                     version:(NSString *)version;
 - (instancetype)initWithName:(NSString *)name workstationUUID:(NSUUID *)uuid
                     version:(NSString *)version streaming:(BOOL)streaming;
+- (instancetype)initWithName:(NSString *)name workstationUUID:(NSUUID *)uuid
+                    version:(NSString *)version streaming:(BOOL)streaming
+                   occupied:(BOOL)occupied;
 - (NSData *)XMLForControlPort:(uint16_t)port;
 // Reflect only this request's validated bearer, never another client's state.
 - (NSData *)XMLForControlPort:(uint16_t)port authorized:(BOOL)authorized;
+// Dynamic stream ownership is separate from this agent's immutable desktop
+// ownership. Discovery must not acquire authentication/media locks to read it.
+- (NSData *)XMLForControlPort:(uint16_t)port authorized:(BOOL)authorized
+               streamOccupied:(BOOL)streamOccupied;
 @end
 
 // These GET endpoints accept exact paths, without legacy client metadata or

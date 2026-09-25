@@ -1,0 +1,43 @@
+# Advisory session indicator
+
+Branch: `session-indicator`, based on current root main
+`5593932d5e8bc9fea2f52292fc0a5665b5c650a0` and Client main
+`b5c3a7a5ddd37e010155883054931be3010fc5a2` (1.1.014).
+Integrates root PR13, Client PR8 and Linux Host PR10 without replacing the
+newer native camera, stereo microphone or audio-clock work.
+
+## Contract
+
+- Show In Session for a logged-in local desktop or reserved/live PLANK stream.
+- Advisory only: same-user local-to-remote access, explicit remote takeover and
+  different-user ownership enforcement are unchanged.
+- Optional Linux username publication remains administrator-controlled and off
+  by default. Opt-in exposes the sanitized name before authentication.
+- No extra poll, account lookup, auth queue work or teardown from discovery.
+- No persistent usernames in Client bookmarks. Preserve readable status while
+  truncating long names. macOS publishes only nameless occupancy.
+
+## Implementation
+
+1. Retain the PR Client model/parser/UI work on top of current Client main.
+   Reject names unless occupancy is exactly1; preserve the status label width.
+2. Reuse the account already resolved by the Linux supervisor. Bind its sanitized
+   advisory name to the versioned private attachment record, and confirm the same
+   UID/session/class against local logind before returning it. No new resolver,
+   polling thread or service. Read stream occupancy atomically instead of calling
+   the cleanup-producing session_count function.
+3. Reflect macOS pending/active stream leases through an atomic advisory bit.
+   Select pre-serialized occupied/free responses on the network queue; retain
+   existing authentication and ownership policy without new locks or OS queries.
+4. Test parser limits, privacy default, scope loss, login-screen streams, lease
+   expiry/revocation, persistence absence and unchanged authentication behavior.
+5. Run focused Linux and SDK27 checks from exact-source worktrees. Package builds
+   and live desktop/takeover/UI acceptance remain separate gates. No deployment,
+   release or merge to main without the corresponding operator request.
+
+## Validation
+
+Linux production occupancy and private-record tests pass locally, including
+10000 cached reads, name limits, malformed records and desktop transitions.
+Existing session-policy tests pass. SDK27 auth/discovery and Qt Client parser
+qualification are pending. Full package and live session qualification pending.

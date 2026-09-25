@@ -24,7 +24,8 @@ int main(int argc, char **argv)
                 computer.plankHostMetadataVersion != 1 ||
                 computer.plankHostVersion != QStringLiteral("macos-host-qualification") ||
                 computer.serverCodecModeSupport != 0 || computer.plankFeatureFlags != 0 ||
-                computer.plankTopologyVersion != 0 || computer.currentGameId != 0 ||
+                computer.plankTopologyVersion != 0 || computer.plankOccupied ||
+                computer.currentGameId != 0 ||
                 !computer.displayModes.isEmpty() || !computer.sessionToken.isEmpty() ||
                 !computer.localAddress.isNull() || !computer.remoteAddress.isNull()) return 1;
         NvHTTP wrongPort(NvAddress(QStringLiteral("127.0.0.1"), 28990));
@@ -32,8 +33,38 @@ int main(int argc, char **argv)
         try { NvComputer invalid(wrongPort, xml); }
         catch (const GfeHttpResponseException& exception) { rejectedPort = exception.getStatusCode() == 400; }
         if (!rejectedPort) return 1;
+        // Actual parser/update paths: advisory metadata grants no authority.
+        const auto occupiedXml = [&](const QString& bit, const QString& name) {
+            QString result = xml;
+            result.replace(QStringLiteral("<PlankOccupied>0</PlankOccupied>"),
+                           QStringLiteral("<PlankOccupied>%1</PlankOccupied><PlankSessionUser>%2</PlankSessionUser>").arg(bit, name));
+            return result;
+        };
+        const QString occupied = occupiedXml(QStringLiteral("1"), QStringLiteral("example-user"));
+        NvComputer busy(http, occupied);
+        if (!busy.plankOccupied || busy.plankSessionUser != QStringLiteral("example-user") ||
+                busy.authorizationState != NvComputer::AS_UNAUTHORIZED) return 1;
+        computer.update(busy);
+        if (!computer.plankOccupied || computer.plankSessionUser != busy.plankSessionUser) return 1;
+        NvComputer free(http, xml);
+        computer.update(free);
+        if (computer.plankOccupied || !computer.plankSessionUser.isEmpty()) return 1;
+        for (const QString& bit : {QString(), QStringLiteral("0"), QStringLiteral("2"), QStringLiteral("true")}) {
+            const QString response = occupiedXml(bit, QStringLiteral("example-user"));
+            if (NvHTTP::getPlankOccupied(response) || !NvHTTP::getPlankSessionUser(response).isEmpty()) return 1;
+        }
+        for (const QString& name : {QString(), QStringLiteral("&lt;markup&gt;"), QStringLiteral("two words"),
+                QStringLiteral("name@realm"), QStringLiteral("line\nfeed"), QString(65, QLatin1Char('x'))}) {
+            if (!NvHTTP::getPlankSessionUser(occupiedXml(QStringLiteral("1"), name)).isEmpty()) return 1;
+        }
+        if (NvHTTP::getPlankSessionUser(occupiedXml(QStringLiteral("1"), QString(64, QLatin1Char('x')))).size() != 64)
+            return 1;
         QTemporaryDir temporary;
         if (!temporary.isValid()) return 2;
+        QSettings ephemeral(temporary.filePath(QStringLiteral("occupancy.ini")), QSettings::IniFormat);
+        busy.serialize(ephemeral, false);
+        NvComputer reopenedBusy(ephemeral);
+        if (reopenedBusy.plankOccupied || !reopenedBusy.plankSessionUser.isEmpty()) return 1;
         QSettings saved(temporary.filePath(QStringLiteral("bookmark.ini")), QSettings::IniFormat);
         saved.setValue(QStringLiteral("plank-video-profile"), 7);
         saved.setValue(QStringLiteral("plank-capture-source"), 2);

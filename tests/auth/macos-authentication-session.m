@@ -155,6 +155,7 @@ int main(void) {
         CHECK([sessions authorizeToken:token peer:peer identity:&identity]);
         PLANKMacStreamLease *lease = [sessions claimToken:token peer:peer];
         CHECK(lease != nil && lease.transportToken.length == 44);
+        CHECK([sessions hasStreamLease]); // reserved setup already occupies the Host
         CHECK(![lease.transportToken isEqual:token]);
         CHECK(![sessions authorizeToken:token peer:peer identity:&identity]);
         CHECK([sessions claimToken:token peer:peer] == nil);
@@ -204,8 +205,10 @@ int main(void) {
         NSString *second = respond(sessions, peer, start[@"conversation_id"])[@"session_token"];
         CHECK([sessions claimToken:second peer:peer] == nil); // no implicit takeover
         [sessions endStreamLease:[PLANKMacStreamLease new]];
+        CHECK([sessions hasStreamLease]); // wrong lease cannot clear discovery state
         CHECK([sessions authorizeStreamLease:lease identity:&identity]);
         [sessions revokeToken:token]; // failed launch response still revokes its claim
+        CHECK(![sessions hasStreamLease]);
         CHECK(![sessions performWithStreamLease:lease action:^{ ++enqueues; }]);
         CHECK(enqueues == 1);
         CHECK(![sessions authorizeStreamLease:lease identity:&identity]);
@@ -215,6 +218,7 @@ int main(void) {
         [lease setValue:@0 forKey:@"activateBefore"];
         CHECK(![sessions activateStreamLease:lease]);
         CHECK(lease.transportToken == nil);
+        CHECK(![sessions hasStreamLease]); // expired setup clears occupancy
         CHECK([sessions claimToken:second peer:peer] == nil);
 
         start = [sessions startForPeer:peer username:@"test"];
@@ -223,6 +227,7 @@ int main(void) {
         CHECK([sessions activateStreamLease:lease]);
         ++desktop.generation;
         CHECK(![sessions authorizeStreamLease:lease identity:&identity]);
+        CHECK(![sessions hasStreamLease]);
         --desktop.generation;
         CHECK(![sessions authorizeStreamLease:lease identity:&identity]); // revoked stays revoked
 

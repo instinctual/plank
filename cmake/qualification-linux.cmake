@@ -297,6 +297,9 @@ if(BUILD_TESTING)
   add_test(NAME host-version-discovery
     COMMAND bash
       ${CMAKE_CURRENT_SOURCE_DIR}/tests/protocol/test-host-version-discovery.sh)
+  add_test(NAME occupancy-indicator
+    COMMAND bash
+      ${CMAKE_CURRENT_SOURCE_DIR}/tests/protocol/test-occupancy-indicator.sh)
   add_test(NAME release-version
     COMMAND bash
       ${CMAKE_CURRENT_SOURCE_DIR}/tests/packaging/test-release-version.sh)

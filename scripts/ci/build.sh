@@ -7,6 +7,7 @@ export CARGO_NET_OFFLINE=true
 python3 "$PLANK_SOURCE_ROOT/tests/network/test_datagram_sender.py"
 case $role in
   linux-host)
+    bash "$PLANK_SOURCE_ROOT/tests/protocol/test-occupancy-indicator.sh"
     export PLANK_HOST_FFMPEG_BUILD="$PLANK_SOURCE_ROOT/apps/host/linux/third-party/build-deps/build"
     export PLANK_HOST_FFMPEG_ROOT="$PLANK_DEP_ROOT/host-ffmpeg"
     export PLANK_BOOST_SOURCE_DIR="$PLANK_DEP_ROOT/boost-1.89.0"

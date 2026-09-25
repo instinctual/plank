@@ -3,6 +3,7 @@
 #import <Security/Security.h>
 #include <stdio.h>
 #include <time.h>
+#include <stdatomic.h>
 
 @interface PLANKMacAuthRecord : NSObject
 @property(copy) NSData *peer;
@@ -29,6 +30,7 @@
     NSMutableDictionary<NSString *, PLANKMacAuthRecord *> *_pending;
     NSMutableDictionary<NSString *, PLANKMacAuthRecord *> *_tokens;
     PLANKMacStreamLease *_lease;
+    atomic_bool _hasStreamLease;
     uint64_t _revocationGeneration;
     BOOL _verifying;
     NSString *_takeoverToken;
@@ -67,6 +69,7 @@ enum { MaximumPendingChallenges = 16, MaximumSetupTokens = 4 };
         _snapshot = [snapshot copy];
         _pending = [NSMutableDictionary dictionary];
         _tokens = [NSMutableDictionary dictionary];
+        atomic_init(&_hasStreamLease, false);
     }
     return self;
 }
@@ -225,6 +228,7 @@ enum { MaximumPendingChallenges = 16, MaximumSetupTokens = 4 };
         lease.activateBefore = monotonicSeconds() + 15;
         [_tokens removeObjectForKey:token];
         _lease = lease;
+        atomic_store_explicit(&_hasStreamLease, true, memory_order_relaxed);
         return lease;
     }
 }
@@ -256,7 +260,12 @@ enum { MaximumPendingChallenges = 16, MaximumSetupTokens = 4 };
         lease.claimedToken = nil;
         lease.record = nil;
         _lease = nil;
+        atomic_store_explicit(&_hasStreamLease, false, memory_order_relaxed);
     }
+}
+
+- (BOOL)hasStreamLease {
+    return atomic_load_explicit(&_hasStreamLease, memory_order_relaxed);
 }
 
 - (BOOL)authorizeTakeoverToken:(NSString *)token peer:(NSData *)peer
