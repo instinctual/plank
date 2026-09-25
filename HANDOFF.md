@@ -5,14 +5,22 @@
 Current work is `macos-app-icons`, based on main
 `9d2875297c96f54803723b4f69076e1c0d9f0232`, in the retained
 `build/worktrees/macos-session-takeover` worktree. The operator approved
-installer-time permission setup for both macOS products and now requests signed
-candidate builds. Client implementation is committed/pushed at
-`c78271eea6be627ecc905874e95b57e2a94bef78`; root changes follow baseline
-`5c16ca10c64be850918c627b4df770d3c1718900`. Other pins below are unchanged.
+installer-time permission setup for both macOS products and requested signed
+candidate builds. Source is committed/pushed: root
+`e7b079ce3bba08099e6203abfbaaf9ea712c9b54`, Client
+`c78271eea6be627ecc905874e95b57e2a94bef78`. Other pins below are unchanged.
 Source version is **1.1.020**; candidate version is
-**1.1.020-macos-app-icons**. Build through the existing protected hosted signing
-workflow with exact-input dependency caches. No merge, deployment or Release
-is requested. The primary worktree's unrelated RK3576 work is untouched.
+**1.1.020-macos-app-icons**. Signed hosted Host run `36185284218` and Client
+run `36185287605` both passed from that exact root. Both restored verified
+dependency caches and passed full application/package builds, native fixtures,
+notarization, stapling, Gatekeeper and temporary-signing cleanup. Client also
+passed its exact-target/dependency closure and offscreen launch/version gates.
+Both PKGs are downloaded and checksum-verified in the canonical catalog below.
+The redundant generated Client DMG stays outside the catalog. Automatic run
+`36185270001` passed Ubuntu and both unsigned Mac jobs; its Linux Host job is
+still running. Privacy `36185270052` and clipboard `36185270031` passed.
+No merge, deployment or Release was performed. The primary worktree's unrelated
+RK3576 work is untouched.
 
 Client PKG postinstall verifies the installed signed app and opens its new
 `--setup-permissions` view as the active console user, not root. It requests
@@ -40,7 +48,7 @@ compile (the latter at target27 using the existing qmake project; not a full
 package build). All16 native configuration/PKG-content tests and31 native Host
 installer checks pass. These tests use synthetic OS boundaries/filesystems:
 no installed app, real privacy grant, hardware device or live session changed.
-Next gate: signed 1.1.020 candidates and interactive installer approval testing;
+Next gate: interactive installer approval testing of the signed1.1.020 candidates;
 do not reset an existing user's grants without explicit authorization.
 
 Permission-scope investigation: the dedicated Mac's existing installed Host
@@ -80,8 +88,8 @@ the redundant generated DMG wrapper was not copied into the canonical catalog.
 Both signed jobs restored and verified exact dependency caches.
 Automatic four-product run `36177430110` passed Ubuntu and both unsigned Macs;
 its remaining Linux Host job was superseded/cancelled by the correction push.
-Replacement automatic run `36178693950` passed Ubuntu and both unsigned Mac
-jobs; Linux Host is still in progress. Do not claim all-platform completion.
+Replacement automatic run `36178693950` ultimately passed all four products,
+including Linux Host. This is the previous1.1.019 baseline, not1.1.020.
 Privacy `36177429921` and clipboard `36177430038` passed.
 Local CI policy/cache/signing fixtures62,
 permission timing9, keyboard guards5, build-path10, portable Host uninstall24,
@@ -338,6 +346,26 @@ are preserved in this file's Git history.
 Catalog: `artifacts/packages/candidates/`. Checksums and exact root/gitlink
 provenance live in each version's `manifest.json`, `SHA256SUMS` and sidecars.
 
+### 1.1.020-macos-app-icons
+
+Both signed/notarized macOS PKGs use root
+`e7b079ce3bba08099e6203abfbaaf9ea712c9b54`, Client
+`c78271eea6be627ecc905874e95b57e2a94bef78`; other pins unchanged.
+Host run `36185284218`, Client run `36185287605`: all signed build/package,
+notarization/stapling, Gatekeeper and signing-cleanup gates passed.
+
+- Host: `1.1.020-macos-app-icons/macos/plank-host_1.1.020-macos-app-icons_arm64.pkg`.
+  SHA-256 `dc373f5a6e00709c8446ac2b64d4db239eb916a74741ae7745f7acd46870f19c`
+  (6,991,415 bytes), SDK27/macOS27 minimum.
+- Client: `1.1.020-macos-app-icons/macos/plank-client_1.1.020-macos-app-icons_arm64.pkg`.
+  SHA-256 `a7e0a8088eb468f100afa862565d503e55c36f16806164d5dc9b67f6c3f27b5f`
+  (72,862,877 bytes), SDK27/macOS15 minimum.
+
+Both collected checksums and source provenance verify. No installation was
+performed. Test installer-launched setup in an active desktop with Client closed;
+macOS consent still requires the user's approval. Existing grants remain intact.
+These are candidates, not merged mainline builds or a published Release.
+
 ### 1.1.019-macos-app-icons
 
 Signed/notarized Host from root `e0d11026f23a2dbb243eafd6f48943edad9eddc0`,
@@ -400,9 +428,10 @@ or streaming acceptance from package/signature gates.
 
 ## Next gates
 
-1. Check the remaining automatic Linux Host job in run36178693950. Complete
-   installed Client permission/status UI acceptance and clarify Host System Audio
-   status as above. Camera deactivation and Client uninstall/purge
+1. Check the remaining automatic Linux Host job in run36185270001. Complete
+   installed1.1.020 Host/Client installer-launched permission setup acceptance.
+   Verify the removed Host System Audio status row and retained Settings action.
+   Camera deactivation and Client uninstall/purge
    require separate operator-supervised tests; component fixtures did not remove
    installed apps or user data. No cache resets or app modifications are automatic.
 2. Test fresh/upgrade configuration on an authorized Mac: generated-name
