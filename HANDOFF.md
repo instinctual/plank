@@ -7,6 +7,12 @@ main `5593932d5e8bc9fea2f52292fc0a5665b5c650a0` and Client
 `b5c3a7a5ddd37e010155883054931be3010fc5a2`. Source version **1.1.015**;
 candidate versions must include `-session-indicator`. Main and the unrelated
 primary RK3576 worktree are untouched. No merge to main, deployment or Release.
+Changes are committed locally, not pushed.
+
+Implementation checkpoint: root `b2e809b8935b7145e8b89085eb54c8e687de3036`,
+Client `d990292e9b0387186fe145c5767c431827a0cdbd`, Linux Host
+`aabaf34c171a7620b7467883e6f4948a3f2659b0`. Later handoff-only commits do not
+change these tested components. Dependency commits must be pushed before root.
 
 Integrates root PR13 (5830df9), Client PR8 (2bd72178) and Linux Host PR10
 (8f49a7c1), with the targeted repairs in
@@ -33,15 +39,33 @@ audio clock work remains in the ancestry, not replaced by the older PR pins.
 
 ## Validation and next action
 
-Production Linux occupancy/private-record tests and existing session-policy
-tests pass locally. SDK27 authentication/discovery and Ubuntu Qt parser tests
-are being prepared; do not claim those or full package/hardware acceptance yet.
-No live workstation or active session has been modified.
+Passed:
 
-Next: complete focused component checks, inspect the complete diff against
-current main, and record exact source commits/results. Then build candidates
-when requested; installed local-to-remote access, login/logout, takeover,
-offline clearing and long-name UI remain functional acceptance checks.
+- Linux production occupancy/private-record and existing session-policy tests;
+  complete supervisor compilation with GCC 14/C++23 and warnings as errors.
+- Production stream-owner test with stub media workers: pending launch,
+  cancellation, successful/failed setup, slot removal, and nonblocking public
+  occupancy while a media join holds the session lock.
+- Ubuntu Qt 6.10.2 actual Client parser/bookmark tests, offscreen; QML syntax
+  check of the changed bookmark page. This is not a visual UI acceptance test.
+- SDK27 control/authentication component suite, including 525 authentication
+  assertions, dynamic occupancy XML, lease revocation and expiry. Real loopback
+  TLS synthetic-account suite and machine-authority certificate-chain test pass.
+- Host-version discovery, diff whitespace and commit privacy checks.
+
+Mac and Ubuntu component tests used clean worktrees at root `b0ec487` and the
+same Client commit above. Subsequent runtime changes affect only Linux pending
+occupancy and have their own passing production-owner test at `b2e809b`.
+No live workstation, installed package or active session has been modified.
+
+Known unrelated baseline gate: `tests/packaging/test-host-supervisor-package.sh`
+still expects an obsolete `layout_arguments(request.mode_1, request.mode_2)`
+call and old reconnect-loop spelling. Both differ already on the main commits
+above. The gate was left unchanged, not bypassed; full packaging is not claimed.
+
+Next: build candidates when requested, reconcile that stale source-pattern gate,
+then verify installed local-to-remote access, login/logout, takeover, offline
+clearing and long-name UI. No full package or hardware acceptance yet.
 
 ## Preserved baseline
 

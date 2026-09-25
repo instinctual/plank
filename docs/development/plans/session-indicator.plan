@@ -20,7 +20,7 @@ newer native camera, stereo microphone or audio-clock work.
 ## Implementation
 
 1. Retain the PR Client model/parser/UI work on top of current Client main.
-   Reject names unless occupancy is exactly1; preserve the status label width.
+   Reject names unless occupancy is exactly 1; preserve the status label width.
 2. Reuse the account already resolved by the Linux supervisor. Bind its sanitized
    advisory name to the versioned private attachment record, and confirm the same
    UID/session/class against local logind before returning it. No new resolver,
@@ -39,5 +39,11 @@ newer native camera, stereo microphone or audio-clock work.
 
 Linux production occupancy and private-record tests pass locally, including
 10000 cached reads, name limits, malformed records and desktop transitions.
-Existing session-policy tests pass. SDK27 auth/discovery and Qt Client parser
-qualification are pending. Full package and live session qualification pending.
+Existing session-policy tests and supervisor GCC14/C++23 compilation pass.
+The production stream owner is exercised with stub media workers: reservations,
+failed/successful setup, removal and status polling during a deliberately stalled
+join all pass. SDK27 authentication/discovery, TLS loopback and certificate-chain
+tests pass. Actual Qt Client parser/persistence tests and QML syntax pass on the
+Ubuntu builder. See HANDOFF for exact source provenance and the unrelated stale
+packaging source-pattern assertions. Full package, visual UI and live session
+qualification remain pending; no installed software was changed.
