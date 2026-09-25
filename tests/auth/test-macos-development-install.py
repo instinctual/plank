@@ -12,8 +12,6 @@ ROOT = Path(__file__).resolve().parents[2]
 SPEC = importlib.util.spec_from_file_location("installer", ROOT / "scripts/maintenance/install-macos-host-development.py")
 INSTALLER = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(INSTALLER)
-PUBLIC = {"Address": "0.0.0.0", "Port": 28989, "Name": "PLANK test",
-          "UUID": "10d580de-73fa-4139-95ec-891804686ee2"}
 
 
 class RoleIdentityTests(unittest.TestCase):

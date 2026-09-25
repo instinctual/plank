@@ -5,16 +5,18 @@ from pathlib import Path
 import plistlib
 import shutil
 import subprocess
+import sys
 import tempfile
 import unittest
 import uuid
 
 ROOT = Path(__file__).resolve().parents[2]
-BINARY = os.environ["PLANK_CONFIGURE_TEST_BINARY"]
+BINARY = os.environ.get("PLANK_CONFIGURE_TEST_BINARY")
 HOST_TEMPLATE = ROOT / "packaging/host/macos/config/plank-host.conf"
 CLIENT_TEMPLATE = ROOT / "packaging/client/config/plank-client.conf"
 
 
+@unittest.skipUnless(sys.platform == "darwin" and BINARY, "run build-macos-configuration.sh on an authorized Mac builder")
 class Configuration(unittest.TestCase):
     def setUp(self):
         self.temporary = tempfile.TemporaryDirectory(prefix="plank-config-test-")

@@ -9,6 +9,18 @@ candidate versions must include `-session-indicator`. Main and the unrelated
 primary RK3576 worktree are untouched. No merge to main, deployment or Release.
 Changes are committed locally, not pushed.
 
+Issue12 implementation checkpoints: root `00682c9b` and `6893445f`. macOS Host
+now reads only `/etc/plank/host.conf`; workstation UUID is identity-only state in
+Application Support, separate from TLS keys. The installer converts the prior
+public plist once, preserves settings/UUID/keys, and retires the old file only
+after the replacement app is installed. Runtime has no plist fallback.
+The macOS Client now packages a signed PKG (also inside its DMG), installing the
+app and default `/etc/plank/client.conf` without overwriting existing policy.
+No Client service/autostart/helper is installed. Shared Client reference template
+moved to `packaging/client/config/plank-client.conf`; Linux DEB paths/runtime are
+unchanged. Both apps carry current reference templates in Resources.
+See [macOS configuration](docs/user/macos-configuration.md).
+
 Username implementation checkpoint: root `67f2837b0a3e53223276f3b3f25f24c9c9bfe1ba`,
 Client `417ac6bcf9427d8364a4c0613159ee32cae2b1c9`, Linux Host
 `aabaf34c171a7620b7467883e6f4948a3f2659b0`. Issue16's Match Host label checkpoint
@@ -87,6 +99,18 @@ Passed:
   ownership. Eight fullscreen checks pass, including compiled safe-area geometry
   and a guard against reintroducing the notch offset. Native macOS compilation
   and notched-laptop visual acceptance remain pending; no package was built.
+- Issue12 at root `6893445f`: native SDK27 INI parser and12 filesystem/installer
+  tests pass on a clean verified-bundle worktree. Covers defaults, invalid input,
+  preserved custom policy, UUID/TLS retention, interrupted conversion, conflicts,
+  symlink/hardlink/permission rejection and Host/Client coexistence. The real
+  `pkgbuild`/`productbuild`/`pkgutil` synthetic Client payload roundtrip passes;
+  it does not install an app or policy. Existing desktop provisioning test passes
+  with the new reader; Host entry point compiles with warnings as errors.
+  All9 Host permission tests pass on macOS, including synthetic PKG roundtrips.
+  Portable development-installer17, build-path9, package-collection7 and target
+  checks pass; launcher/shell/diff/privacy checks pass. Root-only installed-state
+  fixture was not run: development Mac requires interactive sudo. No permissions,
+  launchd jobs, active sessions, TCC settings or installed products were changed.
 
 The earlier occupancy Mac and Ubuntu component tests used clean worktrees at
 root `b0ec487` and Client `d990292e`. Subsequent Linux pending occupancy has its
@@ -99,7 +123,12 @@ still expects an obsolete `layout_arguments(request.mode_1, request.mode_2)`
 call and old reconnect-loop spelling. Both differ already on the main commits
 above. The gate was left unchanged, not bypassed; full packaging is not claimed.
 
-Next: build candidates when requested, reconcile that stale source-pattern gate,
+Next: build signed Host/Client candidates when requested, including the new
+Client PKG and DMG; run the privileged isolated package fixture and fresh/upgrade
+installation gates on an authorized test Mac. Verify existing UUID, TLS keys,
+custom ports/names and Client policy survive, including an interrupted upgrade.
+Signed production packages have not been built for issue12. Reconcile the stale
+source-pattern gate above,
 then verify installed local-to-remote access, login/logout, takeover, offline
 clearing and long-name UI. Check centered toolbar reveal/drag and fullscreen/
 windowed transitions on a notched Mac. No full package or hardware acceptance yet.

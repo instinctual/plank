@@ -5,6 +5,7 @@ Requires the operator's session to be disconnected. Preserves identities/logs,
 never reads private-key contents and never logs out, reboots or requests consent.
 """
 import argparse
+import configparser
 import hashlib
 import os
 from pathlib import Path
@@ -59,7 +60,6 @@ def main():
     state = Path("/Library/Application Support/PLANK")
     config_path = Path("/etc/plank/host.conf")
     public = config_path.read_bytes()
-    import configparser
     parsed = configparser.ConfigParser(interpolation=None)
     parsed.read_string(public.decode("utf-8"))
     port = parsed.getint("network", "port", fallback=28989)

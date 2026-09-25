@@ -107,9 +107,8 @@ def verify_upgrade_identity(source, installed):
 def prepare_sign_in_identity(private):
     """Root LoginWindow gets its own key, never a copy of the desktop key.
 
-    Only public discovery values are shared. The existing Client profile-TLS
-    policy supports fresh authentication after a role/certificate replacement;
-    a matching UUID is discovery identity, not a cryptographic trust claim.
+    This helper manages only key files. Administrator configuration and the
+    workstation UUID are prepared separately by the native installer utility.
     """
     private.mkdir(mode=0o700, exist_ok=True)
     assert not private.is_symlink() and private.stat().st_uid == os.geteuid()
