@@ -14,7 +14,10 @@ class ClientPermissions(unittest.TestCase):
         self.assertIn("GlobalCommandLineParser::PermissionsSetupRequested", main)
         self.assertIn('QStringLiteral("qrc:/gui/MacPermissionSetup.qml")', main)
         setup = (CLIENT / "gui/MacPermissionSetup.qml").read_text()
-        self.assertIn("MacPermissionsDialog", setup)
+        self.assertIn("MacPermissionsPane", setup)
+        self.assertNotIn("Material", setup)
+        self.assertIn('QQuickStyle::setStyle("macOS")', main)
+        self.assertIn('QQuickStyle::setStyle("Material")', main)
         for forbidden in ("import ComputerManager", "PcView.qml", "CliStartStreamSegue", "startPolling("):
             self.assertNotIn(forbidden, setup)
         parser = (CLIENT / "cli/commandlineparser.cpp").read_text()

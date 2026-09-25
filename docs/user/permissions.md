@@ -26,6 +26,11 @@ new users, revoked access and newly attached supported USB Wacom tablets.
 Opening **PLANK Host** displays a single setup window, with aligned feature,
 status and action columns. Desktop permissions and optional audio/camera
 components are separate. Each explanatory sentence has its own line.
+The window initially centers in the usable desktop, clear of the menu bar and
+Dock. Moving it yourself is preserved when returning from System Settings.
+Refresh and Close are at the lower right. The installer-launched Client setup
+uses the same native macOS appearance and feature/status/action layout; the
+main Client window retains its existing style.
 
 - **✓ Allowed** means the OS permission query succeeded.
 - **! Required** identifies missing desktop access.

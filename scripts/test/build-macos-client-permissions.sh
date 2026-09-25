@@ -18,8 +18,11 @@ xcrun clang++ -std=c++17 -fobjc-arc -include arm_acle.h -mmacosx-version-min=15.
     -framework QtCore -framework QtGui -framework QtQml -framework QtQuick \
     -framework Foundation -framework ApplicationServices -framework IOKit \
     -Wl,-rpath,"$PLANK_QT_ROOT/lib" -o "$output/client-permissions-test"
+QT_QPA_PLATFORM=offscreen QT_QUICK_BACKEND=software QT_QUICK_CONTROLS_STYLE=macOS \
+    "$output/client-permissions-test" "$client/app/gui" "$output/client-permissions-macOS.png"
 QT_QPA_PLATFORM=offscreen QT_QUICK_BACKEND=software QT_QUICK_CONTROLS_STYLE=Material \
-    "$output/client-permissions-test" "$client/app/gui" "$output/client-permissions.png"
+    QT_QUICK_CONTROLS_MATERIAL_THEME=Dark \
+    "$output/client-permissions-test" "$client/app/gui" "$output/client-permissions-Material.png" --dialog
 result=0
 QT_QPA_PLATFORM=offscreen "$output/client-permissions-test" --test-invalid-setup > "$output/invalid-setup.txt" 2>&1 || result=$?
 [[ $result = 1 ]] && grep -q 'Permission setup cannot be combined' "$output/invalid-setup.txt"

@@ -7,6 +7,7 @@
 #import "../../apps/host/macos/audio-device/microphone-selection.h"
 #import "../../apps/host/macos/camera-device/camera-activation.h"
 #include <assert.h>
+#include <math.h>
 
 static BOOL screen, accessibility, events, devices;
 static unsigned permissionRequests, audioStarts, cameraActivations;
@@ -51,6 +52,22 @@ int main(void) {
     @autoreleasepool {
         [NSApplication.sharedApplication setActivationPolicy:NSApplicationActivationPolicyProhibited];
         PLANKPermissionSetup *view = [[PLANKPermissionSetup alloc] initWithVersion:@"1.2.3-test"];
+        assert(!view.shouldCascadeWindows);
+        // AppKit coordinates are logical points; secondary screens can have
+        // nonzero/negative origins. No physical-pixel or resolution assumptions.
+        assert(NSEqualPoints(centeredSetupOrigin(NSMakeSize(650, 600), NSMakeRect(0, 40, 1920, 1016)),
+                             NSMakePoint(635, 248)));
+        assert(NSEqualPoints(centeredSetupOrigin(NSMakeSize(650, 600), NSMakeRect(-1920, -300, 1920, 1080)),
+                             NSMakePoint(-1285, -60)));
+        assert(NSEqualPoints(centeredSetupOrigin(NSMakeSize(650, 600), NSMakeRect(1920, 80, 1512, 877)),
+                             NSMakePoint(2351, 218.5)));
+        NSScreen *setupScreen = NSScreen.mainScreen ?: view.window.screen;
+        if (setupScreen) {
+            NSRect frame = view.window.frame, visible = setupScreen.visibleFrame;
+            assert(fabs(NSMidX(frame) - NSMidX(visible)) < 1);
+            assert(fabs(NSMidY(frame) - NSMidY(visible)) < 1);
+        }
+        NSPoint initialOrigin = view.window.frame.origin;
         assert(view.rows.count == 6 && !view.rows[@"audio"]);
         [view refresh];
         assert(rowContains(view, @"screen", @"! Required"));
@@ -83,6 +100,13 @@ int main(void) {
         assert(audioStarts == 1);
         [view requestPermissions]; assert(permissionRequests == 3);
         [view.window.contentView layoutSubtreeIfNeeded];
+        assert(NSEqualPoints(view.window.frame.origin, initialOrigin));
+        NSStackView *stack = (NSStackView *)view.window.contentView.subviews.firstObject;
+        NSView *footer = stack.arrangedSubviews.lastObject;
+        NSStackView *buttons = (NSStackView *)footer.subviews.firstObject;
+        assert(buttons.arrangedSubviews.count == 2);
+        assert(fabs(NSMaxX(buttons.frame) - NSWidth(footer.bounds)) < 1);
+        assert(NSMinX(buttons.frame) > NSMidX(footer.bounds));
         for (PLANKSetupRow *row in view.rows.allValues) {
             assert(row.status.frame.size.width >= row.status.fittingSize.width);
             assert(row.status.frame.size.height >= row.status.fittingSize.height);

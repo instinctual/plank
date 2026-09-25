@@ -34,6 +34,11 @@ static NSTextField *label(NSString *text, CGFloat size, BOOL bold) {
     return field;
 }
 
+static NSPoint centeredSetupOrigin(NSSize size, NSRect visibleFrame) {
+    return NSMakePoint(NSMidX(visibleFrame) - size.width / 2,
+                       NSMidY(visibleFrame) - size.height / 2);
+}
+
 @implementation PLANKPermissionSetup
 - (instancetype)initWithVersion:(NSString *)version {
     NSWindow *window = [[NSWindow alloc] initWithContentRect:NSMakeRect(0, 0, 650, 650)
@@ -41,6 +46,8 @@ static NSTextField *label(NSString *text, CGFloat size, BOOL bold) {
         backing:NSBackingStoreBuffered defer:NO];
     self = [super initWithWindow:window];
     if (!self) return nil;
+    // This standalone setup window should not inherit document-window offsets.
+    self.shouldCascadeWindows = NO;
     _rows = [NSMutableDictionary dictionary];
     window.title = @"PLANK Host setup"; window.delegate = self; window.releasedWhenClosed = NO;
     NSStackView *stack = [NSStackView stackViewWithViews:@[]];
@@ -87,11 +94,25 @@ static NSTextField *label(NSString *text, CGFloat size, BOOL bold) {
     close.keyEquivalent = @"\r";
     NSStackView *buttons = [NSStackView stackViewWithViews:@[refresh, close]];
     buttons.spacing = 12;
-    [stack addArrangedSubview:buttons];
+    buttons.translatesAutoresizingMaskIntoConstraints = NO;
+    NSView *footer = [NSView new];
+    footer.translatesAutoresizingMaskIntoConstraints = NO;
+    [footer addSubview:buttons];
+    [stack addArrangedSubview:footer];
+    [NSLayoutConstraint activateConstraints:@[
+        [footer.widthAnchor constraintEqualToAnchor:stack.widthAnchor],
+        [buttons.trailingAnchor constraintEqualToAnchor:footer.trailingAnchor],
+        [buttons.topAnchor constraintEqualToAnchor:footer.topAnchor],
+        [buttons.bottomAnchor constraintEqualToAnchor:footer.bottomAnchor]]];
     // Fit actual text/control metrics rather than leaving an arbitrary blank area.
     [window.contentView layoutSubtreeIfNeeded];
     [window setContentSize:NSMakeSize(650, stack.fittingSize.height + 44)];
-    [window center];
+    // NSWindow's center method intentionally sits above the vertical midpoint.
+    // Center the final frame in the usable desktop instead, including its title
+    // bar and excluding the menu bar/Dock. Do this only on initial creation so
+    // returning from Settings does not undo the user's own window placement.
+    NSScreen *screen = NSScreen.mainScreen ?: window.screen;
+    if (screen) [window setFrameOrigin:centeredSetupOrigin(window.frame.size, screen.visibleFrame)];
     return self;
 }
 - (void)addRows:(NSArray<NSArray<NSString *> *> *)specs toStack:(NSStackView *)stack {

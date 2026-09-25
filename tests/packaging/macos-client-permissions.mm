@@ -5,6 +5,7 @@
 #include <QQmlApplicationEngine>
 #include <QQmlContext>
 #include <QQuickWindow>
+#include <QQuickItem>
 #include <QTimer>
 #include <QImage>
 #include <QDir>
@@ -43,9 +44,18 @@ public:
 #include "../../apps/client/app/backend/macpermissions.mm"
 #undef QDesktopServices
 
+static QQuickItem* findItem(QQuickItem* root, const QString& name)
+{
+    if (root->objectName() == name) return root;
+    for (auto child : root->childItems())
+        if (auto found = findItem(child, name)) return found;
+    return nullptr;
+}
+
 int main(int argc, char** argv)
 {
     QGuiApplication app(argc, argv);
+    app.setApplicationVersion("1.1.021-test");
     app.setQuitOnLastWindowClosed(false); // Verify setup close before ending the fixture.
     GlobalCommandLineParser parser;
     if (argc == 2 && QByteArray(argv[1]) == "--test-invalid-setup") {
@@ -93,21 +103,51 @@ int main(int argc, char** argv)
         for (const auto& error : errors) qCritical() << error;
         std::abort();
     });
-    engine.load(source.resolved(QUrl("MacPermissionSetup.qml")));
+    const bool dialogMode = argc == 4 && QByteArray(argv[3]) == "--dialog";
+    if (dialogMode) {
+        engine.loadData("import QtQuick\nimport QtQuick.Controls\n"
+            "ApplicationWindow { width: 720; height: 680; visible: true; "
+            "Loader { source: 'MacPermissionsDialog.qml'; onLoaded: item.open() } }",
+            source.resolved(QUrl("PermissionTest.qml")));
+    } else {
+        engine.load(source.resolved(QUrl("MacPermissionSetup.qml")));
+    }
     assert(engine.rootObjects().size() == 1);
     QTimer::singleShot(500, &app, [&] {
         auto window = qobject_cast<QQuickWindow*>(engine.rootObjects().first());
-        auto dialog = window->findChild<QObject*>("permissions");
-        assert(dialog && dialog->property("opened").toBool());
-        assert(dialog->property("width").toReal() <= window->width());
-        assert(dialog->property("height").toReal() > 200);
-        assert(dialog->property("height").toReal() < window->height());
-        if (argc == 3) assert(window->grabWindow().save(QString::fromLocal8Bit(argv[2])));
-        assert(QMetaObject::invokeMethod(dialog, "close"));
-        QTimer::singleShot(300, &app, [&, window] {
-            assert(!window->isVisible());
-            puts("Client permissions: denied/unknown/granted/absent, active-stream guard, late callback, setup parser, QML layout and close passed");
-            app.quit();
+        auto pane = window->findChild<QQuickItem*>("permissions");
+        assert(pane && pane->isVisible());
+        assert(pane->width() <= window->width());
+        assert(pane->height() > 200 && pane->height() < window->height());
+        auto close = window->findChild<QQuickItem*>("closeButton");
+        auto refresh = window->findChild<QQuickItem*>("refreshButton");
+        assert(close && refresh);
+        const QPointF closePosition = close->mapToScene(QPointF(0, 0));
+        const QPointF refreshPosition = refresh->mapToScene(QPointF(0, 0));
+        if (!dialogMode) {
+            assert(qAbs(closePosition.x() + close->width() - (window->width() - 24)) < 1);
+            assert(refreshPosition.x() > window->width() / 2);
+        }
+        assert(qAbs(closePosition.y() - refreshPosition.y()) < 1);
+        // A long unavailable status must remain inside its own grid column.
+        accessAllowed = inputAllowed = false; micPermission = -1; tabletPresence = 0;
+        permissions.refresh();
+        // Let the new Repeater delegates complete the next layout/render pass.
+        QTimer::singleShot(100, &app, [&, window, close] {
+            if (argc >= 3) assert(window->grabWindow().save(QString::fromLocal8Bit(argv[2])));
+            auto status = findItem(window->contentItem(), "permissionStatus2");
+            assert(status && status->property("text").toString().contains("No supported tablet"));
+            assert(status->property("contentHeight").toReal() <= status->height());
+            assert(QMetaObject::invokeMethod(close, "clicked"));
+            QTimer::singleShot(300, &app, [&, window] {
+                assert(window->isVisible() == dialogMode);
+                if (dialogMode) {
+                    auto dialog = window->findChild<QObject*>("permissionsDialog");
+                    assert(dialog && !dialog->property("opened").toBool());
+                }
+                puts("Client permissions: denied/unknown/granted/absent, active-stream guard, late callback, setup parser, QML layout and close passed");
+                app.quit();
+            });
         });
     });
     return app.exec();

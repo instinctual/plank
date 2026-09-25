@@ -1,6 +1,40 @@
 # PLANK handoff
 
-## Current state
+## Current follow-up (candidate builds requested)
+
+Setup-layout changes on `macos-app-icons`, following root
+`78ab41c845c6386df861083077c662528d9cf7b3` and Client
+`c78271eea6be627ecc905874e95b57e2a94bef78`. Source version is now **1.1.021**.
+The operator requested signed1.1.021 Host/Client candidates for manual testing.
+Source/tests are being committed and pushed before hosted signing builds;
+no1.1.021 package is available yet. No deployment, merge or Release is requested.
+The signed1.1.020 packages below do not contain these changes.
+
+Host setup disables window cascading and geometrically centers its final frame
+in the usable desktop only on creation. Returning from Settings preserves user
+placement. Refresh/Close now align to the lower right. Installer-only Client
+setup selects native macOS Qt controls and matches the Host's typography and
+feature/status/action columns, without an inner modal card. Its existing
+Material Settings dialog shares the same content; the main Client's appearance
+is unchanged. Native imports are discoverable by the package deployment scanner.
+No permission grant/request timing, streaming or Linux behavior is changed.
+
+Dedicated SDK27 native Host layout/callback tests and ASan/UBSan pass, as does
+production setup compilation with warnings-as-errors. Actual Client model/QML
+tests pass for native installer setup and the dark Material review dialog,
+including long status wrapping, lower-right buttons, close, denied/unknown/
+granted states, stream guards and late callbacks. Offscreen previews inspected;
+native control decoration still needs installed visual acceptance. Portable
+permission/installer and layout/whitespace checks pass. These synthetic tests
+did not open real permission prompts, change an installed app or touch sessions.
+
+The operator confirmed the missing Client installer setup was because the Client
+was already open. The intentional running-client guard remains; in-app Review
+permissions is available without reinstalling. No remote diagnosis was needed.
+Next: build/download fresh1.1.021 candidates, then verify both setup windows
+through the actual installer. Preserve the unrelated primary RK3576 worktree.
+
+## Latest built checkpoint
 
 Current work is `macos-app-icons`, based on main
 `9d2875297c96f54803723b4f69076e1c0d9f0232`, in the retained
