@@ -15,6 +15,8 @@ if(BUILD_TESTING)
     COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/packaging/test-build-paths.py")
   add_test(NAME macos-client-target
     COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/packaging/test-macos-client-target.py")
+  add_test(NAME macos-app-icons
+    COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/packaging/test-macos-app-icons.py")
   add_test(NAME package-collection
     COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/packaging/test-package-collection.py")
   add_test(NAME repository-layout

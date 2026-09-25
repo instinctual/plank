@@ -2,6 +2,24 @@
 
 ## Current state
 
+Current local work is `macos-app-icons`, based on main
+`9d2875297c96f54803723b4f69076e1c0d9f0232`, in the retained
+`build/worktrees/macos-session-takeover` worktree. The operator approved the
+second generated Host/Client icon pair. Both approved PNGs are retained
+unchanged in `branding/assets/plank-{host,client}-macos.png`: open landscape
+for Host, monitor-framed landscape for Client. The original artwork/PXD and
+Linux icons are unchanged. No media, authentication, input or protocol changes.
+
+Source version is **1.1.018**. The Client base build now generates its ICNS
+before either development or distribution packaging; Host selects its own
+artwork. The native converter adds no new padding or circular mask. See
+`docs/user/branding.md` for sources and generation brief. Portable icon6,
+development-installer17 and Client-target5 tests pass; native icon tests are
+pending. No new installer, deployment, push, merge or Release for this change.
+The primary worktree's unrelated RK3576 work remains untouched.
+
+## Previous mainline integration
+
 The operator authorized commit, push and merge of the complete
 `session-indicator` work. Integration is a conflict-free fast-forward of
 root `3b200b5d44f276ec4c5e4f72966c5aa2ac0e0fe2` onto
@@ -13,10 +31,10 @@ main, following the companion repositories in dependency order:
 - Client common-C unchanged: `060f6179f88343327b44d915007f1fb4cede71f1`.
 - qmdnsengine unchanged: `920c097ffa742e2968290f15d4dde6693aec02e5`.
 
-Continue in the main worktree `build/worktrees/macos-session-takeover`.
+The integration used `build/worktrees/macos-session-takeover` (now the icon branch).
 The primary worktree contains unrelated RK3576 work; leave it untouched.
 Feature branches are retained; branch deletion was not requested.
-Version is **1.1.017**. No signed 1.1.017 installer has been produced, deployed,
+Main's version is **1.1.017**. No signed 1.1.017 installer has been produced, deployed,
 tagged or published as a GitHub Release. Existing feature candidates retain
 their original names and provenance; rebuild from main rather than relabel them.
 
@@ -144,8 +162,10 @@ or streaming acceptance from package/signature gates.
 
 ## Next gates
 
-1. Build fresh mainline 1.1.017 packages when requested, using the release runbook
-   and protected hosted signing. Keep the current template and all submodule pins.
+1. Finish native icon conversion/roundtrip tests, then build 1.1.018 candidates
+   when requested, using the release runbook and protected hosted signing.
+   Verify the installed Host and Client icons in Dock/Finder before claiming
+   visual acceptance; no cache resets or app modifications are automatic.
 2. Test fresh/upgrade configuration on an authorized Mac: generated-name
    retirement, custom policy retention, interrupted retry, UUID/TLS preservation.
 3. Verify installed local-to-remote access, login/logout, takeover, offline status,

@@ -29,6 +29,7 @@ client="$source_root/apps/client"
 test "$(qmake -query QT_VERSION)" = 6.10.2
 test "$(rustc --version | awk '{print $2}')" = 1.89.0
 python3 "$source_root/tests/packaging/test-macos-client-target.py"
+python3 "$source_root/tests/packaging/test-macos-app-icons.py"
 python3 "$source_root/tests/packaging/test-macos-fullscreen.py" "$source_root"
 mkdir -p "$build/tests"
 xcrun clang++ -std=c++17 -mmacosx-version-min=27.0 -Wall -Wextra -Werror \
@@ -111,6 +112,21 @@ cc -std=gnu11 -Wall -Wextra -Werror -Wno-unused-parameter -DNDEBUG \
     -o "$build/tests/native-input-bounds"
 "$build/tests/native-input-bounds"
 plist="$build/app/plank-client.app/Contents/Info.plist"
+# Install the approved Client icon in the base bundle, before any development
+# or distribution signing. All packaging paths inherit this exact artwork.
+resources="$build/app/plank-client.app/Contents/Resources"
+mkdir -p "$resources" "$build/plank.iconset"
+xcrun clang -fobjc-arc -mmacosx-version-min="$MACOSX_DEPLOYMENT_TARGET" -Wall -Wextra -Werror \
+    "$source_root/scripts/package/macos-app-icon.m" -framework Foundation \
+    -framework CoreGraphics -framework ImageIO -o "$build/macos-app-icon"
+"$build/macos-app-icon" "$source_root/branding/assets/plank-client-macos.png" "$build/plank.iconset"
+iconutil -c icns "$build/plank.iconset" -o "$resources/plank.icns"
+test -s "$resources/plank.icns"
+/usr/libexec/PlistBuddy -c 'Set :CFBundleIconFile plank' "$plist"
+# Remove only qmake's inherited icon from this newly rebuilt app bundle.
+if [[ -f "$resources/moonlight.icns" ]]; then
+    rm "$resources/moonlight.icns"
+fi
 test "$(/usr/libexec/PlistBuddy -c 'Print :NSPrefersDisplaySafeAreaCompatibilityMode' "$plist")" = false
 /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $PLANK_BASE_VERSION" "$plist"
 /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString $PLANK_BASE_VERSION" "$plist"

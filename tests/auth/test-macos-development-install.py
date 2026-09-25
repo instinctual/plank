@@ -184,11 +184,11 @@ class RoleIdentityTests(unittest.TestCase):
                 with self.assertRaisesRegex(ValueError, "unambiguous"):
                     INSTALLER.signing_identity(app)
 
-    def test_host_icon_is_generated_from_shared_client_artwork(self):
+    def test_host_icon_is_generated_from_approved_host_artwork(self):
         info = plistlib.loads((ROOT / "packaging/host/macos/host-info.plist").read_bytes())
         self.assertEqual(info["CFBundleIconFile"], "plank.icns")
         build = (ROOT / "scripts/build/build-macos-host.sh").read_text()
-        self.assertIn('branding/assets/plank-logo.png', build)
+        self.assertIn('branding/assets/plank-host-macos.png', build)
         self.assertIn('Contents/Resources/plank.icns', build)
         self.assertLess(build.index('iconutil -c icns'), build.index('--entitlements "$output/camera-host-entitlements.plist"'))
 

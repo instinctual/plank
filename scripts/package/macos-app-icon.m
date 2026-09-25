@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-// Package the shared PNG as a standard macOS iconset, preserving aspect ratio
-// and transparency. No independent Host artwork or third-party image tools.
+// Package the selected approved artwork as a standard macOS iconset, preserving
+// its aspect ratio and transparency. Do not add another inset or circular mask.
 #import <Foundation/Foundation.h>
 #import <CoreGraphics/CoreGraphics.h>
 #import <ImageIO/ImageIO.h>

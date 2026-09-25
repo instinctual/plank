@@ -36,16 +36,9 @@ for plugin in "$app/Contents/PlugIns/sqldrivers/"*.dylib; do
     [[ -f "$plugin" ]] || continue
     [[ ${plugin##*/} == libqsqlite.dylib ]] || rm "$plugin"
 done
-mkdir "$output/plank.iconset"
-clang -fobjc-arc -mmacosx-version-min="$PLANK_MAC_CLIENT_MIN_MACOS" "$source_root/scripts/package/macos-app-icon.m" \
-    -framework Foundation -framework CoreGraphics -framework ImageIO -o "$output/macos-app-icon"
-"$output/macos-app-icon" "$source_root/branding/assets/plank-logo.png" "$output/plank.iconset"
-iconutil -c icns "$output/plank.iconset" -o "$app/Contents/Resources/plank.icns"
-/usr/libexec/PlistBuddy -c 'Set :CFBundleIconFile plank' "$app/Contents/Info.plist"
-# Remove only the inherited icon in this newly created packaging tree.
-if [[ -f "$app/Contents/Resources/moonlight.icns" ]]; then
-    rm "$app/Contents/Resources/moonlight.icns"
-fi
+# The base build supplies the same approved icon to every packaging path.
+cmp "$build/app/plank-client.app/Contents/Resources/plank.icns" "$app/Contents/Resources/plank.icns"
+test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIconFile' "$app/Contents/Info.plist")" = plank
 mkdir -p "$app/Contents/Resources/licenses"
 install -m 0644 "$source_root/packaging/client/config/plank-client.conf" "$app/Contents/Resources/client.conf.example"
 cp "$source_root/apps/client/LICENSE" "$app/Contents/Resources/licenses/client.txt"

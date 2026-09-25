@@ -13,6 +13,7 @@ source "$source_root/scripts/build/build-paths.sh"
 plank_build_path_flags "$source_root" "$output"
 mkdir "$output"
 cd "$source_root"
+python3 "$source_root/tests/packaging/test-macos-app-icons.py"
 bash "$source_root/scripts/test/build-macos-configuration.sh" "$source_root" "$output/configuration-tests"
 xcrun clang -mmacosx-version-min=27.0 -fobjc-arc -Wall -Wextra -Werror \
     -Iapps/host/macos/control apps/host/macos/control/server-information.m \
@@ -188,7 +189,7 @@ shasum -a 256 "$archive" "$output/plank-host"
     xcrun clang -mmacosx-version-min=27.0 -fobjc-arc -Wall -Wextra -Werror \
         scripts/package/macos-app-icon.m -framework Foundation -framework CoreGraphics \
         -framework ImageIO -o "$output/macos-app-icon"
-    "$output/macos-app-icon" "$source_root/branding/assets/plank-logo.png" "$output/plank.iconset"
+    "$output/macos-app-icon" "$source_root/branding/assets/plank-host-macos.png" "$output/plank.iconset"
     iconutil -c icns "$output/plank.iconset" -o "$app/Contents/Resources/plank.icns"
     test -s "$app/Contents/Resources/plank.icns"
     install -m 0755 "$output/plank-host" "$app/Contents/MacOS/plank-host"
