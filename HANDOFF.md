@@ -27,8 +27,30 @@ synthetic bundles, not the full applications. No GUI or installed app was
 started, and no active session, permission or service was changed.
 Portable build-path9, repository layout, release-version contract, shell syntax,
 privacy hooks and whitespace checks also pass. The source PNG/PXD and Linux
-runtime icon are unchanged. No new installer, deployment, push, merge or Release.
+runtime icon are unchanged. Client and root commits are now pushed on
+`macos-app-icons`; build source is root
+`399de64846319ef6f8104642f5c88a2e01861b66`. No merge, deployment or Release.
 The primary worktree's unrelated RK3576 work remains untouched.
+
+Signed hosted Host run `36116628031` passed, including notarization/stapling,
+Gatekeeper, package and temporary-signing cleanup gates. Its 1.1.018 candidate
+is collected and checksum-verified in the canonical package catalog. Client
+signed run `36116628204` also passed its build/tests, dependency/target checks,
+offscreen launch/version, signing, notarization/stapling, Gatekeeper and cleanup.
+Its PKG is collected with verified source/SHA-256; the redundant DMG wrapper is
+not copied into the local catalog. Both signed jobs restored exact dependency
+caches. Automatic all-product run
+`36116578450` passed both unsigned Mac builds and Ubuntu packaging; Linux Host
+is still running. Privacy `36116578586` and clipboard `36116578547` passed.
+Do not mark the pending Linux job successful or infer installed icon acceptance.
+
+At the operator's request, closed resolved root issues12,15,16,17,19,20 with
+merged implementation/test references. Closed Client PR8 as already integrated:
+both original commits' stable patch IDs match the retained Client cherry-picks
+`fddac42b` and `b6bbcee4`, followed by `d990292e`. Root PR13 and Linux Host PR10
+were already merged/closed. Root issues14 (cold-boot connection) and18 (audio
+sync), Client PR7, Linux Host PR6, Kymux PR2 and build-deps PR3/4/5 remain open;
+this bookkeeping does not qualify or merge those separate changes.
 
 ## Previous mainline integration
 
@@ -140,6 +162,19 @@ are preserved in this file's Git history.
 Catalog: `artifacts/packages/candidates/`. Checksums and exact root/gitlink
 provenance live in each version's `manifest.json`, `SHA256SUMS` and sidecars.
 
+### 1.1.018-macos-app-icons
+
+Source root `399de64846319ef6f8104642f5c88a2e01861b66`, Client
+`944cf2b0ff32a7ca5c318d38eaaa3ecc0317f2a0`; other pins as above.
+Signed/notarized macOS Host and Client collected. Host:
+`1.1.018-macos-app-icons/macos/plank-host_1.1.018-macos-app-icons_arm64.pkg`.
+SHA-256: `a3a2d1ac902b5d695bc2b98ed1b7dfb8e28bb6fcb01c877bc63fad37a8c52770`
+(6,980,744 bytes).
+Client: `1.1.018-macos-app-icons/macos/plank-client_1.1.018-macos-app-icons_arm64.pkg`.
+SHA-256: `da3f4bba4da68bd9b414badc2f497787c4064c5c9eb0c3bd08548b55b526d7c0`
+(72,858,129 bytes). Host minimum27; Client minimum15, both built with SDK27.
+No installation or icon-cache reset. These are candidates, not a Release.
+
 ### 1.1.016-session-indicator
 
 Signed/notarized **macOS Host only**, built from root
@@ -174,9 +209,9 @@ or streaming acceptance from package/signature gates.
 
 ## Next gates
 
-1. Build 1.1.018 candidates when requested, using the release runbook and
-   protected hosted signing; push local Client then root icon commits first.
-   Verify the installed Host and Client icons in Dock/Finder before claiming
+1. Check automatic Linux Host run36116578450 separately; its result was pending
+   at this Mac-candidate handoff. Verify the installed Host and Client icons
+   in Dock/Finder before claiming
    visual acceptance; no cache resets or app modifications are automatic.
 2. Test fresh/upgrade configuration on an authorized Mac: generated-name
    retirement, custom policy retention, interrupted retry, UUID/TLS preservation.
