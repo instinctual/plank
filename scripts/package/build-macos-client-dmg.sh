@@ -97,7 +97,10 @@ pkg="$output/image/plank-client_${PLANK_PACKAGE_VERSION}_arm64.pkg"
 pkgbuild --root "$output/payload" --component-plist "$source_root/packaging/client/macos/component.plist" \
     --identifier la.instinctual.PLANK.Client --version "$PLANK_BASE_VERSION" --install-location / \
     --ownership recommended --scripts "$output/install-scripts" "$output/client-component.pkg"
-productbuild --package "$output/client-component.pkg" --sign "$PLANK_MACOS_INSTALLER_IDENTITY" --timestamp "$pkg"
+sed "s/@MIN_VERSION@/$PLANK_MAC_CLIENT_MIN_MACOS/g" \
+    "$source_root/packaging/client/macos/requirements.plist.in" > "$output/requirements.plist"
+productbuild --package "$output/client-component.pkg" --product "$output/requirements.plist" \
+    --sign "$PLANK_MACOS_INSTALLER_IDENTITY" --timestamp "$pkg"
 pkgutil --check-signature "$pkg"
 dmg="$output/plank-client_${PLANK_PACKAGE_VERSION}_arm64.dmg"
 python3 "$source_root/scripts/test/check-package-build-paths.py" "$app"

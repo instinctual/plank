@@ -1,6 +1,8 @@
 # Documentation
 
 - [User documentation](user/): bookmark behavior and product configuration.
+  [macOS configuration](user/macos-configuration.md) covers Host/Client INI files,
+  installation, upgrade preservation and identity separation.
   [Remembered usernames](user/remembered-usernames.md) documents the Client's
   default-off, per-bookmark sign-in prefill policy.
   [Mac remote audio output](user/macos-audio-output.md) explains PLANK Output,

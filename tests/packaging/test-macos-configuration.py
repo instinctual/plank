@@ -3,6 +3,7 @@
 import os
 from pathlib import Path
 import plistlib
+import shutil
 import subprocess
 import tempfile
 import unittest
@@ -181,6 +182,48 @@ class Configuration(unittest.TestCase):
         self.invoke("client")
         self.assertEqual(self.snapshot(), host_before)
         self.assertEqual((self.config / "client.conf").read_bytes(), before)
+
+    def test_client_installer_payload_roundtrip(self):
+        # Build and expand a synthetic package, never run Installer or touch /etc.
+        payload = self.root / "payload"
+        app = payload / "Applications/PLANK Client.app"
+        (app / "Contents/MacOS").mkdir(parents=True)
+        (app / "Contents/Resources").mkdir()
+        (app / "Contents/Info.plist").write_bytes(plistlib.dumps({
+            "CFBundleIdentifier": "la.instinctual.PLANK.Client", "CFBundleVersion": "1.1.015",
+            "CFBundlePackageType": "APPL", "CFBundleExecutable": "plank-client", "LSMinimumSystemVersion": "15.0"}))
+        shutil.copyfile(BINARY, app / "Contents/MacOS/plank-client")
+        (app / "Contents/MacOS/plank-client").chmod(0o755)
+        shutil.copyfile(CLIENT_TEMPLATE, app / "Contents/Resources/client.conf.example")
+        scripts = self.root / "scripts"
+        scripts.mkdir()
+        shutil.copyfile(ROOT / "packaging/client/macos/pkg-preinstall", scripts / "preinstall")
+        (scripts / "preinstall").chmod(0o755)
+        shutil.copyfile(BINARY, scripts / "plank-configure")
+        (scripts / "plank-configure").chmod(0o755)
+        shutil.copyfile(CLIENT_TEMPLATE, scripts / "client.conf.example")
+        component = self.root / "client-component.pkg"
+        product = self.root / "client.pkg"
+        requirements = self.root / "requirements.plist"
+        requirements.write_text((ROOT / "packaging/client/macos/requirements.plist.in").read_text().replace("@MIN_VERSION@", "15.0"))
+        for command in (
+            ["pkgbuild", "--root", str(payload), "--component-plist", str(ROOT / "packaging/client/macos/component.plist"),
+             "--scripts", str(scripts), "--identifier", "la.instinctual.PLANK.Client", "--version", "1.1.015",
+             "--install-location", "/", "--ownership", "recommended", str(component)],
+            ["productbuild", "--package", str(component), "--product", str(requirements), str(product)],
+            ["pkgutil", "--expand-full", str(product), str(self.root / "expanded")]):
+            result = subprocess.run(command, capture_output=True, text=True, timeout=30)
+            self.assertEqual(result.returncode, 0, result.stderr)
+        expanded = self.root / "expanded"
+        self.assertEqual(len(list(expanded.rglob("client.conf.example"))), 2)
+        self.assertEqual(len(list(expanded.rglob("preinstall"))), 1)
+        self.assertFalse(list(expanded.rglob("LaunchAgents")))
+        self.assertFalse(list(expanded.rglob("LaunchDaemons")))
+        self.assertFalse(list(expanded.rglob("client.conf")))  # Config created only if absent, never overwritten by payload.
+        info = next(expanded.rglob("PackageInfo")).read_text()
+        self.assertNotIn("<relocate>", info)
+        self.assertIn("arm64", (expanded / "Distribution").read_text())
+        self.assertIn("15.0", (expanded / "Distribution").read_text())
 
 
 if __name__ == "__main__":

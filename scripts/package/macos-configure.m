@@ -22,10 +22,10 @@ static NSData *legacyINI(NSData *data, NSData *reference, NSString **uuid) {
     *uuid = PLANKMacReadWorkstationUUID(propertyList(@{@"UUID": old[@"UUID"] ?: @""}));
     if (!*uuid) return nil;
     NSString *text = [[NSString alloc] initWithData:reference encoding:NSUTF8StringEncoding];
-    text = [text stringByReplacingOccurrencesOfString:@"host_name = PLANK Mac Host"
-        withString:[@"host_name = " stringByAppendingString:old[@"Name"]]];
     text = [text stringByReplacingOccurrencesOfString:@"port = 28989"
         withString:[NSString stringWithFormat:@"port = %@", old[@"Port"]]];
+    text = [text stringByReplacingOccurrencesOfString:@"host_name = PLANK Mac Host"
+        withString:[@"host_name = " stringByAppendingString:old[@"Name"]]];
     NSData *ini = [text dataUsingEncoding:NSUTF8StringEncoding];
     NSDictionary *parsed = PLANKMacParseHostConfiguration(ini);
     return [parsed[@"Name"] isEqual:old[@"Name"]] && [parsed[@"Port"] isEqual:old[@"Port"]] ? ini : nil;
