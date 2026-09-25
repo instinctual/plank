@@ -9,10 +9,21 @@ values, keepalives, QUIC peer/recovery limits and the separate Client wait polic
 Username metadata reuses the desktop provisioning account lookup; the existing
 Client parser handles it. LoginWindow stays nameless. Native QUIC uses the configured
 idle limit; its initial handshake remains bounded separately. Linux runtime is
-unchanged; its stale ping documentation is corrected. Portable assembly guards
-and all timeout/keepalive boundary checks pass. Native SDK27 configuration,
-discovery and lifecycle regression validation is pending. No new package/install,
-push, merge, release or issue closure has been performed for this follow-up.
+unchanged; its stale ping documentation is corrected. Implementation is locally
+committed at root `3838956ba6785b65d079481a8273ef19728890c4`, Client changelog
+`86d1b343` (no Client runtime change). Portable assembly4, startup-permission8,
+all timeout/keepalive boundary checks and launcher guards pass. Native SDK27
+parser and12 isolated configuration/upgrade tests pass, as do discovery XML,
+authentication525, graphical lifecycle457, private desktop provisioning, all9
+permission/metadata fixtures and loopback TLS/control regression tests. Host
+entry/runtime/provisioning and preview probe compile with warnings as errors.
+The actual Ubuntu Qt6.10.2 Client parser/persistence tests pass; tested sources
+and metadata vectors are blob-identical to this branch. An initial ad hoc Client
+test lacked its common-C include input; rerunning with the verified pinned source
+passed, without a dependency download or product change. These tests use synthetic
+accounts/OS events and temporary files; installed graphical login/logout and
+network-outage acceptance remain pending. No new package/install, push, merge,
+release or issue closure has been performed for this follow-up.
 
 Branch `session-indicator` in `build/worktrees/session-indicator`, based on latest
 main `5593932d5e8bc9fea2f52292fc0a5665b5c650a0` and Client
