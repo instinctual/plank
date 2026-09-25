@@ -18,6 +18,7 @@
 #import "host-configuration.h"
 #import "machine-identity.h"
 #import "desktop-start.h"
+#import "audio-consent.h"
 #import <AppKit/AppKit.h>
 #include <fcntl.h>
 #include <signal.h>
@@ -30,6 +31,23 @@
 #ifndef PLANK_MACOS_HOST_VERSION
 #error Build must supply an explicit branch-qualified Host version
 #endif
+
+static void finishPermissionSetup(NSApplication *app) {
+    PLANKMacAudioConsent *audio = [PLANKMacAudioConsent new];
+    [audio startWithCompletion:^(BOOL started) {
+        if (!started) {
+            NSAlert *alert = [NSAlert new];
+            alert.messageText = @"PLANK Host system audio setup";
+            alert.informativeText = @"System audio permission setup could not start. Check PLANK Host in "
+                "System Settings → Privacy & Security → Screen & System Audio Recording, then reopen PLANK Host. "
+                "Screen and input permissions remain enabled.";
+            [alert addButtonWithTitle:@"Continue"]; [app activate]; [alert runModal];
+        }
+        PLANKMacShowCameraSetup(^{
+            [audio stopWithCompletion:^{ [app terminate:nil]; }];
+        });
+    }];
+}
 
 static int startupFailure(const char *stage) {
     fprintf(stderr, "PLANK Host startup rejected: %s\n", stage);
@@ -393,7 +411,7 @@ int main(int argc, const char **argv) {
                 BOOL input = AXIsProcessTrusted();
                 BOOL post = CGPreflightPostEventAccess();
                 if (screen && input && post) {
-                    PLANKMacShowCameraSetup(^{ [app terminate:nil]; });
+                    finishPermissionSetup(app);
                     return;
                 }
                 if (!screen) screen = CGRequestScreenCaptureAccess();
@@ -408,7 +426,7 @@ int main(int argc, const char **argv) {
                 input = AXIsProcessTrusted();
                 post = CGPreflightPostEventAccess();
                 if (screen && input && post) {
-                    PLANKMacShowCameraSetup(^{ [app terminate:nil]; });
+                    finishPermissionSetup(app);
                     return;
                 }
                 NSAlert *alert = [NSAlert new];
@@ -417,7 +435,7 @@ int main(int argc, const char **argv) {
                     @"Version %s\n\nScreen & System Audio Recording: %@\nAccessibility: %@\nKeyboard/Mouse Event Posting: %@\n\n"
                      "Enable PLANK Host in System Settings → Privacy & Security. These permissions belong to "
                      "PLANK Host, separately from PLANK Host Probe. Reopen this app after enabling them. "
-                     "Desktop audio-tap consent is checked separately when audio capture starts. "
+                     "System audio consent is requested here once screen and input access are enabled. "
                      "This permission window does not start a remote session.",
                     PLANK_MACOS_HOST_VERSION, screen ? @"Allowed" : @"Required", input ? @"Allowed" : @"Required",
                     post ? @"Allowed" : @"Required"];

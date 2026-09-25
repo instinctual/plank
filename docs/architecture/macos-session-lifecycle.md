@@ -189,6 +189,12 @@ accounts and macOS consent are preserved; reinstall can reuse the same identity.
 
 Opening the signed PLANK Host application requests its own Screen Recording
 and input consent. Probe consent does not transfer across bundle IDs.
+After screen/input approval, setup starts a private inclusive empty process tap
+to exercise system-audio consent before remote use. It retains no samples and
+does not route output, mute speakers or start the normal capture pipeline.
+Tap/aggregate cleanup is serialized with setup and runs when its window closes.
+Starting the tap is not proof of approval; no cached synthetic grant is written.
+See [permission timing and OS-controlled exceptions](../user/permissions.md).
 The permission window does not start a listener or a remote session.
 `--check-permissions` instead performs non-prompting screen/input preflights in
 the calling graphical context and emits JSON. It explicitly does not qualify

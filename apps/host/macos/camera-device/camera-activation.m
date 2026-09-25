@@ -99,7 +99,8 @@ static void showReady(BOOL known, BOOL enabled, void (^completion)(void)) {
         @"You can enable PLANK Camera for webcam forwarding." :
         @"Camera status could not be checked. You can retry camera setup.";
     ready.informativeText = [NSString stringWithFormat:
-        @"Screen and input permissions are enabled. %@ Camera capture starts only from the Client toolbar.", camera];
+        @"Screen and input permissions are enabled. Complete the macOS system-audio permission prompt if shown. "
+         "No audio is recorded or sent by setup. %@ Camera capture starts only from the Client toolbar.", camera];
     [ready addButtonWithTitle:@"Close"];
     if (!enabled) [ready addButtonWithTitle:known ? @"Enable Camera" : @"Set Up Camera"];
     [NSApp activate];

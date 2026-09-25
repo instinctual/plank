@@ -4,13 +4,27 @@
 
 Branch `session-indicator` in `build/worktrees/session-indicator`, based on latest
 main `5593932d5e8bc9fea2f52292fc0a5665b5c650a0` and Client
-`b5c3a7a5ddd37e010155883054931be3010fc5a2`. Source version **1.1.015**;
+`b5c3a7a5ddd37e010155883054931be3010fc5a2`. Source version **1.1.016**;
 candidate versions must include `-session-indicator`. Main and the unrelated
 primary RK3576 worktree are untouched. No merge to main, deployment or Release.
 Candidate packaging for all four products is now authorized. Use hosted builders
 and protected macOS signing; publish only the feature branches needed by CI.
 No deployment, main merge, GitHub Release or hardware acceptance is authorized
 by this build request.
+
+Current follow-up: permission timing audit. Client microphone and attached USB
+Wacom permission requests move to the ordinary launcher; streaming only checks
+grants. Microphone consent completes before bookmark UI construction, without
+blocking the main loop or opening a recording device. CLI autoconnect is
+non-prompting. Host interactive setup exercises system-audio consent with a
+private empty process tap; it never changes output routing or captures app audio.
+Existing screen/input and camera-extension requests stay in Host setup.
+See [the audit and OS-controlled exceptions](docs/user/permissions.md). A new
+Host account that has not run setup may still encounter Apple's first-use audio
+consent during a session; no synthetic approval or TCC bypass is introduced.
+Portable gates pass; native compilation and fake-API lifecycle tests are next.
+No 1.1.016 package exists yet; the completed 1.1.015 packages below do not contain
+this follow-up. No live permission reset or installed app change was performed.
 
 ## Candidate builds
 

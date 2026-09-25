@@ -3,6 +3,8 @@
 - [User documentation](user/): bookmark behavior and product configuration.
   [macOS configuration](user/macos-configuration.md) covers Host/Client INI files,
   installation, upgrade preservation and identity separation.
+  [Permissions](user/permissions.md) covers launch-time setup, denied access,
+  and OS-controlled prompts that cannot be moved out of a session.
   [Remembered usernames](user/remembered-usernames.md) documents the Client's
   default-off, per-bookmark sign-in prefill policy.
   [Mac remote audio output](user/macos-audio-output.md) explains PLANK Output,

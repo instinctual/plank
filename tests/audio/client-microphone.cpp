@@ -32,7 +32,7 @@ bool PlankLinuxMicrophone::take(Packet& packet) {
 #ifdef __APPLE__
 // The SDL dummy backend is mandatory here. Never request real TCC permission
 // or touch a physical recording device on a build worker.
-int plankMacMicrophonePermission(bool) { return 1; }
+int plankMacMicrophonePermission() { return 1; }
 #endif
 
 #define CHECK(x) do { if (!(x)) { std::fprintf(stderr, "check failed line %d\n", __LINE__); std::exit(1); } } while (0)

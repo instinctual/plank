@@ -39,6 +39,13 @@ xcrun clang++ -std=c++17 -mmacosx-version-min=27.0 -Wall -Wextra -Werror \
 python3 "$source_root/tests/packaging/test-macos-quit-lifecycle.py" "$source_root"
 python3 "$source_root/tests/packaging/test-macos-metal-overlay.py"
 python3 "$source_root/tests/packaging/test-macos-keyboard-capture.py"
+python3 "$source_root/tests/packaging/test-startup-permissions.py"
+# Test authorization decisions without opening audio devices or requesting TCC.
+xcrun clang++ -std=c++17 -fobjc-arc -mmacosx-version-min="$MACOSX_DEPLOYMENT_TARGET" \
+    -Wall -Wextra -Werror "$source_root/tests/audio/macos-microphone-permission.mm" \
+    -framework Foundation -framework AppKit -framework AVFoundation \
+    -o "$build/tests/microphone-permission-test"
+"$build/tests/microphone-permission-test"
 patch_file="$client/app/deploy/linux/ffmpeg-patches/0001-hevc-enable-hwaccel-for-identity-gbr.patch"
 printf '%s  %s\n' 059cc9c0d585d71e292cd7421a43f239b1e7ce94e8598d0a7427dfe48e55847e "$patch_file" | shasum -a 256 -c -
 patch --batch --reverse --dry-run -d "$PLANK_MAC_CLIENT_DEPS/src/ffmpeg-9.0.1" -p1 < "$patch_file"
