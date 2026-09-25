@@ -12,21 +12,47 @@ and protected macOS signing; publish only the feature branches needed by CI.
 No deployment, main merge, GitHub Release or hardware acceptance is authorized
 by this build request.
 
-The first hosted candidate pass stopped at two preflight gates before packaging:
-the Linux Client text gate still expected the old Physical displays hint, and
-the macOS root filesystem fixture exposed a helper-status propagation issue.
-The native helper rejected unsafe config permissions, but a shell caller in a
-conditional context could lose that status. Explicit fail-closed propagation
-and a portable regression test now cover this; the native root fixture must
-pass in the rebuilt candidates. Superseded runs: `36104286424`, `36104286273`,
-`36104288898`. Do not install artifacts from these runs.
+## Candidate builds
+
+Exact package source: root `812770480deca1b896f6f3b7e59df8129677a46e`, Client
+`4038bddc5c970a25a74371c0134c96f895fcbedc`, Linux Host
+`aabaf34c171a7620b7467883e6f4948a3f2659b0`, Kymux
+`3f7a9d8618978287186e5d6ce0eaa067743cb06c`. Feature branches are pushed;
+main remains `5593932d5e8bc9fea2f52292fc0a5665b5c650a0`.
+
+Hosted run `36104720921` passed both Linux packages and both macOS product builds.
+Signed Host run `36104720562` and signed Client run `36104723022` passed,
+including notarization/stapling and Gatekeeper assessment. The Linux Host input
+lifecycle gate also passed. The macOS root filesystem fixture passes
+all71 checks; it neither installs PLANK nor starts product services.
+
+Collected candidates belong under
+`artifacts/packages/candidates/1.1.015-session-indicator/{linux,macos}/` with
+`manifest.json`, `SHA256SUMS` and per-file checksum sidecars. Transfer checksums
+and exact source provenance are verified independently for all four packages.
+The finished RPM owns `/var/log/plank` as root:root0700; the DEB includes the
+administrator policy and no Client service/autostart. macOS Client is now a
+PKG installer: distribute that PKG directly. This build also generated a
+redundant DMG containing the identical PKG; it is not in the handoff catalog.
+The build script still produces that wrapper; remove it in the next packaging
+cleanup rather than claim it has already been removed. Nothing is installed,
+merged, tagged or published as a GitHub Release. Package gates are not hardware
+or fresh/upgrade installation acceptance.
+
+The first candidate pass exposed a stale Match Host text guard and shell error
+propagation around the macOS native configuration helper. Both are fixed in
+`8127704`, with a portable fail-closed regression and the passing native root
+fixture. Earlier runs `36104286424`, `36104286273`, `36104288898` are superseded
+and must not be used for installation.
+
+## Implemented changes
 
 Issue12 implementation checkpoints: root `00682c9b` and `6893445f`. macOS Host
 now reads only `/etc/plank/host.conf`; workstation UUID is identity-only state in
 Application Support, separate from TLS keys. The installer converts the prior
 public plist once, preserves settings/UUID/keys, and retires the old file only
 after the replacement app is installed. Runtime has no plist fallback.
-The macOS Client now packages a signed PKG (also inside its DMG), installing the
+The macOS Client now packages a signed PKG, installing the
 app and default `/etc/plank/client.conf` without overwriting existing policy.
 No Client service/autostart/helper is installed. Shared Client reference template
 moved to `packaging/client/config/plank-client.conf`; Linux DEB paths/runtime are
@@ -136,15 +162,12 @@ the layout lambda captures validated request modes, and reconnect consults its
 bounded policy gate before requests. The complete shell gate passes, with its
 other assertions retained; no product display or reconnect code changed.
 
-Next: build signed Host/Client candidates when requested, including the new
-Client PKG and DMG; run the privileged isolated package fixture and fresh/upgrade
-installation gates on an authorized test Mac. Verify existing UUID, TLS keys,
+Next: manually test these candidates, including fresh/upgrade installation gates
+on an authorized test Mac. Verify existing UUID, TLS keys,
 custom ports/names and Client policy survive, including an interrupted upgrade.
-Signed production packages have not been built for issue12. Reconcile the stale
-source-pattern gate above,
-then verify installed local-to-remote access, login/logout, takeover, offline
+Then verify installed local-to-remote access, login/logout, takeover, offline
 clearing and long-name UI. Check centered toolbar reveal/drag and fullscreen/
-windowed transitions on a notched Mac. No full package or hardware acceptance yet.
+windowed transitions on a notched Mac. Hardware/installed acceptance is pending.
 
 ## Preserved baseline
 
