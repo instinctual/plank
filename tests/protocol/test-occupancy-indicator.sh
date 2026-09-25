@@ -9,3 +9,4 @@ trap 'rm -rf -- "$test_build"' EXIT
   "$repo_dir/apps/host/linux/src/session/session_context.cpp" \
   $(pkg-config --cflags --libs libsystemd) -o "$test_build/occupancy"
 "$test_build/occupancy"
+python3 "$repo_dir/tests/session/test-stream-occupancy.py"
