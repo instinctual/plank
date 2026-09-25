@@ -32,7 +32,8 @@ bool PlankLinuxMicrophone::take(Packet& packet) {
 #ifdef __APPLE__
 // The SDL dummy backend is mandatory here. Never request real TCC permission
 // or touch a physical recording device on a build worker.
-int plankMacMicrophonePermission() { return 1; }
+static std::atomic<int> microphonePermission {1};
+int plankMacMicrophonePermission() { return microphonePermission.load(); }
 #endif
 
 #define CHECK(x) do { if (!(x)) { std::fprintf(stderr, "check failed line %d\n", __LINE__); std::exit(1); } } while (0)
@@ -134,5 +135,21 @@ int main()
     {
         std::lock_guard<std::mutex> guard(endpoint.mutex); CHECK(endpoint.activation == 0);
     }
+#ifdef __APPLE__
+    // Unprovisioned CLI startup and denied consent must not open SDL capture,
+    // send samples, or leave the optional lane indefinitely Pending.
+    for (const int permission : {0, -1}) {
+        microphonePermission = permission;
+        PlankTransportNativeEndpoint deniedEndpoint;
+        std::atomic<bool> deniedRequested {true};
+        PlankMicrophone microphone(&deniedEndpoint, deniedRequested, true, timed);
+        for (unsigned i = 0; i < 400 && microphone.state() != PlankMicrophone::State::Unavailable; i++)
+            SDL_Delay(5);
+        CHECK(microphone.state() == PlankMicrophone::State::Unavailable);
+        CHECK(!recording() && !deniedEndpoint.packets);
+        std::lock_guard<std::mutex> guard(deniedEndpoint.mutex);
+        CHECK(deniedEndpoint.command && !(deniedEndpoint.flags & PLANK_TRANSPORT_MICROPHONE_ENABLED));
+    }
+#endif
     puts("client_microphone_dummy_capture_mute_pressure_reopen_failure_cleanup=pass");
 }

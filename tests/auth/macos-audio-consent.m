@@ -82,7 +82,8 @@ int main(void) { @autoreleasepool {
             AudioBufferList input = {1, {{2, 16, (void *)1}}};
             float data[4] = {1, 1, 1, 1};
             AudioBufferList output = {1, {{2, sizeof(data), data}}};
-            assert(receive(20, NULL, &input, NULL, &output, NULL, NULL) == noErr);
+            AudioTimeStamp timestamp = {0};
+            assert(receive(20, &timestamp, &input, &timestamp, &output, &timestamp, NULL) == noErr);
             for (unsigned i = 0; i < 4; i++) assert(data[i] == 0);
         }
         done = NO;
