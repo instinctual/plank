@@ -47,3 +47,17 @@ tests pass. Actual Qt Client parser/persistence tests and QML syntax pass on the
 Ubuntu builder. See HANDOFF for exact source provenance and the unrelated stale
 packaging source-pattern assertions. Full package, visual UI and live session
 qualification remain pending; no installed software was changed.
+
+## Follow-up: optional remembered sign-in username (issue17)
+
+Implemented on this branch, without changing Host authentication or the public
+occupancy contract. Administrator policy `authentication.remember_username`
+defaults false on Linux/macOS Clients. Store only the successful local sign-in
+name per bookmark, never discovery usernames, passwords or tokens. Prefill an
+editable field and focus the password, without auto-submit. Clear names when
+destinations change; disabling policy purges primary and backup entries at
+startup. Preserve the current same-user access and takeover rules.
+
+Production policy/parser/persistence tests and the actual inline login dialog
+run offscreen on the Ubuntu builder. All pass; package and live-session tests
+remain separate. Documentation: `docs/user/remembered-usernames.md`.

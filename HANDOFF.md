@@ -9,14 +9,15 @@ candidate versions must include `-session-indicator`. Main and the unrelated
 primary RK3576 worktree are untouched. No merge to main, deployment or Release.
 Changes are committed locally, not pushed.
 
-Implementation checkpoint: root `b2e809b8935b7145e8b89085eb54c8e687de3036`,
-Client `d990292e9b0387186fe145c5767c431827a0cdbd`, Linux Host
+Implementation checkpoint: root `67f2837b0a3e53223276f3b3f25f24c9c9bfe1ba`,
+Client `417ac6bcf9427d8364a4c0613159ee32cae2b1c9`, Linux Host
 `aabaf34c171a7620b7467883e6f4948a3f2659b0`. Later handoff-only commits do not
 change these tested components. Dependency commits must be pushed before root.
 
 Integrates root PR13 (5830df9), Client PR8 (2bd72178) and Linux Host PR10
 (8f49a7c1), with the targeted repairs in
 [the plan](docs/development/plans/session-indicator.plan).
+Also implements issue17's administrator-opt-in remembered sign-in username.
 The newer native camera, stereo microphone, feature negotiation and Mac virtual
 audio clock work remains in the ancestry, not replaced by the older PR pins.
 
@@ -34,8 +35,16 @@ audio clock work remains in the ancestry, not replaced by the older PR pins.
   are installed by the same Host package.
 - Mac discovery selects cached XML using an atomic stream-lease bit; no account,
   display, media or authentication lock is acquired by public status polling.
-- Client metadata is transient. Invalid names are rejected, names without
+- Host-discovered Client metadata is transient. Invalid names are rejected, names without
   occupied status are ignored, and long names cannot hide the status label.
+- Client `authentication.remember_username` defaults false in
+  `/etc/plank/client.conf` on both platforms. When enabled, it remembers the
+  last successfully authenticated username per bookmark, prefills the editable
+  field and focuses the empty password field. It never submits automatically or
+  persists passwords/tokens. Public session names are not login suggestions.
+- Disabling the policy purges saved usernames from both primary and backup
+  bookmark arrays at startup. Destination changes clear the name; nickname
+  changes do not. See [the user guide](docs/user/remembered-usernames.md).
 
 ## Validation and next action
 
@@ -52,10 +61,19 @@ Passed:
   assertions, dynamic occupancy XML, lease revocation and expiry. Real loopback
   TLS synthetic-account suite and machine-authority certificate-chain test pass.
 - Host-version discovery, diff whitespace and commit privacy checks.
+- Username follow-up at root `67f2837`, Client `417ac6bc`: Ubuntu Qt6.10.2
+  policy suite25 cases and authentication/dialog suite12 cases pass. Tests run
+  the actual inline login QML with a stub model, checking focus, editing,
+  Cancel, no automatic login and cleared fields. Production parser/persistence
+  tests pass for opt-in/default-off, per-bookmark isolation, exact realm/Unicode
+  names, no tokens, address edits, stale authentication destinations and cleanup
+  of primary/orphaned backup entries. These tests are included in the existing
+  Linux Client build gates. No end-to-end Host login was performed for this option.
 
-Mac and Ubuntu component tests used clean worktrees at root `b0ec487` and the
-same Client commit above. Subsequent runtime changes affect only Linux pending
-occupancy and have their own passing production-owner test at `b2e809b`.
+The earlier occupancy Mac and Ubuntu component tests used clean worktrees at
+root `b0ec487` and Client `d990292e`. Subsequent Linux pending occupancy has its
+own passing production-owner test at `b2e809b`. Username tests use the newer
+root/Client checkpoint above; macOS-specific username UI acceptance is pending.
 No live workstation, installed package or active session has been modified.
 
 Known unrelated baseline gate: `tests/packaging/test-host-supervisor-package.sh`
