@@ -1,6 +1,6 @@
 # PLANK handoff
 
-## Current follow-up — Host setup display-change centering
+## Current checkpoint — signed1.1.022 Host setup centering
 
 The operator accepted Client1.1.021 setup, but Host setup still appeared at the
 upper left after installation. Read-only investigation found setup launched
@@ -24,9 +24,24 @@ ASan/UBSan and production warnings-as-errors compilation pass. Tests use synthet
 screen inventory and hidden AppKit windows, not real display/input changes.
 Portable permission11, Host installer25, layout, version and whitespace gates pass.
 
-Next: commit/push and build/download a signed1.1.022 Host candidate for manual
-installer acceptance. Keep Client1.1.021; no Client rebuild is necessary.
-No merge, Release or deployment is requested. Cache cleanup was deferred when
+Source is committed/pushed: root `c63892a029fee32a7ea72f1259bbea9ba837ef65`,
+Client release notes `105a08c673a44551c4ff15b897f804f381f50e53`; other pins below
+are unchanged. Signed Host run `36202821923` passed from that exact root, with
+verified dependency-cache reuse, native layout/lifecycle tests, full build,
+signing, notarization, stapling, Gatekeeper and temporary-signing cleanup.
+Original package downloaded/collected and independently checksum-verified:
+`artifacts/packages/candidates/1.1.022-macos-app-icons/macos/plank-host_1.1.022-macos-app-icons_arm64.pkg`
+(6,993,684 bytes; SHA256
+`338eea77903c3848467eb3fb0e6531b1e58211bd2b0db08aaa90d35379c7eab0`).
+The catalog records its exact provenance and package-only validation.
+Automatic `36202822210` has Ubuntu and unsigned Mac Client passed, Linux Host
+and unsigned Mac Host still running. Privacy `36202822172` and clipboard
+`36202822238` passed. Prior1.1.021 automatic `36189240060` passed all four products.
+
+Next: operator installs Host1.1.022 and verifies centering through the restart/
+desktop restoration, then manual drag preservation. Keep Client1.1.021; no
+Client rebuild is necessary. No merge, Release or deployment performed.
+Cache cleanup was deferred when
 the operator redirected work back to this fix; no cache files were deleted.
 
 ## Previous checkpoint — signed1.1.021 setup UI candidates
