@@ -1,6 +1,27 @@
 # PLANK handoff
 
-## Current checkpoint — Host setup foreground follow-up
+## Current checkpoint — accepted macOS setup integrated into main
+
+The operator accepted Host1.1.023: setup now centers correctly and opens above
+Installer. Client1.1.021 setup styling was already accepted. The complete
+`macos-app-icons` work is fast-forward merged into root and Client `main`,
+without changing the tested product code. This includes the approved icons,
+uninstall follow-ups, installer-time permission setup and window layout fixes.
+
+Root integration includes `fe0e39e` (tested package source
+`9bd0e4899029390ca5a41594d3b592a2260b1018`); Client main/gitlink is
+`63055b9316b002c8839dd6778b5453e035524d6a`. Other dependency pins below remain
+unchanged. The retained integration worktree and its Client now use `main`.
+The unrelated primary RK3576 worktree is untouched.
+
+Source version remains1.1.023. Signed candidate provenance/checksums and passed
+test gates are recorded below; candidate files have not been renamed as mainline
+packages. No signed mainline rebuild, Release or deployment was requested in
+this merge step. Normal push CI is separate from the accepted signed candidates;
+the preceding automatic candidate run still has Linux Host in progress.
+Do not interpret UI acceptance as blanket hardware/uninstall qualification.
+
+## Previous candidate checkpoint — Host setup foreground follow-up
 
 The operator confirms1.1.022 centers correctly, but setup opens behind Installer.
 Source **1.1.023** on `macos-app-icons` explicitly orders the setup window forward
@@ -29,9 +50,9 @@ Catalog functional acceptance remains unrecorded. Automatic `36204051482` has
 Ubuntu and unsigned Mac Client passed, Linux Host and unsigned Mac Host running.
 Privacy `36204051431` and clipboard `36204051453` passed.
 
-Next: operator installs Host1.1.023 and checks actual Installer stacking, then
-normal focus transfer to Settings/consent dialogs. Keep Client1.1.021. No merge,
-Release or installation performed. Primary RK3576 work remains untouched.
+The operator subsequently confirmed this fix works and requested the mainline
+integration recorded above. Keep the exact signed candidate packages for
+provenance; do not relabel them after merging.
 
 ## Previous checkpoint — signed1.1.022 Host setup centering
 
