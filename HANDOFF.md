@@ -19,6 +19,9 @@ Resume checkpoint: the requested commit/push/merge/build/PR closure is complete.
 Later notes-only commits do not change the package source recorded above.
 No build, installation, release publication or background test is pending.
 Do not repeat completed builds or infer hardware acceptance on resume.
+A plain-language comparison against the last published release,1.0.143, is in
+[the1.1.024 changelog](docs/releases/1.1.024.md). It is documentation only;
+the existing packages are unchanged and no new GitHub Release was published.
 
 Review branch `review-wacom-lifecycle` starts at main
 `0c4d9df3a1e3257a30785bc9655a9882621c65dd`. The operator approved the review
