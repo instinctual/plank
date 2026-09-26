@@ -47,6 +47,25 @@ See HANDOFF for final integration/build provenance. The authorization to merge
 does not replace the remaining live qualification below. No deployment is
 requested.
 
+### Mainline build completion
+
+Root `89afd664484f477777e3a4ce08b1838724f6fb25` builds version1.1.024 with
+Client `183e9f2007474f0f0b8291bb75c9825694d6885c` and Host `b8308a44`.
+All four [hosted products](https://github.com/instinctual/plank/actions/runs/36208395069)
+passed, as did the separate signed/notarized
+[Mac Host](https://github.com/instinctual/plank/actions/runs/36208395082) and
+[Mac Client](https://github.com/instinctual/plank/actions/runs/36208397065).
+Mac's actual Qt Wacom suite reports13 passes with no failures. Host input suites
+pass25 shuffled repetitions, with32 passes and three explicit UHID-dependent
+skips per repetition. The13 new fault tests run rather than skip. All three
+required150 Mbps loss matrices and production package gates pass.
+
+The operator authorized mainline integration before live qualification. Client
+PR7 is closed as integrated by attributed cherry-pick; Host PR11 is merged. Both
+have integration notes. All four original packages are downloaded and checksum-
+verified; HANDOFF records their exact provenance. No installation or hardware
+acceptance is implied by these results.
+
 ## Exact scope and recommendation
 
 | Pull request | Reviewed head | Recommendation |

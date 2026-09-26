@@ -1,6 +1,19 @@
 # PLANK handoff
 
-## Current integration — Wacom focus and retained contact
+## Current checkpoint — mainline 1.1.024 Wacom lifecycle builds
+
+Mainline 1.1.024 source is committed and pushed: root
+`89afd664484f477777e3a4ce08b1838724f6fb25`, Client
+`183e9f2007474f0f0b8291bb75c9825694d6885c`, Linux Host
+`b8308a44c129599ef50b75c30051cee1bb55bf26`. Root and Client integration
+worktrees now use `main`. All hosted builds passed from that exact root:
+[all products](https://github.com/instinctual/plank/actions/runs/36208395069),
+[signed Mac Host](https://github.com/instinctual/plank/actions/runs/36208395082),
+[signed Mac Client](https://github.com/instinctual/plank/actions/runs/36208397065).
+Both Mac PKGs passed signing, notarization, stapling, Gatekeeper and signing
+cleanup. No package was installed and no GitHub Release was published.
+Host PR11 is merged; Client PR7 is closed as integrated by attributed cherry-pick.
+Both PRs have completion notes and explicit outstanding hardware gates.
 
 Review branch `review-wacom-lifecycle` starts at main
 `0c4d9df3a1e3257a30785bc9655a9882621c65dd`. The operator approved the review
@@ -14,11 +27,25 @@ Client PR7 `af659dbca03304897dc693dc323a419134de6147` and Linux Host PR11
 [findings and qualification boundaries](docs/development/reviews/wacom-focus-contact-pr-review.md).
 Implementation commits: Client
 `9961eba21910c5ae3695e24217e8f78694965c6e` (PR cherry-pick `696e4e7e`), Host
-`b8308a44c129599ef50b75c30051cee1bb55bf26`. Their branch name is also
-`review-wacom-lifecycle`; the root gitlinks point to those exact commits.
-Other dependency pins below are unchanged. Source version is now1.1.024;
-the Client also gains its user-facing release notes. Integration/build results
-must be recorded below when complete; no deployment or Release is requested.
+`b8308a44c129599ef50b75c30051cee1bb55bf26`. The final Client gitlink above
+also includes the user-facing release notes. Other dependency pins are unchanged:
+Client common-C `060f6179f88343327b44d915007f1fb4cede71f1`, Host header-only
+common-C `3a97a58f215323753cfd1180af760ec7e3253538`, Kymux
+`3f7a9d8618978287186e5d6ce0eaa067743cb06c`. Full recursive provenance remains
+in the pinned submodule trees and the recorded build outputs.
+
+All four original packages are downloaded, collected and SHA-256-verified under
+`artifacts/packages/releases/1.1.024/`, with manifest and checksum sidecars:
+
+| Package | Bytes | SHA-256 |
+| --- | ---: | --- |
+| `linux/plank-host-1.1.024-1.el9.x86_64.rpm` | 8687171 | `1e997072cb0ff42f74d9c54d52e638527b9fbe3bdabcdf57f7a415990c77f75d` |
+| `linux/plank-client_1.1.024_amd64.deb` | 15595204 | `ddd142171d8b129a59b1ecf86705401d7830656e3d6e4b6b9f7ead23821aec25` |
+| `macos/plank-host_1.1.024_arm64.pkg` | 6993669 | `76cdb5ea6c24f2fae73e421b7f1a7852c41225fa6d89ac09626689e6477a3eca` |
+| `macos/plank-client_1.1.024_arm64.pkg` | 72864828 | `6f1ed010319a45fbca47d18a1e21beefb5b998883297a5ff2ee1f0ff6d2cfed3` |
+
+Catalog validation is package-only; functional acceptance is not recorded.
+The redundant generated Client DMG is not in the retained package catalog.
 
 Host cleanup now distinguishes failed reads from idle state, bounds EINTR
 retries, completes partial event writes including SYN_REPORT, and verifies
@@ -41,16 +68,23 @@ permission-timing11, CI shell syntax and whitespace gates pass. No hardware,
 installed app or service was exercised. The review's earlier fault tests remain
 evidence of the original defect, not tests of the repaired code.
 
-Next: finish the authorized mainline integration and build fresh1.1.024 packages
-on GitHub-hosted runners, including signed/notarized Mac installers. Then qualify
-macOS15/27 focus recovery, Flame mid-stroke suspend/resume/pressure/margins and hybrid tablets.
+Hosted validation additionally passed the real Mac Wacom Qt suite (13 results),
+all production builds/package gates, and Linux Host input suites for 25 shuffled
+repetitions: 32 passes and three explicit UHID-dependent skips per repetition.
+The three required 150 Mbps loss matrices passed all five loss levels. RPM
+payload remains `BUILD_TESTS=OFF`; CI builds tests separately after packaging.
+Root CI-policy 62 tests, privacy and clipboard regressions passed. No gate was
+weakened and no failing build was retried. The runbook's manual input test filter
+now includes the new `RawHidContactIo` suite, matching CI.
+
+Next: qualify macOS15/27 focus recovery, Flame mid-stroke suspend/resume/pressure/
+margins and hybrid tablets using these exact packages.
 Touch-held suspension followed by pen-only resume remains a hardware question,
 not a confirmed regression. Mainline integration is operator-authorized before
 live qualification; do not claim hardware acceptance from component/build tests.
-Close the PRs with integration and validation notes after the builds complete.
 Original signed setup packages below are unchanged.
 
-## Current checkpoint — accepted macOS setup integrated into main
+## Previous checkpoint — accepted macOS setup integrated into main
 
 The operator accepted Host1.1.023: setup now centers correctly and opens above
 Installer. Client1.1.021 setup styling was already accepted. The complete

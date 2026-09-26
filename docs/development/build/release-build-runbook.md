@@ -1115,7 +1115,7 @@ cmake --build "$host_build" --parallel 8 --target test_sunshine
 (
   cd "$root_worktree/apps/host/linux"
   build_only_filter='VideoColorspaceTest.*:InputConfigDefaults.*:'
-  build_only_filter+='InputRetainedSessionTest.*:RawHidTablet.*:'
+  build_only_filter+='InputRetainedSessionTest.*:RawHidTablet.*:RawHidContactIo.*:'
   build_only_filter+='ConfigConsistencyTest.*-'
   build_only_filter+='VideoColorspaceTest.IdentityGbrCudaKernelProducesExact8BitPlanes:'
   build_only_filter+='VideoColorspaceTest.IdentityGbrCudaKernelProducesExact10BitPlanes'
