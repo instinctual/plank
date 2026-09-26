@@ -16,9 +16,22 @@ warnings-as-errors compilation pass. The tests replace presentation calls and
 OS permission boundaries; no installed app, real prompt or display was changed.
 Portable permission11, installer25, layout, version and whitespace gates pass.
 
-Next: build a signed hosted Host candidate, download and checksum-verify it,
-then operator checks actual Installer stacking. Keep Client1.1.021. No merge,
-Release or installation requested. Primary RK3576 work remains untouched.
+Committed/pushed source: root `9bd0e4899029390ca5a41594d3b592a2260b1018`,
+Client release notes `63055b9316b002c8839dd6778b5453e035524d6a`; other pins below
+are unchanged. Signed Host run `36204051198` passed from that exact root,
+including exact dependency-cache restore, native tests, full build, signing,
+notarization, stapling, Gatekeeper, package gates and signing cleanup.
+Original package is downloaded/collected and independently checksum-verified:
+`artifacts/packages/candidates/1.1.023-macos-app-icons/macos/plank-host_1.1.023-macos-app-icons_arm64.pkg`
+(6,993,741 bytes; SHA256
+`cf4dba5b8050702a5ff9c80c80f9693fc578a1080c27b535132c7519f3570213`).
+Catalog functional acceptance remains unrecorded. Automatic `36204051482` has
+Ubuntu and unsigned Mac Client passed, Linux Host and unsigned Mac Host running.
+Privacy `36204051431` and clipboard `36204051453` passed.
+
+Next: operator installs Host1.1.023 and checks actual Installer stacking, then
+normal focus transfer to Settings/consent dialogs. Keep Client1.1.021. No merge,
+Release or installation performed. Primary RK3576 work remains untouched.
 
 ## Previous checkpoint — signed1.1.022 Host setup centering
 
@@ -54,13 +67,13 @@ Original package downloaded/collected and independently checksum-verified:
 (6,993,684 bytes; SHA256
 `338eea77903c3848467eb3fb0e6531b1e58211bd2b0db08aaa90d35379c7eab0`).
 The catalog records its exact provenance and package-only validation.
-Automatic `36202822210` has Ubuntu and unsigned Mac Client passed, Linux Host
-and unsigned Mac Host still running. Privacy `36202822172` and clipboard
+Automatic `36202822210` passed Ubuntu and both unsigned Macs; its Linux Host
+job was superseded/cancelled by the1.1.023 push. Privacy `36202822172` and clipboard
 `36202822238` passed. Prior1.1.021 automatic `36189240060` passed all four products.
 
-Next: operator installs Host1.1.022 and verifies centering through the restart/
-desktop restoration, then manual drag preservation. Keep Client1.1.021; no
-Client rebuild is necessary. No merge, Release or deployment performed.
+The operator subsequently confirmed centering works; the foreground follow-up
+above addresses its opening behind Installer. Keep Client1.1.021; no Client
+rebuild is necessary. No merge, Release or deployment performed.
 Cache cleanup was deferred when
 the operator redirected work back to this fix; no cache files were deleted.
 
