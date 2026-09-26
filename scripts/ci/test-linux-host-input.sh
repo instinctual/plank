@@ -19,7 +19,7 @@ cmake --build "$host_build" --parallel 2 --target test_sunshine
 (
   cd "$host_source"
   "$host_build/tests/test_sunshine" --gtest_color=no \
-    --gtest_filter='InputConfigDefaults.*:InputRetainedSessionTest.*:RawHidTablet.*' \
+    --gtest_filter='InputConfigDefaults.*:InputRetainedSessionTest.*:RawHidTablet.*:RawHidContactIo.*' \
     --gtest_repeat=25 --gtest_shuffle --gtest_random_seed=837
 )
 echo 'host_input_lifecycle_gate=pass hardware_acceptance=not-performed'
