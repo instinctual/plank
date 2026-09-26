@@ -9,10 +9,12 @@ review refer to the PR heads in the table, not the repaired follow-up.
 ## Approved implementation follow-up
 
 The operator approved fixing the findings and retaining both approaches.
-Local Client `9961eba21910c5ae3695e24217e8f78694965c6e` includes PR7 (attributed
+Client `9961eba21910c5ae3695e24217e8f78694965c6e` includes PR7 (attributed
 cherry-pick `696e4e7e`) and permanent focus-policy tests. Local Host
 `b8308a44c129599ef50b75c30051cee1bb55bf26` follows the original PR11 commit.
-Both are integrated as gitlinks on root `review-wacom-lifecycle`, not main.
+Both were integrated as gitlinks on root `review-wacom-lifecycle`. The operator
+subsequently authorized merging this work into main, building all products and
+closing the PRs. The source version advances to1.1.024 for those fresh packages.
 
 - Host state reads fail explicitly if any supported component cannot be read.
   Each query permits at most four attempts on EINTR; other errors return promptly.
@@ -41,8 +43,9 @@ already mandatory on macOS builds. Keyboard/permission timing guards still pass.
 These are component checks, not full package builds or hardware acceptance.
 The macOS27 and Flame acceptance matrix below still applies. Persistent OS/device
 failures can still prevent cleanup; they are now explicit rather than success.
-No main merge, PR approval/comment, remote push, installation or signing has been
-performed for this follow-up. Source version must advance before a candidate build.
+See HANDOFF for final integration/build provenance. The authorization to merge
+does not replace the remaining live qualification below. No deployment is
+requested.
 
 ## Exact scope and recommendation
 

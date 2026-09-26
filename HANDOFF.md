@@ -1,22 +1,24 @@
 # PLANK handoff
 
-## Current implementation — Wacom focus and retained contact
+## Current integration — Wacom focus and retained contact
 
 Review branch `review-wacom-lifecycle` starts at main
 `0c4d9df3a1e3257a30785bc9655a9882621c65dd`. The operator approved the review
 recommendation. Client PR7 is cherry-picked with original attribution, and Host
-PR11 is retained as the base of its follow-up. Main and installed systems remain
-unchanged. The unrelated primary RK3576 worktree is untouched.
+PR11 is retained as the base of its follow-up. The operator subsequently requested
+commit, push, mainline integration, all-product builds and closure of both PRs.
+Installed systems and the unrelated primary RK3576 worktree remain untouched.
 
 Client PR7 `af659dbca03304897dc693dc323a419134de6147` and Linux Host PR11
 `da805d9a09c1a6493013fedef8183780b2126753` were reviewed together; see
 [findings and qualification boundaries](docs/development/reviews/wacom-focus-contact-pr-review.md).
-Local implementation commits: Client
+Implementation commits: Client
 `9961eba21910c5ae3695e24217e8f78694965c6e` (PR cherry-pick `696e4e7e`), Host
 `b8308a44c129599ef50b75c30051cee1bb55bf26`. Their branch name is also
 `review-wacom-lifecycle`; the root gitlinks point to those exact commits.
-Other dependency pins below are unchanged. No push, main merge, GitHub review,
-package build, signing or deployment has been performed for this work.
+Other dependency pins below are unchanged. Source version is now1.1.024;
+the Client also gains its user-facing release notes. Integration/build results
+must be recorded below when complete; no deployment or Release is requested.
 
 Host cleanup now distinguishes failed reads from idle state, bounds EINTR
 retries, completes partial event writes including SYN_REPORT, and verifies
@@ -39,12 +41,14 @@ permission-timing11, CI shell syntax and whitespace gates pass. No hardware,
 installed app or service was exercised. The review's earlier fault tests remain
 evidence of the original defect, not tests of the repaired code.
 
-Next: build an explicitly branch-qualified candidate (increment the source
-version before packaging; it still reads1.1.023), then qualify macOS27 focus
-recovery, Flame mid-stroke suspend/resume/pressure/margins and hybrid tablets.
+Next: finish the authorized mainline integration and build fresh1.1.024 packages
+on GitHub-hosted runners, including signed/notarized Mac installers. Then qualify
+macOS15/27 focus recovery, Flame mid-stroke suspend/resume/pressure/margins and hybrid tablets.
 Touch-held suspension followed by pen-only resume remains a hardware question,
-not a confirmed regression. Do not merge either PR or claim hardware acceptance
-from these component tests. Original signed setup packages below are unchanged.
+not a confirmed regression. Mainline integration is operator-authorized before
+live qualification; do not claim hardware acceptance from component/build tests.
+Close the PRs with integration and validation notes after the builds complete.
+Original signed setup packages below are unchanged.
 
 ## Current checkpoint — accepted macOS setup integrated into main
 
