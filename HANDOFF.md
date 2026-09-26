@@ -15,6 +15,11 @@ cleanup. No package was installed and no GitHub Release was published.
 Host PR11 is merged; Client PR7 is closed as integrated by attributed cherry-pick.
 Both PRs have completion notes and explicit outstanding hardware gates.
 
+Resume checkpoint: the requested commit/push/merge/build/PR closure is complete.
+Later notes-only commits do not change the package source recorded above.
+No build, installation, release publication or background test is pending.
+Do not repeat completed builds or infer hardware acceptance on resume.
+
 Review branch `review-wacom-lifecycle` starts at main
 `0c4d9df3a1e3257a30785bc9655a9882621c65dd`. The operator approved the review
 recommendation. Client PR7 is cherry-picked with original attribution, and Host
