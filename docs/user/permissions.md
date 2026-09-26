@@ -29,6 +29,8 @@ components are separate. Each explanatory sentence has its own line.
 The window centers in the usable desktop, clear of the menu bar and Dock, and
 follows display changes while the Host restarts. Once you drag it yourself,
 automatic centering stops, including when returning from System Settings.
+Setup comes forward when opened, but is not always-on-top and does not reclaim
+focus during status refreshes or display changes.
 Refresh and Close are at the lower right. The installer-launched Client setup
 uses the same native macOS appearance and feature/status/action layout; the
 main Client window retains its existing style.

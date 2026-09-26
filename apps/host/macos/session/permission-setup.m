@@ -124,6 +124,16 @@ static BOOL setupMoveIsUserDrag(NSWindow *window, NSWindow *eventWindow,
     [self centerInCurrentScreen];
     return self;
 }
+- (void)showWindow:(id)sender {
+    if (_closing) return;
+    [super showWindow:sender];
+    [NSApp activate];
+    // Installer launches us from its privileged script, not an AppKit
+    // activation handoff. Activation is only a request; explicitly surface
+    // this setup window even while Installer remains the active application.
+    // Do this only on opening, not on refresh or display/permission callbacks.
+    [self.window orderFrontRegardless];
+}
 - (NSRect)setupVisibleFrame {
     NSWindow *window = self.window;
     NSScreen *screen = NSScreen.mainScreen ?: window.screen;
@@ -308,7 +318,7 @@ void PLANKMacShowPermissionSetup(NSString *version) {
     setup = [[PLANKPermissionSetup alloc] initWithVersion:version];
     [NSNotificationCenter.defaultCenter addObserver:setup selector:@selector(applicationBecameActive:)
         name:NSApplicationDidBecomeActiveNotification object:nil];
-    [setup showWindow:nil]; [NSApp activate];
+    [setup showWindow:nil];
     [setup refresh];
     dispatch_async(dispatch_get_main_queue(), ^{ [setup requestPermissions]; });
 }

@@ -1,6 +1,26 @@
 # PLANK handoff
 
-## Current checkpoint — signed1.1.022 Host setup centering
+## Current checkpoint — Host setup foreground follow-up
+
+The operator confirms1.1.022 centers correctly, but setup opens behind Installer.
+Source **1.1.023** on `macos-app-icons` explicitly orders the setup window forward
+when opened, after the normal show/activation request. It remains a normal-level
+window: refresh, consent callbacks and display changes never reassert foreground.
+The accepted centering and manual-drag policy are unchanged. Client runtime is
+unchanged; its gitlink advances for the Host-only changelog entry.
+
+Dedicated SDK27 tests pass for opening/reopening order, normal window level,
+no focus reclaim during refresh/activation/centering, and closed-window guards,
+alongside all centering and permission tests. ASan/UBSan and production
+warnings-as-errors compilation pass. The tests replace presentation calls and
+OS permission boundaries; no installed app, real prompt or display was changed.
+Portable permission11, installer25, layout, version and whitespace gates pass.
+
+Next: build a signed hosted Host candidate, download and checksum-verify it,
+then operator checks actual Installer stacking. Keep Client1.1.021. No merge,
+Release or installation requested. Primary RK3576 work remains untouched.
+
+## Previous checkpoint — signed1.1.022 Host setup centering
 
 The operator accepted Client1.1.021 setup, but Host setup still appeared at the
 upper left after installation. Read-only investigation found setup launched

@@ -45,6 +45,21 @@ static void activateCamera(BOOL enabled, void (^completion)(BOOL)) {
 #define PLANKMacAudioConsent TestAudioConsent
 #include "../../apps/host/macos/session/permission-setup.m"
 
+// Observe the real controller's ordering without activating a test app or
+// showing a window over the operator's desktop.
+static NSMutableArray<NSString *> *presentationCalls;
+@interface TestApplication : NSApplication
+@end
+@implementation TestApplication
+- (void)activate { [presentationCalls addObject:@"activate"]; }
+@end
+@interface TestSetupWindow : NSWindow
+@end
+@implementation TestSetupWindow
+- (void)makeKeyAndOrderFront:(id)sender { (void)sender; [presentationCalls addObject:@"keyAndFront"]; }
+- (void)orderFrontRegardless { [presentationCalls addObject:@"frontRegardless"]; }
+@end
+
 // Replace only the screen inventory; do not resize the test Mac's displays.
 @interface TestSetupGeometry : PLANKPermissionSetup
 @property NSRect visibleFrame;
@@ -125,9 +140,31 @@ static void testDisplayChanges(void) {
 static BOOL rowContains(PLANKPermissionSetup *view, NSString *key, NSString *text) {
     return [view.rows[key].status.stringValue containsString:text];
 }
+static void testPresentation(void) {
+    PLANKPermissionSetup *view = [[PLANKPermissionSetup alloc] initWithVersion:@"presentation-test"];
+    view.window = [[TestSetupWindow alloc] initWithContentRect:NSMakeRect(0, 0, 650, 650)
+        styleMask:NSWindowStyleMaskTitled backing:NSBackingStoreBuffered defer:NO];
+    presentationCalls = [NSMutableArray array];
+    NSArray *expected = @[@"keyAndFront", @"activate", @"frontRegardless"];
+    [view showWindow:nil];
+    assert([presentationCalls isEqual:expected]);
+    assert(view.window.level == NSNormalWindowLevel && !view.window.visible);
+    [presentationCalls removeAllObjects];
+    [view refresh]; cameraReply(PLANKCameraDisabled);
+    [view applicationBecameActive:nil]; cameraReply(PLANKCameraDisabled);
+    [view centerInCurrentScreen];
+    assert(presentationCalls.count == 0); // Never steal focus from Settings/consent.
+    [view showWindow:nil]; // An explicit reopen surfaces the same window again.
+    assert([presentationCalls isEqual:expected]);
+    [presentationCalls removeAllObjects];
+    view.closing = YES;
+    [view showWindow:nil];
+    assert(presentationCalls.count == 0 && !view.window.visible);
+}
 int main(void) {
     @autoreleasepool {
-        [NSApplication.sharedApplication setActivationPolicy:NSApplicationActivationPolicyProhibited];
+        [[TestApplication sharedApplication] setActivationPolicy:NSApplicationActivationPolicyProhibited];
+        testPresentation();
         testDisplayChanges();
         PLANKPermissionSetup *view = [[PLANKPermissionSetup alloc] initWithVersion:@"1.2.3-test"];
         assert(!view.shouldCascadeWindows);
@@ -214,7 +251,7 @@ int main(void) {
         NSString *previous = view.rows[@"camera"].status.stringValue;
         cameraReply(PLANKCameraDisabled); audioReply(NO); [view refresh];
         assert([previous isEqualToString:view.rows[@"camera"].status.stringValue]);
-        puts("Host permission view: display-change centering, drag policy, required/optional states, consent uncertainty, refresh, upgrade and stale callbacks passed");
+        puts("Host permission view: opening order, display-change centering, drag policy, required/optional states, consent uncertainty, refresh, upgrade and stale callbacks passed");
     }
     return 0;
 }
