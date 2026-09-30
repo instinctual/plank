@@ -8,6 +8,7 @@ pam_unit=${repo_dir}/packaging/host/linux/systemd/plank-pam-broker.service
 display_unit=${repo_dir}/packaging/host/linux/systemd/plank-display-prepare.service
 pam_policy=${repo_dir}/packaging/host/linux/pam/plank-host
 host_wacom_rule=${repo_dir}/packaging/host/linux/udev/70-plank-host-wacom.rules
+host_wacom_xorg=${repo_dir}/packaging/host/linux/xorg/90-plank-virtual-wacom.conf
 spec=${repo_dir}/packaging/host/linux/rpm/plank-host.spec
 builder=${repo_dir}/scripts/package/build-host-rpm.sh
 firewalld_service=${repo_dir}/packaging/host/linux/firewalld/plank.xml
@@ -114,8 +115,13 @@ rg -Fxq '    size 10M' "$logrotate_policy"
 rg -Fxq '    rotate 10' "$logrotate_policy"
 rg -Fxq '    copytruncate' "$logrotate_policy"
 test -f "$host_wacom_rule"
+test -f "$host_wacom_xorg"
+rg -Fq 'ATTRS{phys}=="plank/raw-tablet/*", TAG+="plank-virtual-tablet", ENV{ID_INPUT.tags}="plank-virtual-tablet"' "$host_wacom_rule"
+rg -Fxq '    MatchTag "plank-virtual-tablet"' "$host_wacom_xorg"
+rg -Fxq '    Option "PressureRecalibration" "off"' "$host_wacom_xorg"
 test ! -e "$repo_dir/packaging/host/linux/udev/70-plank-wacom.rules"
 rg -Fq '/usr/lib/udev/rules.d/70-plank-host-wacom.rules' "$spec"
+rg -Fq '/usr/share/X11/xorg.conf.d/90-plank-virtual-wacom.conf' "$spec"
 if rg -Fq '/usr/lib/udev/rules.d/70-plank-wacom.rules' "$spec"; then
   echo 'host RPM spec retains the ambiguous Wacom rule filename' >&2
   exit 1
@@ -130,6 +136,7 @@ if rg -q 'plank-auth|remote-desktop-users|/etc/pam\.d/remote-desktop|sysusers' \
 fi
 rg -Fq 'packaging/host/linux/pam/plank-host' "$builder"
 rg -Fq 'packaging/host/linux/udev/70-plank-host-wacom.rules' "$builder"
+rg -Fq 'packaging/host/linux/xorg/90-plank-virtual-wacom.conf' "$builder"
 if rg -q 'packaging/host/linux/pam/remote-desktop|packaging/sysusers\.d' "$builder"; then
   echo 'host package builder still installs obsolete authentication-group files' >&2
   exit 1

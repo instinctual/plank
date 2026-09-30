@@ -96,6 +96,7 @@ fi
 /usr/lib/systemd/system-preset/90-plank.preset
 /usr/lib/modules-load.d/plank.conf
 /usr/lib/udev/rules.d/70-plank-host-wacom.rules
+/usr/share/X11/xorg.conf.d/90-plank-virtual-wacom.conf
 /usr/lib/firewalld/services/plank.xml
 /usr/share/plank/
 

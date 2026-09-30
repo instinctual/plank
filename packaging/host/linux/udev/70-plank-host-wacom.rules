@@ -2,6 +2,11 @@
 # function while its complete USB group is redirected.
 ACTION!="remove", SUBSYSTEM=="input", KERNEL=="event*", ENV{ID_VENDOR_ID}=="056a", TAG+="uaccess"
 
+# Identify only PLANK's UHID mirror for the Xorg pressure policy. A physical
+# Wacom connected to the Host has a different input phys path.
+# Xorg MatchTag consumes ID_INPUT.tags, not the udev TAG list.
+ACTION!="remove", SUBSYSTEM=="input", KERNEL=="event*", ATTRS{phys}=="plank/raw-tablet/*", TAG+="plank-virtual-tablet", ENV{ID_INPUT.tags}="plank-virtual-tablet"
+
 # Raw-HID redirection discovers every interface and must answer feature/output
 # reports as well as read input reports. Access remains scoped to the active
 # local session and Wacom's USB vendor ID.
