@@ -1798,6 +1798,14 @@ cc -std=gnu11 -Wall -Wextra -Werror -Wno-unused-parameter -DNDEBUG \
   "$build_dir/moonlight-common-c/libmoonlight-common-c.a" \
   -lcrypto -lpthread -lm -o "$build_dir/tests/native-input-bounds"
 "$build_dir/tests/native-input-bounds"
+cc -std=gnu11 -Wall -Wextra -Werror -Wno-unused-parameter -DNDEBUG \
+  -I"$source_dir/moonlight-common-c/moonlight-common-c/src" \
+  -I"$plank_transport_dir/include" \
+  "$source_dir/moonlight-common-c/moonlight-common-c/tests/native-input-backpressure.c" \
+  "$build_dir/moonlight-common-c/libmoonlight-common-c.a" \
+  -lcrypto -lpthread -lm -o "$build_dir/tests/native-input-backpressure"
+timeout 30 "$build_dir/tests/native-input-backpressure"
+bash "$repo_dir/scripts/test/test-linux-wacom.sh" "$source_dir" "$build_dir/tests/wacom-recovery"
 bash "$repo_dir/scripts/test/test-audio-timestamps.sh" "$source_dir" \
   "$build_dir/tests/audio-timestamps" "$build_dir/moonlight-common-c/libmoonlight-common-c.a"
 rg -a -Fq 'Packed 4:4:4 requires composed VAAPI layers' \

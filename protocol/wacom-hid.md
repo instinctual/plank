@@ -29,9 +29,10 @@ Production messages use protocol version 2 and begin with the packed 20-byte
 `PLANK_RAW_HID_WIRE_HEADER` from `plank.h`. All integer fields are
 little-endian. The header carries magic `PLWH`, message type, interface index,
 device generation, transaction ID, and payload length. The client sends the
-variable frame through Moonlight's reliable generic input channel with magic
-`0x55000008`; Sunshine replies with reliable control type `0x5504`. Both paths
-require the authenticated encrypted control stream. Descriptors and reports
+frame through the native KyProto reliable input endpoint as
+`PLANK_TRANSPORT_INPUT_RAW_HID_WACOM`; the Host replies through its reliable
+event endpoint as `PLANK_TRANSPORT_EVENT_RAW_HID_WACOM`. Both paths
+require the authenticated encrypted connection. Descriptors and reports
 are capped at 4096 bytes, a group at 16 interfaces, and stale generations are
 rejected.
 
@@ -40,7 +41,7 @@ rejected.
 All lifecycle and control messages are reliable and ordered:
 
 - `tablet-attach` / `tablet-attach-result`
-- `tablet-input-report` with interface ID, sequence, client timestamp, and the
+- `tablet-input-report` with interface ID, sequence, and the
   unchanged report bytes
 - `tablet-get-report` / `tablet-get-report-result`, correlated by transaction ID
 - `tablet-set-report` / `tablet-set-report-result`, correlated by transaction ID
@@ -53,6 +54,23 @@ The client answers control requests with `HIDIOCGFEATURE`, `HIDIOCSFEATURE`, or
 the corresponding input/output-report ioctl on the original `hidraw` node.
 Errors and returned lengths must be preserved. The host must never synthesize a
 successful feature reply.
+
+Transport backpressure does not mean acceptance. The sender retains the exact
+message and its order on `PLANK_TRANSPORT_TIMEOUT`. Client input retries for at
+most two seconds; input/callback ingress and Host feedback queues wait at most
+100 ms for capacity. Unrecoverable pressure ends the session and invokes input
+cleanup instead of silently losing a tip, button, feature request or attach
+acknowledgement. Queues remain bounded. These are failure limits, not delays
+added to uncongested input. Consecutive cursor positions may replace one
+another; raw tablet reports and lifecycle/control messages may not.
+
+Linux feature-report ioctls run on a separate bounded worker, outside capture
+and callback locks. Each job owns a duplicated device descriptor. Focus loss,
+reconnect and teardown invalidate queued work and old completions. A running
+kernel ioctl cannot be forcibly cancelled; it owns no Client object and cannot
+publish a stale reply. The Host completes outstanding kernel GET/SET requests
+with `ENOTCONN` when their transport generation retires. New requests received
+while suspended receive that error immediately.
 
 The experimental macOS Client uses `IOHIDDeviceGetReport`/`IOHIDDeviceSetReport`
 on the corresponding physical interface. It converts Linux UHID report types
@@ -81,7 +99,9 @@ the USB group so local desktop input cannot occur in parallel. Client focus
 loss sends `tablet-suspend`, releases the local grabs, and closes the physical
 nodes while the host keeps its UHID endpoints and XInput identities. Focus
 return starts a new generation; byte-identical USB identity and descriptors
-reactivate the retained endpoints without recreating them. This is required
+reactivate fully started retained endpoints without recreating them. An
+interrupted initial probe is not treated as a ready tablet; an incomplete
+group may be recreated. This is required
 because Autodesk Flame caches XInput device IDs.
 
 A physical hot-unplug, HID I/O error, changed USB identity or descriptor, or
@@ -110,11 +130,13 @@ may start one fresh attachment only after the replacement connection reports
 success. This ordering prevents an early valid attachment from being discarded
 by reconnect cleanup.
 
-Each attachment waits at most three seconds for `tablet-attach-result`. If that
-reliable acknowledgement is unavailable, the client closes the local
-transaction and retries with a new generation. The retained host endpoints are
-reused when identity and descriptors match, so acknowledgement recovery does
-not change the application-visible XInput device identity.
+Linux attachment waits at most fifteen seconds for `tablet-attach-result`,
+allowing for kernel/USB feature queries. If that reliable acknowledgement is
+unavailable, the client closes the local transaction and retries with a new
+generation. Fully started Host endpoints are reused when identity and
+descriptors match, so acknowledgement recovery does not change those
+application-visible XInput device identities. macOS retains its own attachment
+deadline and HID-worker lifecycle.
 
 ## Acceptance
 
@@ -125,6 +147,14 @@ eraser proximity, ExpressKeys, ring, multitouch, hot-unplug, reconnect, and
 abrupt network loss. Flame Tablet Margins and edge gestures must work without
 pre-scaling coordinates, preference watchers, or Xorg changes.
 
+Include tip/barrel-button transitions during induced transport backpressure,
+focus loss with a feature query in flight, and touch-down followed by lifting
+while forwarding is suspended. The existing evdev cleanup clears input-core
+contact, but is not proof that every hid-wacom model's private arbitration
+cache is reset. That last case still requires real-kernel qualification; do
+not fabricate model-specific neutral reports or destroy healthy UHID identities
+as a speculative remedy.
+
 ## Qualification Bridge
 
 `plank-wacom-raw-bridge` implements this lifecycle as a one-client hardware
@@ -133,4 +163,4 @@ it is plaintext, has no session authentication, and must run only on an
 isolated qualification network. The PTH-660 live test passed descriptor,
 input, feature, output, exclusive-grab, and disconnect behavior through this
 bridge. Production code must reuse the behavior, limits, and cleanup rules
-above inside Sunshine/Moonlight's authenticated encrypted control stream.
+above inside PLANK's authenticated encrypted native transport.
