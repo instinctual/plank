@@ -10,7 +10,13 @@ Linux Host and Client common-C are on `wacom-recovery`, based on root main
 `66f5c2ad775b093b41c991bc120cad7913c44c8a`. Existing `macos-scaling` and
 `wacom-pressure` candidates/branches were preserved, not merged or relabelled.
 
-Exact implementation checkpoint (local commits; not pushed):
+Candidate package build requested: Linux Host RPM and Ubuntu Client DEB only,
+version `1.1.033-wacom-recovery`. Use the GitHub-hosted Rocky and Ubuntu builders,
+retain the feature suffix, and download the checked originals into the candidate
+catalog. No installation, merge, Release, or kernel touch-arbitration policy
+change is authorized by this build request. Package results are pending.
+
+Exact implementation checkpoint (before packaging notes/version):
 
 | Component | Commit |
 | --- | --- |
@@ -70,10 +76,10 @@ focus-loss/touch-held/reconnect testing must decide whether further repair is
 needed. Also qualify pressure, tip/barrel buttons, Tablet Margins, matching and
 different hybrid tablet models, and induced loss/temporary transport stalls.
 
-No package/version bump, push, merge, release, installation, reboot or live loss
-injection occurred in this task. Next step is branch candidate builds followed
-by the authorized hardware test matrix. Read the release runbook before building;
-carry the `wacom-recovery` suffix in every candidate package and visible version.
+The implementation task made no packages or runtime changes. The subsequent
+candidate build advances the version and publishes only the candidate branch
+and required dependency commits for hosted compilation. Hardware qualification
+remains separate; no installation, reboot or live loss injection has occurred.
 
 ## Released baseline — 1.1.030
 
