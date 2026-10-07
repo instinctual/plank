@@ -3,11 +3,83 @@
 Read `AGENTS.md` and the relevant build runbook before work. Machine-specific
 access and evidence belong in the external private notes, never in Git.
 
-## Current state — 1.1.030 released
+## Current work — Wacom recovery (not released)
+
+The operator requested the Wacom review fixes in a new branch. Root, Client,
+Linux Host and Client common-C are on `wacom-recovery`, based on root main
+`66f5c2ad775b093b41c991bc120cad7913c44c8a`. Existing `macos-scaling` and
+`wacom-pressure` candidates/branches were preserved, not merged or relabelled.
+
+Exact implementation checkpoint (local commits; not pushed):
+
+| Component | Commit |
+| --- | --- |
+| Root | `684e3f966d7bebf68ab144c42f75d706b3e355a8` |
+| Client | `ad9832660e997161f2b4c58646b1f371712d6e1d` |
+| Linux Host | `2034c3ebdf87b0d8046f77f15d84478cd4c06253` |
+| Client common-C | `036df96f2d1577af7a1b08c05d87a5218fff7c9b` |
+
+Other recursive dependencies are unchanged from the base, including Host
+header-only common-C `3a97a58f215323753cfd1180af760ec7e3253538`, libvirtualhid
+`a0d3aa0cc4d53daa18bfa2f2fbdf848957b6d294`, GoogleTest
+`52eb8108c5bdec04579160ae17225d66034bd723` and Kymux
+`3f7a9d8618978287186e5d6ce0eaa067743cb06c`.
+
+Implemented:
+
+- Preserve ordered input and raw-tablet feedback on transport backpressure.
+  Bounded queues fail the session explicitly instead of silently losing clicks,
+  releases, feature requests or attach acknowledgements. Cursor positions may
+  coalesce; raw reports may not. Normal uncongested sends have no added delay.
+- Move Linux hidraw feature ioctls off capture/callback locks to one bounded
+  worker; invalidate old-generation completions and release local grabs safely.
+  Drain report bursts without the previous unconditional per-report sleep.
+- Cancel outstanding kernel GET/SET queries on suspend/generation retirement,
+  answer new suspended queries with ENOTCONN, and reuse only started endpoints.
+  A late UHID_START is still recorded while suspended. Healthy endpoint IDs,
+  descriptors, coordinate mapping and Flame Tablet Margins identity are retained.
+- Apply Wayland tablet cursor updates through an owned anchor surface, without
+  waiting for video commits or committing SDL's surface.
+- Keep normalized pen barrel-button events from changing contact/pressure.
+
+Validation completed on the appropriate builders, not hardware targets:
+
+- Rocky: 30 production Host component tests passed 25 shuffled repetitions.
+  The UHID boundary is simulated; libvirtualhid and GoogleTest source pins are
+  checked. Logging in this standalone harness uses the builder's Boost 1.75,
+  not the product's prepared Boost 1.89. This is not a full Host package build.
+- Eight shared input/queue tests passed locally and on Ubuntu, including 25
+  Ubuntu repetitions with ASan/UBSan. Includes ordered mouse/key releases under
+  backpressure, prompt stop, explicit exhaustion and cursor/control isolation.
+- Ubuntu: release-mode worker tests and the production Wayland cursor protocol
+  fixture passed, also under ASan/UBSan; the actual Linux hidraw adapter compiled
+  with warnings-as-errors. No real compositor/tablet or installed Client tested.
+- Shell syntax, repository-layout/link checks, diff checks and new-content
+  privacy checks passed. Client packaging and Host CI input filters now include
+  the new regression gates.
+
+Tests live in `tests/input/linux-recovery/`, Client `tests/linuxrawwacom/` and
+common-C `tests/native-input-backpressure.c`. Protocol notes document limits and
+failure behavior. Local evidence is under ignored `build/tests/wacom-recovery/`;
+builder-specific source/worktree locations are in external private notes.
+
+Still unproven: evdev contact cleanup is not evidence that hid-wacom's private
+touch/proximity arbitration cache resets for every model. Do not claim that
+hypothesis fixed or introduce fabricated neutral reports/device resets. Real
+focus-loss/touch-held/reconnect testing must decide whether further repair is
+needed. Also qualify pressure, tip/barrel buttons, Tablet Margins, matching and
+different hybrid tablet models, and induced loss/temporary transport stalls.
+
+No package/version bump, push, merge, release, installation, reboot or live loss
+injection occurred in this task. Next step is branch candidate builds followed
+by the authorized hardware test matrix. Read the release runbook before building;
+carry the `wacom-recovery` suffix in every candidate package and visible version.
+
+## Released baseline — 1.1.030
 
 The operator authorized merging the audio-playback-safety fixes, building a
 release and retiring RK3576 research. Root and Client main are pushed. The
-primary checkout is now on `main`; the former integration worktree at
+release was built from `main`; the former integration worktree at
 `build/worktrees/macos-session-takeover` is detached at the release source.
 Do not infer a branch from that historical worktree name.
 
