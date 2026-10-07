@@ -10,26 +10,58 @@ Linux Host and Client common-C are on `wacom-recovery`, based on root main
 `66f5c2ad775b093b41c991bc120cad7913c44c8a`. Existing `macos-scaling` and
 `wacom-pressure` candidates/branches were preserved, not merged or relabelled.
 
-Candidate package build requested: Linux Host RPM and Ubuntu Client DEB only,
-version `1.1.033-wacom-recovery`. Use the GitHub-hosted Rocky and Ubuntu builders,
-retain the feature suffix, and download the checked originals into the candidate
-catalog. No installation, merge, Release, or kernel touch-arbitration policy
-change is authorized by this build request. Package results are pending.
+Linux Host RPM and Ubuntu Client DEB candidates **1.1.033-wacom-recovery** are
+built, downloaded and independently SHA-256 verified. Both were built on the
+GitHub-hosted target-OS builders. The branch and required dependency commits are
+pushed; nothing is merged or released. No installation, reboot, live loss
+injection or kernel touch-arbitration policy change was performed.
 
-Exact implementation checkpoint (before packaging notes/version):
+Exact candidate package source (later notes do not change artifact provenance):
 
 | Component | Commit |
 | --- | --- |
-| Root | `684e3f966d7bebf68ab144c42f75d706b3e355a8` |
-| Client | `ad9832660e997161f2b4c58646b1f371712d6e1d` |
+| Root | `353eb071f0f8d766de7ab6fb9aed7eef8a664aa2` |
+| Client | `eedb1ba822fff80638a4612da6648b6d25a80852` |
 | Linux Host | `2034c3ebdf87b0d8046f77f15d84478cd4c06253` |
 | Client common-C | `036df96f2d1577af7a1b08c05d87a5218fff7c9b` |
 
 Other recursive dependencies are unchanged from the base, including Host
 header-only common-C `3a97a58f215323753cfd1180af760ec7e3253538`, libvirtualhid
 `a0d3aa0cc4d53daa18bfa2f2fbdf848957b6d294`, GoogleTest
-`52eb8108c5bdec04579160ae17225d66034bd723` and Kymux
-`3f7a9d8618978287186e5d6ce0eaa067743cb06c`.
+`52eb8108c5bdec04579160ae17225d66034bd723`, Kymux
+`3f7a9d8618978287186e5d6ce0eaa067743cb06c`, qmdnsengine
+`920c097ffa742e2968290f15d4dde6693aec02e5` and Host build-deps
+`c29c4822cb96f5bfeb8640e72601c5cf4e3c3137`.
+
+Original packages are under
+`artifacts/packages/candidates/1.1.033-wacom-recovery/`, with a manifest,
+per-package checksum sidecars and `SHA256SUMS`:
+
+| Package | Bytes | SHA-256 |
+| --- | ---: | --- |
+| `linux/plank-host-1.1.033-0.wacom_recovery.1.el9.x86_64.rpm` | 8694103 | `3b70f2b55d0a2060a15b48d533fed51547aace8c7544f287cac9680fab6f1209` |
+| `linux/plank-client_1.1.033-wacom-recovery_amd64.deb` | 15607780 | `162b04c7b0078c7e051f3cdf19f17d466af83fec303522cefa6f786bd7642e97` |
+
+Hosted build and package gates passed:
+
+- [Linux Host](https://github.com/instinctual/plank/actions/runs/37686911394):
+  runtime RPM built with `BUILD_TESTS=OFF`; dependency-patch, binary, manifest,
+  configuration and root-owned `0700` log-directory checks passed. Three native
+  loss-matrix repetitions passed. The separately built Host input suite passed
+  36 tests across 25 shuffled repetitions, with three UHID-dependent skips per
+  repetition. These skips are not real-device acceptance.
+- [Ubuntu Client](https://github.com/instinctual/plank/actions/runs/37686910847):
+  shared-input backpressure, bounded hidraw worker and Wayland cursor protocol
+  tests passed, as did audio/pacer, version/banner, runtime dependencies,
+  private FFmpeg/RUNPATH, DEB manifest and no-autostart checks. The downloaded
+  packaged binary hash matches its embedded build record.
+- Exact dependency caches were reused on the Host. The Client reused Rust and
+  Cargo caches but rebuilt its pinned FFmpeg after a cache miss. Neither run
+  installed the product or performed compositor, GPU or physical-tablet tests.
+
+Next: install both candidates on the authorized hardware test pair and exercise
+pressure, clicks, Tablet Margins, focus loss, reconnect and transport stalls.
+Do not describe compile/package gates as functional acceptance.
 
 Implemented:
 
@@ -48,7 +80,7 @@ Implemented:
   waiting for video commits or committing SDL's surface.
 - Keep normalized pen barrel-button events from changing contact/pressure.
 
-Validation completed on the appropriate builders, not hardware targets:
+Earlier component-only validation on the appropriate builders:
 
 - Rocky: 30 production Host component tests passed 25 shuffled repetitions.
   The UHID boundary is simulated; libvirtualhid and GoogleTest source pins are
@@ -76,10 +108,10 @@ focus-loss/touch-held/reconnect testing must decide whether further repair is
 needed. Also qualify pressure, tip/barrel buttons, Tablet Margins, matching and
 different hybrid tablet models, and induced loss/temporary transport stalls.
 
-The implementation task made no packages or runtime changes. The subsequent
-candidate build advances the version and publishes only the candidate branch
-and required dependency commits for hosted compilation. Hardware qualification
-remains separate; no installation, reboot or live loss injection has occurred.
+The subsequent package build changes only version/changelog and packaging
+records relative to implementation checkpoint root `684e3f9`, Client
+`ad983266`. The proposed `wacom touch_arbitration=0` module option remains an
+unqualified administrative experiment, not a packaged policy or a proven fix.
 
 ## Released baseline — 1.1.030
 
