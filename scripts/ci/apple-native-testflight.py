@@ -101,9 +101,15 @@ def raw_signature(der):
     return b"".join(values)
 
 
+class NoRedirect(urllib.request.HTTPRedirectHandler):
+    def redirect_request(self, *args, **kwargs):
+        raise DeliveryError("Refusing to redirect an authenticated Apple API request")
+
+
 class Store:
     def __init__(self, key_file, key_id, issuer):
         self.key_file, self.key_id, self.issuer = key_file, key_id, issuer
+        self.http = urllib.request.build_opener(NoRedirect())
 
     def token(self):
         header = b64(json.dumps({"alg": "ES256", "kid": self.key_id, "typ": "JWT"}).encode())
@@ -114,17 +120,60 @@ class Store:
         signature = command("Apple API authentication", ["openssl", "dgst", "-sha256", "-sign", str(self.key_file)], input=data)
         return header + "." + payload + "." + b64(raw_signature(signature))
 
-    def request(self, path, body=None):
+    def request(self, path, body=None, *, method=None):
         require(path.startswith("/") and not path.startswith("//"), "Invalid Apple API path")
+        method = method or ("POST" if body is not None else "GET")
+        require(method in ("GET", "POST", "PATCH")
+                and ((method == "GET") == (body is None)), "Invalid Apple API operation")
         request = urllib.request.Request("https://api.appstoreconnect.apple.com/v1" + path,
             data=json.dumps(body).encode() if body is not None else None,
+            method=method,
             headers={"Authorization": "Bearer " + self.token(), "Content-Type": "application/json"})
         try:
-            with urllib.request.urlopen(request, timeout=30) as response:
+            with self.http.open(request, timeout=30) as response:
                 data = response.read(4 * 1024 * 1024)
                 return json.loads(data) if data else {}
         except urllib.error.HTTPError as error:
             raise DeliveryError(f"App Store Connect request failed (HTTP {error.code}); no credentials logged") from None
+        except urllib.error.URLError:
+            raise DeliveryError("App Store Connect could not be reached; no credentials logged") from None
+
+
+def validate_export_policy(policy):
+    # This must come from the protected environment after the operator confirms
+    # both crypto and distribution scope. It is not an app-wide/fork default.
+    require(policy in ("", "standard-no-france"), "Unrecognized confirmed Vision export policy")
+
+
+def ensure_export_compliance(store, item, policy):
+    validate_export_policy(policy)
+    attrs = item["attributes"]
+    require(attrs.get("processingState") == "VALID" and not attrs.get("expired"),
+            "Export metadata requires a processed, unexpired build")
+    current = attrs.get("usesNonExemptEncryption")
+    if not policy:
+        require(type(current) is bool,
+                "Apple processed the build. Complete its export-compliance questionnaire in TestFlight, then assign it to the internal group")
+        return item
+
+    # Standard third-party cryptography, no proprietary algorithms and no France
+    # distribution: apply the operator-approved questionnaire result, not a claim
+    # that the app has no encryption or only uses Apple's OS cryptography.
+    require(current is None or current is False,
+            "Existing export compliance conflicts with the confirmed Vision policy; review before changing it")
+    build_id = item["id"]
+    path = f"/builds/{build_id}"
+    if current is None:
+        store.request(path, {"data": {"type": "builds", "id": build_id,
+            "attributes": {"usesNonExemptEncryption": False}}}, method="PATCH")
+    saved = store.request(path)["data"]
+    require(saved.get("id") == build_id
+            and saved["attributes"].get("usesNonExemptEncryption") is False
+            and saved["attributes"].get("processingState") == "VALID"
+            and not saved["attributes"].get("expired"),
+            "Confirmed Vision export compliance could not be verified after saving")
+    print("Confirmed Vision export policy saved and verified", flush=True)
+    return saved
 
 
 def verify_receipt(receipt, archive, source, bundle, version, build):
@@ -212,6 +261,8 @@ def main():
     app_id, group_id = os.environ.get("PLANK_VISION_APP_ID", ""), os.environ.get("PLANK_VISION_GROUP_ID", "")
     require(re.fullmatch(r"[A-Z0-9]{10}", team) and app_id.isdecimal() and re.fullmatch(r"[A-Za-z0-9-]+", group_id),
             "Configure the protected Team, App Store app and internal beta group first")
+    export_policy = os.environ.get("PLANK_VISION_EXPORT_POLICY", "")
+    validate_export_policy(export_policy)
     source = os.environ["EXPECTED_SOURCE_SHA"]
     require(command("checkout verification", ["git", "rev-parse", "HEAD"]).decode().strip() == source,
             "Signing checkout does not match requested source")
@@ -260,15 +311,14 @@ def main():
             "-authenticationKeyID", key_id, "-authenticationKeyIssuerID", issuer])
         print("Vision archive uploaded; waiting for Apple processing", flush=True)
         item = poll_build(store, app_id, build, version, time.monotonic() + 25 * 60)
-        # Never invent export-compliance answers for a new application.
-        require(item["attributes"].get("usesNonExemptEncryption") is not None,
-                "Apple processed the build. Complete its export-compliance questionnaire in TestFlight, then assign it to the internal group")
+        item = ensure_export_compliance(store, item, export_policy)
         store.request(f"/betaGroups/{group_id}/relationships/builds",
                       {"data": [{"type": "builds", "id": item["id"]}]})
         internal_state = poll_internal_testing(store, item["id"], time.monotonic() + 5 * 60)
         delivery = scratch / "plank-vision-delivery"
         delivery.mkdir()
         receipt.update(testflight_build_id=item["id"], processing_state="VALID", internal_group_assigned=True,
+                       export_compliance_policy=export_policy or "app-store-connect",
                        internal_testing_state=internal_state)
         (delivery / "testflight.json").write_text(json.dumps(receipt, indent=2) + "\n")
         with open(os.environ["GITHUB_STEP_SUMMARY"], "a") as stream:

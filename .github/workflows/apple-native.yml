@@ -139,6 +139,7 @@ jobs:
           PLANK_APPLE_TEAM_ID: ${{ vars.PLANK_APPLE_TEAM_ID }}
           PLANK_VISION_APP_ID: ${{ vars.PLANK_VISION_APP_ID }}
           PLANK_VISION_GROUP_ID: ${{ vars.PLANK_VISION_GROUP_ID }}
+          PLANK_VISION_EXPORT_POLICY: ${{ vars.PLANK_VISION_EXPORT_POLICY }}
         run: python3 scripts/ci/apple-native-testflight.py
       - name: Remove temporary Apple credentials
         if: always()

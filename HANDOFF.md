@@ -18,13 +18,15 @@ passed all three native Release builds, exact dependency bootstraps, component
 tests and artifact gates, then successfully cloud-signed and uploaded Vision.
 Its root is `3437f0a26d78c5fcc7fc4ee8febb43614046c4b6`, Client
 `693a14a68e60e5434251b86fa158b88a2f410a6c`, version 0.1.0 / build 5.1.
-Apple processing is `VALID`; internal testing is `MISSING_EXPORT_COMPLIANCE`.
-The workflow deliberately stopped at that prerequisite and credential cleanup
-passed. The internal app/group and one tester are configured. No job remains
-running. Next: the operator completes Apple's questionnaire, then assign this
-existing build to its internal group and verify `IN_BETA_TESTING`. Do not rebuild
-or upload a duplicate merely to finish that step. No installability or hardware
-acceptance is claimed before Apple enables testing.
+Apple processing is `VALID`; internal testing is now `IN_BETA_TESTING`. The
+operator confirmed the same Standard / No France compliance policy used for
+the AVP Relay. That policy and tester notes were saved for the existing build,
+then its internal-group assignment and one tester were verified. It is ready
+to install through TestFlight; no rebuild or duplicate upload was needed.
+The original workflow remains failed at its earlier missing-compliance check,
+not a compile/signing failure. Credential cleanup passed. No job remains running.
+Next: operator installs this exact build and tests on the headset; delivery is
+not live streaming, audio, color, input or tablet acceptance.
 
 The device archive includes UUID-matched crash symbols; Mac and simulator ZIPs
 are unsigned/ad-hoc inspection artifacts, not distributable PKGs or TestFlight
@@ -35,7 +37,12 @@ archive; SDK 27 Rust host proc-macros require the release-profile strip override
 the Vision simulator lacks the real-device presentation-timestamp callback.
 Real-device rendering behavior and shipping client paths are unchanged.
 Sanitized Apple failure categories and an `IN_BETA_TESTING` readiness check are
-in place. All 74 root CI tests pass. Earlier cloud-signing authority failures are
+in place. All 81 root CI tests pass, including 19 native CI/delivery checks.
+Future protected uploads reuse the explicitly configured export policy, reject
+conflicting metadata and require readback before assigning testers. There is no
+app-wide or fork-default exemption; see the native build runbook. The new helper
+also passed an idempotent live readback against build 5.1. Earlier cloud-signing
+authority failures are
 resolved using operator-provided credentials in the protected environment; no
 secret material, account identities or local signing Keychain were added to Git.
 

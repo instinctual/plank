@@ -67,6 +67,14 @@ Environment variables:
 - `PLANK_APPLE_TEAM_ID`: distribution team.
 - `PLANK_VISION_APP_ID`: the App Store Connect numeric app record ID.
 - `PLANK_VISION_GROUP_ID`: this app's internal TestFlight group ID.
+- `PLANK_VISION_EXPORT_POLICY`: optional, explicitly confirmed compliance policy
+  for this app. Leave unset until the account owner confirms its questionnaire.
+  The supported `standard-no-france` policy means standard third-party encryption,
+  no proprietary cryptography and no France distribution. It applies the confirmed
+  `usesNonExemptEncryption=false` result to each exact uploaded build, refuses
+  conflicting existing metadata and requires readback before group assignment.
+  It does **not** mean the app has no encryption or uses only Apple's OS crypto.
+  Reassess and clear this value if encryption or distribution scope changes.
 
 The workflow's bundle ID is `la.instinctual.PLANK.Client.Vision`. The Client
 recipe makes bundle/team configuration explicit; it no longer hardcodes a
@@ -84,13 +92,15 @@ that group once in App Store Connect. Internal testers install/update with
 TestFlight on their Apple Vision Pro.
 
 An upload is not the same as an installable build. Apple can require export
-compliance answers or updated agreements. CI does not guess those answers or
-claim the app uses only operating-system encryption. Complete required Apple
-questionnaires before assignment; a processing timeout is not permission to
-re-upload the same build. Check App Store Connect's exact version/build first.
+compliance answers or updated agreements. CI reuses only the explicitly confirmed
+policy above; without it, complete the required Apple questionnaire before
+assignment. There is no automatic exemption in the app or fork defaults.
+A processing timeout is not permission to re-upload the same build. Check
+App Store Connect's exact version/build first.
 If processing is `VALID` but internal testing says `MISSING_EXPORT_COMPLIANCE`,
-complete the questionnaire for that existing build, assign it to the internal
-group, and verify `IN_BETA_TESTING`. A failed workflow at this deliberate check
+complete the questionnaire (or apply the confirmed policy) for that existing
+build, assign it to the internal group, and verify `IN_BETA_TESTING`. A failed
+workflow at this deliberate check
 does not mean signing or uploading failed. Do not rerun compilation for it.
 For a genuinely new build attempt, dispatch the complete workflow: a failed-job-
 only rerun has a new attempt number but no correspondingly rebuilt device archive.
