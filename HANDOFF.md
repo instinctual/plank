@@ -13,29 +13,31 @@ The separate `vision-testflight` environment is reserved for protected manual
 uploads; public PRs have no signing credentials. See
 `docs/development/build/apple-native-builds.md`. No local Mac builds, shipping
 main merge, production release or hardware acceptance accompanies this work.
-Hosted run [37819200521](https://github.com/instinctual/plank/actions/runs/37819200521)
+Hosted run [37825883027](https://github.com/instinctual/plank/actions/runs/37825883027)
 passed all three native Release builds, exact dependency bootstraps, component
-tests and artifact gates. Its root is `d596187575f0984c6641f596e517da22736babec`,
-Client `693a14a68e60e5434251b86fa158b88a2f410a6c`, version 0.1.0 / build 3.1.
+tests and artifact gates, then successfully cloud-signed and uploaded Vision.
+Its root is `3437f0a26d78c5fcc7fc4ee8febb43614046c4b6`, Client
+`693a14a68e60e5434251b86fa158b88a2f410a6c`, version 0.1.0 / build 5.1.
+Apple processing is `VALID`; internal testing is `MISSING_EXPORT_COMPLIANCE`.
+The workflow deliberately stopped at that prerequisite and credential cleanup
+passed. The internal app/group and one tester are configured. No job remains
+running. Next: the operator completes Apple's questionnaire, then assign this
+existing build to its internal group and verify `IN_BETA_TESTING`. Do not rebuild
+or upload a duplicate merely to finish that step. No installability or hardware
+acceptance is claimed before Apple enables testing.
+
 The device archive includes UUID-matched crash symbols; Mac and simulator ZIPs
 are unsigned/ad-hoc inspection artifacts, not distributable PKGs or TestFlight
-installs. Its protected Apple export failed before upload. The internal app
-record and tester group are configured; first TestFlight delivery remains
-pending. Do not describe compiled workflow artifacts as an installable build.
+installs. Do not describe compiled workflow artifacts as an installable build.
 
 Qualification fixed three build-only defects: CMake emits dSYMs outside its
 archive; SDK 27 Rust host proc-macros require the release-profile strip override;
 the Vision simulator lacks the real-device presentation-timestamp callback.
 Real-device rendering behavior and shipping client paths are unchanged.
-The follow-up root `d36da1fbf328d21d3c8a67558b9bf6bc9c393bc1` adds sanitized Apple
-failure categories and requires `IN_BETA_TESTING` before announcing readiness.
-All 74 root CI tests pass. Hosted run
-[37820515210](https://github.com/instinctual/plank/actions/runs/37820515210)
-again passed all builds (version 0.1.0 / build 4.1). Apple export then reported
-`cloud-signing-denied` and `missing-profile`; credential cleanup passed. Read-back
-confirms no Vision build has been uploaded. Work is waiting on the operator to
-confirm the Team API key's role and signing authority. Do not repeatedly rebuild
-or alter account permissions to work around this denial. No job remains running.
+Sanitized Apple failure categories and an `IN_BETA_TESTING` readiness check are
+in place. All 74 root CI tests pass. Earlier cloud-signing authority failures are
+resolved using operator-provided credentials in the protected environment; no
+secret material, account identities or local signing Keychain were added to Git.
 
 [Client PR #10](https://github.com/instinctual/plank-client/pull/10) imported the
 Vision foundation at `1953cc11a4b281f24286c11301d10fc76601a972`.

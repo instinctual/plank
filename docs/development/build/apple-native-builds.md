@@ -88,6 +88,12 @@ compliance answers or updated agreements. CI does not guess those answers or
 claim the app uses only operating-system encryption. Complete required Apple
 questionnaires before assignment; a processing timeout is not permission to
 re-upload the same build. Check App Store Connect's exact version/build first.
+If processing is `VALID` but internal testing says `MISSING_EXPORT_COMPLIANCE`,
+complete the questionnaire for that existing build, assign it to the internal
+group, and verify `IN_BETA_TESTING`. A failed workflow at this deliberate check
+does not mean signing or uploading failed. Do not rerun compilation for it.
+For a genuinely new build attempt, dispatch the complete workflow: a failed-job-
+only rerun has a new attempt number but no correspondingly rebuilt device archive.
 
 An export failure categorized `cloud-signing-denied` is a signing-authority
 prerequisite, not a compile failure. Confirm the Team API key's access and cloud
