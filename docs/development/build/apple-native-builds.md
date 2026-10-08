@@ -77,7 +77,8 @@ Developer ID/notarization credentials: TestFlight is a different distribution
 channel. Forks must configure their own team, app identity and environment.
 
 The job waits up to 25 minutes for Apple processing, then assigns a valid build
-to the configured **internal** group. It never submits an App Store release,
+to the configured **internal** group. It also requires Apple's internal state to
+reach `IN_BETA_TESTING` before reporting success. It never submits an App Store release,
 creates public testing links or invites arbitrary testers. Add the operator to
 that group once in App Store Connect. Internal testers install/update with
 TestFlight on their Apple Vision Pro.
@@ -87,6 +88,15 @@ compliance answers or updated agreements. CI does not guess those answers or
 claim the app uses only operating-system encryption. Complete required Apple
 questionnaires before assignment; a processing timeout is not permission to
 re-upload the same build. Check App Store Connect's exact version/build first.
+
+An export failure categorized `cloud-signing-denied` is a signing-authority
+prerequisite, not a compile failure. Confirm the Team API key's access and cloud
+distribution authority with the account owner; do not automatically broaden its
+permissions, revoke existing keys, or loop through new builds. Team API keys have
+account-wide scope. The qualified alternative is administrator-provisioned
+distribution signing material, not a Developer ID certificate or a local Mac
+build fallback. Raw Apple error text remains private; CI reports fixed diagnostic
+categories only.
 
 References: [Apple cloud signing](https://developer.apple.com/videos/play/wwdc2021/10204/),
 [creating an app record](https://developer.apple.com/help/app-store-connect/create-an-app-record/add-a-new-app/),

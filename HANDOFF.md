@@ -13,8 +13,29 @@ The separate `vision-testflight` environment is reserved for protected manual
 uploads; public PRs have no signing credentials. See
 `docs/development/build/apple-native-builds.md`. No local Mac builds, shipping
 main merge, production release or hardware acceptance accompanies this work.
-Hosted validation and first TestFlight delivery are still pending; do not
-describe workflow code alone as a successfully submitted build.
+Hosted run [37819200521](https://github.com/instinctual/plank/actions/runs/37819200521)
+passed all three native Release builds, exact dependency bootstraps, component
+tests and artifact gates. Its root is `d596187575f0984c6641f596e517da22736babec`,
+Client `693a14a68e60e5434251b86fa158b88a2f410a6c`, version 0.1.0 / build 3.1.
+The device archive includes UUID-matched crash symbols; Mac and simulator ZIPs
+are unsigned/ad-hoc inspection artifacts, not distributable PKGs or TestFlight
+installs. Its protected Apple export failed before upload. The internal app
+record and tester group are configured; first TestFlight delivery remains
+pending. Do not describe compiled workflow artifacts as an installable build.
+
+Qualification fixed three build-only defects: CMake emits dSYMs outside its
+archive; SDK 27 Rust host proc-macros require the release-profile strip override;
+the Vision simulator lacks the real-device presentation-timestamp callback.
+Real-device rendering behavior and shipping client paths are unchanged.
+The follow-up root `d36da1fbf328d21d3c8a67558b9bf6bc9c393bc1` adds sanitized Apple
+failure categories and requires `IN_BETA_TESTING` before announcing readiness.
+All 74 root CI tests pass. Hosted run
+[37820515210](https://github.com/instinctual/plank/actions/runs/37820515210)
+again passed all builds (version 0.1.0 / build 4.1). Apple export then reported
+`cloud-signing-denied` and `missing-profile`; credential cleanup passed. Read-back
+confirms no Vision build has been uploaded. Work is waiting on the operator to
+confirm the Team API key's role and signing authority. Do not repeatedly rebuild
+or alter account permissions to work around this denial. No job remains running.
 
 [Client PR #10](https://github.com/instinctual/plank-client/pull/10) imported the
 Vision foundation at `1953cc11a4b281f24286c11301d10fc76601a972`.
@@ -38,10 +59,11 @@ sender; cursor ownership uses filtered physical activity rather than raw status
 reports. The source includes regression tests for late hotplug, focus callbacks,
 new sessions, ordered release, background status and callback revocation.
 Independent C-wrapper lifetime/barrier/epoch tests passed with Clang ASan/UBSan,
-alongside shell/Python syntax and whitespace checks. Full Swift/AppKit tests,
-Apple builds and physical streaming/tablet acceptance were not independently
-repeated. Contributor-reported results are recorded in the Client's native Mac
-integration document, not promoted to hardware qualification here.
+alongside shell/Python syntax and whitespace checks. Hosted native Swift/AppKit
+component tests and Apple builds subsequently passed as recorded above. Physical
+streaming/tablet acceptance was not repeated. Contributor-reported results are
+recorded in the Client's native Mac integration document, not promoted to
+hardware qualification here.
 
 [Kymux PR #5](https://github.com/instinctual/plank-kymux/pull/5) was approved and
 merged first into dependency `main` at
@@ -61,10 +83,10 @@ at `036df96f2d1577af7a1b08c05d87a5218fff7c9b`.
 Independent validation of these exact native transport inputs passed all 33
 audio/video component tests and 53 parent transport unit tests on Rust 1.89.0;
 six integration tests were intentionally not run. The three eviction regressions
-and both late-config draining tests pass. Contributor-reported fresh unsigned
-Apple builds were not independently repeated. The build-input Python tests need
-the documented Python 3.12+; the local 3.9 runtime is not a supported substitute.
-No package was built or installed, and no hardware acceptance is implied.
+and both late-config draining tests pass. The subsequent hosted build results
+above use Python 3.12+ as required by the native recipe; the local 3.9 runtime is
+not a supported substitute. No package was installed, and no hardware acceptance
+is implied.
 
 The coordination worktree is `build/worktrees/apple-native-integration`, with a
 linked Client worktree at `apps/client`; other submodules remain uninitialized.
