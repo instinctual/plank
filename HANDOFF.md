@@ -6,19 +6,45 @@ notes, never in Git.
 
 ## Current work — native Apple Client integration
 
-The parent and Client `apple-native-integration` branches now include the current
-mainline baseline below. The parent preserves its original coordination commit
-through a normal merge of main
-`89e992b8238bbf637db64b144e58d59e86ebb3ed`; the Client branch fast-forwards to
-`942f911fc4221d1306aca0f81c45c71190dbdd41`.
-Product source, gitlinks, package versions and defaults match that mainline.
-Only this handoff differs. No native source has been imported or moved, and
-shipping `main` has not changed during this branch refresh.
+[Client PR #10](https://github.com/instinctual/plank-client/pull/10) is approved
+and merged into Client `apple-native-integration` at
+`1953cc11a4b281f24286c11301d10fc76601a972`. The parent integration branch pins
+that exact merge. Original contributor commits and authorship are preserved.
+The import adds the Vision Client at `visionos-native/` and its public unsigned
+build recipe. Shipping `app/`, existing Client submodule pins and the Linux Host
+are unchanged. The separate native Mac frontend and directory moves are not
+included. Shipping parent and Client `main` remain unchanged by this import.
+
+[Kymux PR #5](https://github.com/instinctual/plank-kymux/pull/5) was approved and
+merged first into dependency `main` at
+`04c3f179b3c6cb8fea237638d2be1d76eca2e719`, retaining both stale-video retirement
+and the shipping audio/video completed-packet drain fix. It fixes group lookup
+after eviction and rechecks retirement before admitting media. Resource bounds,
+wire format, ABI and pacing are unchanged.
+
+The native recipe still selects its distinct parent
+`6c6865562713d265a657dec613f55169ccb379b2` and Kymux
+`8654cfece0fe5f3ab35177f520ca9378f6d35c24`; the latter has the identical tree to
+the dependency merge. Do not silently replace the native parent with current
+PLANK main. The parent's ordinary product Kymux pin remains `3f7a9d86`, so the
+dependency merge does not change shipping packages. Integration common-C stays
+at `036df96f2d1577af7a1b08c05d87a5218fff7c9b`.
+
+Independent validation of these exact native transport inputs passed all 33
+audio/video component tests and 53 parent transport unit tests on Rust 1.89.0;
+six integration tests were intentionally not run. The three eviction regressions
+and both late-config draining tests pass. Contributor-reported fresh unsigned
+Apple builds were not independently repeated. The build-input Python tests need
+the documented Python 3.12+; the local 3.9 runtime is not a supported substitute.
+No package was built or installed, and no hardware acceptance is implied.
 
 The coordination worktree is `build/worktrees/apple-native-integration`, with a
-linked Client worktree at `apps/client`. Other submodules are intentionally
-uninitialized there. The canonical parent, Client and Linux Host checkouts stay
-on `main`. This refresh is not a new build, release or hardware qualification.
+linked Client worktree at `apps/client`; other submodules remain uninitialized.
+[Client issue #9](https://github.com/instinctual/plank-client/issues/9) remains
+open. Next reconcile persistent pre-credential Host trust, exact-format decoder
+fallback, audio clock/input contracts and current parent transport/CI before
+production acceptance. Keep the native Mac pilot, camera product work and
+directory moves separate. Retain the documented streaming/Wacom and OS gates.
 
 ## Current baseline — consolidated main
 
