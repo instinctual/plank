@@ -1,90 +1,84 @@
-# Native macOS Host components
+# PLANK macOS Host
 
-Experimental work for macOS 27+. A native Host executable/application now builds;
-the product installer and ordinary Client connection are not qualified yet.
-It does not replace or relocate the supported Linux Host under `sunshine-fork`.
+This is the native **macOS Host** implementation in the main PLANK repository.
+It provides remote workstation access from PLANK Clients on Ubuntu and macOS.
+It is not the macOS backend of the Sunshine-derived
+[Linux Host](https://github.com/instinctual/plank-host-linux).
 
-`session/host-main.m` supplies machine and graphical entry points plus native
-permission requests. `session/host-runtime.m` assembles the actual HTTPS
-authentication and A/V/input stream owner; the former probe launch now uses it
-instead of duplicating orchestration. The machine/graphical assembly passes
-temporary launchd startup, TLS discovery/denial, shutdown and process replacement.
-See `docs/architecture/macos-session-lifecycle.md` for deployment and remaining display/trust
-gates. This is not yet an ordinary Client streaming acceptance result.
+The Host targets **macOS 27 or newer on Apple Silicon** and is distributed as a
+signed, notarized PKG. The separate Mac Client supports macOS 15 and newer;
+that does not change the Host requirement.
 
-`session/agent-registry.m` and `agent-connection.m` implement the machine/agent
-XPC ownership boundary: signing and kernel peer identity checks, exclusive
-generations, irreversible revocation and cleanup-gated replacement. They pass
-component and cross-process LoginWindow tests and are wired to the runtime's
-remote authentication and capture lifetime. Persistent installation is pending. See
-`docs/architecture/macos-session-lifecycle.md` for the contract and remaining integration.
+[Downloads](https://github.com/instinctual/plank/releases) ·
+[Project overview](../../../README.md) ·
+[macOS configuration](../../../docs/user/macos-configuration.md)
 
-`auth/account-verifier.m` uses Open Directory password verification, including
-the framework's account/password-policy evaluation. The authenticated record's
-UID and GeneratedUID must agree with macOS membership resolution. It returns
-only a verified identity, never a capture/input grant or a macOS GUI login.
+## Capabilities
 
-`auth/account-policy.h` authorizes only that identity's active desktop when
-trusted before/after snapshots have the same nonzero session generation.
-Root, invalid identity, cross-account attachment and session replacement fail
-closed. These snapshots must come from the future trusted session owner; a
-network request cannot supply them. LoginWindow authorization is not implemented
-by this desktop-only function.
+- ScreenCaptureKit desktop capture and hardware VideoToolbox encoding, with
+  full-range HEVC 10-bit 4:2:0 and 4:4:4 profiles where supported.
+- Login-screen and desktop access, authenticated session ownership, takeover,
+  and recovery across login/logout.
+- Headless virtual-display management, fixed-size and Match Client requests,
+  with macOS-specific logical/backing-pixel handling.
+- Keyboard, mouse, scrolling, custom cursor display and pen-pressure input.
+  macOS pen injection is distinct from Linux raw-HID tablet forwarding;
+  Linux application features such as Flame Tablet Margins are not implied.
+- Desktop audio through PLANK Output, optional Client microphone input through
+  PLANK Microphone, and an optional PLANK Camera extension for supported senders.
+- Bidirectional text clipboard and the shared native QUIC/RaptorQ transport.
 
-`auth/account-channel.m` runs that verifier in a short-lived re-exec child over
-an inherited private socket. It validates both running code identities, checks
-the parent peer, bounds attempts and transaction time, and kills/reaps failed
-workers. It exposes no listener and does not require root. Mutable passwords
-are cleared; framework-internal secret copies cannot be guaranteed erased.
+The Host is packaged and connects through the ordinary PLANK Client. Remaining
+hardware, long-session and OS-version gates are tracked in
+[HANDOFF](../../../HANDOFF.md) and the
+[acceptance documentation](../../../docs/development/acceptance-criteria.md);
+component tests alone are not functional acceptance.
 
-`auth/authentication-session.m` implements the current Client's start/respond
-conversation shapes and expiring, address-bound tokens. It requires trusted
-desktop snapshots before verification and on every authorization. Tests cover
-replay, expiry, peer mismatch, ownership replacement and bounded state. It is
-now wired to the native HTTPS adapter and live Aqua desktop authority, with
-one-use claims and revocable native QUIC stream leases.
-LoginWindow authority, continuous stream revocation, deployment signing and
-account-policy failure qualification remain gates before product acceptance.
+## Install, permissions and removal
 
-`control/https-auth-server.m` uses Apple's Network/Security frameworks for the
-existing start/respond contract over TLS 1.3. The narrow HTTP parser bounds
-input and rejects ambiguous framing. `auth/graphical-authority.m` requires an
-explicit role and positive native session identity, never reactivating revoked
-authority. The HTTPS probe explicitly retains its desktop-only role. Public discovery,
-authenticated fixed topology and an optional typed launch handler are implemented.
-Discovery still advertises no ready media service. See
-`docs/architecture/macos-control-plane.md` for limits and measured qualification results.
+Open the Host PKG and complete the installed app's setup window.
+Screen/input and audio access remain subject to macOS permission policy.
+PLANK does not silently edit the privacy database, and a new user or OS update
+may require renewed approval. See [permission setup](../../../docs/user/permissions.md).
 
-Build/test instructions: `docs/development/build/macos-build-runbook.md`. Overall architecture and
-remaining gates: `docs/development/plans/macos-host.plan`.
+The Host installer requires FileVault to be disabled. Remote FileVault preboot
+unlock is not supported.
 
-`media/preview-session.m` owns an authenticated one-shot native endpoint,
-lifecycle/control timer, capture startup and ordered revocation/cleanup.
-`media/screen-capture.m` connects the exact ScreenCaptureKit display to hardware
-VideoToolbox Main10 using IOSurfaces; `media/native-video.m` validates and sends
-complete Annex-B samples through the existing transport. This path has passed
-combined system-audio capture using `media/opus-encoder.m` and authorized native
-Opus submission through `media/native-audio.m`. Audio and video share the capture
-owner's serial queue and revocation/drain lifetime; microphone capture is off.
-The qualification launch now includes audio, but ordinary Client work remains
-paused until the Host service contract is complete. These are short authenticated
-loopback capture tests, not existing-Client playback,
-performance soak or LoginWindow product lifecycle. Linux is unchanged.
+Configuration lives in `/etc/plank/host.conf`; use the
+[macOS template](../../../packaging/host/macos/config/plank-host.conf), not the Linux
+Host template. The default port is 28989 on TCP and UDP, and firewall/routing
+remain administrator-managed. Machine identity and mutable state are separate
+from configuration.
 
-`input/input-events.m` translates existing native input payloads to Quartz
-events with dynamic point/pixel mapping and transactional held-state tracking.
-`input/native-input.m` qualifies delivery through the existing revocable lease;
-tests use a non-posting sink and real native QUIC. `input/quartz-input.m` uses a
-private public-API event source and existing control permission. All are now
-wired into the A/V owner with a blocking native receiver, a single bounded
-handoff, authorized input release and receiver drain before endpoint destruction.
-The integrated owner passes 300 checks/11 scenarios. Own-window live tests pass
-on the unlocked desktop, including left/right modifiers and held-state cleanup. See
-`docs/architecture/macos-input.md`; do not advertise keyboard/mouse/cursor readiness from
-component tests alone.
+The installed app contains `Contents/Resources/uninstall.sh`. Follow the
+[uninstall procedure](../../../docs/user/macos-configuration.md) so services,
+audio drivers and any enabled camera extension are removed safely. Normal
+uninstall retains configuration, identity and logs.
 
-The accepted Mac cursor contract is ScreenCaptureKit's embedded system/custom
-cursor, with video-path latency. It is explicitly distinct from Linux local
-cursor negotiation, not a fallback or codec inference. Own-window shape/motion
-pixel checks pass; ordinary Client presentation and LoginWindow input remain
-gates. See `docs/architecture/macos-input.md` and the next lifecycle section in the Mac plan.
+## Source map
+
+| Directory | Responsibility |
+| --- | --- |
+| `session/` | Machine/desktop roles, lifecycle, permissions, configuration and ownership |
+| `auth/` | OS-account verification, authorization and session identity |
+| `control/` | Discovery/control requests and display management |
+| `media/` | Capture, encoding, audio/video submission and stream lifetime |
+| `input/` | Remote keyboard, mouse and pen events |
+| `audio-device/` | PLANK Output and PLANK Microphone integration |
+| `camera-device/` | Optional virtual-camera extension and producer/broker boundary |
+
+Packaging is in [`packaging/host/macos/`](../../../packaging/host/macos/).
+The shared transport is in [`protocol/plank-transport/`](../../../protocol/plank-transport/).
+Neither is duplicated in a separate Mac Host repository.
+
+## Development
+
+Use [Building from source](../../../docs/development/build/from-source.md) and
+the [macOS Host build runbook](../../../docs/development/build/macos-build-runbook.md).
+Host builds require SDK 27 or newer and a macOS 27 deployment target.
+Developer compilation and signed/notarized distribution have different
+requirements; maintainer signing credentials are never source dependencies.
+
+Contributions follow the parent [contributor guide](../../../CONTRIBUTING.md).
+Preserve the license notices in this source and all linked dependencies;
+see [project licensing](../../../README.md#credits-and-licensing).
