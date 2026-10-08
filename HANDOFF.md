@@ -9,9 +9,11 @@ Root, Client and Linux Host are on `scaling-quality`, based on root
 `73d434071bc54e1789ad589ff53d48c2bd424103` and the Wacom candidate pins below.
 Client common-C remains unchanged on `wacom-recovery`. The prior
 `macos-scaling` and `wacom-recovery` branches/packages are preserved. Current
-scaling source is committed dependency-first; main is unchanged. Version
-`1.1.034-scaling-quality` is reserved for the Linux Host and signed Mac Client
-candidates. No new installer has been built yet.
+scaling source is committed/pushed dependency-first; main is unchanged.
+Linux Host RPM and signed Mac Client PKG candidates **1.1.034-scaling-quality**
+are built, downloaded and independently SHA-256 verified. No installation,
+merge or release was performed. Exact candidate root source is
+`feab22761a6cd2462ccd82b73dbee17eed8f1925`.
 
 - Client: `9d0bbe8b4d6aae246b80924327a1efb3ef6e00b0`.
 - Linux Host: `57f85d1b297fa22a23dc8be5e206f04bffc20370`.
@@ -61,11 +63,39 @@ Validation so far:
   documented builder compiler paths and `PLANK_FFMPEG_INCLUDE` pointing at the
   prepared Host FFmpeg headers. Exit 77 means no GPU, not a passing GPU test.
 
-Integration review and focused checks are complete. Next: run the full Linux
-Host RPM and signed Mac Client builds on GitHub from these combined changes,
-download and verify the original artifacts, and record their exact provenance.
+Integration review and focused checks are complete. Both builds use that source:
+[Linux Host](https://github.com/instinctual/plank/actions/runs/37707420681) and
+[signed Mac Client](https://github.com/instinctual/plank/actions/runs/37707423366).
+The Host passed full compilation, package gates, three native loss matrices
+(900/900 frames each, zero unrecovered source symbols) and 25 shuffled input
+suite repetitions (36 passed, three UHID-dependent skips per repetition).
+The RPM is production `BUILD_TESTS=OFF`; the separate test build is not shipped.
+Downloaded checksum, version, source provenance and root-owned `0700` log
+directory metadata were independently verified. The extracted media binary
+contains the GPU area-scaling marker and the qualified candidate version.
+
+The first Mac attempt passed compilation, component tests and signing, but
+Apple notarization exceeded its 600-second processing wait. **Attempt 2 passed
+unchanged**: full Client compilation/tests, dependency closure, version and
+deployment-target checks, signing, notarization, stapling, Gatekeeper and signing
+cleanup. The successful Host and Mac runs reused all exact-input dependency
+caches; application objects and package gates ran fresh. This is not a new
+clean-bootstrap qualification or live macOS 15/27 acceptance.
+
+Original files are retained under
+`artifacts/packages/candidates/1.1.034-scaling-quality/`, with checksums and
+per-package source provenance in its manifest. Use the PKG to install the Client;
+the build's DMG wrapper is retained alongside it.
+
+| Package | Bytes | SHA-256 |
+| --- | ---: | --- |
+| `linux/plank-host-1.1.034-0.scaling_quality.1.el9.x86_64.rpm` | 8715253 | `17729a5e929e88f5e32ee153faaf985c3cdd1594b249b586d1528c3ed4e2896e` |
+| `macos/plank-client_1.1.034-scaling-quality_arm64.pkg` | 72873864 | `c7e438838dfc2748866b0f9bb36282dcde216d57e947e2b92055a79311506a77` |
+| `macos/plank-client_1.1.034-scaling-quality_arm64.dmg` | 74399335 | `5d9bbad845689524f2bc571d585eb6ed531817e0bb9a70ba1975c9d166243cf6` |
+
 Only this candidate branch was added to the protected signing allowlist; remove
-its permission when retiring the branch. Do not install, merge or release.
+its permission when retiring the branch. Next: operator manual installation and
+visual testing. No merge or release is authorized yet.
 No installations, reboots, session interruption or display changes were made.
 Live acceptance must cover Scaled-Span versus Native, fullscreen→windowed,
 fractional window sizes, Retina/notch, multi-display and input alignment.
