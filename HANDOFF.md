@@ -6,14 +6,32 @@ notes, never in Git.
 
 ## Current work — native Apple Client integration
 
-[Client PR #10](https://github.com/instinctual/plank-client/pull/10) is approved
+[Client PR #10](https://github.com/instinctual/plank-client/pull/10) imported the
+Vision foundation at `1953cc11a4b281f24286c11301d10fc76601a972`.
+[Client PR #11](https://github.com/instinctual/plank-client/pull/11) is now approved
 and merged into Client `apple-native-integration` at
-`1953cc11a4b281f24286c11301d10fc76601a972`. The parent integration branch pins
-that exact merge. Original contributor commits and authorship are preserved.
-The import adds the Vision Client at `visionos-native/` and its public unsigned
-build recipe. Shipping `app/`, existing Client submodule pins and the Linux Host
-are unchanged. The separate native Mac frontend and directory moves are not
-included. Shipping parent and Client `main` remain unchanged by this import.
+`e8d8536486bf2eb0d7080aab8965f12d7d87b0af`; the parent integration branch pins
+this exact merge. Its tree matches reviewed head
+`ac9fb757979cf6c92768448345abad592920ddc5`. Original contributor commits and
+authorship are preserved.
+
+The imports add the Vision Client at `visionos-native/`, the separate native Mac
+pilot at `apple-native/`, and public unsigned build recipes. The shared Mac
+Wacom worker gains an injectable sender/native compile boundary, preserving the
+existing Qt/SDL default path. Client dependency pins and the Linux Host are
+unchanged. Shipping parent and Client `main` remain unchanged by these imports;
+the native pilot does not replace the shipping application.
+
+Both PR #11 review findings are resolved: manual/timeout tablet opt-out retires
+USB capture and admission while allowing release messages through the live
+sender; cursor ownership uses filtered physical activity rather than raw status
+reports. The source includes regression tests for late hotplug, focus callbacks,
+new sessions, ordered release, background status and callback revocation.
+Independent C-wrapper lifetime/barrier/epoch tests passed with Clang ASan/UBSan,
+alongside shell/Python syntax and whitespace checks. Full Swift/AppKit tests,
+Apple builds and physical streaming/tablet acceptance were not independently
+repeated. Contributor-reported results are recorded in the Client's native Mac
+integration document, not promoted to hardware qualification here.
 
 [Kymux PR #5](https://github.com/instinctual/plank-kymux/pull/5) was approved and
 merged first into dependency `main` at
@@ -43,8 +61,10 @@ linked Client worktree at `apps/client`; other submodules remain uninitialized.
 [Client issue #9](https://github.com/instinctual/plank-client/issues/9) remains
 open. Next reconcile persistent pre-credential Host trust, exact-format decoder
 fallback, audio clock/input contracts and current parent transport/CI before
-production acceptance. Keep the native Mac pilot, camera product work and
-directory moves separate. Retain the documented streaming/Wacom and OS gates.
+production acceptance. Optional tablet sharing and display/window/wheel slices
+remain separate follow-on reviews; camera product work and directory moves are
+also separate. Retain the documented streaming/Wacom and OS gates. No package,
+release, installation or hardware-session change accompanies this merge.
 
 ## Current baseline — consolidated main
 
@@ -148,13 +168,15 @@ The handoff records their original transport, Kymux, common-C, tablet-relay and
 media-library inputs. These are evidence for those builds, not replacements for
 the maintained pins above. Reconcile differing inputs explicitly.
 
-Next: the contributor prepares the first focused shared Apple foundation/Vision
-Client PR against `apple-native-integration`, at its existing source paths,
-with explicit public dependency inputs and reproducible unsigned build/test
-instructions. Preserve commits and authorship. Keep shipping `app/` untouched;
-only after reproducibility is established, move native code separately into
-`apple/shared/`, `apple/macos/` and `apple/visionos/`. Shared transport stays
-in the parent `protocol/` tree. Do not start a competing import or engine rewrite.
+The shared Apple foundation/Vision PR #10 and separate native Mac foundation
+PR #11 are merged into `apple-native-integration` at their existing source paths,
+with explicit public dependency inputs and unsigned build/test instructions.
+Next reviews are the contributor's optional tablet-sharing and display/window/
+wheel slices, retargeted in dependency order. Preserve commits and authorship;
+do not promote the native pilot to shipping main. The eventual mechanical move
+into `apple/shared/`, `apple/macos/` and `apple/visionos/` remains separate. Shared
+transport stays in the parent `protocol/` tree. Do not start a competing import
+or engine rewrite.
 
 The contributor leads native architecture and device qualification; upstream
 owns current trust, precision, audio/input contracts and parent CI/package
