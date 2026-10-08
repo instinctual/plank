@@ -16,6 +16,8 @@ use subtle::ConstantTimeEq;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 
 pub mod camera;
+pub mod camera_encoded;
+mod camera_record;
 pub mod microphone;
 pub mod native;
 pub mod native_ffi;

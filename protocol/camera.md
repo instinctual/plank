@@ -100,6 +100,63 @@ byte equality, short-buffer retry, mute and reactivation. These are transport
 component tests; live capture, sustained loss, timing/color, application delivery
 and camera/microphone synchronization remain separate acceptance gates.
 
+## Encoded Mac source — camera feature 2 candidate
+
+PCAM v1 and its native-capture semantics above remain unchanged. PCAM v2 is a
+separate camera feature for hardware-encoded Mac capture. The transport accepts
+it only when both product adapters have authenticated agreement on camera
+feature 2 and call `plank_transport_native_camera_enable_version(..., 2)`.
+The original `camera_enable` entry point selects feature 1. Neither entry point
+negotiates a capability, grants capture consent or opens a camera. Version is
+fixed for the transport endpoint; a mismatched record disables only that camera
+lane. The additive C entry point changes no existing ABI-13 structures.
+
+This is a transport candidate, not production advertising or a new Host release.
+The existing Mac Host advertises feature 1 only and Linux Host advertises neither.
+Product adapters must implement authenticated feature-2 selection and Linux
+receiver availability before exposing capture. A Mac encoded source must never
+offer feature 1 as a fallback. Optional incompatibility keeps camera unavailable
+and desktop/audio/input connected. Old schema6 selection remains feature 1.
+
+The first feature-2 mode is H.264 Annex B, 1280 × 720, nominal 30 fps, encoded by
+VideoToolbox hardware from NV12 with explicit BT.709 primaries, transfer and
+matrix and limited range. These metadata values are **PLANK enums**, not V4L2
+or H.273 numeric passthrough. Unknown values, codecs, rates and modes are rejected.
+The capture adapter must verify actual capture/sample attachments and H.264
+parameter sets. Declaring hardware/color metadata is not proof of provenance or
+valid bitstream contents; the receiver independently validates and decodes it.
+
+The CAM1 outer codec, endpoint allocation, generation/index/capture clock,
+flags, maximum payload and queue recovery rules above are reused. The PCAM v2
+header remains 64 bytes; common offsets 0–39 keep their meanings except version
+byte 4 is 2. The metadata region is replaced, not interpreted as V4L2 data:
+
+| Offset | Bytes | Meaning |
+| --- | --- | --- |
+| 40 | 4 | Platform: 1 = macOS |
+| 44 | 4 | Encoder: 1 = VideoToolbox hardware H.264 |
+| 48 | 4 | Capture pixels: 1 = NV12 |
+| 52, 53, 54 | 1 each | Primaries, transfer, matrix: each 1 = BT.709 |
+| 55 | 1 | Range: 1 = limited |
+| 56 | 2 | Nominal fps: 30 |
+| 58 | 2 | Reserved zero |
+| 60 | 4 | Reserved zero |
+| 64 | 1–4194304 | Encoded access-unit bytes |
+
+No driver sequence is fabricated. The common increasing index describes encoder
+output and the capture timestamp remains actual monotonic sample time. Dropped
+capture/encoder work requires a discontinuity and an actual independent frame.
+Fresh SPS/PPS must accompany recovery; codec conversion remains outside transport.
+
+`tests/protocol/camera-v2.hex` is the shared C/Rust envelope fixture. Its payload
+is a framing stub, not a codec-qualified sample. The focused runner
+`scripts/test/test-encoded-camera-transport.py --output <report.json>` checks both
+wire versions, bounds, provenance, queue recovery and encrypted delivery through
+direct/setup-promoted endpoints with/without microphone. It also proves a version
+mismatch leaves the endpoint ready and its ordinary data lane delivering bytes.
+Real camera capture, physical receiving applications and concurrent desktop/
+Wacom acceptance remain platform integration gates.
+
 ## Session control and local camera boundary
 
 PLD1 camera controls are valid only after schema6 camera capability agreement:
@@ -151,3 +208,12 @@ arrival-based presentation remains available. Camera IPC version2 separates
 arrival from presentation time: receipt age remains bounded to150ms even when
 presentation is scheduled up to100ms ahead. Decoder completion repeats both
 checks. Neither the PCAM camera schema nor native compressed payloads change.
+
+The optional generated-source transport test accepts a file of big-endian u32
+length-prefixed PCAM-v2 records through `--encoded-records` and writes received
+H.264 access units through `--received-payload`. These are test artifact arguments,
+not wire framing or product camera negotiation. The Mac source candidate generated
+90 records; the TLS fixture delivered each unchanged, and an independent decoder
+confirmed all 90 received frames as baseline H.264, 720p, BT.709 limited-range.
+This does not qualify a physical camera, Linux virtual device or camera-consuming
+application in a product session.
