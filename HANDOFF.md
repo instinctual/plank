@@ -3,10 +3,77 @@
 Read `AGENTS.md` and the relevant build runbook before work. Machine-specific
 access and evidence belong in the external private notes, never in Git.
 
-## Current work — Wacom recovery (not released)
+## Current work — scaling quality (not released)
 
-The operator requested the Wacom review fixes in a new branch. Root, Client,
-Linux Host and Client common-C are on `wacom-recovery`, based on root main
+Root, Client and Linux Host are on `scaling-quality`, based on root
+`73d434071bc54e1789ad589ff53d48c2bd424103` and the Wacom candidate pins below.
+Client common-C remains unchanged on `wacom-recovery`. The prior
+`macos-scaling` and `wacom-recovery` branches/packages are preserved. Current
+scaling source is committed dependency-first; main is unchanged. Version
+`1.1.034-scaling-quality` is reserved for the Linux Host and signed Mac Client
+candidates. No new installer has been built yet.
+
+- Client: `9d0bbe8b4d6aae246b80924327a1efb3ef6e00b0`.
+- Linux Host: `57f85d1b297fa22a23dc8be5e206f04bffc20370`.
+- All other dependency pins remain those listed in the retained Wacom baseline.
+
+The operator confirmed Native (1:1 pixels) avoids the reported degradation.
+Read-only Client logs showed an active 5120x2160 backing canvas but an advertised
+3840x2160 native mode, resulting in a 3840x1620 requested stream. The Linux Host's
+direct NvFBC/NVENC conversion used point sampling even when reducing the image.
+The Mac window then displayed that already-reduced stream at 1:1. Private logs
+and target identities remain outside Git.
+
+Implemented:
+
+- Every Mac Client Host/layout now uses the active backing-pixel snapshot for
+  initial stream sizing. Keep logical/Retina/notch geometry separately, and
+  preserve Linux Client sizing. Window/fullscreen transitions still change only
+  local presentation; they never renegotiate the stream resolution.
+- Carry forward the Mac area-filter implementation from Client
+  `7ad14c3ef574e5b8f91875a2ce914ea601128879` and
+  `cb3861e1fc709cd97b4e9d87d7aea2d8f699a015`, without replacing Wacom changes.
+- Direct NvFBC/NVENC reductions use separable GPU area integration before the
+  existing color conversion. Float intermediates are retained per encoder;
+  no CPU readback, extra frame queue, matrix change or 8-bit requantization.
+  Native-size conversion bypasses the resampler. Native X11 and x264 conversion
+  are unchanged.
+
+Validation so far:
+
+- Ten portable fullscreen/geometry wiring tests, two Metal overlay checks,
+  two Host conversion-wiring checks and 62 CI policy tests pass. Current/native
+  CoreGraphics and nine Qt stream-sizing results pass at deployment target 15.0
+  on the dedicated SDK27 Mac, including an advertised 4K/active 5K mismatch.
+- Production Metal shaders pass 220 area cases plus 630 color checks on that
+  Mac, including native/upscale equality, fractional/cropped/anisotropic
+  reductions and all 1024 10-bit code levels. Not live-window acceptance.
+- Production CUDA kernels and colorspace code built on the Rocky builder with
+  GCC14/CUDA13 and all supported CUDA architectures. The standalone fixture
+  passed 114 8/10-bit area/identity cases on the hardware-test NVIDIA GPU,
+  including thin lines, stride/border sentinels, unchanged 1:1 output and 5K.
+  Average GPU area+10-bit conversion over 30 iterations: 0.679 ms for
+  5120x2160→3840x1620; 0.177 ms→1920x810; 0.402 ms→1x1. These timings exclude
+  capture, encoding, transport and Client presentation.
+- The component fixture uses builder Boost 1.75 only for standalone logging;
+  it is not a product build or a replacement for the pinned Boost 1.89 package
+  input. Tests are in `tests/video/linux-cuda-scaling/`; configure with the
+  documented builder compiler paths and `PLANK_FFMPEG_INCLUDE` pointing at the
+  prepared Host FFmpeg headers. Exit 77 means no GPU, not a passing GPU test.
+
+Integration review and focused checks are complete. Next: run the full Linux
+Host RPM and signed Mac Client builds on GitHub from these combined changes,
+download and verify the original artifacts, and record their exact provenance.
+Only this candidate branch was added to the protected signing allowlist; remove
+its permission when retiring the branch. Do not install, merge or release.
+No installations, reboots, session interruption or display changes were made.
+Live acceptance must cover Scaled-Span versus Native, fullscreen→windowed,
+fractional window sizes, Retina/notch, multi-display and input alignment.
+
+## Retained baseline — Wacom recovery (not released)
+
+The operator requested the Wacom review fixes in a new branch. The retained
+`wacom-recovery` branches are based on root main
 `66f5c2ad775b093b41c991bc120cad7913c44c8a`. Existing `macos-scaling` and
 `wacom-pressure` candidates/branches were preserved, not merged or relabelled.
 

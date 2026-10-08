@@ -66,5 +66,24 @@ int main()
     current.width = static_cast<size_t>(INT_MAX) + 1;
     assert(!MacDisplayMode::snapshot(1, result) && result.width == 0);
     assert(currentQueries == currentReleases + 1); // missing mode has nothing to release
+    // A 4K advertised native mode must not downsize the currently active 5K
+    // virtual display. The same rule applies to Retina backing pixels and to
+    // smaller active modes, independently of the selected Host/layout.
+    offered = {{3840, 2160, kDisplayModeNativeFlag}};
+    for (const auto dimensions : std::vector<Mode>{{5120, 2160, 0}, {3420, 2214, 0}, {1920, 1080, 0}}) {
+        current = dimensions;
+        const auto before = currentQueries;
+        assert(MacDisplayMode::currentSnapshot(1, result));
+        assert(result.width == int(current.width) && result.height == int(current.height));
+        assert(!result.native && result.safeHeight == result.height);
+        assert(currentQueries == before + 1);
+    }
+    current.width = 0;
+    assert(!MacDisplayMode::currentSnapshot(1, result) && result.width == 0);
+    current.width = static_cast<size_t>(INT_MAX) + 1;
+    assert(!MacDisplayMode::currentSnapshot(1, result) && result.height == 0);
+    currentAvailable = false;
+    assert(!MacDisplayMode::currentSnapshot(1, result) && result.width == 0);
+    assert(currentQueries == currentReleases + 2);
     std::puts("Mac Client display mode: native/current selection, missing lists, invalid modes and ownership passed");
 }

@@ -46,6 +46,7 @@ xcrun clang++ -std=c++17 -mmacosx-version-min=27.0 -Wall -Wextra -Werror \
 "$build/tests/client-display-mode-test"
 python3 "$source_root/tests/packaging/test-macos-quit-lifecycle.py" "$source_root"
 python3 "$source_root/tests/packaging/test-macos-metal-overlay.py"
+bash "$source_root/scripts/test/test-macos-metal-scaling.sh" "$source_root" "$build/tests/metal-scaling"
 python3 "$source_root/tests/packaging/test-macos-keyboard-capture.py"
 python3 "$source_root/tests/packaging/test-startup-permissions.py"
 # Test authorization decisions without opening audio devices or requesting TCC.
@@ -77,7 +78,7 @@ qmake -r "$client/moonlight-qt.pro" CONFIG+=release CONFIG+=disable-prebuilts \
     "QMAKE_CFLAGS+=$PLANK_C_FILE_FLAGS" "QMAKE_CXXFLAGS+=$PLANK_C_FILE_FLAGS"
 make -j"${PLANK_BUILD_JOBS:-8}" release
 # Run shared topology and toolbar geometry on every Mac Client candidate.
-for suite in outputtopology planktoolbarlogic desktopstage macquitshortcut macapplication mackeyboardcapture plankpresentation macrawwacom macclipboardsync macmetaloverlay changelog authenticationtakeover hosttruststore hosttlsguard pacershutdown; do
+for suite in outputtopology plankdisplaymode planktoolbarlogic desktopstage macquitshortcut macapplication mackeyboardcapture plankpresentation macrawwacom macclipboardsync macmetaloverlay changelog authenticationtakeover hosttruststore hosttlsguard pacershutdown; do
 mkdir -p "$build/tests/$suite"
 (
     cd "$build/tests/$suite"

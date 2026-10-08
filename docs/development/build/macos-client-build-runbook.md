@@ -247,3 +247,31 @@ Current probes are `tests/video/macos-videotoolbox-decode.mm`,
 `macos-hevc444-fixture.m`, and `macos-metal-color.mm`. The last loads the actual
 Client Metal shader and shared color uniforms, not a duplicate implementation.
 Hardware metadata/GPU math probes do not replace live presentation acceptance.
+
+Every Mac Client build also invokes `scripts/test/test-macos-metal-scaling.sh`
+with absolute source/build paths. It compiles the scaling and color probes at
+the Client deployment target, then runs the production Metal shader against an
+independent area-integral reference. No window, screen capture or permission
+prompt is involved. No Metal device is an explicit skip, not GPU acceptance;
+all other compile, shader and numerical failures stop the build. On the dedicated
+development Mac, the resulting `macos-metal-scaling` executable accepts the
+shader path and optional `--benchmark` to time 5K downscaling, including tiny
+windows. Those timings cover one texture plane, not end-to-end presentation.
+
+Video uses area-weighted minification in source code-value space (the existing
+color-conversion order is retained). Ordinary reductions stay in the draw pass;
+horizontal reductions above 8:1 first integrate each plane's cropped columns on
+the GPU, so a tiny drawable cannot cause millions of serial fetches in one
+fragment. The retained RG16Float intermediate is filterable on earlier Apple
+Silicon GPUs and preserves all 10-bit code levels. It is reused until dimensions
+change. Both passes share the same command buffer; there is no CPU readback or
+new frame queue. At 1:1 or enlargement the original bilinear lookup remains;
+the overlay shader is unchanged.
+
+Stream sizing uses current CoreGraphics backing pixels for every Host/layout,
+not a possibly different advertised native panel mode. Mac Match Client also
+retains logical dimensions and the camera-safe fullscreen viewport. Entering or
+leaving fullscreen and resizing a window do not renegotiate the stream. Live
+macOS 15 and macOS 27 acceptance must still cover resize, Retina/non-Retina
+output changes, multi-output crops, 8/10-bit identity/YCbCr video, and
+toolbar/input alignment.
