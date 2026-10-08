@@ -1,0 +1,151 @@
+name: Native Apple clients
+
+on:
+  push:
+    branches: [apple-native-integration, native-builds]
+    paths: ['apps/client', '.github/workflows/apple-native.yml', 'scripts/ci/apple-native*', 'tests/ci/test_apple_native.py']
+  pull_request:
+    branches: [apple-native-integration]
+  workflow_dispatch:
+    inputs:
+      source_sha:
+        description: Exact parent commit to build
+        required: true
+        type: string
+      testflight:
+        description: Sign and upload Vision to the protected internal TestFlight group
+        type: boolean
+        default: false
+      version:
+        description: Vision marketing version (numeric, not the shipping desktop version)
+        type: string
+        default: '0.1.0'
+
+permissions:
+  contents: read
+
+# Never cancel an upload half-way through; newer compile-only runs may replace older ones.
+concurrency:
+  group: native-apple-${{ inputs.testflight && 'testflight' || github.ref }}
+  cancel-in-progress: ${{ !inputs.testflight }}
+
+env:
+  PYTHONDONTWRITEBYTECODE: '1'
+  PLANK_NATIVE_VERSION: ${{ inputs.version || '0.1.0' }}
+  PLANK_NATIVE_BUILD: ${{ github.run_number }}.${{ github.run_attempt }}
+  PLANK_NATIVE_BUNDLE_ID: la.instinctual.PLANK.Client.Vision
+  EXPECTED_SOURCE_SHA: ${{ inputs.source_sha || github.sha }}
+
+jobs:
+  policy:
+    runs-on: ubuntu-26.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - run: python3 -m unittest discover -s tests/ci -p test_apple_native.py -v
+      - run: test "$(git rev-parse HEAD)" = "$EXPECTED_SOURCE_SHA"
+
+  build:
+    needs: policy
+    runs-on: xcode-27
+    timeout-minutes: 120
+    strategy:
+      fail-fast: false
+      matrix:
+        platform: [macos, device, simulator]
+    env:
+      PLANK_NATIVE_PLATFORM: ${{ matrix.platform }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Check runner, exact source and public dependencies
+        id: context
+        run: python3 scripts/ci/apple-native.py context
+      - name: Restore checksum-verified source downloads
+        id: downloads
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          key: native-apple-archives-v1-${{ steps.context.outputs.inputs }}
+          path: ${{ env.PLANK_NATIVE_DOWNLOADS }}
+      - name: Restore pinned Rust toolchain
+        id: rust
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          key: native-apple-rust-v1-${{ matrix.platform }}-${{ steps.context.outputs.rust }}
+          path: ${{ env.RUSTUP_HOME }}
+      - name: Bootstrap exact sources and toolchain
+        run: python3 scripts/ci/apple-native.py prepare
+      - name: Save verified source downloads
+        if: ${{ github.event_name != 'pull_request' && steps.downloads.outputs.cache-hit != 'true' }}
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          key: native-apple-archives-v1-${{ steps.context.outputs.inputs }}
+          path: ${{ env.PLANK_NATIVE_DOWNLOADS }}
+      - name: Save pinned Rust toolchain
+        if: ${{ github.event_name != 'pull_request' && steps.rust.outputs.cache-hit != 'true' }}
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          key: native-apple-rust-v1-${{ matrix.platform }}-${{ steps.context.outputs.rust }}
+          path: ${{ env.RUSTUP_HOME }}
+      - name: Restore locked Cargo downloads (never compiled objects)
+        id: cargo
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          key: native-apple-cargo-v1-${{ matrix.platform }}-${{ steps.context.outputs.inputs }}
+          path: |
+            ${{ env.PLANK_NATIVE_WORK }}/cargo/registry
+            ${{ env.PLANK_NATIVE_WORK }}/cargo/git
+      - name: Compile dependencies and run native policy tests
+        run: python3 scripts/ci/apple-native.py dependencies
+      - name: Save locked Cargo downloads
+        if: ${{ github.event_name != 'pull_request' && steps.cargo.outputs.cache-hit != 'true' }}
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          key: native-apple-cargo-v1-${{ matrix.platform }}-${{ steps.context.outputs.inputs }}
+          path: |
+            ${{ env.PLANK_NATIVE_WORK }}/cargo/registry
+            ${{ env.PLANK_NATIVE_WORK }}/cargo/git
+      - name: Build and verify unsigned Release application
+        run: python3 scripts/ci/apple-native.py build
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: native-${{ matrix.platform }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ env.PLANK_NATIVE_ARTIFACTS }}/
+          if-no-files-found: error
+          retention-days: 7
+
+  testflight:
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.testflight && github.repository == 'instinctual/plank' }}
+    needs: build
+    environment: vision-testflight
+    runs-on: xcode-27
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@70fc10c6e5e1ce46ad2ea6f2b72d43f7d47b13c3 # v8.0.0
+        with:
+          name: native-device-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/plank-vision-input
+      - name: Sign, upload and assign the processed build to internal testers
+        env:
+          PLANK_ASC_KEY_ID: ${{ secrets.PLANK_ASC_KEY_ID }}
+          PLANK_ASC_ISSUER_ID: ${{ secrets.PLANK_ASC_ISSUER_ID }}
+          PLANK_ASC_PRIVATE_KEY: ${{ secrets.PLANK_ASC_PRIVATE_KEY }}
+          PLANK_APPLE_TEAM_ID: ${{ vars.PLANK_APPLE_TEAM_ID }}
+          PLANK_VISION_APP_ID: ${{ vars.PLANK_VISION_APP_ID }}
+          PLANK_VISION_GROUP_ID: ${{ vars.PLANK_VISION_GROUP_ID }}
+        run: python3 scripts/ci/apple-native-testflight.py
+      - name: Remove temporary Apple credentials
+        if: always()
+        run: python3 scripts/ci/apple-native-testflight.py --cleanup
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: vision-testflight-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/plank-vision-delivery/
+          if-no-files-found: error
+          retention-days: 7

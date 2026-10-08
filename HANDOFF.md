@@ -6,6 +6,16 @@ notes, never in Git.
 
 ## Current work — native Apple Client integration
 
+Native build automation is being qualified on `native-builds`, based on the
+accepted integration below. `.github/workflows/apple-native.yml` builds native
+Mac, Vision device and Vision simulator on GitHub-hosted `xcode-27` workers.
+The separate `vision-testflight` environment is reserved for protected manual
+uploads; public PRs have no signing credentials. See
+`docs/development/build/apple-native-builds.md`. No local Mac builds, shipping
+main merge, production release or hardware acceptance accompanies this work.
+Hosted validation and first TestFlight delivery are still pending; do not
+describe workflow code alone as a successfully submitted build.
+
 [Client PR #10](https://github.com/instinctual/plank-client/pull/10) imported the
 Vision foundation at `1953cc11a4b281f24286c11301d10fc76601a972`.
 [Client PR #11](https://github.com/instinctual/plank-client/pull/11) is now approved

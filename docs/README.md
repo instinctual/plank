@@ -15,6 +15,8 @@
   covers the experimental fork, evidence, regression risks and linked PR plan.
   [GitHub-hosted builds](development/build/github-builds.md) covers CI scope,
   artifacts and signing boundaries.
+  [Native Apple builds](development/build/apple-native-builds.md) covers the
+  integration pilots and protected Vision TestFlight submission.
   [Dependency maintenance](development/dependency-maintenance.md) covers update
   automation, script-pinned inputs and upgrade qualification.
   [Native media forwarding](development/investigations/native-media-forwarding.md)
