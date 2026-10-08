@@ -110,6 +110,28 @@ int main() {
                             '-I', str(client / 'app/streaming'), str(source), '-o', str(binary)], check=True)
             subprocess.run([str(binary)], check=True)
 
+    def test_stream_snapshot_uses_active_mac_backing_for_every_host(self):
+        snapshot = session.split('bool Session::snapshotClientDisplays()', 1)[1].split(
+            'void Session::rebuildPresentationLayout()', 1)[0]
+        mac = self.preprocess_platform(snapshot, True)
+        linux = self.preprocess_platform(snapshot, False)
+        self.assertNotIn('getNativeDesktopMode', mac)
+        self.assertNotIn('PLANK_CAPTURE_SCREENCAPTUREKIT', mac)
+        self.assertNotIn('MatchClientHostLayout', mac)
+        self.assertIn('snapshot.nativeSize = snapshot.macBackingSize', mac)
+        self.assertIn('getMacCurrentDisplayModeForBounds', mac)
+        self.assertNotIn('getMacCurrentDisplayMode', linux)
+        self.assertIn('getNativeDesktopMode', linux)
+        self.assertIn('snapshot.nativeSize = QSize(nativeMode.w, nativeMode.h)', linux)
+
+    def test_window_resize_does_not_renegotiate_stream_geometry(self):
+        toggle = session.split('void Session::toggleFullscreen()', 1)[1].split(
+            'class AsyncConnectionStartThread', 1)[0]
+        self.assertIn('setPresentationWindowsFullscreen(fullScreen)', toggle)
+        self.assertNotIn('configurePlankLaunchGeometry', toggle)
+        self.assertNotIn('m_StreamConfig.width =', toggle)
+        self.assertNotIn('m_StreamConfig.height =', toggle)
+
     def test_focus_loss_keeps_release_and_toolbar_cleanup(self):
         focus = session.rsplit('case SDL_EVENT_WINDOW_FOCUS_LOST:', 1)[1].split('case SDL_EVENT_WINDOW_FOCUS_GAINED:', 1)[0]
         self.assertIn('m_InputHandler->notifyFocusLost()', focus)

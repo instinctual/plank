@@ -1,218 +1,257 @@
 # PLANK handoff
 
-Read `AGENTS.md` and the relevant build runbook before work. Machine-specific
-access and evidence belong in the external private notes, never in Git.
+Read `AGENTS.md` and the relevant build runbook first. Machine-specific access,
+credentials, captures and operational evidence belong in the external private
+notes, never in Git.
 
 ## Current work — native Apple Client integration
 
-The operator authorized coordination with the contributor and separate
-`apple-native-integration` branches, not a bulk import or replacement of the
-shipping Client. Both branches are published:
+The parent and Client `apple-native-integration` branches now include the current
+mainline baseline below. The parent preserves its original coordination commit
+through a normal merge of main
+`89e992b8238bbf637db64b144e58d59e86ebb3ed`; the Client branch fast-forwards to
+`942f911fc4221d1306aca0f81c45c71190dbdd41`.
+Product source, gitlinks, package versions and defaults match that mainline.
+Only this handoff differs. No native source has been imported or moved, and
+shipping `main` has not changed during this branch refresh.
 
-- Parent starts at main `66f5c2ad775b093b41c991bc120cad7913c44c8a`.
-- Client starts at main `0af6d9fc15197c11257b10e4eed40b0eba783886`.
-- Product source, dependency gitlinks, package versions and defaults are unchanged.
+The coordination worktree is `build/worktrees/apple-native-integration`, with a
+linked Client worktree at `apps/client`. Other submodules are intentionally
+uninitialized there. The canonical parent, Client and Linux Host checkouts stay
+on `main`. This refresh is not a new build, release or hardware qualification.
 
-[Client coordination issue #9](https://github.com/instinctual/plank-client/issues/9)
-is the shared plan. It mentions the contributor, records the reviewed source
-commits and requests agreement on the tested runtime/dependency checkpoints,
-layout and contribution sequence. No reply or agreement has been received yet.
+## Current baseline — consolidated main
 
-The proposed final Client layout is `app/` for the existing Qt/SDL Linux/macOS
-application and `apple/shared/`, `apple/macos/`, `apple/visionos/` for the native
-Apple implementation. Shared transport remains in the parent `protocol/` tree.
-Do not create/move these directories before agreement. Import selected original
-commits first, establish a reproducible build, then separate mechanical path
-changes from behavior changes. Preserve authorship; do not rewrite the fork.
+The operator authorized merging the pending fixes and parent PR #24 to establish
+a clean baseline. Parent, Client and Linux Host are consolidated on `main`, with
+common-C on its product branch `plank/client`. All are pushed in dependency order.
+The parent product integration is the commit below; the following handoff update
+changes documentation only. No merge remains pending for these fixes.
 
-Order: shared Apple foundation and Vision Pro, current trust/precision/audio
-contracts, parallel native Mac candidate, then separately reviewed tablet relay,
-multiple-display and capture-quality extensions. Camera remains a separate
-end-to-end gate. Draft [parent PR #24](https://github.com/instinctual/plank/pull/24),
-reviewed at `1a7aa5e7a3ceb83709952a58a7b0aa313c91b7e1`, adds the PCAM v2
-encoded-camera transport contract only. It is linked for parallel review, not
-approved or merged, and does not supply the initial native Client checkpoint.
-
-Priority integration gaps from source review: persistent pre-credential machine
-trust; avoiding the native software fallback's 10-to-8-bit display conversion;
-reconciling occupancy-driven audio sample skipping/repetition with current
-bounded resampling; supported Host/profile/MTU behavior; and explicit regression
-checks for changes to existing input workers. Hardware evidence reported by the
-contributor is not independent qualification. Mac Client remains Apple Silicon,
-macOS 15+ with SDK 27+; agree visionOS targets before extending the build matrix.
-
-The integration uses a clean parent worktree at the canonical checkout's
-`build/worktrees/apple-native-integration`, with a linked Client worktree at its
-`apps/client`. Other submodules are intentionally uninitialized for this
-coordination-only step. The canonical checkout remains on `scaling-quality`,
-including the uncommitted README refresh. Its scaling and Wacom candidates are
-preserved separately and are not implicitly merged into this branch.
-
-Branch creation triggered the existing Hosted builds workflow; redundant run
-`37712975340` was cancelled because no product change or package build was
-requested. Its privacy and clipboard companion checks passed. Coordination
-content passed local privacy/secret checks. No native build, installation,
-hardware test, merge, release or signing authorization change was performed.
-
-Next: obtain the contributor's checkpoint/layout agreement in issue #9, then
-prepare the first focused Client PR against this integration branch. Existing
-release evidence below is baseline evidence, not native Client acceptance.
-
-## Released baseline — 1.1.030
-
-The operator authorized merging the audio-playback-safety fixes, building a
-release and retiring RK3576 research. Root and Client main are pushed. The
-former integration worktree at
-`build/worktrees/macos-session-takeover` is detached at the release source.
-Do not infer a branch from that historical worktree name.
-
-Exact package source:
-
-| Component | Commit |
+| Component | Mainline source |
 | --- | --- |
-| Root | `e515fe411d5185d3236a8b5c19a14b012375183e` |
-| Client | `0af6d9fc15197c11257b10e4eed40b0eba783886` |
-| Linux Host | `b8308a44c129599ef50b75c30051cee1bb55bf26` |
-| Kymux | `3f7a9d8618978287186e5d6ce0eaa067743cb06c` |
-| Client common-C | `55758dc5160c7f60680345533e887f9aaa5b4dda` |
-| Host header-only common-C | `3a97a58f215323753cfd1180af760ec7e3253538` |
-| qmdnsengine | `920c097ffa742e2968290f15d4dde6693aec02e5` |
+| Parent integration, before final handoff | `e7a8ff4fda6e6115a6bcd638f80a5b9629862968` |
+| Client | `942f911fc4221d1306aca0f81c45c71190dbdd41` |
+| Linux Host | `73ad3ecb548b2f4d2e93fe4ed0860d27b300c734` |
+| Client common-C (`plank/client`) | `036df96f2d1577af7a1b08c05d87a5218fff7c9b` |
+| Kymux, unchanged | `3f7a9d8618978287186e5d6ce0eaa067743cb06c` |
+| Host header-only common-C, unchanged | `3a97a58f215323753cfd1180af760ec7e3253538` |
+| qmdnsengine, unchanged | `920c097ffa742e2968290f15d4dde6693aec02e5` |
 
-Other recursive pins remain in these exact submodule trees. Notes-only commits
-after the package source do not change the source of the release artifacts.
+Other recursive pins remain in those exact component trees, including Host
+libvirtualhid `a0d3aa0cc4d53daa18bfa2f2fbdf848957b6d294`, GoogleTest
+`52eb8108c5bdec04579160ae17225d66034bd723` and build-deps
+`c29c4822cb96f5bfeb8640e72601c5cf4e3c3137`.
+Do not merge Client common-C runtime code into its separate header-only Host
+branch, or confuse its historical default branch with the product branch.
 
-All four exact-source GitHub builds passed from main:
+The integration includes:
 
-- [Linux Host](https://github.com/instinctual/plank/actions/runs/36644830124).
-- [Linux Client](https://github.com/instinctual/plank/actions/runs/36644833766).
-- [Signed Mac Host](https://github.com/instinctual/plank/actions/runs/36644836963).
-- [Signed Mac Client](https://github.com/instinctual/plank/actions/runs/36644840048).
+- **Wacom/input recovery:** bounded reliable-event backpressure instead of silent
+  click/release loss; asynchronous bounded hidraw feature I/O; generation-safe
+  completion and kernel-query cancellation; independent Wayland cursor commits.
+  Healthy device identity, coordinates and Tablet Margins mapping are retained.
+- **Scaling quality:** Mac initial stream sizing uses active backing pixels for
+  all Host/layout combinations. Metal area filtering preserves small-window
+  detail. Direct Linux NvFBC/NVENC reductions use GPU area integration before
+  color conversion, with no CPU readback or additional frame queue.
+- **README refresh:** parent, Client, Linux Host and native Mac Host introductions
+  now describe current PLANK products, platforms, configuration, build entry
+  points and limitations. Upstream attribution and license files remain intact.
 
-All four original packages are downloaded and independently SHA-256 verified
-under `artifacts/packages/releases/1.1.030/`, with manifest and sidecars.
+The earlier `macos-scaling` shader changes are carried forward in Client
+`9d0bbe8b`; comparison confirms the same production shader/renderer changes.
+The `wacom-pressure` branch has no additional product changes beyond main,
+only older candidate version/provenance notes. Do not merge old candidate
+version numbers backwards merely to make these branch tips ancestors.
+
+Package version remains **1.1.034**. This consolidation is not a new release or
+new main-built package. Existing candidate filenames, checksums and manifests
+remain unchanged; never relabel them as mainline builds. No machine was
+installed, rebooted or interrupted during consolidation.
+
+## Camera transport — parent PR #24
+
+Reviewed head: `f6a815df11c53628404424d0ed9fe161f3cdccc6`.
+[PR #24](https://github.com/instinctual/plank/pull/24) is approved and merged,
+preserving the contributor's commits. Its Linux Host, Ubuntu Client, Mac Host,
+Mac Client, privacy, clipboard and policy checks all passed at that exact head.
+[Hosted build run](https://github.com/instinctual/plank/actions/runs/37714438288).
+Protected signing was intentionally skipped for the fork PR, not a failed gate.
+
+PCAM v2 adds explicitly selected Mac VideoToolbox H.264 camera records while
+leaving existing PCAM v1 callers and transport ABI 13 intact. Queue limits,
+generation isolation and camera-only failure handling remain. It is transport
+preparation, not a finished Mac camera sender, Host adapter or native Apple
+Client. Product authorization, consent, capture and hardware qualification
+remain separate.
+
+Independent validation at that head passed:
+
+- Both C wire vectors; strict parsing, bounded queues and recovery tests.
+- Encrypted direct/setup transport for v1/v2, with and without microphone
+  traffic; short-buffer handling and isolated version mismatch.
+- All 60 non-ignored transport unit tests; nine tests intentionally ignored.
+- Privacy/new-content and whitespace checks.
+
+The same transport unit and encrypted camera tests passed again on the combined
+parent integration tree, alongside CI policy and repository/link checks.
+The consolidated main push starts ordinary hosted CI; this is not a separately
+requested signed build or release. Do not assume its result from the PR checks.
+
+No physical camera or product session was used. The optional generated-Mac-camera
+fixture was not run locally. Local evidence is under
+`build/tests/pr24-camera-transport/`; the clean review worktree is
+`build/reviews/pr24-camera-transport`.
+
+## Native Apple Client coordination — agreed
+
+[Client issue #9](https://github.com/instinctual/plank-client/issues/9) is the
+shared plan. The contributor's
+[checkpoint handoff](https://github.com/instinctual/plank-client/issues/9#issuecomment-6050900867)
+confirms the integration targets, eventual layout, PR order and division of work.
+
+Reported tested runtimes and published review checkpoints are distinct:
+
+| Candidate | Tested runtime | Review checkpoint |
+| --- | --- | --- |
+| Vision build 46 | `d0056978e823a7f9a999efe9336cdb155aa61f35` | `5f2d28a10a0a1a113b7618bcf4e7b1e521f00725` |
+| Native Mac build 24 | `5db90ffeb7568105a664df0f340c5769c79b0603` | `04675c95c9486e8f22d7587348d705bb44aeb1a4` |
+
+The handoff records their original transport, Kymux, common-C, tablet-relay and
+media-library inputs. These are evidence for those builds, not replacements for
+the maintained pins above. Reconcile differing inputs explicitly.
+
+Next: the contributor prepares the first focused shared Apple foundation/Vision
+Client PR against `apple-native-integration`, at its existing source paths,
+with explicit public dependency inputs and reproducible unsigned build/test
+instructions. Preserve commits and authorship. Keep shipping `app/` untouched;
+only after reproducibility is established, move native code separately into
+`apple/shared/`, `apple/macos/` and `apple/visionos/`. Shared transport stays
+in the parent `protocol/` tree. Do not start a competing import or engine rewrite.
+
+The contributor leads native architecture and device qualification; upstream
+owns current trust, precision, audio/input contracts and parent CI/package
+reconciliation. The native Mac pilot remains a separate test application.
+Tablet sharing, multiple displays, capture-quality selection and camera product
+integration stay independently reviewable. Parent PR #24 is already merged;
+it is not a pending draft or complete camera product.
+
+Remaining native gates: persistent pre-credential Host trust; exact precision on
+decoder fallback; bounded smooth audio resampling and correct Host clock epochs;
+supported Host/profile/MTU/session scope; Wacom startup, drag/buttons/pressure,
+reconnect, hotplug and multi-window recovery. Periodic video stutter and previously
+reported Host input-queue overflow are unresolved in the contributor's runtime.
+Current mainline recovery code is present, but that is not proof that these
+native observations are fixed. Coordinate any overlapping backpressure work.
+
+Reuse accepted evidence for unchanged exact inputs; do not repeat transport
+tests merely to import commits. Changed inputs and reconciled behavior still
+need targeted regression tests. Actual Vision device/OS evidence remains to be
+recorded; the existing archive declares visionOS 26.0. Native Mac builds retain
+Apple Silicon/macOS 15+, SDK 27+, with same-package runtime acceptance on 15 and
+27 still required. The macOS Host remains 27-only. Public PR builds remain
+unsigned and separate from protected signing/TestFlight.
+
+## Validation and retained candidate artifacts
+
+Consolidation checks passed: 62 CI policy tests, 20 privacy-guard tests, ten
+Mac geometry/fullscreen source gates, two Metal overlay gates, two Linux CUDA
+scaling-wiring gates and repository/documentation-link checks. Eight shared
+input/queue tests and the rebuilt Host input-recovery component suite passed.
+These are component/source checks, not fresh package or hardware acceptance.
+
+Original candidates remain in the version/platform catalog. Their manifests
+contain exact checksums, sizes and full package/source provenance:
+
+| Candidate | Exact root source | Product artifacts |
+| --- | --- | --- |
+| `1.1.033-wacom-recovery` | `353eb071f0f8d766de7ab6fb9aed7eef8a664aa2` | Linux Host RPM and Ubuntu Client DEB |
+| `1.1.034-scaling-quality` | `feab22761a6cd2462ccd82b73dbee17eed8f1925` | Linux Host RPM and signed Mac Client PKG; original DMG wrapper also retained |
+
+Paths are `artifacts/packages/candidates/<version>/<platform>/`.
+Wacom candidate component pins were Client `eedb1ba8`, Host `2034c3eb` and
+common-C `036df96f`. Scaling pins were Client `9d0bbe8b`, Host `57f85d1b`
+and the same common-C; later README commits do not change those artifacts.
+
+Passed hosted candidate runs:
+
+- Wacom [Host](https://github.com/instinctual/plank/actions/runs/37686911394) and
+  [Client](https://github.com/instinctual/plank/actions/runs/37686910847).
+- Scaling [Host](https://github.com/instinctual/plank/actions/runs/37707420681) and
+  [signed Mac Client](https://github.com/instinctual/plank/actions/runs/37707423366).
+
+Host runtime RPMs use `BUILD_TESTS=OFF`; separate input test binaries are not
+shipped. Host package gates verified root-owned `0700` log-directory metadata,
+patch provenance and dependencies. Each candidate Host run passed three native
+loss matrices (900/900 frames, no unrecovered source symbols) and 25 shuffled
+input-suite repetitions (36 passed, three UHID-dependent skips per repetition).
+The Ubuntu candidate passed shared-input, hidraw-worker, Wayland cursor,
+audio/pacer, dependency, binary/version and no-autostart gates.
+
+The signed Mac scaling build passed deployment target, compilation, component
+tests, runtime closure, signing, notarization, stapling and Gatekeeper. The first
+notarization wait timed out; attempt 2 passed unchanged. Exact-input dependency
+caches were reused, not a new clean-bootstrap qualification.
+
+Earlier production-shader fixtures passed 220 Metal area and 630 color cases,
+including all 1024 10-bit levels. A CUDA fixture passed 114 8/10-bit area/identity
+cases on the hardware-test GPU. At 5120x2160→3840x1620, measured area+10-bit
+conversion averaged 0.679 ms over 30 iterations; this excludes capture, encoding,
+transport and presentation. Standalone Host fixture logging uses builder Boost
+1.75, not the pinned Boost 1.89 product input. No-GPU exit 77 is a skip.
+
+Mac window/fullscreen transitions still change presentation only, never
+renegotiate stream size. Native-size NvFBC/NVENC bypasses the resampler. Native
+X11/x264 conversion and Linux Client sizing are unchanged.
+
+## Last published release and rollback
+
 [PLANK 1.1.030](https://github.com/instinctual/plank/releases/tag/v1.1.030)
-was published on September 29 as the latest non-prerelease. Annotated tag
-`v1.1.030` points to the exact package-source commit above. GitHub asset digests
-match the local originals. Published checksums/manifest use downloadable
-basenames; the local catalog retains its platform directories. Never relabel
-the feature candidates. No release build or publication step remains pending.
-Both macOS products are distributed as signed/notarized PKGs, not Client DMGs.
-Production Linux RPMs use `BUILD_TESTS=OFF`; separate test builds must not
-replace the packaged binary. Exact dependency caches may be reused; application
-builds and package gates ran again. No test machine was upgraded or rebooted.
+remains the latest release. Exact source is
+`e515fe411d5185d3236a8b5c19a14b012375183e`; original verified packages and
+manifests remain under `artifacts/packages/releases/1.1.030/`.
+The release's Client is `0af6d9fc`, Linux Host `b8308a44`, Client common-C
+`55758dc5` and Kymux `3f7a9d86`. All four release builds and signing gates
+passed; no new publication is implied by this handoff.
 
-| Package | Bytes | SHA-256 |
-| --- | ---: | --- |
-| `linux/plank-host-1.1.030-1.el9.x86_64.rpm` | 8687281 | `a3db70a7898691891cb4ed0086f6224cdedaf6a00657c8a239f21fe2d0ab0731` |
-| `linux/plank-client_1.1.030_amd64.deb` | 15596188 | `1bdc7c34648d1839f2f89526b24fb2d6c2ef2e4f6a09f2929d73176501289a57` |
-| `macos/plank-host_1.1.030_arm64.pkg` | 6993611 | `a308a36eef6e4c024ab8f1e88d1f8eb5f7ccbc6d8134b307236d026be1052262` |
-| `macos/plank-client_1.1.030_arm64.pkg` | 72866823 | `f8a6117ec63c46d72b3942f5612bddbaf586bfb1712cef4c4a113e9221afa177` |
+[Release notes](docs/releases/1.1.030.md) compare against 1.0.143. Upgrade Host
+and Client together across that boundary: RaptorQ 2 is incompatible with the
+older recovery format. Mac distribution is by PKG. Never rename old feature
+candidates into release artifacts.
 
-The Linux Host passed three 150 Mbps/60 fps loss-matrix repetitions at 0, 0.5,
-1, 3 and 5% injected loss. Its input suite passed 32 tests with three UHID-dependent
-skips per iteration; skips are not hardware acceptance. Both Client builds passed
-the finite-queue audio suites, 17 Pacer and eight independent-rate results. Mac
-signing, notarization, stapling, Gatekeeper and signing cleanup all passed.
-
-[Privacy](https://github.com/instinctual/plank/actions/runs/36645041219) and
-[clipboard](https://github.com/instinctual/plank/actions/runs/36645044171)
-checks passed for the release source. Local repository-layout, release-version,
-62 CI policy and 20 privacy-guard tests passed. These are not hardware acceptance.
-
-The [release notes](docs/releases/1.1.030.md) compare against published 1.0.143.
-Upgrade Host and Client together: the RaptorQ 2 recovery format is incompatible
-with that old release. Latest audio changes themselves are Client-side only.
-
-## Audio implementation and qualification boundaries
-
-Client `ccbb875e` snapshots video PTS before EGL transfers the AVFrame reference,
-restoring the video-clock reference used by audio correction. The operator
-accepted the improvement in 1.1.026; remaining drift led to the later fixes.
-
-Client `34c2adb8` replaces common-clock macOS Host sample-count fitting with one
-source-phase controller. It uses smooth resampling, a zero phase target, bounded
-one-percent correction, filtering, slew limits and stale-clock/queue guards.
-Linux Host timestamps have independent epochs and retain their separate relative
-rate policy. Do not interpret Linux timestamps as absolute A/V phase.
-
-Client `eecdab35` replaces the fixed producer-side starvation cutoff with actual
-SDL output-demand feedback. A callback records requests and post-pull headroom
-under SDL's existing stream lock. The decoder snapshots counters under that lock
-and logs once per second away from the output thread. No callback allocation,
-logging, additional queue, silence insertion, audio-frame dropping or video delay.
-
-Catch-up stops at low headroom. Three distinct healthy pulls are required to
-resume; low headroom also constrains the same bounded resampler below zero to
-recover reserve when the device clock is faster. The initial 028 attempt merely
-stopped catch-up and failed an extended faster-device test; do not distribute it.
-The 029 recovery can retain a few milliseconds more audio. Do not promise zero
-latency cost or acoustically exact sync. `shortage_requests` is not a measured
-speaker-underrun counter: SDL can overestimate required input.
-
-Candidate 029 passed actual SDL/qualified FFmpeg finite-queue tests with
-independent arrival/output clocks, signed 400 ppm drift, differing output chunks,
-jitter, stale/wrap/format cases and an infeasible phase target. All six cases had
-zero post-warmup short reads; settled/final minute phase means differed by less
-than 0.1 ms in those models. ASan/UBSan, 17 Pacer results, eight independent-rate
-results and timestamp observer/callback/analyzer gates also passed. These are
-models/component tests, not a real speaker or lip-sync measurement.
-
-Earlier 027 real monitoring ended at a confirmed manual reconnect after about
-2 h 21 m. Estimated median lag remained bounded at 29.35 ms, but the operator
-reported brief crackles and occasional holds. One crackle trace had no audio
-concealment requests and briefly empty SDL input; this supports investigation,
-not proof of hardware starvation or exclusion of delivery/source glitches.
-The sampler deadline was September 27 at 16:16 Pacific and has passed. Do not
-describe those samplers as active or treat their old log as a new-version soak.
-Private final evidence has not been reassessed in this release task.
-
-Release authorization is not completion of long-duration listening or measured
-absolute A/V synchronization. Next functional gate is a real synchronized
-flash/click and listening soak on the operator-selected Host/Client/output path,
-then cross-platform checks. Do not claim acoustic sync from estimated phase.
-See [plan](docs/development/plans/audio-sync.plan) and
-[procedure](docs/development/audio-sync-baseline.md).
-
-## Rollback and retained artifacts
-
-Annotated `checkpoint/audio-sync-1.1.027` remains pushed in root and Client:
+The pushed `checkpoint/audio-sync-1.1.027` tags remain in parent and Client:
 root `179c3a719735b3065100e8c4ea7adfc3fe2f520d`, Client
-`34c2adb89996c4e05ce4c6790e818b4d5ec66f2c`. It is a rollback checkpoint, not proof
-that every audio issue was resolved.
+`34c2adb89996c4e05ce4c6790e818b4d5ec66f2c`. This is a rollback point,
+not proof that every audio issue was resolved.
 
-The original 029 DEB remains at
-`artifacts/packages/candidates/1.1.029-audio-playback-safety/linux/plank-client_1.1.029-audio-playback-safety_amd64.deb`:
-15,598,592 bytes, SHA-256
-`0dec7f8828e73f2d1c4878870f5c2fc31542f1ce8a4bbf621995a4a35c8b5343`.
-Its source is root `2a8e4b6b490b0756c586299e7704f62c4f1869a3` and Client
-`eecdab352caa8fcf2001daf2d359425153fc90d7`. Hosted Ubuntu 36356543713 and unsigned
-Mac 36356545044 passed. Catalog functional validation remains unrecorded.
-Earlier mainline 1.1.024 packages remain in their original release catalog.
-Detailed historical candidate evidence is retained in Git history and manifests.
+## Remaining functional gates
 
-## Cleanup and other remaining gates
+Merging does not close hardware acceptance. See
+[acceptance criteria](docs/development/acceptance-criteria.md), especially:
 
-The retired `rk3576-client` branch had no unique commits or product changes.
-Its local branch, untracked plan and obsolete local routing notes were removed;
-no remote RK branch existed. A temporary recovery copy of those notes is outside
-the checkout. Generic upstream Rockchip support and unrelated worktrees remain.
-
-The operator accepted the Mac setup centering/foreground behavior and matching
-Client styling. Wacom lifecycle PRs were integrated before live qualification;
-do not turn their component-test results into pressure/margins/hybrid acceptance.
-Reference [Wacom review](docs/development/reviews/wacom-focus-contact-pr-review.md).
-
-Remaining gates in [acceptance criteria](docs/development/acceptance-criteria.md)
-still apply, especially:
-
-- Real audio/video sync, duplex/camera lip sync, long sessions and output restore.
-- Real Wacom pressure, margins, hybrid devices, focus and held-contact recovery.
-- Fresh/upgrade Mac configuration, optional camera deactivation, Client uninstall
-  and purge, and new-user permission behavior. Do not reset grants without approval.
-- Login/logout, locked-session takeover, timeout handling and notched fullscreen;
-  test the Mac Client on both supported macOS 15 and 27.
+- Wacom pressure, tip/barrel clicks, Tablet Margins, matching/different hybrid
+  tablet models, focus/held-contact recovery and temporary loss/transport stalls.
+  Kernel touch-arbitration remains an unproven hypothesis; no module policy,
+  fabricated neutral reports or device resets were packaged.
+- Scaling: Scaled-Span versus Native, fullscreen→windowed, fractional window
+  sizes, Retina/notch, multiple displays, color precision and input alignment.
+  Qualify the identical Mac Client package on both macOS 15 and 27.
+- Real audio/video synchronization, listening soak, duplex/camera lip sync and
+  output restoration. Estimated clock phase is not acoustic measurement.
+- Fresh/upgrade Mac setup and permissions, optional camera deactivation,
+  uninstall/purge, login/logout, locked-session takeover and timeout recovery.
 - Deferred Mac Wallpaper/Screen Saver pointer lag, Linux physical-display
-  provenance mismatch and clipboard immediate-paste stress qualification.
+  provenance mismatch and immediate-paste clipboard stress.
 
-Keep machine identities, credentials, private captures and operational evidence
-outside Git. Read the private notes README before any machine-specific work.
+Current audio policy uses Host common-clock phase for macOS and separate
+relative-rate handling for Linux. Smooth resampling is bounded to one percent,
+with SDL output-demand/headroom guards. No extra audio-frame dropping or video
+delay was added; recovering playback reserve can retain a few milliseconds.
+A shortage-request counter is not a measured speaker underrun. See the
+[audio plan](docs/development/plans/audio-sync.plan) and
+[real-world procedure](docs/development/audio-sync-baseline.md).
+No old sampler is still running merely because a prior note described a soak.
+
+Keep machine identities and private evidence outside Git. Read the private notes
+README before accessing any test system.

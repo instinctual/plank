@@ -52,6 +52,13 @@ input-transparent Wayland subsurface. This preserves the host Wacom driver's
 pressure and Tablet Margins mapping. The next physical mouse motion immediately
 restores the compositor cursor.
 
+On Wayland, the cursor is a synchronized child of a fixed, input-transparent
+1×1 anchor subsurface. The anchor is desynchronized from SDL's video surface.
+Cursor movement/image/hide changes commit that owned anchor, never SDL's
+surface, so applying cursor positions does not wait for the next video swap.
+The compositor does not clip child surfaces to the anchor's buffer bounds.
+Coordinate mapping and the Host-authoritative tablet position are unchanged.
+
 The client assembles and validates a complete generation before replacing both
 the compositor cursor image and the input-transparent Wacom cursor surface.
 Cursor construction and replacement occur on the SDL event thread. While the

@@ -9,6 +9,7 @@ fi
 
 repo_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd)
 source_dir="${repo_dir}/apps/host/linux"
+python3 "$repo_dir/tests/video/test-linux-cuda-scaling.py"
 source "${repo_dir}/scripts/package/package-version.sh"
 plank_load_package_version "$repo_dir"
 package_version=$PLANK_PACKAGE_VERSION

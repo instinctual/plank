@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 //! Session-bound native camera lane. Failure disables camera, not desktop media.
 use super::*;
-use crate::camera::{self, DISCONTINUITY, H264, HEADER_BYTES, KEY_FRAME, MAX_FRAME_BYTES, Packet};
+use crate::camera::{self, DISCONTINUITY, H264, HEADER_BYTES, KEY_FRAME, MAX_FRAME_BYTES};
+use crate::camera_record::{Format, Record};
 
 const SEND_FRAMES: usize = 2;
 const RECEIVE_FRAMES: usize = 3;
@@ -10,23 +11,24 @@ const MAX_AGE: Duration = Duration::from_millis(150);
 #[derive(Default)]
 struct State {
     enabled: bool,
+    version: u32,
     microphone_negotiated: bool,
     status: u32,
     generation: u64,
     last_generation: u64,
     last_sequence: Option<u64>,
     last_capture_time: u64,
-    format: Option<camera::Format>,
+    format: Option<Format>,
     waiting_for_key: bool,
     request_key: bool,
     discontinuity: bool,
-    packets: VecDeque<(Instant, Packet)>,
+    packets: VecDeque<(Instant, Record)>,
 }
 impl State {
     fn gap(&mut self) {
         self.packets.clear();
         self.discontinuity = true;
-        if self.format.is_none_or(|format| format.codec == H264) {
+        if self.format.is_none_or(|format| format.codec() == H264) {
             self.waiting_for_key = true;
             self.request_key = true;
         }
@@ -42,7 +44,7 @@ impl State {
             let mut dropped = false;
             while self.packets.front().is_some_and(|(when, packet)| {
                 when.elapsed() > MAX_AGE
-                    || (dropped && packet.format.codec == H264 && packet.flags & KEY_FRAME == 0)
+                    || (dropped && packet.format.codec() == H264 && packet.flags & KEY_FRAME == 0)
             }) {
                 self.packets.pop_front();
                 dropped = true;
@@ -86,9 +88,11 @@ impl Camera {
         state.discontinuity = true;
         true
     }
-    fn push(&self, mut packet: Packet, capacity: usize) -> i32 {
+    fn push(&self, packet: impl Into<Record>, capacity: usize) -> i32 {
+        let mut packet = packet.into();
         let mut state = self.state.lock().unwrap();
-        if state.status != 2
+        if packet.format.version() != state.version
+            || state.status != 2
             || state.generation == 0
             || packet.generation != state.generation
             || state
@@ -114,7 +118,7 @@ impl Camera {
             state.gap();
             packet.flags |= DISCONTINUITY;
         }
-        if packet.format.codec == H264 && state.waiting_for_key && packet.flags & KEY_FRAME == 0 {
+        if packet.format.codec() == H264 && state.waiting_for_key && packet.flags & KEY_FRAME == 0 {
             state.request_key = true;
             return PLANK_TRANSPORT_DROPPED;
         }
@@ -135,7 +139,7 @@ impl Camera {
             PLANK_TRANSPORT_OK
         }
     }
-    fn pop(&self) -> Option<Packet> {
+    fn pop(&self) -> Option<Record> {
         let mut state = self.state.lock().unwrap();
         state.prune();
         state.packets.pop_front().map(|(_, packet)| packet)
@@ -216,7 +220,8 @@ async fn sink(shared: &NativeShared, connection: &kyproto::Connection) -> Result
             }
             AVPacket::Media(packet) if !packet.header.is_config => {
                 anyhow::ensure!(format_valid, "missing camera lane codec");
-                let record = Packet::decode(packet.payload)?;
+                let version = shared.camera.state.lock().unwrap().version;
+                let record = Record::decode(packet.payload, version)?;
                 anyhow::ensure!(
                     packet.header.pts == record.capture_time_us
                         && packet.header.is_key == (record.flags & KEY_FRAME != 0),
@@ -272,12 +277,24 @@ pub unsafe extern "C" fn plank_transport_native_camera_enable(
     endpoint: *mut PlankTransportNativeEndpoint,
     microphone_negotiated: u32,
 ) -> i32 {
+    unsafe { plank_transport_native_camera_enable_version(endpoint, microphone_negotiated, 1) }
+}
+
+/// # Safety
+/// Endpoint is null or live. Caller must have authenticated agreement on this
+/// exact camera feature version. This is not capability negotiation or consent.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn plank_transport_native_camera_enable_version(
+    endpoint: *mut PlankTransportNativeEndpoint,
+    microphone_negotiated: u32,
+    version: u32,
+) -> i32 {
     catch_result(|| {
         let Some(endpoint) = (unsafe { endpoint.as_ref() }) else {
             return PLANK_TRANSPORT_ERROR_INVALID_ARGUMENT;
         };
         let _allocation = endpoint.shared.reverse_allocation.lock().unwrap();
-        if microphone_negotiated > 1 {
+        if microphone_negotiated > 1 || !matches!(version, 1 | 2) {
             return PLANK_TRANSPORT_ERROR_INVALID_ARGUMENT;
         }
         if !matches!(
@@ -292,6 +309,7 @@ pub unsafe extern "C" fn plank_transport_native_camera_enable(
             return PLANK_TRANSPORT_ERROR_INVALID_STATE;
         }
         state.enabled = true;
+        state.version = version;
         state.status = 1;
         state.microphone_negotiated = microphone_negotiated != 0;
         drop(state);
@@ -384,7 +402,8 @@ pub unsafe extern "C" fn plank_transport_native_camera_send(
             return PLANK_TRANSPORT_ERROR_INVALID_ARGUMENT;
         }
         let bytes = Bytes::copy_from_slice(unsafe { std::slice::from_raw_parts(record, length) });
-        let Ok(packet) = Packet::decode(bytes) else {
+        let version = endpoint.shared.camera.state.lock().unwrap().version;
+        let Ok(packet) = Record::decode(bytes, version) else {
             return PLANK_TRANSPORT_ERROR_INVALID_ARGUMENT;
         };
         endpoint.shared.camera.push(packet, SEND_FRAMES)
@@ -437,7 +456,7 @@ pub unsafe extern "C" fn plank_transport_native_camera_receive(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::camera::Format;
+    use crate::camera::{Format, Packet};
     fn packet(generation: u64, sequence: u64, key: bool) -> Packet {
         Packet {
             format: Format {
@@ -464,6 +483,7 @@ mod tests {
         {
             let mut state = camera.state.lock().unwrap();
             state.enabled = true;
+            state.version = 1;
             state.status = 2;
         }
         assert!(camera.activate(1));
@@ -517,164 +537,496 @@ mod tests {
         use super::super::cancellation_tests::{endpoint, wait_bound, wait_state};
         use super::super::microphone_lane::*;
         use std::net::UdpSocket;
-        for microphone in [false, true] {
-            for setup in [false, true] {
-                let address = UdpSocket::bind("127.0.0.1:0")
-                    .unwrap()
-                    .local_addr()
-                    .unwrap();
-                let mut host = endpoint(address, true, setup);
-                let mut client = endpoint(address, false, setup);
-                unsafe {
-                    assert_eq!(
-                        plank_transport_native_camera_enable(&mut *client, microphone as u32),
-                        PLANK_TRANSPORT_ERROR_INVALID_STATE
-                    );
-                    assert_eq!(
-                        plank_transport_native_endpoint_start(&mut *host),
-                        PLANK_TRANSPORT_OK
-                    );
-                    wait_bound(address, &host).await;
-                    assert_eq!(
-                        plank_transport_native_endpoint_start(&mut *client),
-                        PLANK_TRANSPORT_OK
-                    );
-                    if setup {
-                        wait_state(&client, EndpointState::PeerValidation).await;
+        for version in [1, 2] {
+            for microphone in [false, true] {
+                for setup in [false, true] {
+                    let address = UdpSocket::bind("127.0.0.1:0")
+                        .unwrap()
+                        .local_addr()
+                        .unwrap();
+                    let mut host = endpoint(address, true, setup);
+                    let mut client = endpoint(address, false, setup);
+                    unsafe {
                         assert_eq!(
-                            plank_transport_native_endpoint_approve_peer_certificate(&mut *client),
-                            PLANK_TRANSPORT_OK
-                        );
-                        wait_state(&host, EndpointState::SetupReady).await;
-                        wait_state(&client, EndpointState::SetupReady).await;
-                        assert_eq!(
-                            plank_transport_native_endpoint_authorize_session(&mut *host),
-                            PLANK_TRANSPORT_OK
+                            plank_transport_native_camera_enable(&mut *client, microphone as u32),
+                            PLANK_TRANSPORT_ERROR_INVALID_STATE
                         );
                         assert_eq!(
-                            plank_transport_native_endpoint_authorize_session(&mut *client),
+                            plank_transport_native_endpoint_start(&mut *host),
                             PLANK_TRANSPORT_OK
                         );
-                    }
-                    wait_state(&host, EndpointState::Ready).await;
-                    wait_state(&client, EndpointState::Ready).await;
-                    if microphone {
+                        wait_bound(address, &host).await;
                         assert_eq!(
-                            plank_transport_native_microphone_enable(&mut *host),
+                            plank_transport_native_endpoint_start(&mut *client),
+                            PLANK_TRANSPORT_OK
+                        );
+                        if setup {
+                            wait_state(&client, EndpointState::PeerValidation).await;
+                            assert_eq!(
+                                plank_transport_native_endpoint_approve_peer_certificate(
+                                    &mut *client
+                                ),
+                                PLANK_TRANSPORT_OK
+                            );
+                            wait_state(&host, EndpointState::SetupReady).await;
+                            wait_state(&client, EndpointState::SetupReady).await;
+                            assert_eq!(
+                                plank_transport_native_endpoint_authorize_session(&mut *host),
+                                PLANK_TRANSPORT_OK
+                            );
+                            assert_eq!(
+                                plank_transport_native_endpoint_authorize_session(&mut *client),
+                                PLANK_TRANSPORT_OK
+                            );
+                        }
+                        wait_state(&host, EndpointState::Ready).await;
+                        wait_state(&client, EndpointState::Ready).await;
+                        assert_eq!(
+                            plank_transport_native_camera_enable_version(&mut *client, 0, 3),
+                            PLANK_TRANSPORT_ERROR_INVALID_ARGUMENT
+                        );
+                        if microphone {
+                            assert_eq!(
+                                plank_transport_native_microphone_enable(&mut *host),
+                                PLANK_TRANSPORT_OK
+                            );
+                            assert_eq!(
+                                plank_transport_native_microphone_enable(&mut *client),
+                                PLANK_TRANSPORT_OK
+                            );
+                        }
+                        assert_eq!(
+                            plank_transport_native_camera_enable_version(
+                                &mut *host,
+                                microphone as u32,
+                                version
+                            ),
+                            PLANK_TRANSPORT_OK
+                        );
+                        assert_eq!(
+                            plank_transport_native_camera_enable_version(
+                                &mut *client,
+                                microphone as u32,
+                                version
+                            ),
                             PLANK_TRANSPORT_OK
                         );
                         assert_eq!(
                             plank_transport_native_microphone_enable(&mut *client),
-                            PLANK_TRANSPORT_OK
+                            PLANK_TRANSPORT_ERROR_INVALID_STATE
                         );
-                    }
-                    assert_eq!(
-                        plank_transport_native_camera_enable(&mut *host, microphone as u32),
-                        PLANK_TRANSPORT_OK
-                    );
-                    assert_eq!(
-                        plank_transport_native_camera_enable(&mut *client, microphone as u32),
-                        PLANK_TRANSPORT_OK
-                    );
-                    assert_eq!(
-                        plank_transport_native_microphone_enable(&mut *client),
-                        PLANK_TRANSPORT_ERROR_INVALID_STATE
-                    );
-                    tokio::time::timeout(Duration::from_secs(5), async {
-                        while plank_transport_native_camera_state(&*host) != 2
-                            || plank_transport_native_camera_state(&*client) != 2
-                        {
-                            assert_ne!(plank_transport_native_camera_state(&*host), 3);
-                            assert_ne!(plank_transport_native_camera_state(&*client), 3);
-                            tokio::time::sleep(Duration::from_millis(1)).await;
-                        }
-                    })
-                    .await
-                    .unwrap();
-                    for generation in [1, 2] {
-                        assert_eq!(
-                            plank_transport_native_camera_activate(&mut *host, generation),
-                            PLANK_TRANSPORT_OK
-                        );
-                        assert_eq!(
-                            plank_transport_native_camera_activate(&mut *client, generation),
-                            PLANK_TRANSPORT_OK
-                        );
-                        let mut input = packet(generation, 0, true);
-                        input.flags |= DISCONTINUITY;
-                        input.payload =
-                            Bytes::from((0..131_071).map(|n| (n % 251) as u8).collect::<Vec<_>>());
-                        let bytes = input.encode().unwrap();
-                        assert_eq!(
-                            plank_transport_native_camera_send(
-                                &mut *client,
-                                bytes.as_ptr(),
-                                bytes.len()
-                            ),
-                            PLANK_TRANSPORT_OK
-                        );
-                        tokio::time::timeout(Duration::from_secs(3), async {
-                            loop {
-                                let mut output = vec![0; bytes.len()];
-                                let mut size = 0;
-                                let status = plank_transport_native_camera_receive(
-                                    &mut *host,
-                                    output.as_mut_ptr(),
-                                    1,
-                                    &mut size,
-                                );
-                                if status == PLANK_TRANSPORT_ERROR_BUFFER_TOO_SMALL {
-                                    assert_eq!(size, bytes.len());
-                                    assert_eq!(
-                                        plank_transport_native_camera_receive(
-                                            &mut *host,
-                                            output.as_mut_ptr(),
-                                            output.len(),
-                                            &mut size
-                                        ),
-                                        PLANK_TRANSPORT_OK
-                                    );
-                                    assert_eq!(Packet::decode(Bytes::from(output)).unwrap(), input);
-                                    break;
-                                }
-                                assert_eq!(status, PLANK_TRANSPORT_TIMEOUT);
+                        tokio::time::timeout(Duration::from_secs(5), async {
+                            while plank_transport_native_camera_state(&*host) != 2
+                                || plank_transport_native_camera_state(&*client) != 2
+                            {
+                                assert_ne!(plank_transport_native_camera_state(&*host), 3);
+                                assert_ne!(plank_transport_native_camera_state(&*client), 3);
                                 tokio::time::sleep(Duration::from_millis(1)).await;
                             }
                         })
                         .await
                         .unwrap();
-                        assert_eq!(
-                            plank_transport_native_camera_activate(&mut *host, 0),
-                            PLANK_TRANSPORT_OK
-                        );
-                        assert_eq!(
-                            plank_transport_native_camera_activate(&mut *client, 0),
-                            PLANK_TRANSPORT_OK
-                        );
-                        assert_eq!(
-                            plank_transport_native_camera_send(
-                                &mut *client,
-                                bytes.as_ptr(),
-                                bytes.len()
-                            ),
-                            PLANK_TRANSPORT_ERROR_INVALID_STATE
-                        );
-                        if microphone {
-                            assert_eq!(plank_transport_native_microphone_state(&*host), 2);
-                            assert_eq!(plank_transport_native_microphone_state(&*client), 2);
+                        for generation in [1, 2] {
+                            assert_eq!(
+                                plank_transport_native_camera_activate(&mut *host, generation),
+                                PLANK_TRANSPORT_OK
+                            );
+                            assert_eq!(
+                                plank_transport_native_camera_activate(&mut *client, generation),
+                                PLANK_TRANSPORT_OK
+                            );
+                            let mut input: Record = if version == 1 {
+                                packet(generation, 0, true).into()
+                            } else {
+                                let mut encoded = crate::camera_encoded::tests::fixture();
+                                encoded.generation = generation;
+                                encoded.into()
+                            };
+                            input.flags |= DISCONTINUITY;
+                            input.payload = Bytes::from(
+                                (0..131_071).map(|n| (n % 251) as u8).collect::<Vec<_>>(),
+                            );
+                            let bytes = input.encode().unwrap();
+                            let wrong_version = if version == 1 {
+                                crate::camera_encoded::tests::fixture().encode().unwrap()
+                            } else {
+                                packet(generation, 0, true).encode().unwrap()
+                            };
+                            assert_eq!(
+                                plank_transport_native_camera_send(
+                                    &mut *client,
+                                    wrong_version.as_ptr(),
+                                    wrong_version.len()
+                                ),
+                                PLANK_TRANSPORT_ERROR_INVALID_ARGUMENT
+                            );
+                            assert_eq!(
+                                plank_transport_native_camera_send(
+                                    &mut *client,
+                                    bytes.as_ptr(),
+                                    bytes.len()
+                                ),
+                                PLANK_TRANSPORT_OK
+                            );
+                            tokio::time::timeout(Duration::from_secs(3), async {
+                                loop {
+                                    let mut output = vec![0; bytes.len()];
+                                    let mut size = 0;
+                                    let status = plank_transport_native_camera_receive(
+                                        &mut *host,
+                                        output.as_mut_ptr(),
+                                        1,
+                                        &mut size,
+                                    );
+                                    if status == PLANK_TRANSPORT_ERROR_BUFFER_TOO_SMALL {
+                                        assert_eq!(size, bytes.len());
+                                        assert_eq!(
+                                            plank_transport_native_camera_receive(
+                                                &mut *host,
+                                                output.as_mut_ptr(),
+                                                output.len(),
+                                                &mut size
+                                            ),
+                                            PLANK_TRANSPORT_OK
+                                        );
+                                        assert_eq!(
+                                            Record::decode(Bytes::from(output), version).unwrap(),
+                                            input
+                                        );
+                                        break;
+                                    }
+                                    assert_eq!(status, PLANK_TRANSPORT_TIMEOUT);
+                                    tokio::time::sleep(Duration::from_millis(1)).await;
+                                }
+                            })
+                            .await
+                            .unwrap();
+                            assert_eq!(
+                                plank_transport_native_camera_activate(&mut *host, 0),
+                                PLANK_TRANSPORT_OK
+                            );
+                            assert_eq!(
+                                plank_transport_native_camera_activate(&mut *client, 0),
+                                PLANK_TRANSPORT_OK
+                            );
+                            assert_eq!(
+                                plank_transport_native_camera_send(
+                                    &mut *client,
+                                    bytes.as_ptr(),
+                                    bytes.len()
+                                ),
+                                PLANK_TRANSPORT_ERROR_INVALID_STATE
+                            );
+                            if microphone {
+                                assert_eq!(plank_transport_native_microphone_state(&*host), 2);
+                                assert_eq!(plank_transport_native_microphone_state(&*client), 2);
+                            }
+                            assert_eq!(host.shared.state(), EndpointState::Ready);
                         }
-                        assert_eq!(host.shared.state(), EndpointState::Ready);
+                        assert_eq!(
+                            plank_transport_native_endpoint_stop(&mut *client),
+                            PLANK_TRANSPORT_OK
+                        );
+                        assert_eq!(
+                            plank_transport_native_endpoint_stop(&mut *host),
+                            PLANK_TRANSPORT_OK
+                        );
                     }
-                    assert_eq!(
-                        plank_transport_native_endpoint_stop(&mut *client),
-                        PLANK_TRANSPORT_OK
-                    );
-                    assert_eq!(
-                        plank_transport_native_endpoint_stop(&mut *host),
-                        PLANK_TRANSPORT_OK
-                    );
                 }
             }
+        }
+    }
+
+    #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+    #[ignore = "requires synthetic PCAM source/destination paths and local certificate variables"]
+    async fn encrypted_encoded_fixture_roundtrip() {
+        use super::super::cancellation_tests::{endpoint, wait_bound, wait_state};
+        use std::net::UdpSocket;
+        let path = std::env::var("PLANK_TEST_CAMERA_RECORDS").expect("generated PCAM fixture path");
+        let destination =
+            std::env::var("PLANK_TEST_CAMERA_PAYLOAD").expect("received payload path");
+        let file = std::fs::read(path).unwrap();
+        assert!(!file.is_empty() && file.len() <= 64 * 1024 * 1024);
+        let mut records = Vec::new();
+        let mut offset = 0;
+        while offset < file.len() {
+            assert!(file.len() - offset >= 4 && records.len() < 1024);
+            let size = u32::from_be_bytes(file[offset..offset + 4].try_into().unwrap()) as usize;
+            offset += 4;
+            assert!((HEADER_BYTES + 1..=HEADER_BYTES + MAX_FRAME_BYTES).contains(&size));
+            assert!(file.len() - offset >= size);
+            let bytes = Bytes::copy_from_slice(&file[offset..offset + size]);
+            let record = Record::decode(bytes.clone(), 2).unwrap();
+            assert_eq!(record.generation, 2);
+            assert_eq!(record.sequence, records.len() as u64);
+            if records.is_empty() {
+                assert_ne!(record.flags & KEY_FRAME, 0);
+            }
+            records.push(bytes);
+            offset += size;
+        }
+        assert_eq!(records.len(), 90);
+        let address = UdpSocket::bind("127.0.0.1:0")
+            .unwrap()
+            .local_addr()
+            .unwrap();
+        let mut host = endpoint(address, true, true);
+        let mut client = endpoint(address, false, true);
+        unsafe {
+            assert_eq!(
+                plank_transport_native_endpoint_start(&mut *host),
+                PLANK_TRANSPORT_OK
+            );
+            wait_bound(address, &host).await;
+            assert_eq!(
+                plank_transport_native_endpoint_start(&mut *client),
+                PLANK_TRANSPORT_OK
+            );
+            wait_state(&client, EndpointState::PeerValidation).await;
+            assert_eq!(
+                plank_transport_native_endpoint_approve_peer_certificate(&mut *client),
+                PLANK_TRANSPORT_OK
+            );
+            wait_state(&host, EndpointState::SetupReady).await;
+            wait_state(&client, EndpointState::SetupReady).await;
+            assert_eq!(
+                plank_transport_native_endpoint_authorize_session(&mut *host),
+                PLANK_TRANSPORT_OK
+            );
+            assert_eq!(
+                plank_transport_native_endpoint_authorize_session(&mut *client),
+                PLANK_TRANSPORT_OK
+            );
+            wait_state(&host, EndpointState::Ready).await;
+            wait_state(&client, EndpointState::Ready).await;
+            assert_eq!(
+                plank_transport_native_camera_enable_version(&mut *host, 0, 2),
+                PLANK_TRANSPORT_OK
+            );
+            assert_eq!(
+                plank_transport_native_camera_enable_version(&mut *client, 0, 2),
+                PLANK_TRANSPORT_OK
+            );
+            tokio::time::timeout(Duration::from_secs(5), async {
+                while plank_transport_native_camera_state(&*host) != 2
+                    || plank_transport_native_camera_state(&*client) != 2
+                {
+                    assert_ne!(plank_transport_native_camera_state(&*host), 3);
+                    assert_ne!(plank_transport_native_camera_state(&*client), 3);
+                    tokio::time::sleep(Duration::from_millis(1)).await;
+                }
+            })
+            .await
+            .unwrap();
+            assert_eq!(
+                plank_transport_native_camera_activate(&mut *host, 2),
+                PLANK_TRANSPORT_OK
+            );
+            assert_eq!(
+                plank_transport_native_camera_activate(&mut *client, 2),
+                PLANK_TRANSPORT_OK
+            );
+            let mut received_payload = Vec::new();
+            for bytes in records {
+                assert_eq!(
+                    plank_transport_native_camera_send(&mut *client, bytes.as_ptr(), bytes.len()),
+                    PLANK_TRANSPORT_OK
+                );
+                tokio::time::timeout(Duration::from_secs(3), async {
+                    loop {
+                        let mut output = vec![0; bytes.len()];
+                        let mut size = 0;
+                        let result = plank_transport_native_camera_receive(
+                            &mut *host,
+                            output.as_mut_ptr(),
+                            output.len(),
+                            &mut size,
+                        );
+                        if result == PLANK_TRANSPORT_OK {
+                            assert_eq!(size, bytes.len());
+                            assert_eq!(output.as_slice(), bytes.as_ref());
+                            received_payload.extend_from_slice(&output[HEADER_BYTES..]);
+                            break;
+                        }
+                        assert_eq!(result, PLANK_TRANSPORT_TIMEOUT);
+                        tokio::time::sleep(Duration::from_millis(1)).await;
+                    }
+                })
+                .await
+                .unwrap();
+            }
+            std::fs::write(destination, received_payload).unwrap();
+            assert_eq!(host.shared.state(), EndpointState::Ready);
+            assert_eq!(client.shared.state(), EndpointState::Ready);
+            assert_eq!(
+                plank_transport_native_camera_activate(&mut *host, 0),
+                PLANK_TRANSPORT_OK
+            );
+            assert_eq!(
+                plank_transport_native_camera_activate(&mut *client, 0),
+                PLANK_TRANSPORT_OK
+            );
+            assert_eq!(
+                plank_transport_native_endpoint_stop(&mut *client),
+                PLANK_TRANSPORT_OK
+            );
+            assert_eq!(
+                plank_transport_native_endpoint_stop(&mut *host),
+                PLANK_TRANSPORT_OK
+            );
+        }
+    }
+
+    #[test]
+    fn encoded_queue_recovery_retains_provenance_and_rejects_native_packets() {
+        let camera = Camera::default();
+        {
+            let mut s = camera.state.lock().unwrap();
+            s.enabled = true;
+            s.version = 2;
+            s.status = 2;
+        }
+        let encoded = |sequence, key| {
+            let mut p = crate::camera_encoded::tests::fixture();
+            p.generation = 1;
+            p.sequence = sequence;
+            p.capture_time_us += sequence * 33_333;
+            p.flags = if key { KEY_FRAME } else { 0 };
+            p
+        };
+        assert!(camera.activate(1));
+        assert_eq!(
+            camera.push(packet(1, 0, true), 2),
+            PLANK_TRANSPORT_ERROR_INVALID_STATE
+        );
+        assert_eq!(camera.push(encoded(0, false), 2), PLANK_TRANSPORT_DROPPED);
+        assert_eq!(camera.push(encoded(1, true), 2), PLANK_TRANSPORT_OK);
+        assert_eq!(
+            camera.pop().unwrap().format,
+            crate::camera_record::Format::Encoded(encoded(1, true).format)
+        );
+        assert_eq!(camera.push(encoded(2, false), 2), PLANK_TRANSPORT_OK);
+        assert_eq!(camera.push(encoded(3, false), 2), PLANK_TRANSPORT_OK);
+        assert_eq!(camera.push(encoded(4, false), 2), PLANK_TRANSPORT_DROPPED);
+        assert!(camera.pop().is_none());
+        assert!(camera.state.lock().unwrap().request_key);
+        assert_eq!(camera.push(encoded(5, true), 2), PLANK_TRANSPORT_OK);
+        camera.state.lock().unwrap().packets.front_mut().unwrap().0 =
+            Instant::now() - MAX_AGE - Duration::from_millis(1);
+        assert!(camera.pop().is_none());
+        assert_eq!(camera.push(encoded(6, false), 2), PLANK_TRANSPORT_DROPPED);
+        assert_eq!(camera.push(encoded(7, true), 2), PLANK_TRANSPORT_OK);
+        assert_eq!(camera.pop().unwrap().flags, KEY_FRAME | DISCONTINUITY);
+        let mut changed = encoded(8, true);
+        changed.format.encoder = 2;
+        assert_eq!(
+            camera.push(changed, 2),
+            PLANK_TRANSPORT_ERROR_INVALID_ARGUMENT
+        );
+        assert!(camera.activate(0));
+        assert!(camera.pop().is_none());
+        assert_eq!(
+            camera.push(encoded(8, true), 2),
+            PLANK_TRANSPORT_ERROR_INVALID_STATE
+        );
+    }
+
+    #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+    #[ignore = "requires loopback test certificate variables"]
+    async fn encrypted_version_mismatch_disables_only_camera() {
+        use super::super::cancellation_tests::{endpoint, wait_bound, wait_state};
+        use std::net::UdpSocket;
+        let address = UdpSocket::bind("127.0.0.1:0")
+            .unwrap()
+            .local_addr()
+            .unwrap();
+        let mut host = endpoint(address, true, false);
+        let mut client = endpoint(address, false, false);
+        unsafe {
+            assert_eq!(
+                plank_transport_native_endpoint_start(&mut *host),
+                PLANK_TRANSPORT_OK
+            );
+            wait_bound(address, &host).await;
+            assert_eq!(
+                plank_transport_native_endpoint_start(&mut *client),
+                PLANK_TRANSPORT_OK
+            );
+            wait_state(&host, EndpointState::Ready).await;
+            wait_state(&client, EndpointState::Ready).await;
+            assert_eq!(
+                plank_transport_native_camera_enable(&mut *host, 0),
+                PLANK_TRANSPORT_OK
+            );
+            assert_eq!(
+                plank_transport_native_camera_enable_version(&mut *client, 0, 2),
+                PLANK_TRANSPORT_OK
+            );
+            tokio::time::timeout(Duration::from_secs(3), async {
+                while plank_transport_native_camera_state(&*host) != 2
+                    || plank_transport_native_camera_state(&*client) != 2
+                {
+                    tokio::time::sleep(Duration::from_millis(1)).await;
+                }
+            })
+            .await
+            .unwrap();
+            assert_eq!(
+                plank_transport_native_camera_activate(&mut *host, 2),
+                PLANK_TRANSPORT_OK
+            );
+            assert_eq!(
+                plank_transport_native_camera_activate(&mut *client, 2),
+                PLANK_TRANSPORT_OK
+            );
+            let bytes = crate::camera_encoded::tests::fixture().encode().unwrap();
+            assert_eq!(
+                plank_transport_native_camera_send(&mut *client, bytes.as_ptr(), bytes.len()),
+                PLANK_TRANSPORT_OK
+            );
+            tokio::time::timeout(Duration::from_secs(3), async {
+                while plank_transport_native_camera_state(&*host) != 3 {
+                    tokio::time::sleep(Duration::from_millis(1)).await;
+                }
+            })
+            .await
+            .unwrap();
+            assert_eq!(host.shared.state(), EndpointState::Ready);
+            assert_eq!(client.shared.state(), EndpointState::Ready);
+            let data = b"desktop-control-after-camera-failure";
+            assert_eq!(
+                plank_transport_native_data_send(&mut *host, data.as_ptr(), data.len()),
+                PLANK_TRANSPORT_OK
+            );
+            tokio::time::timeout(Duration::from_secs(3), async {
+                loop {
+                    let mut out = [0; 64];
+                    let mut length = 0;
+                    let status = plank_transport_native_data_receive(
+                        &mut *client,
+                        out.as_mut_ptr(),
+                        out.len(),
+                        &mut length,
+                        0,
+                    );
+                    if status == PLANK_TRANSPORT_OK {
+                        assert_eq!(&out[..length], data);
+                        break;
+                    }
+                    assert_eq!(status, PLANK_TRANSPORT_TIMEOUT);
+                    tokio::time::sleep(Duration::from_millis(1)).await;
+                }
+            })
+            .await
+            .unwrap();
+            assert_eq!(
+                plank_transport_native_endpoint_stop(&mut *client),
+                PLANK_TRANSPORT_OK
+            );
+            assert_eq!(
+                plank_transport_native_endpoint_stop(&mut *host),
+                PLANK_TRANSPORT_OK
+            );
         }
     }
 }

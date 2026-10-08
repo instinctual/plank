@@ -375,7 +375,13 @@ int32_t plank_transport_native_microphone_receive(PlankTransportNativeEndpoint *
  * Receive is nonblocking; BUFFER_TOO_SMALL preserves the unclaimed record.
  */
 int32_t plank_transport_native_camera_enable(PlankTransportNativeEndpoint *endpoint,
-        uint32_t microphone_negotiated);
+                                             uint32_t microphone_negotiated);
+/* Additive API: agree on camera feature 1 (native) or 2 (encoded) through the
+ * authenticated product handshake first. Old enable() always selects 1.
+ * Version is fixed for this endpoint; this call grants no capture authority. */
+int32_t plank_transport_native_camera_enable_version(PlankTransportNativeEndpoint *endpoint,
+                                                     uint32_t microphone_negotiated,
+                                                     uint32_t camera_version);
 uint32_t plank_transport_native_camera_state(const PlankTransportNativeEndpoint *endpoint);
 int32_t plank_transport_native_camera_activate(PlankTransportNativeEndpoint *endpoint, uint64_t generation);
 uint64_t plank_transport_native_camera_keyframe_needed(const PlankTransportNativeEndpoint *endpoint);
