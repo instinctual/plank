@@ -3,11 +3,66 @@
 Read `AGENTS.md` and the relevant build runbook before work. Machine-specific
 access and evidence belong in the external private notes, never in Git.
 
-## Current state — 1.1.030 released
+## Current work — native Apple Client integration
+
+The operator authorized coordination with the contributor and separate
+`apple-native-integration` branches, not a bulk import or replacement of the
+shipping Client. Both branches are published:
+
+- Parent starts at main `66f5c2ad775b093b41c991bc120cad7913c44c8a`.
+- Client starts at main `0af6d9fc15197c11257b10e4eed40b0eba783886`.
+- Product source, dependency gitlinks, package versions and defaults are unchanged.
+
+[Client coordination issue #9](https://github.com/instinctual/plank-client/issues/9)
+is the shared plan. It mentions the contributor, records the reviewed source
+commits and requests agreement on the tested runtime/dependency checkpoints,
+layout and contribution sequence. No reply or agreement has been received yet.
+
+The proposed final Client layout is `app/` for the existing Qt/SDL Linux/macOS
+application and `apple/shared/`, `apple/macos/`, `apple/visionos/` for the native
+Apple implementation. Shared transport remains in the parent `protocol/` tree.
+Do not create/move these directories before agreement. Import selected original
+commits first, establish a reproducible build, then separate mechanical path
+changes from behavior changes. Preserve authorship; do not rewrite the fork.
+
+Order: shared Apple foundation and Vision Pro, current trust/precision/audio
+contracts, parallel native Mac candidate, then separately reviewed tablet relay,
+multiple-display and capture-quality extensions. Camera remains a separate
+end-to-end gate. Draft [parent PR #24](https://github.com/instinctual/plank/pull/24),
+reviewed at `1a7aa5e7a3ceb83709952a58a7b0aa313c91b7e1`, adds the PCAM v2
+encoded-camera transport contract only. It is linked for parallel review, not
+approved or merged, and does not supply the initial native Client checkpoint.
+
+Priority integration gaps from source review: persistent pre-credential machine
+trust; avoiding the native software fallback's 10-to-8-bit display conversion;
+reconciling occupancy-driven audio sample skipping/repetition with current
+bounded resampling; supported Host/profile/MTU behavior; and explicit regression
+checks for changes to existing input workers. Hardware evidence reported by the
+contributor is not independent qualification. Mac Client remains Apple Silicon,
+macOS 15+ with SDK 27+; agree visionOS targets before extending the build matrix.
+
+The integration uses a clean parent worktree at the canonical checkout's
+`build/worktrees/apple-native-integration`, with a linked Client worktree at its
+`apps/client`. Other submodules are intentionally uninitialized for this
+coordination-only step. The canonical checkout remains on `scaling-quality`,
+including the uncommitted README refresh. Its scaling and Wacom candidates are
+preserved separately and are not implicitly merged into this branch.
+
+Branch creation triggered the existing Hosted builds workflow; redundant run
+`37712975340` was cancelled because no product change or package build was
+requested. Its privacy and clipboard companion checks passed. Coordination
+content passed local privacy/secret checks. No native build, installation,
+hardware test, merge, release or signing authorization change was performed.
+
+Next: obtain the contributor's checkpoint/layout agreement in issue #9, then
+prepare the first focused Client PR against this integration branch. Existing
+release evidence below is baseline evidence, not native Client acceptance.
+
+## Released baseline — 1.1.030
 
 The operator authorized merging the audio-playback-safety fixes, building a
 release and retiring RK3576 research. Root and Client main are pushed. The
-primary checkout is now on `main`; the former integration worktree at
+former integration worktree at
 `build/worktrees/macos-session-takeover` is detached at the release source.
 Do not infer a branch from that historical worktree name.
 
