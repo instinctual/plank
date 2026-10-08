@@ -4,6 +4,46 @@ Read `AGENTS.md` and the relevant build runbook first. Machine-specific access,
 credentials, captures and operational evidence belong in the external private
 notes, never in Git.
 
+## Current build — 1.1.035 from main
+
+The operator requested all four installable packages from `main`, without a
+release publication or installation. Source is
+`f11d109f4b2fbf26c7f2d474bf61200ef05786b3`; Client is
+`77cca49d46f5d3b666eb91d143c44ccc1b30da40`. Relative to the consolidated
+baseline below, only the shared package version, Client changelog and parent
+Client pin changed. No native Apple Client code was imported.
+
+All four jobs passed at that exact source with dependency caching enabled and
+fresh application/transport/tests/package builds. Both Mac jobs completed
+protected Developer ID signing, notarization, stapling and Gatekeeper checks:
+
+- [Linux Host](https://github.com/instinctual/plank/actions/runs/37719975551)
+- [Ubuntu Client](https://github.com/instinctual/plank/actions/runs/37719976025)
+- [macOS Host](https://github.com/instinctual/plank/actions/runs/37719975753)
+- [macOS Client](https://github.com/instinctual/plank/actions/runs/37719976146)
+
+All four installable packages have been downloaded and checksum/source-verified
+into `artifacts/packages/releases/1.1.035/`: Linux Host RPM and Ubuntu Client DEB
+under `linux/`, Mac Host and Client PKGs under `macos/`. The original signed
+Client DMG wrapper is also retained, not substituted for the installer PKG.
+`manifest.json` and `SHA256SUMS` retain exact checksums and recursive source pins.
+Every entry records root `f11d109f`, branch `main` and package validation passed.
+
+Local preparation passed 62 CI-policy tests, seven package-collector tests,
+privacy checks and whitespace checks. The Host run passed three native loss
+matrices (900 frames each, zero unrecovered source symbols) and 25 shuffled
+input-suite repetitions (36 passed and three hardware-dependent skips each).
+The runtime RPM still uses `BUILD_TESTS=OFF`; test binaries are built separately.
+Client component, dependency/runtime, version and packaging gates passed. The
+Mac Client dependency caches were populated during this run; no full-bootstrap
+or fresh hardware-acceptance claim is implied for the complete product set.
+
+Source/version commits are pushed. No package was installed, no hardware session
+was tested, and no GitHub release or tag was published. The `releases/` catalog
+name denotes mainline package provenance, not release publication. Mac Client
+streaming/input/audio qualification on both supported OS generations remains a
+separate gate.
+
 ## Current baseline — consolidated main
 
 The operator authorized merging the pending fixes and parent PR #24 to establish
@@ -49,8 +89,8 @@ The `wacom-pressure` branch has no additional product changes beyond main,
 only older candidate version/provenance notes. Do not merge old candidate
 version numbers backwards merely to make these branch tips ancestors.
 
-Package version remains **1.1.034**. This consolidation is not a new release or
-new main-built package. Existing candidate filenames, checksums and manifests
+The consolidation used package version **1.1.034**; the rebuild above advances
+it to **1.1.035**. Existing candidate filenames, checksums and manifests
 remain unchanged; never relabel them as mainline builds. No machine was
 installed, rebooted or interrupted during consolidation.
 
@@ -80,26 +120,33 @@ Independent validation at that head passed:
 
 The same transport unit and encrypted camera tests passed again on the combined
 parent integration tree, alongside CI policy and repository/link checks.
-The consolidated main push starts ordinary hosted CI; this is not a separately
-requested signed build or release. Do not assume its result from the PR checks.
+The consolidated main [hosted CI run](https://github.com/instinctual/plank/actions/runs/37716568593)
+passed all four unsigned product builds. The signed mainline package rebuild is
+tracked above; neither run is a hardware-acceptance or release-publication claim.
 
 No physical camera or product session was used. The optional generated-Mac-camera
 fixture was not run locally. Local evidence is under
 `build/tests/pr24-camera-transport/`; the clean review worktree is
 `build/reviews/pr24-camera-transport`.
 
-## Native Apple Client coordination — kept separate
+## Native Apple Client coordination — agreed and kept separate
 
-The published `apple-native-integration` branches remain isolated from main.
-Root branch `f47fb1549439af58f5afe47812357269eae7dede` contains coordination
-notes only; Client branch is based on `0af6d9fc15197c11257b10e4eed40b0eba783886`.
+The published `apple-native-integration` branches were refreshed from the
+consolidated mainline. Parent `b26b84e377522fddacb21617a23c82def66040da`
+contains the product tree from `89e992b` plus updated coordination notes;
+Client is `942f911fc4221d1306aca0f81c45c71190dbdd41`. These precede only the
+1.1.035 version/changelog changes, not the accepted product fixes.
 Their worktree is `build/worktrees/apple-native-integration`, with a linked
 Client worktree at `apps/client`.
 
-[Client issue #9](https://github.com/instinctual/plank-client/issues/9) asks the
-contributor to confirm source checkpoints, layout and contribution order before
-imports or moves. Proposed native Mac/Vision Pro applications are not part of
-this mainline consolidation. No experimental native Client source was imported.
+[Client issue #9](https://github.com/instinctual/plank-client/issues/9) records
+the contributor's agreement and distinct tested-runtime/dependency checkpoints.
+The focused foundation/Vision import at existing paths remains separate from
+the shipping build, with public pinned inputs and unsigned reproducible build
+instructions. Keep shipping `app/` untouched, preserve authorship, and coordinate
+trust, precision, audio/input and CI reconciliation before production acceptance.
+Native Mac, directory moves and camera product work remain separate. No native
+Client source was imported; 1.1.035 is the existing Qt/SDL Client.
 
 ## Validation and retained candidate artifacts
 
