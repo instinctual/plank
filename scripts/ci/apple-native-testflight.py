@@ -46,15 +46,34 @@ def cleanup(directory):
         shutil.rmtree(directory)
 
 
+def failure_summary(text):
+    # Only fixed labels/numeric codes may enter public logs. Never echo Apple
+    # account names, provisioning contents, identities or API response bodies.
+    patterns = {
+        "missing-account": r"no accounts|no account for|not logged in",
+        "missing-team": r"no team|requires a development team|could not find.*team",
+        "missing-profile": r"no profiles|requires a provisioning profile|could not find.*profile",
+        "missing-signing-certificate": r"no signing certificate|no valid.*certificate|requires a signing certificate",
+        "unsigned-archive": r"not signed|unsigned|signing identity.*(?:missing|invalid)|no signing identity",
+        "cloud-signing-denied": r"cloud signing.*(?:permission|denied)|not.*permission.*cloud",
+        "authentication-failed": r"authentication.*fail|unable to authenticate|failed to authenticate|failed to log in",
+        "provisioning-failed": r"failed.*provision|provision.*failed",
+        "invalid-export-method": r"unsupported.*(?:method|distribution)|does not support.*method|invalid.*export.*method",
+        "invalid-archive": r"invalid archive|archive.*not.*valid|not a.*app archive",
+        "invalid-entitlements": r"(?:invalid|mismatch|not.*match|not.*support).*entitlement|entitlement.*(?:invalid|mismatch)",
+        "upload-rejected": r"upload.*failed|validation failed|asset validation failed|ITMS-\d+",
+    }
+    categories = [name for name, pattern in patterns.items() if re.search(pattern, text, re.I)]
+    codes = sorted(set(re.findall(r"(?:Code\s*=\s*|Error Code: |ITMS-)(-?\d+)\b", text)))
+    return f"Apple codes {','.join(codes) or 'unavailable'}; categories {','.join(categories) or 'unclassified'}"
+
+
 def command(stage, args, **kwargs):
     # Raw Apple output can include account metadata. Never publish it or secret argv.
     result = subprocess.run(args, capture_output=True, **kwargs)
     if result.returncode:
         text = result.stderr.decode(errors="replace") + result.stdout.decode(errors="replace")
-        lines = [line.strip() for line in text.splitlines() if re.search(r"error:|error domain|failed", line, re.I)]
-        # A narrow code-only diagnostic is safe in public CI; no raw Apple message.
-        codes = sorted(set(re.findall(r"(?:Code=|Error Code: )(-?\d+)\b", "\n".join(lines))))
-        raise DeliveryError(f"{stage} failed (exit {result.returncode}, Apple codes {','.join(codes) or 'unavailable'})")
+        raise DeliveryError(f"{stage} failed (exit {result.returncode}; {failure_summary(text)})")
     return result.stdout
 
 
@@ -135,6 +154,19 @@ def poll_build(store, app_id, build, version, deadline):
                 return item
         time.sleep(20)
     raise DeliveryError("Upload completed, but Apple processing is still pending; inspect TestFlight before uploading again")
+
+
+def poll_internal_testing(store, build_id, deadline):
+    pending = {"PROCESSING", "READY_FOR_BETA_TESTING"}
+    while time.monotonic() < deadline:
+        details = store.request(f"/builds/{build_id}/buildBetaDetail")["data"]["attributes"]
+        state = details.get("internalBuildState")
+        if state == "IN_BETA_TESTING":
+            return state
+        require(state in pending,
+                "Apple has not enabled internal testing; inspect export compliance and beta status in TestFlight")
+        time.sleep(10)
+    raise DeliveryError("The build is assigned, but Apple has not enabled internal testing yet; do not upload a duplicate")
 
 
 def stage_signing_entitlements(archive, directory, bundle, team, prefix):
@@ -233,9 +265,11 @@ def main():
                 "Apple processed the build. Complete its export-compliance questionnaire in TestFlight, then assign it to the internal group")
         store.request(f"/betaGroups/{group_id}/relationships/builds",
                       {"data": [{"type": "builds", "id": item["id"]}]})
+        internal_state = poll_internal_testing(store, item["id"], time.monotonic() + 5 * 60)
         delivery = scratch / "plank-vision-delivery"
         delivery.mkdir()
-        receipt.update(testflight_build_id=item["id"], processing_state="VALID", internal_group_assigned=True)
+        receipt.update(testflight_build_id=item["id"], processing_state="VALID", internal_group_assigned=True,
+                       internal_testing_state=internal_state)
         (delivery / "testflight.json").write_text(json.dumps(receipt, indent=2) + "\n")
         with open(os.environ["GITHUB_STEP_SUMMARY"], "a") as stream:
             stream.write(f"### PLANK Vision TestFlight\n\nVersion {version}, build {build}: processed and assigned to the internal group. "

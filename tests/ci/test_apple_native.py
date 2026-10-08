@@ -114,6 +114,27 @@ class NativePolicyTests(unittest.TestCase):
         self.assertIn('"testFlightInternalTestingOnly": True', text)
         self.assertIn('"isInternalGroup") is True', text)
 
+    def test_apple_failures_do_not_publish_account_metadata(self):
+        raw = 'error: exportArchive No signing certificate "EXAMPLE PRIVATE ACCOUNT" found. Code=42'
+        summary = delivery.failure_summary(raw)
+        self.assertIn('missing-signing-certificate', summary)
+        self.assertIn('42', summary)
+        self.assertNotIn('EXAMPLE', summary)
+        self.assertEqual(delivery.failure_summary('EXAMPLE PRIVATE ACCOUNT'),
+                         'Apple codes unavailable; categories unclassified')
+
+    def test_assignment_is_not_claimed_as_installability(self):
+        from unittest.mock import Mock
+        store = Mock()
+        store.request.return_value = {'data': {'attributes': {'internalBuildState': 'IN_BETA_TESTING'}}}
+        self.assertEqual(delivery.poll_internal_testing(store, 'fixture', float('inf')), 'IN_BETA_TESTING')
+        for state in ('MISSING_EXPORT_COMPLIANCE', 'PROCESSING_EXCEPTION', 'EXPIRED', None):
+            store.request.return_value = {'data': {'attributes': {'internalBuildState': state}}}
+            with self.assertRaises(delivery.DeliveryError):
+                delivery.poll_internal_testing(store, 'fixture', float('inf'))
+        with self.assertRaises(delivery.DeliveryError):
+            delivery.poll_internal_testing(store, 'fixture', 0)
+
     def test_signing_binds_drawing_receipts_to_distributing_account(self):
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
