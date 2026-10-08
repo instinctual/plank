@@ -3,6 +3,7 @@ import importlib.util
 import json
 import os
 from pathlib import Path
+import plistlib
 import re
 import tempfile
 import unittest
@@ -88,12 +89,47 @@ class NativePolicyTests(unittest.TestCase):
             with self.assertRaises(delivery.DeliveryError):
                 delivery.verify_receipt({"signed": True}, archive, "a" * 40, "example.app", "0.1.0", "1.1")
 
+    def test_archive_requires_matching_generated_crash_symbols(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            archive = root / "Vision.xcarchive"
+            archive.mkdir()
+            generated = root / "PLANK.app.dSYM"
+            generated.mkdir()
+            uuid = "UUID: AAAAAAAA-BBBB-CCCC-DDDD-EEEEEEEEEEEE (arm64) fixture"
+            with patch.object(native, "output", return_value=uuid):
+                native.collect_symbols(archive, generated)
+            self.assertTrue((archive / "dSYMs/PLANK.app.dSYM").is_dir())
+            with patch.object(native, "output", side_effect=[uuid, uuid.replace("AAAAAAAA", "FFFFFFFF")]):
+                with self.assertRaisesRegex(RuntimeError, "UUID mismatch"):
+                    native.collect_symbols(archive, generated)
+            with patch.object(native, "output", return_value=""):
+                with self.assertRaisesRegex(RuntimeError, "UUID mismatch"):
+                    native.collect_symbols(archive, generated)
+
     def test_no_automatic_export_compliance_claim(self):
         text = (ROOT / "scripts/ci/apple-native-testflight.py").read_text()
         self.assertNotIn('"usesNonExemptEncryption": False', text)
         self.assertNotIn('"ITSAppUsesNonExemptEncryption": False', text)
         self.assertIn('"testFlightInternalTestingOnly": True', text)
         self.assertIn('"isInternalGroup") is True', text)
+
+    def test_signing_binds_drawing_receipts_to_distributing_account(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            archive = root / "Vision.xcarchive"
+            app = archive / "Products/Applications/PLANK.app"
+            app.mkdir(parents=True)
+            (app / "Info.plist").write_bytes(plistlib.dumps({"PLANKRegistrationAccessGroup": "unexpanded"}))
+            with patch.object(delivery, "command") as command:
+                delivery.stage_signing_entitlements(archive, root, "org.example.vision", "TEAM123456", "PREF123456")
+                self.assertIn("--generate-entitlement-der", command.call_args.args[1])
+            entitlements = plistlib.loads((root / "distribution-entitlements.plist").read_bytes())
+            self.assertEqual(entitlements["application-identifier"], "PREF123456.org.example.vision")
+            self.assertEqual(entitlements["com.apple.developer.team-identifier"], "TEAM123456")
+            group = plistlib.loads((app / "Info.plist").read_bytes())["PLANKRegistrationAccessGroup"]
+            self.assertIn(group, entitlements["keychain-access-groups"])
+            self.assertFalse(entitlements["get-task-allow"])
 
 
 if __name__ == "__main__":

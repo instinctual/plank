@@ -26,6 +26,14 @@ are currently rebuilt. No signing files, Keychains, archives or app objects are
 cached. PRs cannot save these caches. The first hosted run qualifies the recipe;
 do not present an untested cache as a completed clean bootstrap.
 
+SDK27 native Mac builds retain the shipping `strip=none` workaround. Set the
+Cargo **release profile** override too: target-only Rust flags do not cover host
+proc-macro dylibs with an explicit `--target`. Simulator Metal omits drawable
+presentation timestamps, so its build excludes only that diagnostic callback;
+real-device and Mac presentation measurements remain enabled. CMake writes
+dSYMs outside Xcode's archive folder; collect them explicitly and require their
+UUIDs to match the archived executable before upload.
+
 The Mac artifact is an ad-hoc-signed, self-contained pilot ZIP for inspection,
 not a notarized install package. The Vision device artifact contains an unsigned
 Release `.xcarchive` with dSYMs. Neither is a TestFlight installation. Simulator
@@ -45,6 +53,9 @@ verifies its source/version/checksum, and uses Apple's cloud signing to upload
 that exact archive. No developer Keychain is copied. Apple API credentials are
 temporary `0600` files, cleared on success, error or job cancellation. Upload
 logs/account metadata and credentials are not published as build artifacts.
+Packaging expands the drawing-receipt Keychain group using the registered
+application identifier prefix and includes the matching entitlements for export
+re-signing; an unsigned build's empty prefix is not a distribution identity.
 
 Environment secrets:
 

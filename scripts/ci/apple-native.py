@@ -6,6 +6,7 @@ import os
 from pathlib import Path
 import platform
 import re
+import shutil
 import subprocess
 import sys
 import tarfile
@@ -115,6 +116,21 @@ def dependencies(target):
         run(["bash", CLIENT / "scripts/test-macos-native.sh", work / "mac-tests"])
 
 
+def collect_symbols(archive, generated):
+    executable = archive / "Products/Applications/PLANK.app/PLANK"
+    symbols = archive / "dSYMs/PLANK.app.dSYM"
+    # CMake overrides DWARF_DSYM_FOLDER_PATH to its configuration directory.
+    # Xcode therefore generates symbols but does not copy them into .xcarchive.
+    if not symbols.exists():
+        require(generated.is_dir(), "CMake did not generate the required crash symbols")
+        symbols.parent.mkdir(exist_ok=True)
+        shutil.copytree(generated, symbols)
+    def uuids(path):
+        return set(re.findall(r"UUID: ([A-Fa-f0-9-]+) \(([^)]+)\)", output(["dwarfdump", "--uuid", path])))
+    expected = uuids(executable)
+    require(expected and expected == uuids(symbols), "Archive crash-symbol UUID mismatch")
+
+
 def build(target):
     inputs = settings()
     work = Path(os.environ["PLANK_NATIVE_WORK"])
@@ -127,12 +143,12 @@ def build(target):
     if target == "device":
         archive = work / "PlankVision.xcarchive"
         env = dict(os.environ, CARGO_HOME=str(work / "cargo"), CARGO_NET_OFFLINE="true",
-                   RUSTUP_TOOLCHAIN=inputs["toolchain"]["rust"])
+                   RUSTUP_TOOLCHAIN=inputs["toolchain"]["rust"], CARGO_PROFILE_RELEASE_STRIP="none")
         run(["xcodebuild", "-project", work / "app-build/PlankVision.xcodeproj", "-scheme", "PlankVision",
              "-configuration", "Release", "-destination", "generic/platform=visionOS", "-archivePath", archive,
              "archive", "CODE_SIGNING_ALLOWED=NO", "CODE_SIGN_IDENTITY=", "DEVELOPMENT_TEAM="], env=env)
         require((archive / "Products/Applications/PLANK.app/PLANK").is_file(), "Archive application is absent")
-        require(list((archive / "dSYMs").glob("*.dSYM")), "Archive must contain crash symbols")
+        collect_symbols(archive, work / "app-build/Release-xros/PLANK.app.dSYM")
         artifact = destination / "PlankVision.xcarchive.tar.gz"
         with tarfile.open(artifact, "w:gz") as stream:
             stream.add(archive, arcname=archive.name)

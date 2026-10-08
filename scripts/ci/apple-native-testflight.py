@@ -137,6 +137,29 @@ def poll_build(store, app_id, build, version, deadline):
     raise DeliveryError("Upload completed, but Apple processing is still pending; inspect TestFlight before uploading again")
 
 
+def stage_signing_entitlements(archive, directory, bundle, team, prefix):
+    require(re.fullmatch(r"[A-Z0-9]{10}", prefix), "Invalid application identifier prefix")
+    app = archive / "Products/Applications/PLANK.app"
+    info_path = app / "Info.plist"
+    info = plistlib.loads(info_path.read_bytes())
+    # Public compilation has no provisioning prefix. Bind drawing receipts to
+    # the distributing account at packaging, not a contributor or empty prefix.
+    group = prefix + ".la.instinctual.PLANK.DrawingRegistration"
+    info["PLANKRegistrationAccessGroup"] = group
+    info_path.write_bytes(plistlib.dumps(info))
+    entitlements = directory / "distribution-entitlements.plist"
+    entitlements.write_bytes(plistlib.dumps({
+        "application-identifier": prefix + "." + bundle,
+        "com.apple.developer.team-identifier": team,
+        "keychain-access-groups": [prefix + "." + bundle, group],
+        "get-task-allow": False,
+    }))
+    # Preserve requested entitlements for Apple's export re-signing. This
+    # local ad-hoc seal is NOT the final distribution signature.
+    command("archive entitlement preparation", ["codesign", "--force", "--sign", "-",
+        "--entitlements", str(entitlements), "--generate-entitlement-der", str(app)])
+
+
 def interrupted(signum, frame):
     raise DeliveryError("Delivery interrupted; removing temporary API credentials")
 
@@ -191,6 +214,9 @@ def main():
         info = plistlib.loads((archive / "Products/Applications/PLANK.app/Info.plist").read_bytes())
         require(info["CFBundleIdentifier"] == bundle and info["CFBundleVersion"] == build
                 and info["CFBundleShortVersionString"] == version, "Archived application metadata mismatch")
+        identifiers = store.request("/bundleIds?" + urllib.parse.urlencode({"filter[identifier]": bundle}))["data"]
+        require(len(identifiers) == 1, "Distribution account must own this bundle identifier")
+        stage_signing_entitlements(archive, directory, bundle, team, identifiers[0]["attributes"]["seedId"])
         options = directory / "ExportOptions.plist"
         options.write_bytes(plistlib.dumps({"method": "app-store-connect", "destination": "upload",
             "signingStyle": "automatic", "teamID": team, "manageAppVersionAndBuildNumber": False,
