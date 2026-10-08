@@ -4,15 +4,17 @@ Read `AGENTS.md` and the relevant build runbook first. Machine-specific access,
 credentials, captures and operational evidence belong in the external private
 notes, never in Git.
 
-## Current integration — consolidated main baseline
+## Current baseline — consolidated main
 
 The operator authorized merging the pending fixes and parent PR #24 to establish
-a clean baseline. Client and Linux Host main, and common-C's product branch
-`plank/client`, are pushed. Parent integration is prepared on `scaling-quality`;
-its merge is pending completion of PR #24's current-head hosted checks.
+a clean baseline. Parent, Client and Linux Host are consolidated on `main`, with
+common-C on its product branch `plank/client`. All are pushed in dependency order.
+The parent product integration is the commit below; the following handoff update
+changes documentation only. No merge remains pending for these fixes.
 
 | Component | Mainline source |
 | --- | --- |
+| Parent integration, before final handoff | `e7a8ff4fda6e6115a6bcd638f80a5b9629862968` |
 | Client | `942f911fc4221d1306aca0f81c45c71190dbdd41` |
 | Linux Host | `73ad3ecb548b2f4d2e93fe4ed0860d27b300c734` |
 | Client common-C (`plank/client`) | `036df96f2d1577af7a1b08c05d87a5218fff7c9b` |
@@ -55,8 +57,11 @@ installed, rebooted or interrupted during consolidation.
 ## Camera transport — parent PR #24
 
 Reviewed head: `f6a815df11c53628404424d0ed9fe161f3cdccc6`.
-[PR #24](https://github.com/instinctual/plank/pull/24) is approved and ready;
-its current-head hosted Linux checks are still running.
+[PR #24](https://github.com/instinctual/plank/pull/24) is approved and merged,
+preserving the contributor's commits. Its Linux Host, Ubuntu Client, Mac Host,
+Mac Client, privacy, clipboard and policy checks all passed at that exact head.
+[Hosted build run](https://github.com/instinctual/plank/actions/runs/37714438288).
+Protected signing was intentionally skipped for the fork PR, not a failed gate.
 
 PCAM v2 adds explicitly selected Mac VideoToolbox H.264 camera records while
 leaving existing PCAM v1 callers and transport ABI 13 intact. Queue limits,
@@ -72,6 +77,11 @@ Independent validation at that head passed:
   traffic; short-buffer handling and isolated version mismatch.
 - All 60 non-ignored transport unit tests; nine tests intentionally ignored.
 - Privacy/new-content and whitespace checks.
+
+The same transport unit and encrypted camera tests passed again on the combined
+parent integration tree, alongside CI policy and repository/link checks.
+The consolidated main push starts ordinary hosted CI; this is not a separately
+requested signed build or release. Do not assume its result from the PR checks.
 
 No physical camera or product session was used. The optional generated-Mac-camera
 fixture was not run locally. Local evidence is under
