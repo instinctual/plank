@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# Interactive Client installer; DMG contains the signed PKG, not drag-and-drop.
+# Interactive Client installer; distribute the signed and notarized PKG directly.
 set -euo pipefail
-[[ $# == 2 && $1 == /* && $2 == /* ]] || { echo 'usage: build-macos-client-dmg.sh CLEAN_SOURCE NEW_OUTPUT' >&2; exit 2; }
+[[ $# == 2 && $1 == /* && $2 == /* ]] || { echo 'usage: build-macos-client-pkg.sh CLEAN_SOURCE NEW_OUTPUT' >&2; exit 2; }
 source_root=$1
 output=$2
 source "$source_root/scripts/build/macos-client-target.sh"
@@ -22,7 +22,7 @@ build=${PLANK_MAC_CLIENT_BUILD:-"$output/build"}
 # An explicitly retained build is reconfigured/rebuilt, never trusted blindly.
 bash "$source_root/scripts/build/build-macos-client.sh" "$source_root" "$build"
 umask 022
-mkdir -p "$output/image" "$output/payload/Applications" "$output/install-scripts"
+mkdir -p "$output/payload/Applications" "$output/install-scripts"
 app="$output/payload/Applications/PLANK Client.app"
 ditto "$build/app/plank-client.app" "$app"
 "$PLANK_QT_ROOT/bin/macdeployqt" "$app" \
@@ -93,7 +93,7 @@ xcrun clang -O2 -mmacosx-version-min="$PLANK_MAC_CLIENT_MIN_MACOS" -fobjc-arc -W
     "$source_root/apps/host/macos/session/host-configuration.m" -framework Foundation \
     -o "$output/install-scripts/plank-configure"
 codesign --force --options runtime --timestamp --sign "$PLANK_MACOS_SIGNING_IDENTITY" "$output/install-scripts/plank-configure"
-pkg="$output/image/plank-client_${PLANK_PACKAGE_VERSION}_arm64.pkg"
+pkg="$output/plank-client_${PLANK_PACKAGE_VERSION}_arm64.pkg"
 pkgbuild --root "$output/payload" --component-plist "$source_root/packaging/client/macos/component.plist" \
     --identifier la.instinctual.PLANK.Client --version "$PLANK_BASE_VERSION" --install-location / \
     --ownership recommended --scripts "$output/install-scripts" "$output/client-component.pkg"
@@ -102,7 +102,6 @@ sed "s/@MIN_VERSION@/$PLANK_MAC_CLIENT_MIN_MACOS/g" \
 productbuild --package "$output/client-component.pkg" --product "$output/requirements.plist" \
     --sign "$PLANK_MACOS_INSTALLER_IDENTITY" --timestamp "$pkg"
 pkgutil --check-signature "$pkg"
-dmg="$output/plank-client_${PLANK_PACKAGE_VERSION}_arm64.dmg"
 python3 "$source_root/scripts/test/check-package-build-paths.py" "$app"
 notary_flags=(--keychain-profile "$PLANK_NOTARY_PROFILE")
 if [[ -n ${PLANK_NOTARY_KEYCHAIN:-} ]]; then
@@ -114,14 +113,6 @@ test "$(plutil -extract status raw "$output/pkg-notary.json")" = Accepted
 xcrun stapler staple "$pkg"
 xcrun stapler validate "$pkg"
 spctl --assess --type install --verbose=2 "$pkg"
-hdiutil create -volname "PLANK Client $PLANK_PACKAGE_VERSION" -srcfolder "$output/image" -format UDZO "$dmg"
-codesign --timestamp --sign "$PLANK_MACOS_SIGNING_IDENTITY" "$dmg"
-xcrun notarytool submit "$dmg" "${notary_flags[@]}" --wait --timeout 10m --output-format json > "$output/notary.json"
-test "$(plutil -extract status raw "$output/notary.json")" = Accepted
-xcrun stapler staple "$dmg"
-xcrun stapler validate "$dmg"
-spctl --assess --type open --context context:primary-signature --verbose=2 "$dmg"
-shasum -a 256 "$dmg"
-echo 'macos_client_dmg_gate=pass install=not-performed'
-plank_collect_package "$source_root" client macos arm64 "macos-${PLANK_MAC_CLIENT_MIN_MACOS%%.*}" "$dmg"
+shasum -a 256 "$pkg"
+echo 'macos_client_pkg_gate=pass install=not-performed'
 plank_collect_package "$source_root" client macos arm64 "macos-${PLANK_MAC_CLIENT_MIN_MACOS%%.*}" "$pkg"

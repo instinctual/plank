@@ -22,7 +22,7 @@ class ClientPermissions(unittest.TestCase):
             self.assertNotIn(forbidden, setup)
         parser = (CLIENT / "cli/commandlineparser.cpp").read_text()
         self.assertIn('if (!posArgs.isEmpty()) parser.showError("Permission setup cannot be combined', parser)
-        package = (ROOT / "scripts/package/build-macos-client-dmg.sh").read_text()
+        package = (ROOT / "scripts/package/build-macos-client-pkg.sh").read_text()
         self.assertIn('packaging/client/macos/pkg-postinstall" "$output/install-scripts/postinstall"', package)
 
     def test_client_launcher_resolves_microphone_before_bookmarks(self):

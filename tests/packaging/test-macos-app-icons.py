@@ -64,13 +64,13 @@ class SourceIcons(unittest.TestCase):
         self.assertLess(build.index("make -j"), build.index("iconutil -c icns"))
 
     def test_packagers_inherit_the_base_client_icon(self):
-        for path in ("scripts/package/build-macos-client-dmg.sh",
+        for path in ("scripts/package/build-macos-client-pkg.sh",
                      "scripts/package/stage-macos-client-dev.sh"):
             script = (ROOT / path).read_text()
             self.assertIn("scripts/build/build-macos-client.sh", script)
             self.assertIn('ditto "$build/app/plank-client.app" "$app"', script)
             self.assertNotIn("macos-app-icon.m", script)
-        script = (ROOT / "scripts/package/build-macos-client-dmg.sh").read_text()
+        script = (ROOT / "scripts/package/build-macos-client-pkg.sh").read_text()
         self.assertIn('cmp "$build/app/plank-client.app/Contents/Resources/plank.icns"', script)
 
     def test_icon_gate_runs_in_both_mac_builds(self):

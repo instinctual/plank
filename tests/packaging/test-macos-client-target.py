@@ -53,7 +53,7 @@ echo "$MACOSX_DEPLOYMENT_TARGET"
     def test_all_client_entrypoints_share_target_policy(self):
         for entrypoint in ('scripts/build/bootstrap-macos-client-deps.sh',
                            'scripts/build/build-macos-client.sh',
-                           'scripts/package/build-macos-client-dmg.sh',
+                           'scripts/package/build-macos-client-pkg.sh',
                            'scripts/package/stage-macos-client-dev.sh'):
             script = (ROOT / entrypoint).read_text()
             self.assertIn('/scripts/build/macos-client-target.sh"', script, entrypoint)

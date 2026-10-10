@@ -8,10 +8,11 @@ notes, never in Git.
 
 Continue in `build/worktrees/wacom-state-recovery`, branch
 `wacom-state-recovery`, based on parent `252d770f64d5fa2943b44db24f5f1a20372a3282`.
-These are local checkpoints only: nothing from this task is pushed, merged,
-packaged or installed. Mainline packages remain **1.1.035**. Keep the independent
-native Apple Client automation and pending Client PKG-only cleanup separate;
-neither is included in this branch.
+The operator requested all four candidate packages, without a release or
+installation. Preparing **1.1.036-wacom-state-recovery** for hosted builds.
+This branch includes the previously requested Client PKG-only packaging cleanup;
+the independent native Apple Client automation is not included. Mainline
+packages remain **1.1.035**. No merge or release is authorized by this build.
 
 | Component | Implementation checkpoint |
 | --- | --- |
@@ -61,9 +62,8 @@ with the exact Client pin above; later parent changes affect Host, transport and
 documentation, not the tested Client source or its test runner. Source bundles
 were SHA-256 verified and imported Client-first with recursive fetch disabled.
 
-Next: read the release build runbook, increment the candidate version, build
-matching Linux Host/Ubuntu Client packages and run the affected macOS compile
-gates for shared transport. Then qualify real hover, tip, pressure, barrel
+Next: build matching Linux Host/Ubuntu Client and signed Mac Host/Client
+candidates on hosted builders. Then qualify real hover, tip, pressure, barrel
 buttons, Flame Tablet Margins, mouse/keyboard, focus changes, reconnect,
 hot-unplug and packet-loss recovery. Include healthy endpoint identity reuse
 and unhealthy-endpoint recreation. Component tests are not live tablet,

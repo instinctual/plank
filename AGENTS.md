@@ -4,7 +4,7 @@
 
 The operator authorized one Apple Silicon Client package for macOS 15 and newer,
 built with SDK27 or newer and a 15.0 deployment target. Bootstrap, application,
-and DMG packaging use that same policy; do not reuse dependencies built with a
+and PKG packaging use that same policy; do not reuse dependencies built with a
 newer minimum OS. Use runtime availability checks for APIs newer than macOS15,
 not compile-time removal of macOS27 capabilities. The macOS Host remains
 27-only, and Linux qualification rules are unchanged. Qualify the identical

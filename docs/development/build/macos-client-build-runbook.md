@@ -2,7 +2,7 @@
 
 Build one experimental Apple Silicon Client for macOS15 and newer with SDK27
 or newer. The deployment target is 15.0 throughout the app, dependencies, and
-DMG; there is no separate reduced-capability macOS15 edition. Newer APIs must
+PKG; there is no separate reduced-capability macOS15 edition. Newer APIs must
 use runtime availability checks so macOS27 retains its capabilities. The Host
 stays macOS27-only. Read the canonical release runbook first. Linux builder/test
 roles remain unchanged. Use clean Git worktrees and verified Git bundles
@@ -16,7 +16,7 @@ Local prepared dependencies must be fully bootstrapped again when changing
 this target; an FFmpeg-only rebuild is insufficient. Every bundled Mach-O must
 contain arm64 with a minimum OS no newer than15, and the app plist must say15.0.
 The build runs real Mach-O positive/negative fixtures for this gate on the Mac.
-The same resulting DMG must pass live acceptance on macOS15 and macOS27; the
+The same resulting PKG must pass live acceptance on macOS15 and macOS27; the
 hosted SDK27 build alone cannot establish that. See
 [the current integration review](../macos15-integration-review.md).
 
@@ -111,13 +111,13 @@ the operator must approve any new grant through System Settings. A signed
 development app remains unnotarized and is not a distributable release. Do not
 put signing-key passwords in scripts or environment variables.
 
-For a self-contained PKG and DMG containing that installer, in the signing SSH session:
+For a self-contained signed PKG, in the signing SSH session:
 
 ```bash
 export PLANK_MACOS_SIGNING_IDENTITY=DEVELOPER_ID_APPLICATION_SHA1
 export PLANK_MACOS_INSTALLER_IDENTITY=DEVELOPER_ID_INSTALLER_SHA1
 export PLANK_NOTARY_PROFILE=plank-notary
-bash "$PLANK_SOURCE_ROOT/scripts/package/build-macos-client-dmg.sh" \
+bash "$PLANK_SOURCE_ROOT/scripts/package/build-macos-client-pkg.sh" \
   "$PLANK_SOURCE_ROOT" "$PLANK_WORK_ROOT/client-package"
 ```
 
@@ -125,8 +125,10 @@ Output must be a new directory. An optional absolute `PLANK_MAC_CLIENT_BUILD`
 may point to a retained build; qmake/make still run, and staging/closure/signing
 are fresh. Unlock the signing keychain interactively in that SSH session, not
 by putting a password in arguments, environment, scripts or notes. Preserve
-the session through signing. PKG and DMG must pass notarization, staple and Gatekeeper;
-collect both exact files in the artifact catalog and compare SHA256 on both ends.
+the session through signing. The PKG must pass signature verification,
+notarization, stapling and Gatekeeper; collect that exact file in the artifact
+catalog and compare SHA256 on both ends. No DMG wrapper or second notarization
+pass is generated.
 No installer service/autostart is created; uninstall by quitting and moving
 the app to Trash. The PKG creates root-owned `/etc/plank/client.conf` only if
 absent; existing policy is preserved. It ships the latest reference template in

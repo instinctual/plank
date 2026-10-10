@@ -85,8 +85,8 @@ development. Do not remove same-team peer checks or alter TCC databases to run
 an unsigned fork. Replacing an existing installation signed by a different team
 is not an ordinary upgrade and must not bypass the installer's identity checks.
 
-For public PKG/DMG distribution, obtain your own Developer ID Application
-certificate, and a Developer ID Installer certificate for the Host PKG. Set
+For public PKG distribution, obtain your own Developer ID Application
+certificate and a Developer ID Installer certificate for either product. Set
 the signing identity fingerprints and Team ID through the documented build
 environment. Store notarization credentials in your own Keychain profile using
 `notarytool store-credentials`; only its profile name enters the build command.

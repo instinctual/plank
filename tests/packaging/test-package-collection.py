@@ -29,7 +29,7 @@ class CollectionTests(unittest.TestCase):
 
     def arguments(self, branch='main', content=b'fixture'):
         suffix = '' if branch == 'main' else '-' + branch
-        package = self.root / ('plank-client_1.2.3' + suffix + '_arm64.dmg')
+        package = self.root / ('plank-client_1.2.3' + suffix + '_arm64.pkg')
         package.write_bytes(content)
         return SimpleNamespace(source_root=self.root, source_commit='HEAD', package=package,
             product='client', platform='macos', architecture='arm64', target_os='macos-27',
@@ -91,7 +91,7 @@ class CollectionTests(unittest.TestCase):
                 'version-test', str(ROOT / 'scripts/package/package-version.sh'), branch, str(self.root)], text=True)
             self.assertEqual(values.splitlines(), [version, '1.1.001'])
             args = self.arguments(branch)
-            args.package = args.package.rename(args.package.with_name('plank-client_' + version + '_arm64.dmg'))
+            args.package = args.package.rename(args.package.with_name('plank-client_' + version + '_arm64.pkg'))
             MODULE.collect(args)
             channel = 'releases' if branch == 'main' else 'candidates'
             directory = self.root / 'artifacts/packages' / channel / version

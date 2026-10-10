@@ -1,7 +1,7 @@
 # macOS configuration
 
-Install Host or Client with its signed PKG. The Client DMG contains the same PKG;
-open it and follow Installer rather than dragging an app into Applications.
+Install Host or Client by opening its signed PKG and following Installer.
+No disk image or drag-and-drop installation is required.
 The Client remains interactive: no service, background helper or autostart entry
 is installed. Quit the Client before upgrading, then launch it normally.
 

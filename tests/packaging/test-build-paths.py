@@ -111,7 +111,7 @@ make -s -f "$2"
             subprocess.run(['bash', '-c', script, 'test', str(ROOT), str(makefile)], check=True)
 
     def test_all_package_entrypoints_enforce_gate(self):
-        for name in ('host-rpm', 'client-deb', 'macos-host-pkg', 'macos-client-dmg'):
+        for name in ('host-rpm', 'client-deb', 'macos-host-pkg', 'macos-client-pkg'):
             self.assertIn('check-package-build-paths.py',
                           (ROOT / 'scripts/package' / ('build-' + name + '.sh')).read_text())
 

@@ -29,7 +29,7 @@ The Mac Client uses one package on macOS15 and macOS27. Its lower deployment
 floor does not lower the builder SDK requirement or change the Host's27.0
 minimum. Exact cache keys include the Client deployment policy; old
 27-minimum dependencies are not reused. Native target-validation fixtures run
-in the Client build, and DMG packaging checks every bundled binary and the app
+in the Client build, and PKG packaging checks every bundled binary and the app
 plist. Live acceptance of the identical package on both OS versions is a
 separate gate; newer APIs require runtime availability checks.
 
@@ -54,7 +54,7 @@ local builders remain available until hosted builds are qualified.
 ## macOS distribution credentials
 
 Ordinary CI intentionally has no Apple credentials. Its unsigned results are
-not end-user installers. Signed, notarized PKG/DMG publication requires a
+not end-user installers. Signed, notarized PKG publication requires a
 separate branch-restricted release environment with Developer ID
 Application and Installer certificates/private keys and notarization authority.
 Do not copy a developer's entire keychain or reuse personal GitHub credentials.

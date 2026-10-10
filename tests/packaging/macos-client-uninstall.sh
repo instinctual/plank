@@ -9,7 +9,7 @@ python3 - "$root" <<'PY'
 from pathlib import Path
 import sys
 root = Path(sys.argv[1])
-package = (root / 'scripts/package/build-macos-client-dmg.sh').read_text()
+package = (root / 'scripts/package/build-macos-client-pkg.sh').read_text()
 assert package.index('packaging/client/macos/uninstall.sh') < package.index('while IFS= read -r -d')
 assert 'chmod 0755 "$app/Contents/Resources/uninstall.sh"' in package
 build = (root / 'scripts/build/build-macos-client.sh').read_text()
