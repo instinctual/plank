@@ -10,16 +10,17 @@ Continue in `build/worktrees/wacom-state-recovery`, now on
 `client-session-recovery`. Parent base `5ac23ba7f6f5a84c347e3081791521e25a369c2e`
 includes the complete `.036` Wacom work below; this is not based on main.
 Client source `58f4df097c1cdf11bf6b4b429701f156e2b10109` and common-C
-`437be9a0a4d164efdf9ed20dc6dd5a2b7b9edc90` are development checkpoints.
-Host/transport pins and `.036` artifacts are unchanged. Candidate version is
-`1.1.037-client-session-recovery`, not a release.
+`437be9a0a4d164efdf9ed20dc6dd5a2b7b9edc90` are pushed. Exact Ubuntu package
+source is `c774091962ede46dcd638642637145d91909675e`. Host/transport pins and
+`.036` artifacts are unchanged. Candidate version is
+`1.1.037-client-session-recovery`, not a release. No build remains running.
 
 The occupied end-user machine must not be interrupted. Private read-only evidence
 identified a null Wayland proxy call, but no stack trace survives to establish
 its caller. Geometry warnings also occur on successful streams. Do not present
 the warning as the proven cause, or claim field acceptance from isolated tests.
 
-Changes being qualified: callback lifetime exclusion during input destruction;
+Candidate changes: callback lifetime exclusion during input destruction;
 checked Wayland cursor/toolbar constructor failures; bounded callback-queue
 failure diagnostics; a private SDL 3.4.2 one-line tablet cursor retirement repair.
 The latter uses the tablet surface instead of the independent mouse surface.
@@ -31,7 +32,33 @@ eight common-C tests pass, including forced callback timeout then reconnect.
 Negative controls reproduce a null SHM-pool crash in the old PLANK code and a
 null-pointer-surface failure in the actual unpatched SDL retirement function.
 Patched SDL passes all eight independent tablet/pointer fixture combinations.
-Root CI policy/cache tests (67) and package build-path tests (10) pass.
+Root CI policy/cache tests (68) and package build-path tests (10) pass.
+
+The [Ubuntu hosted build](https://github.com/instinctual/plank/actions/runs/38091147661)
+passed compilation, component tests, version/banner, dependency/runtime,
+private SDL driver, package-path and autostart-absence gates. The original DEB
+is downloaded and checksum/provenance-verified in
+`artifacts/packages/candidates/1.1.037-client-session-recovery/linux/`:
+`plank-client_1.1.037-client-session-recovery_amd64.deb`, 17028500 bytes,
+SHA-256 `e067c59409ec4256d5bf4765d98276015be7cbcdd300993d72c4e53764b8c5e8`.
+Local payload inspection independently confirmed the exact nested source pins,
+the package-relative `$ORIGIN/../lib/plank` RUNPATH and no builder-home paths.
+Catalog metadata records package checks passed and functional acceptance pending.
+
+The [unsigned Mac Client build](https://github.com/instinctual/plank/actions/runs/38089940376)
+passed compilation and component/audio regression tests at root
+`747e23822626b980d2ea69b5e18d87d98eece530`. Its Client/common-C/Mac source is
+identical to the final Ubuntu candidate; subsequent root changes are documentation
+and Ubuntu SDL bootstrap/validation. This was not a signed Mac package build or
+Mac hardware qualification. Mac SDL is unchanged.
+
+The first hosted Ubuntu attempt passed compilation but failed the final payload
+path gate: SDL's default pkg-config metadata injected its absolute installation
+prefix into the Client RUNPATH. The bootstrap now sets `SDL_RPATH=OFF`, and
+prepared-source validation plus a regression test reject injected RPATH metadata.
+No gate was weakened and no failed package was distributed. The private Ubuntu
+SDL is an application-local copy, not a replacement for system SDL; revisit the
+patch and bundling when the distribution supplies the upstream retirement fix.
 
 The local build attempt was deliberately stopped before producing a package:
 its SDL build had silently omitted PipeWire because the builder lacks the
@@ -39,9 +66,11 @@ already-declared development package. Native SDL driver verification is now
 mandatory at preparation, cache restore, binary build and packaging. A hosted
 Ubuntu builder installs the complete declared dependencies. No package using
 that incomplete local SDL may be distributed; local source-level test results
-are not audio/runtime qualification. Next: hosted Ubuntu candidate and Mac
-compile validation, then separate real Wayland/input acceptance when available.
-No merge, release or deployment is authorized. See private notes for access.
+are not audio/runtime qualification. Next: separate real Wayland/input acceptance
+when an unoccupied, authorized test session is available. Reconnect, cursor
+replacement, tablet hover/tip/buttons and mouse/keyboard remain hardware gates;
+the field crash's exact caller remains unknown. No package was installed, and
+no merge, release or deployment is authorized. See private notes for access.
 
 ## Previous candidates — 1.1.036 Wacom state recovery
 
