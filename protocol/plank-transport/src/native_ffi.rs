@@ -37,6 +37,7 @@ const AUDIO_SEND_CAPACITY: usize = 16;
 const AUDIO_RECEIVE_CAPACITY: usize = 64;
 const INPUT_SEND_CAPACITY: usize = 128;
 const INPUT_RECEIVE_CAPACITY: usize = 128;
+const INPUT_RECEIVE_STALL_TIMEOUT: Duration = Duration::from_secs(2);
 const DATA_QUEUE_PACKET_CAPACITY: usize = 64;
 const DATA_QUEUE_BYTE_CAPACITY: usize = 8 * 1024 * 1024;
 const MAX_VIDEO_FRAME_SIZE: usize = 64 * 1024 * 1024;
@@ -187,6 +188,7 @@ struct NativeShared {
     video_receive_changed: Condvar,
     audio_receive_changed: Condvar,
     input_receive_changed: Condvar,
+    input_receive_space: tokio::sync::Notify,
     data_receive_changed: Condvar,
     stats: NativeStats,
     rate_policy: Arc<TransportRatePolicy>,
@@ -226,6 +228,7 @@ impl NativeShared {
             video_receive_changed: Condvar::new(),
             audio_receive_changed: Condvar::new(),
             input_receive_changed: Condvar::new(),
+            input_receive_space: tokio::sync::Notify::new(),
             data_receive_changed: Condvar::new(),
             stats: NativeStats::default(),
             rate_policy: TransportRatePolicy::new(initial_video_bitrate_bps),
@@ -712,24 +715,45 @@ async fn receive_input(
     mut recv: kymux_types::ProtocolRecv<InputPacket>,
 ) -> Result<()> {
     while let Some(packet) = recv.recv().await? {
-        let depth = {
-            let mut queues = shared.queues.lock().unwrap();
-            if queues.input_receive.len() == INPUT_RECEIVE_CAPACITY {
-                return Err(anyhow!("native input receive queue exhausted"));
-            }
-            queues.input_receive.push_back(NativeInputPacket {
-                type_: packet.type_,
-                payload: packet.payload,
-            });
-            queues.input_receive.len()
-        };
-        debug_assert!(depth <= INPUT_RECEIVE_CAPACITY);
-        shared
-            .stats
-            .input_packets_received
-            .fetch_add(1, Ordering::Relaxed);
-        shared.input_receive_changed.notify_one();
+        push_input_receive(&shared, packet).await?;
     }
+    Ok(())
+}
+
+// Preserve ordered transitions during a retransmission burst. Stop reading the
+// reliable stream while the bounded application queue is full, propagating
+// backpressure to QUIC. A permanently stalled consumer still fails closed.
+async fn push_input_receive(shared: &NativeShared, packet: InputPacket) -> Result<()> {
+    shared
+        .until_shutdown(async {
+            tokio::time::timeout(INPUT_RECEIVE_STALL_TIMEOUT, async {
+                loop {
+                    let space = shared.input_receive_space.notified();
+                    {
+                        let mut queues = shared.queues.lock().unwrap();
+                        if queues.input_receive.len() < INPUT_RECEIVE_CAPACITY {
+                            queues.input_receive.push_back(NativeInputPacket {
+                                type_: packet.type_,
+                                payload: packet.payload,
+                            });
+                            break;
+                        }
+                    }
+                    // notify_one retains a permit if the consumer drained between
+                    // the capacity check and this await. There is one producer.
+                    space.await;
+                }
+            })
+            .await
+            .context("native input consumer stalled for two seconds")?;
+            shared
+                .stats
+                .input_packets_received
+                .fetch_add(1, Ordering::Relaxed);
+            shared.input_receive_changed.notify_one();
+            Ok(())
+        })
+        .await?;
     Ok(())
 }
 
@@ -1987,6 +2011,7 @@ pub unsafe extern "C" fn plank_transport_native_input_receive(
             Ok(packet) => packet,
             Err(error) => return error,
         };
+        endpoint.shared.input_receive_space.notify_one();
         let result = copy_bytes_out(&packet.payload, payload, payload_capacity, payload_size_out);
         if result != PLANK_TRANSPORT_OK {
             return result;

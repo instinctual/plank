@@ -120,6 +120,7 @@ extern "C" ssize_t __wrap_write(int fd, const void *data, size_t size) {
 TEST_F(RawHidLifecycle, LateStartWhileSuspendedCanBeReusedAndRequestsComplete) {
   auto queue = std::make_shared<raw_hid::feedback_queue_t::element_type>(std::make_shared<safe::mail_raw_t>());
   raw_hid::tablet_t tablet {queue};
+  tablet.set_contact_cleanup_for_test([] { return true; });
   attach(tablet, 1);
   auto epoch = tablet.endpoint_epoch();
   ASSERT_TRUE(tablet.handle(frame(PLANK_RAW_HID_SUSPEND, 1)));
@@ -141,6 +142,42 @@ TEST_F(RawHidLifecycle, LateStartWhileSuspendedCanBeReusedAndRequestsComplete) {
   attach(tablet, 2);
   EXPECT_EQ(tablet.endpoint_epoch(), epoch);
   ASSERT_TRUE(queue->pop(1s));
+}
+
+TEST_F(RawHidLifecycle, TransientContactCleanupFailureRetriesWithoutReplacingHealthyEndpoints) {
+  auto queue = std::make_shared<raw_hid::feedback_queue_t::element_type>(std::make_shared<safe::mail_raw_t>());
+  raw_hid::tablet_t tablet {queue};
+  unsigned attempts = 0;
+  tablet.set_contact_cleanup_for_test([&] { return ++attempts > 1; });
+  attach(tablet, 1);
+  auto epoch = tablet.endpoint_epoch();
+  uhid_event event {}; event.type = UHID_START;
+  inject(event);
+  ASSERT_TRUE(queue->pop(1s));
+  tablet.suspend();
+  tablet.rebind(queue);
+  attach(tablet, 2);
+  EXPECT_EQ(attempts, 2);
+  EXPECT_EQ(tablet.endpoint_epoch(), epoch);
+  EXPECT_TRUE(queue->pop(1s));
+}
+
+TEST_F(RawHidLifecycle, UnverifiedContactCleanupReplacesOnlyTheUnhealthyEndpointGroup) {
+  auto queue = std::make_shared<raw_hid::feedback_queue_t::element_type>(std::make_shared<safe::mail_raw_t>());
+  raw_hid::tablet_t tablet {queue};
+  tablet.set_contact_cleanup_for_test([] { return false; });
+  attach(tablet, 1);
+  auto epoch = tablet.endpoint_epoch();
+  uhid_event event {}; event.type = UHID_START;
+  inject(event);
+  ASSERT_TRUE(queue->pop(1s));
+  tablet.suspend();
+  tablet.rebind(queue);
+  attach(tablet, 2);
+  EXPECT_GT(tablet.endpoint_epoch(), epoch);
+  EXPECT_FALSE(queue->peek()); // No false-ready acknowledgment before START.
+  inject(event);
+  EXPECT_TRUE(queue->pop(1s));
 }
 
 TEST_F(RawHidLifecycle, InterruptedProbeIsNotFalselyAcknowledgedAsReady) {

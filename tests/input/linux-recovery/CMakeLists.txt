@@ -39,17 +39,21 @@ find_package(Threads REQUIRED)
 enable_testing()
 add_executable(input-recovery
   logging.cpp
+  input-config.cpp
   uhid-fixture.cpp
+  "${HOST}/src/input.cpp"
+  "${HOST}/src/globals.cpp"
   "${HOST}/src/platform/virtualhid_input.cpp"
   "${HOST}/src/raw_hid_tablet.cpp"
   "${HOST}/src/raw_hid_contact.cpp"
   "${HOST}/tests/unit/test_raw_hid_tablet.cpp"
   "${HOST}/tests/unit/test_raw_hid_contact.cpp"
   "${HOST}/tests/unit/test_virtualhid_pen.cpp"
+  "${HOST}/tests/unit/test_input.cpp"
   "${HOST}/tests/unit/test_reliable_queue.cpp")
 target_include_directories(input-recovery PRIVATE
   "${HOST}" "${HOST}/third-party" "${PLANK_FFMPEG_INCLUDE}" "${PLANK_ROOT}/protocol/plank-transport/include")
-target_compile_definitions(input-recovery PRIVATE SUNSHINE_TESTS BOOST_LOG_DYN_LINK)
+target_compile_definitions(input-recovery PRIVATE SUNSHINE_TESTS PLANK_TRANSPORT BOOST_LOG_DYN_LINK)
 target_link_options(input-recovery PRIVATE -Wl,--wrap=open -Wl,--wrap=write -Wl,--wrap=close)
 target_link_libraries(input-recovery PRIVATE libvirtualhid::libvirtualhid gtest_main Boost::log Boost::thread Boost::filesystem Threads::Threads)
 add_test(NAME input-recovery COMMAND input-recovery)

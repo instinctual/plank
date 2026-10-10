@@ -3,6 +3,96 @@
 use super::*;
 use std::cell::RefCell;
 use std::sync::Barrier;
+use std::task::{Context as TaskContext, Poll, Waker};
+
+#[tokio::test]
+async fn reliable_input_bursts_wait_for_capacity_without_losing_transitions() {
+    let endpoint = endpoint(Lane::Input);
+    for tag in 0..INPUT_RECEIVE_CAPACITY as u64 {
+        push(Lane::Input, &endpoint.shared, tag);
+    }
+    let packet = InputPacket {
+        type_: 42,
+        payload: payload(INPUT_RECEIVE_CAPACITY as u64),
+    };
+    let mut pending = std::pin::pin!(push_input_receive(&endpoint.shared, packet));
+    let mut cx = TaskContext::from_waker(Waker::noop());
+    assert!(matches!(pending.as_mut().poll(&mut cx), Poll::Pending));
+    assert_eq!(endpoint.shared.state(), EndpointState::Ready);
+
+    // A size query must not free a slot or discard a held tip/button report.
+    let mut size = 0;
+    assert_eq!(
+        receive(Lane::Input, &endpoint, ptr::null_mut(), 0, &mut size, 0),
+        PLANK_TRANSPORT_ERROR_BUFFER_TOO_SMALL
+    );
+    assert!(matches!(pending.as_mut().poll(&mut cx), Poll::Pending));
+    assert_eq!(read_tag(Lane::Input, &endpoint).unwrap(), 0);
+    pending.await.unwrap();
+    for tag in 1..=INPUT_RECEIVE_CAPACITY as u64 {
+        assert_eq!(read_tag(Lane::Input, &endpoint).unwrap(), tag);
+    }
+    assert_eq!(
+        endpoint
+            .shared
+            .stats
+            .input_packets_received
+            .load(Ordering::Relaxed),
+        1
+    );
+}
+
+#[tokio::test]
+async fn full_input_queue_wait_is_cancelled_on_shutdown() {
+    let endpoint = endpoint(Lane::Input);
+    for tag in 0..INPUT_RECEIVE_CAPACITY as u64 {
+        push(Lane::Input, &endpoint.shared, tag);
+    }
+    let mut pending = std::pin::pin!(push_input_receive(
+        &endpoint.shared,
+        InputPacket {
+            type_: 42,
+            payload: payload(999)
+        }
+    ));
+    let mut cx = TaskContext::from_waker(Waker::noop());
+    assert!(matches!(pending.as_mut().poll(&mut cx), Poll::Pending));
+    endpoint.shared.stop.store(true, Ordering::Release);
+    endpoint.shared.notify_all();
+    assert!(matches!(
+        pending.as_mut().poll(&mut cx),
+        Poll::Ready(Ok(()))
+    ));
+    assert_eq!(
+        endpoint.shared.queues.lock().unwrap().input_receive.len(),
+        INPUT_RECEIVE_CAPACITY
+    );
+}
+
+#[tokio::test]
+async fn permanently_stalled_input_consumer_has_a_deadline() {
+    let endpoint = endpoint(Lane::Input);
+    for tag in 0..INPUT_RECEIVE_CAPACITY as u64 {
+        push(Lane::Input, &endpoint.shared, tag);
+    }
+    let result = tokio::time::timeout(
+        Duration::from_secs(4),
+        push_input_receive(
+            &endpoint.shared,
+            InputPacket {
+                type_: 42,
+                payload: payload(999),
+            },
+        ),
+    )
+    .await
+    .unwrap();
+    assert!(result.unwrap_err().to_string().contains("consumer stalled"));
+    assert_eq!(
+        endpoint.shared.queues.lock().unwrap().input_receive.len(),
+        INPUT_RECEIVE_CAPACITY
+    );
+}
 
 thread_local! {
     // Per-thread, one-shot injection; other tests and nested receives cannot

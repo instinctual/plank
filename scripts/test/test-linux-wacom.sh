@@ -8,8 +8,8 @@ flags=(-std=c++17 -O2 -g -DNDEBUG -Wall -Wextra -Werror -pthread)
 if [[ ${PLANK_WACOM_SANITIZERS:-0} == 1 ]]; then
   flags+=(-fsanitize=address,undefined -fno-omit-frame-pointer)
 fi
-read -r -a client_cflags <<< "$(pkg-config --cflags Qt6Gui sdl3 libudev wayland-client wayland-server)"
-read -r -a client_libs <<< "$(pkg-config --libs Qt6Gui sdl3 libudev wayland-client wayland-server)"
+read -r -a client_cflags <<< "$(pkg-config --cflags Qt6Gui sdl3 libinput libudev wayland-client wayland-server)"
+read -r -a client_libs <<< "$(pkg-config --libs Qt6Gui sdl3 libinput libudev wayland-client wayland-server)"
 "${CXX:-c++}" "${flags[@]}" "$source_dir/tests/linuxrawwacom/test_reportworker.cpp" \
   -o "$build_dir/report-worker"
 timeout 30 "$build_dir/report-worker"
@@ -24,4 +24,10 @@ timeout 30 "$build_dir/wayland-cursor"
   -I"$source_dir/moonlight-common-c/moonlight-common-c/src" \
   -c "$source_dir/app/streaming/input/linuxrawwacom.cpp" \
   -o "$build_dir/linuxrawwacom.o"
+"${CXX:-c++}" "${flags[@]}" "${client_cflags[@]}" \
+  -I"$source_dir/moonlight-common-c/moonlight-common-c/src" \
+  "$source_dir/tests/linuxrawwacom/test_lifecycle.cpp" \
+  "$source_dir/app/streaming/input/linuxwacom.cpp" "$build_dir/linuxrawwacom.o" \
+  -Wl,--wrap=udev_new "${client_libs[@]}" -o "$build_dir/lifecycle"
+timeout 30 "$build_dir/lifecycle"
 echo 'linux_wacom_components=pass hardware_acceptance=not-performed'
