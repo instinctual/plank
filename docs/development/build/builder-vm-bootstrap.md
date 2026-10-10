@@ -187,19 +187,6 @@ cargo fetch --locked --target x86_64-unknown-linux-gnu \
 
 ## linux-client-builder inputs
 
-Prepare the private SDL 3.4.2 runtime with the tracked Wayland tablet-cursor
-retirement repair. This does not replace the distribution's SDL installation:
-
-```bash
-bash scripts/build/build-client-sdl.sh "$PLANK_CLIENT_SDL_WORK"
-```
-
-Both the binary build and package preflight verify the archive, the entire
-patched source tree and installed-library checksums. Missing preparation fails
-closed. Retain this prepared tree beside FFmpeg; do not reconstruct it for every
-application build. The isolated retirement regression requires no compositor,
-tablet or active session. A passing test is not hardware acceptance.
-
 ```bash
 sudo apt-get update
 sudo apt-get install -y \
@@ -212,6 +199,20 @@ sudo apt-get install -y \
   libopus-dev libplacebo-dev libssl-dev libudev-dev libva-dev \
   libvdpau-dev libwayland-dev libx11-dev zlib1g-dev
 ```
+
+After installing those prerequisites, prepare the private SDL 3.4.2 runtime
+with the tracked Wayland tablet-cursor retirement repair. This does not replace
+the distribution's SDL installation:
+
+```bash
+bash scripts/build/build-client-sdl.sh "$PLANK_CLIENT_SDL_WORK"
+```
+
+Both the binary build and package preflight verify the archive, the entire
+patched source tree and installed-library checksums. Missing preparation fails
+closed. Retain this prepared tree beside FFmpeg; do not reconstruct it for every
+application build. The isolated retirement regression requires no compositor,
+tablet or active session. A passing test is not hardware acceptance.
 
 APT installs transitive development packages. Record the resulting package
 versions during cutover. Do not satisfy a missing dependency with an untracked

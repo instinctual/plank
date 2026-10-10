@@ -11,7 +11,7 @@ A full application rebuild still permits reuse of verified, exact-input
 dependencies. Reserve `--clean-bootstrap` for an explicit dependency-bootstrap
 qualification, not ordinary rebuilds after a merge. All four hosted products
 have exact-input dependency caches. Linux Host retains prepared FFmpeg and
-Boost sources, Ubuntu Client retains patched FFmpeg, and macOS Client retains
+Boost sources, Ubuntu Client retains patched FFmpeg and SDL, and macOS Client retains
 prepared libraries and Qt. The other three products also retain the pinned
 Rust toolchain and downloaded Cargo inputs; macOS Host uses native Apple media
 frameworks, so has no separate FFmpeg/Qt dependency build to cache. Application
@@ -232,6 +232,12 @@ from its verified bundle before initializing the root worktree. Set
 the `main` defaults are only for a mainline release. The sanitized Host,
 Client and Kymux companion repositories each use `main`.
 
+A canonical submodule may intentionally fetch from a retained local repository.
+Before publishing, check `git remote get-url --push origin`: a successful push
+to that local seed is not a GitHub publication. Set an explicit GitHub push URL
+without changing the local fetch URL, push nested commits first, and verify the
+advertised GitHub branch commit before dispatching its parent's build.
+
 ```bash
 source_root="$PLANK_SOURCE_ROOT"
 client_ref=refs/heads/main
@@ -387,7 +393,7 @@ root_worktree=${PLANK_ROOT_WORKTREE:?set the exact installed-candidate root work
 g++ -std=c++17 -O2 -o /tmp/plank-sdl3-audio-probe \
   "$root_worktree/probes/client-sdl3-audio-probe.cpp" \
   $(pkg-config --cflags --libs sdl3)
-/tmp/plank-sdl3-audio-probe
+LD_LIBRARY_PATH=/usr/lib/plank /tmp/plank-sdl3-audio-probe
 ```
 
 The probe must print `audio_driver=pipewire` and a real output device. This is

@@ -7,6 +7,31 @@ independently proves that the prepared source contains it.
 
 ## Active Linux product patches
 
+### Client private SDL
+
+`apps/client/app/deploy/linux/sdl-patches/0001-wayland-detach-the-tablet-cursor-surface.patch`
+repairs cursor retirement in SDL 3.4.2's Wayland backend. When a tablet tool
+uses the retiring cursor, detach that tool's surface, not the independent
+mouse surface, which may be null or belong to another cursor.
+
+- `scripts/build/build-client-sdl.sh` uses the checksum-pinned official SDL
+  archive and applies the exact patch, or proves it is already applied.
+- `scripts/build/client-sdl.sh` compares the entire prepared source against a
+  fresh extraction plus the patch and verifies the installed-file receipt.
+  Bootstrap, dependency-cache restore, application build and packaging all
+  require this check.
+- `scripts/test/check-client-sdl.py` loads the actual library without starting
+  SDL and requires the qualified version and native PipeWire, Wayland and X11
+  drivers. CMake's requested `ON` value does not establish that missing headers
+  did not silently disable a driver.
+- `tests/input/test-sdl-cursor-retirement.py` compiles the actual patched
+  retirement function against independent tablet/pointer surface fixtures.
+  The unpatched function fails the null-mouse-surface negative control.
+- The DEB installs SDL only in `/usr/lib/plank`, retaining the upstream license
+  and patch. Its loader gate requires that private library with
+  `LD_LIBRARY_PATH` unset. No system SDL files are replaced. Mac SDL inputs are
+  unchanged; this patch is specific to Wayland.
+
 ### Client private FFmpeg
 
 `apps/client/app/deploy/linux/ffmpeg-patches/0001-hevc-enable-hwaccel-for-identity-gbr.patch`
@@ -82,7 +107,7 @@ package preflight before shipping it.
 - Kymux, common-c, qmdnsengine, and Host recursive dependencies are exact Git
   links. Candidate setup seeds those commits from canonical repositories or
   verified bundles and requires clean worktrees.
-- Qt, SDL3, libplacebo, and the remaining Client development/runtime inputs
+- Qt, SDL3_ttf, libplacebo, and the remaining Client development/runtime inputs
   are qualified Ubuntu packages. Their versions and runtime closure are
   package gates; PLANK does not patch their installed files.
 
