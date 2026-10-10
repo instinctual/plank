@@ -32,6 +32,15 @@ configuration. Export `PLANK_SOURCE_ROOT`, `PLANK_CANONICAL_ROOT`, `PLANK_WORK_R
 
 ## Package catalog and source layout
 
+Ubuntu Client builds now require `PLANK_CLIENT_SDL_WORK` from the builder's
+path manifest, prepared by `scripts/build/build-client-sdl.sh`. Hosted builds
+prepare and cache it independently from FFmpeg. The DEB carries the patched
+SDL privately in `/usr/lib/plank`; it never replaces the OS SDL. Package gates
+must resolve `libSDL3.so.0` there with `LD_LIBRARY_PATH` unset, and record the
+SDL source/patch hashes in BUILD-INFO. Do not bypass a missing/stale SDL input
+by linking the distribution library, which still contains the tablet cursor
+retirement defect. Mac Client and Host dependencies are unchanged.
+
 Products live under `apps/`; packaging templates under `packaging/<product>/<os>`.
 Git submodule section names remain `host/sunshine-fork` and
 `client/moonlight-qt-fork`, but working paths are `apps/host/linux` and

@@ -12,6 +12,12 @@ source_dir=$(realpath -- "$1")
 ffmpeg_work_dir=$(realpath -- "$2")
 build_dir=$(realpath -m -- "${3:-${repo_dir}/build/package-client}")
 ffmpeg_prefix="${ffmpeg_work_dir}/install"
+client_sdl_work=${PLANK_CLIENT_SDL_WORK:?prepare patched Client SDL and set PLANK_CLIENT_SDL_WORK}
+source "$repo_dir/scripts/build/client-sdl.sh"
+plank_verify_client_sdl "$repo_dir" "$client_sdl_work"
+python3 "$repo_dir/tests/input/test-sdl-cursor-retirement.py" "$client_sdl_work/SDL3-$plank_sdl_version"
+export PKG_CONFIG_PATH="$client_sdl_work/install/lib/pkgconfig${PKG_CONFIG_PATH:+:$PKG_CONFIG_PATH}"
+export LD_LIBRARY_PATH="$client_sdl_work/install/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
 source "$repo_dir/scripts/build/build-paths.sh"
 plank_build_path_flags "$repo_dir" "$build_dir"
 plank_native_dependency_flags
@@ -1733,7 +1739,7 @@ cleanup_bookmark_test
 trap - EXIT
 echo "client_host_aware_bookmark_test=pass"
 
-export PKG_CONFIG_PATH="${ffmpeg_prefix}/lib/pkgconfig"
+export PKG_CONFIG_PATH="${ffmpeg_prefix}/lib/pkgconfig:$client_sdl_work/install/lib/pkgconfig"
 export LD_LIBRARY_PATH="${ffmpeg_prefix}/lib${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}"
 [[ $(pkg-config --modversion libavcodec) == 63.* ]] || {
   echo "FFmpeg 9 libavcodec pkg-config metadata was not selected" >&2

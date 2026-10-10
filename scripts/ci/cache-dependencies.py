@@ -13,7 +13,7 @@ import subprocess
 # share an install prefix; separate caches must never restore overlapping paths.
 COMPONENTS = {
     'linux-host': ('rust', 'cargo', 'ffmpeg', 'boost'),
-    'linux-client': ('rust', 'cargo', 'ffmpeg'),
+    'linux-client': ('rust', 'cargo', 'ffmpeg', 'native'),
     'macos-host': ('rust', 'cargo'),
     'macos-client': ('rust', 'cargo', 'native', 'qt'),
 }
@@ -22,6 +22,7 @@ ALL_COMPONENTS = ('rust', 'cargo', 'ffmpeg', 'boost', 'native', 'qt')
 HOST_DEPS = 'apps/host/linux/third-party/build-deps'
 CLIENT_PATCHES = 'apps/client/app/deploy/linux/ffmpeg-patches'
 IDENTITY_PATCH = CLIENT_PATCHES + '/0001-hevc-enable-hwaccel-for-identity-gbr.patch'
+SDL_PATCH = 'apps/client/app/deploy/linux/sdl-patches/0001-wayland-detach-the-tablet-cursor-surface.patch'
 RECIPES = 'scripts/ci/dependencies/'
 
 
@@ -46,6 +47,12 @@ def dependency_inputs(root, product, component):
         paths.add(RECIPES + 'boost.sh')
     elif component == 'qt':
         paths.update((RECIPES + 'qt.sh', 'scripts/build/macos-client-target.sh'))
+    elif component == 'native' and product == 'linux-client':
+        paths.update((RECIPES + 'client-sdl.sh', 'scripts/build/build-client-sdl.sh',
+                      'scripts/build/client-sdl.sh', 'scripts/build/build-paths.sh',
+                      'tests/input/test-sdl-cursor-retirement.py', SDL_PATCH))
+        paths.update(str(p.relative_to(root)) for p in
+                     (root / 'apps/client/app/deploy/linux/sdl-patches').glob('*.patch'))
     elif component == 'native':
         paths.update((RECIPES + 'macos-libraries.sh',
                       'scripts/build/bootstrap-macos-client-deps.sh',
@@ -90,7 +97,7 @@ def fingerprint(root, deps, product, component, toolchain):
     data = {'schema': 2, 'product': product, 'component': component,
             'inputs': hashes, 'pins': pins, 'source_root': str(root),
             'dependency_root': str(deps), 'toolchain': tools}
-    if component in ('native', 'qt'):
+    if product == 'macos-client' and component in ('native', 'qt'):
         target = os.environ.get('PLANK_MAC_CLIENT_MIN_MACOS') or '15.0'
         if target != '15.0':
             raise ValueError('PLANK Client deployment target must be 15.0')
@@ -113,6 +120,9 @@ def cache_paths(root, deps, product, component):
         paths = [deps / 'boost-1.89.0']
     elif component == 'qt':
         paths = [deps / 'qt']
+    elif component == 'native' and product == 'linux-client':
+        paths = [deps / 'client-sdl' / name for name in
+                 ('install', 'SDL3-3.4.2', 'SDL3-3.4.2.tar.gz', 'prepared.sha256')]
     elif component == 'native':
         paths = [deps / 'macos-client' / name for name in ('install', 'src', 'downloads')]
     elif product == 'linux-host':
@@ -146,9 +156,11 @@ def check_prepared(root, deps, product, component):
         'cargo': [],  # Locked fetch always runs; registry/Git sources may be absent.
         'boost': ['boost-1.89.0/CMakeLists.txt'],
         'qt': ['qt/6.10.2/macos/bin/qmake'],
-        'native': ['macos-client/install/lib/' + name + '.dylib' for name in
+        'native': (['client-sdl/prepared.sha256', 'client-sdl/install/lib/libSDL3.so.0']
+                   if product == 'linux-client' else
+                   ['macos-client/install/lib/' + name + '.dylib' for name in
                    ('libavcodec', 'libavutil', 'libswscale', 'libswresample',
-                    'libssl', 'libcrypto', 'libSDL3', 'libSDL3_ttf', 'libopus', 'libfreetype')],
+                    'libssl', 'libcrypto', 'libSDL3', 'libSDL3_ttf', 'libopus', 'libfreetype')]),
         'ffmpeg': (['host-ffmpeg/lib/libavcodec.a', 'host-ffmpeg/lib/libavutil.a']
                    if product == 'linux-host' else
                    ['client-ffmpeg/ffmpeg-9.0.1.tar.xz'] +
@@ -160,6 +172,10 @@ def check_prepared(root, deps, product, component):
     if component == 'ffmpeg' and product == 'linux-host':
         subprocess.run(['bash', str(root / 'scripts/build/verify-host-dependency-patches.sh'),
                         str(root / HOST_DEPS / 'build')], check=True)
+    elif component == 'native' and product == 'linux-client':
+        subprocess.run(['bash', '-c',
+                        'source "$1/scripts/build/client-sdl.sh"; plank_verify_client_sdl "$1" "$2"',
+                        'verify-sdl', str(root), str(deps / 'client-sdl')], check=True)
     elif component == 'native' or (component == 'ffmpeg' and product == 'linux-client'):
         source = ('macos-client/src/ffmpeg-9.0.1' if component == 'native'
                   else 'client-ffmpeg/ffmpeg-9.0.1')

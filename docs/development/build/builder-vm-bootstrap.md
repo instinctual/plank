@@ -57,6 +57,7 @@ export PLANK_CARGO_ROOT="$PLANK_DEP_ROOT/cargo"
 
 # Client builder only
 export PLANK_CLIENT_FFMPEG_WORK="$PLANK_DEP_ROOT/client-ffmpeg-9.0.1"
+export PLANK_CLIENT_SDL_WORK="$PLANK_DEP_ROOT/client-sdl"
 export PLANK_CLIENT_SUBMODULE_CACHE="$PLANK_DEP_ROOT/client-submodules"
 
 # Host builder only
@@ -186,6 +187,19 @@ cargo fetch --locked --target x86_64-unknown-linux-gnu \
 
 ## linux-client-builder inputs
 
+Prepare the private SDL 3.4.2 runtime with the tracked Wayland tablet-cursor
+retirement repair. This does not replace the distribution's SDL installation:
+
+```bash
+bash scripts/build/build-client-sdl.sh "$PLANK_CLIENT_SDL_WORK"
+```
+
+Both the binary build and package preflight verify the archive, the entire
+patched source tree and installed-library checksums. Missing preparation fails
+closed. Retain this prepared tree beside FFmpeg; do not reconstruct it for every
+application build. The isolated retirement regression requires no compositor,
+tablet or active session. A passing test is not hardware acceptance.
+
 ```bash
 sudo apt-get update
 sudo apt-get install -y \
@@ -193,6 +207,8 @@ sudo apt-get install -y \
   pkg-config python3 python3-venv ripgrep xz-utils \
   qt6-base-dev qt6-declarative-dev qt6-svg-dev qt6-svg-plugins qt6-wayland \
   libsdl3-dev libsdl3-ttf-dev libpipewire-0.3-dev libdecor-0-dev libdrm-dev libinput-dev \
+  libasound2-dev libpulse-dev libegl-dev libgles-dev libxkbcommon-dev \
+  libxcursor-dev libxrandr-dev libxfixes-dev libxi-dev wayland-protocols \
   libopus-dev libplacebo-dev libssl-dev libudev-dev libva-dev \
   libvdpau-dev libwayland-dev libx11-dev zlib1g-dev
 ```

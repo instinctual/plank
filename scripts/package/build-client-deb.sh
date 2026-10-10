@@ -19,6 +19,9 @@ runtime_client_logo="${moonlight_source_dir}/app/res/plank-logo.png"
 ffmpeg_version=9.0.1
 ffmpeg_sha256=cf38e0e28c7e5605942c4a77755349b0145804a397af37eb1fb4c77cb237f635
 ffmpeg_lib_dir="${ffmpeg_work_dir}/install/lib"
+client_sdl_work=${PLANK_CLIENT_SDL_WORK:?prepare patched Client SDL and set PLANK_CLIENT_SDL_WORK}
+source "$repo_dir/scripts/build/client-sdl.sh"
+plank_verify_client_sdl "$repo_dir" "$client_sdl_work"
 if [[ -f ${ffmpeg_work_dir}/COPYING.LGPLv2.1 ]]; then
   ffmpeg_source_dir="$ffmpeg_work_dir"
 else
@@ -155,6 +158,11 @@ install -D -m 0644 "$ffmpeg_source_dir/COPYING.LGPLv3" \
 for library in libavcodec libavutil libswscale libswresample; do
   cp -a "${ffmpeg_lib_dir}/${library}.so."* "$private_lib_dir/"
 done
+cp -a "$client_sdl_work/install/lib/"libSDL3.so.* "$private_lib_dir/"
+install -m 0644 "$client_sdl_work/SDL3-$plank_sdl_version/LICENSE.txt" \
+  "$stage_dir/usr/share/doc/plank-client/COPYING.SDL3"
+install -m 0644 "$repo_dir/$plank_sdl_patch_relative" \
+  "$stage_dir/usr/share/doc/plank-client/SDL3-cursor-retirement.patch"
 cmp --silent "$moonlight_source_dir/app/res/plank-logo.png" \
   "$stage_dir/usr/share/icons/hicolor/512x512/apps/plank-client.png" || {
   echo "packaged client logo differs from the approved runtime source" >&2
@@ -188,6 +196,7 @@ libavcodec 63 plank-client
 libavutil 61 plank-client
 libswscale 10 plank-client
 libswresample 7 plank-client
+libSDL3 0 plank-client
 EOF
 
 (
@@ -212,6 +221,9 @@ moonlight-common-c commit: ${common_commit}
 Kyber kymux commit: ${kyber_commit}
 FFmpeg version: ${ffmpeg_version}
 FFmpeg source SHA-256: ${ffmpeg_sha256}
+SDL version: ${plank_sdl_version} (PLANK Wayland tablet cursor retirement patch)
+SDL source SHA-256: ${plank_sdl_sha256}
+SDL patch SHA-256: $(sha256sum "$repo_dir/$plank_sdl_patch_relative" | awk '{print $1}')
 Unstripped build binary SHA-256: $(sha256sum "$moonlight_binary" | awk '{print $1}')
 Packaged binary SHA-256: $(sha256sum "$stage_dir/usr/bin/plank-client" | awk '{print $1}')
 EOF
@@ -381,7 +393,7 @@ rg -Fq '$ORIGIN/../lib/plank' <<<"$packaged_dynamic_section" || {
 }
 unmanaged_loader_output=$(env -u LD_LIBRARY_PATH \
   ldd "$stage_dir/usr/bin/plank-client")
-for soname in libavcodec.so.63 libavutil.so.61 libswscale.so.10 libswresample.so.7; do
+for soname in libavcodec.so.63 libavutil.so.61 libswscale.so.10 libswresample.so.7 libSDL3.so.0; do
   unmanaged_path=$(awk -v name="$soname" \
     '$1 == name && $2 == "=>" {print $3}' <<<"$unmanaged_loader_output")
   [[ -n ${unmanaged_path} ]] &&

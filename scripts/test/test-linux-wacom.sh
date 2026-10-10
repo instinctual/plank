@@ -13,9 +13,14 @@ read -r -a client_libs <<< "$(pkg-config --libs Qt6Gui sdl3 libinput libudev way
 "${CXX:-c++}" "${flags[@]}" "$source_dir/tests/linuxrawwacom/test_reportworker.cpp" \
   -o "$build_dir/report-worker"
 timeout 30 "$build_dir/report-worker"
+"${CXX:-c++}" "${flags[@]}" "$source_dir/tests/linuxrawwacom/test_callbacktarget.cpp" \
+  -o "$build_dir/callback-target"
+timeout 30 "$build_dir/callback-target"
 "${CXX:-c++}" "${flags[@]}" -DHAS_WAYLAND "${client_cflags[@]}" \
+  -include "$source_dir/tests/linuxrawwacom/wayland-faults.h" \
   "$source_dir/tests/linuxrawwacom/test_waylandcursor.cpp" \
   "$source_dir/app/streaming/plankwaylandcursor.cpp" \
+  "$source_dir/app/streaming/plankwaylandtoolbar.cpp" \
   "${client_libs[@]}" -o "$build_dir/wayland-cursor"
 timeout 30 "$build_dir/wayland-cursor"
 # Compile the actual hidraw adapter too; the worker model alone would not catch

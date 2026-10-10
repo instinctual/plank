@@ -4,10 +4,33 @@ Read `AGENTS.md` and the relevant build runbook first. Machine-specific access,
 credentials, captures and operational evidence belong in the external private
 notes, never in Git.
 
-## Current candidates — 1.1.036 Wacom state recovery
+## Current work — Client session recovery
 
-Continue in `build/worktrees/wacom-state-recovery`, branch
-`wacom-state-recovery`, based on parent `252d770f64d5fa2943b44db24f5f1a20372a3282`.
+Continue in `build/worktrees/wacom-state-recovery`, now on
+`client-session-recovery`. Parent base `5ac23ba7f6f5a84c347e3081791521e25a369c2e`
+includes the complete `.036` Wacom work below; this is not based on main.
+Client source `03b873f99bfd2c20ea8deb948c216a32dc154db2` and common-C
+`437be9a0a4d164efdf9ed20dc6dd5a2b7b9edc90` are local development checkpoints,
+not yet pushed or qualified. Host/transport pins and `.036` artifacts are unchanged.
+
+The occupied end-user machine must not be interrupted. Private read-only evidence
+identified a null Wayland proxy call, but no stack trace survives to establish
+its caller. Geometry warnings also occur on successful streams. Do not present
+the warning as the proven cause, or claim field acceptance from isolated tests.
+
+Changes being qualified: callback lifetime exclusion during input destruction;
+checked Wayland cursor/toolbar constructor failures; bounded callback-queue
+failure diagnostics; a private SDL 3.4.2 one-line tablet cursor retirement repair.
+The latter uses the tablet surface instead of the independent mouse surface.
+The OS SDL stays untouched. Tests inject allocation failures, late releases,
+callback stalls and independent tablet/pointer surface states without a session.
+No merge, release or deployment is authorized. Next: isolated Ubuntu-builder
+tests and dependency/package validation. See external private notes for access.
+
+## Previous candidates — 1.1.036 Wacom state recovery
+
+These were built on `wacom-state-recovery`, based on parent
+`252d770f64d5fa2943b44db24f5f1a20372a3282`.
 All four **1.1.036-wacom-state-recovery** candidate packages passed hosted builds
 and have been downloaded with independently verified checksums and provenance.
 Source and dependency branches are pushed; nothing was merged, released or
