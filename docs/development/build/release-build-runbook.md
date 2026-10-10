@@ -371,10 +371,13 @@ CARGO_TARGET_DIR="$cargo_preflight" \
     --manifest-path "$root_worktree/protocol/plank-transport/Cargo.toml"
 ```
 
-The SDL3 candidate uses the system's native SDL3 and SDL3_ttf development
-packages and links directly to `libSDL3.so.0` and `libSDL3_ttf.so.0`; do not
+The SDL3 candidate uses the prepared, patched private SDL3 and the system's
+SDL3_ttf. It links directly to `libSDL3.so.0` and `libSDL3_ttf.so.0`; do not
 introduce `sdl2-compat`. Audio uses SDL3's PipeWire driver and device-stream
-API rather than libsoundio or a PulseAudio compatibility renderer.
+API rather than libsoundio or a PulseAudio compatibility renderer. Set
+`PKG_CONFIG_PATH="$PLANK_CLIENT_SDL_WORK/install/lib/pkgconfig"` for standalone
+builder probes; on an installed target, load `/usr/lib/plank/libSDL3.so.0` rather
+than accidentally qualifying the unpatched system SDL.
 
 After installing an SDL3 candidate on the Client hardware-test target, validate
 the same native output API without requiring a Host session:

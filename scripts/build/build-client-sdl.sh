@@ -31,6 +31,7 @@ cmake -S "$source_dir" -B "$work_dir/build" -DCMAKE_BUILD_TYPE=Release \
   -DSDL_ALSA=ON -DSDL_PULSEAUDIO=ON -DSDL_UNIX_CONSOLE_BUILD=OFF
 cmake --build "$work_dir/build" --parallel "${PLANK_BUILD_JOBS:-8}"
 cmake --install "$work_dir/build"
+(sha256sum "$patch_file" | cut -d' ' -f1) > "$work_dir/patch.sha256"
 (cd "$work_dir" && find install -type f -print0 | sort -z | xargs -0 sha256sum > prepared.sha256)
 plank_verify_client_sdl "$repo_dir" "$work_dir"
 echo 'client_sdl_source_patch_and_runtime_gate=pass'

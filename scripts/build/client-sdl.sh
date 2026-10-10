@@ -6,6 +6,8 @@ plank_sdl_patch_relative=apps/client/app/deploy/linux/sdl-patches/0001-wayland-d
 
 plank_verify_client_sdl() {
     local repo=$1 work=$2 audit
+    [[ $(sha256sum "$repo/$plank_sdl_patch_relative" | cut -d' ' -f1) ==
+       "$(<"$work/patch.sha256")" ]] || return 1
     printf '%s  %s\n' "$plank_sdl_sha256" "$work/SDL3-$plank_sdl_version.tar.gz" |
       sha256sum --check --status || return 1
     audit=$(mktemp -d) || return 1

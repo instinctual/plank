@@ -122,7 +122,7 @@ def cache_paths(root, deps, product, component):
         paths = [deps / 'qt']
     elif component == 'native' and product == 'linux-client':
         paths = [deps / 'client-sdl' / name for name in
-                 ('install', 'SDL3-3.4.2', 'SDL3-3.4.2.tar.gz', 'prepared.sha256')]
+                 ('install', 'SDL3-3.4.2', 'SDL3-3.4.2.tar.gz', 'prepared.sha256', 'patch.sha256')]
     elif component == 'native':
         paths = [deps / 'macos-client' / name for name in ('install', 'src', 'downloads')]
     elif product == 'linux-host':
