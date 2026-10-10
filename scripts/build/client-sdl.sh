@@ -5,7 +5,14 @@ plank_sdl_sha256=ef39a2e3f9a8a78296c40da701967dd1b0d0d6e267e483863ce70f8a03b4050
 plank_sdl_patch_relative=apps/client/app/deploy/linux/sdl-patches/0001-wayland-detach-the-tablet-cursor-surface.patch
 
 plank_verify_client_sdl() {
-    local repo=$1 work=$2 audit
+    local repo=$1 work=$2 audit link_flags
+    # SDL's default pkg-config metadata embeds its build-machine install path
+    # in consumers' RUNPATH. PLANK supplies its own package-relative RUNPATH.
+    link_flags=$(PKG_CONFIG_PATH="$work/install/lib/pkgconfig" pkg-config --libs sdl3) || return 1
+    if [[ $link_flags == *rpath* ]]; then
+        echo 'Client SDL metadata must not inject a dependency-prefix RUNPATH' >&2
+        return 1
+    fi
     [[ $(sha256sum "$repo/$plank_sdl_patch_relative" | cut -d' ' -f1) == \
        "$(<"$work/patch.sha256")" ]] || return 1
     printf '%s  %s\n' "$plank_sdl_sha256" "$work/SDL3-$plank_sdl_version.tar.gz" |

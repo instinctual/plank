@@ -29,7 +29,10 @@ mouse surface, which may be null or belong to another cursor.
   The unpatched function fails the null-mouse-surface negative control.
 - The DEB installs SDL only in `/usr/lib/plank`, retaining the upstream license
   and patch. Its loader gate requires that private library with
-  `LD_LIBRARY_PATH` unset. No system SDL files are replaced. Mac SDL inputs are
+  `LD_LIBRARY_PATH` unset. Bootstrap sets `SDL_RPATH=OFF` and verification rejects
+  SDL pkg-config flags that inject the prepared install prefix into consumers;
+  the Client retains only its package-relative private-library RUNPATH.
+  No system SDL files are replaced. Mac SDL inputs are
   unchanged; this patch is specific to Wayland.
 
 ### Client private FFmpeg
