@@ -4,24 +4,56 @@ Read `AGENTS.md` and the relevant build runbook first. Machine-specific access,
 credentials, captures and operational evidence belong in the external private
 notes, never in Git.
 
-## Current work — Wacom state recovery
+## Current candidates — 1.1.036 Wacom state recovery
 
 Continue in `build/worktrees/wacom-state-recovery`, branch
 `wacom-state-recovery`, based on parent `252d770f64d5fa2943b44db24f5f1a20372a3282`.
-The operator requested all four candidate packages, without a release or
-installation. Preparing **1.1.036-wacom-state-recovery** for hosted builds.
+All four **1.1.036-wacom-state-recovery** candidate packages passed hosted builds
+and have been downloaded with independently verified checksums and provenance.
+Source and dependency branches are pushed; nothing was merged, released or
+installed. No build remains running.
 This branch includes the previously requested Client PKG-only packaging cleanup;
 the independent native Apple Client automation is not included. Mainline
 packages remain **1.1.035**. No merge or release is authorized by this build.
 
-| Component | Implementation checkpoint |
+| Component | Exact candidate source |
 | --- | --- |
-| Parent, before this documentation update | `1c3a2158a421ebd77b93d04c11e1fa43cc232fb3` |
-| Client | `da42d3c941716402fb5c2f1d8dedf6b31e343106` |
+| Parent | `02e7964cdc4b18d6d68028cc1aa450fa91cdd7de` |
+| Client | `eb6fda977cc82aba5d9e1c2239a7fbfcc9297096` |
 | Linux Host | `65468c3297de82cebfd8f0f0af7dcbd351001cb7` |
 | Host libvirtualhid | `b793fa2f5369218c43e09c58d5b96a0cc638bf05` |
 
-Other recursive pins are unchanged from the baseline below. Changes:
+Other recursive pins are unchanged from the baseline below.
+
+Packages are in `artifacts/packages/candidates/1.1.036-wacom-state-recovery/`,
+under `linux/` and `macos/`. The catalog's `manifest.json`, `SHA256SUMS` and
+per-package sidecars retain original filenames and build provenance; all four
+local checksum checks passed. The Mac Client output is PKG-only, without a DMG.
+
+| Product / passed hosted run | Bytes | SHA-256 |
+| --- | ---: | --- |
+| [Linux Host RPM](https://github.com/instinctual/plank/actions/runs/38086303216) | 8723959 | `0a354fe3c86cb5d8632e4822b7b97423dddd6df639f18062d2f90041776e63a6` |
+| [Ubuntu Client DEB](https://github.com/instinctual/plank/actions/runs/38086303189) | 15611904 | `57daf45d3342c6ae0def873aa429b8a27a05458664dd25df15dd3a811c79775d` |
+| [macOS Host PKG](https://github.com/instinctual/plank/actions/runs/38086303190) | 7004798 | `514cb15d543a137df5b80bf552cfd6bbbdbc969a88dcb22db532d8ce09fab04a` |
+| [macOS Client PKG](https://github.com/instinctual/plank/actions/runs/38086303362) | 72880450 | `9f70e39471820e2eb8191c327e1e5a3fee60a7eda3c2c6c10288cd406d94b9ac` |
+
+Both Mac jobs passed Developer ID signing, notarization, stapling and Gatekeeper.
+Linux Host passed the RPM payload/log-directory gates, three consecutive
+150 Mbps native loss matrices (900 frames each; zero unrecovered source symbols),
+and 25 shuffled input-suite repetitions (42 passed, three hardware-dependent
+skips each). Its runtime RPM remains `BUILD_TESTS=OFF`; input tests are a
+separate build after packaging. Ubuntu passed the actual Wacom worker/lifecycle
+tests, version/banner checks, dependency closure and DEB payload gates.
+
+All jobs used dependency caching with fresh application/transport/package builds.
+Linux Host and both Mac jobs hit all dependency groups. Ubuntu hit Rust/Cargo;
+its FFmpeg exact key missed, was rebuilt with required patch checks and saved.
+No cache or validation gates were bypassed. Logs are retained under
+`build/tests/wacom-state-recovery/candidate-build-logs/`. Temporary signing
+branch permission is limited to `wacom-state-recovery`; remove it when retiring
+the branch. No signing secrets were copied locally.
+
+Implementation changes:
 
 - Serialize Host input delivery, repeat callbacks, reset and lease replacement.
   Retire held state before publishing a replacement lease; a late old-session
@@ -41,7 +73,7 @@ Coordinates, raw report formats and healthy-device identities are unchanged.
 No kernel touch-state workaround was added, and no particular intermittent
 field failure is claimed reproduced or fixed by hardware evidence yet.
 
-Validation completed:
+Earlier component validation completed:
 
 - Shared transport: 63 tests passed; 65 with `macos-source-first`. Nine
   certificate/camera/loss-harness tests were ignored in each run, not qualified.
@@ -58,16 +90,18 @@ Validation completed:
 
 Local component evidence is under `build/tests/wacom-state-recovery/`. The
 Ubuntu component checkout tested parent `b864290a2c658ecc75f6cf94345eeaec59fa78b7`
-with the exact Client pin above; later parent changes affect Host, transport and
-documentation, not the tested Client source or its test runner. Source bundles
+with Client `da42d3c941716402fb5c2f1d8dedf6b31e343106`; the final Client pin adds
+only the candidate changelog. Later parent changes affect Host, transport and
+packaging/documentation, not that component test runner. Source bundles
 were SHA-256 verified and imported Client-first with recursive fetch disabled.
 
-Next: build matching Linux Host/Ubuntu Client and signed Mac Host/Client
-candidates on hosted builders. Then qualify real hover, tip, pressure, barrel
+Next: manually install matching candidates and qualify real hover, tip, pressure, barrel
 buttons, Flame Tablet Margins, mouse/keyboard, focus changes, reconnect,
 hot-unplug and packet-loss recovery. Include healthy endpoint identity reuse
 and unhealthy-endpoint recreation. Component tests are not live tablet,
-streaming, WAN-loss or long-soak acceptance. No installed session was changed.
+streaming, WAN-loss or long-soak acceptance. Mac Client live acceptance on both
+macOS 15 and macOS 27 remains separate from the SDK27 build. No installed session
+was changed.
 
 ## Current build — 1.1.035 from main
 
