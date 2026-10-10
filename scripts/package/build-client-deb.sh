@@ -159,6 +159,7 @@ for library in libavcodec libavutil libswscale libswresample; do
   cp -a "${ffmpeg_lib_dir}/${library}.so."* "$private_lib_dir/"
 done
 cp -a "$client_sdl_work/install/lib/"libSDL3.so.* "$private_lib_dir/"
+python3 "$repo_dir/scripts/test/check-client-sdl.py" "$private_lib_dir/libSDL3.so.0"
 install -m 0644 "$client_sdl_work/SDL3-$plank_sdl_version/LICENSE.txt" \
   "$stage_dir/usr/share/doc/plank-client/COPYING.SDL3"
 install -m 0644 "$repo_dir/$plank_sdl_patch_relative" \

@@ -22,4 +22,5 @@ plank_verify_client_sdl() {
     fi
     find "$audit" -depth -delete
     (cd "$work" && sha256sum --check --status prepared.sha256) || return 1
+    python3 "$repo/scripts/test/check-client-sdl.py" "$work/install/lib/libSDL3.so.0" || return 1
 }

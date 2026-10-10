@@ -50,7 +50,8 @@ def dependency_inputs(root, product, component):
     elif component == 'native' and product == 'linux-client':
         paths.update((RECIPES + 'client-sdl.sh', 'scripts/build/build-client-sdl.sh',
                       'scripts/build/client-sdl.sh', 'scripts/build/build-paths.sh',
-                      'tests/input/test-sdl-cursor-retirement.py', SDL_PATCH))
+                      'tests/input/test-sdl-cursor-retirement.py',
+                      'scripts/test/check-client-sdl.py', SDL_PATCH))
         paths.update(str(p.relative_to(root)) for p in
                      (root / 'apps/client/app/deploy/linux/sdl-patches').glob('*.patch'))
     elif component == 'native':

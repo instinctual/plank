@@ -3,6 +3,8 @@
 set -euo pipefail
 source_dir=${1:?Client source required}
 build_dir=${2:?test build directory required}
+repo_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd)
+python3 "$repo_dir/tests/input/test-client-callback-lifetime.py" "$source_dir"
 mkdir -p "$build_dir"
 flags=(-std=c++17 -O2 -g -DNDEBUG -Wall -Wextra -Werror -pthread)
 if [[ ${PLANK_WACOM_SANITIZERS:-0} == 1 ]]; then

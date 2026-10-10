@@ -148,7 +148,11 @@ hardware-test targets, not fallback build machines.
 
 Use clean Git worktrees as source snapshots. Reuse the prepared, Git-ignored
 host and client FFmpeg trees; creating a worktree does not recreate those build
-inputs. Every product dependency patch is a required, reproducible build
+inputs. The Ubuntu Client also requires prepared, patched SDL through
+`PLANK_CLIENT_SDL_WORK`. Verify its source, installed bytes and actual compiled
+PipeWire/Wayland drivers; an SDL CMake `ON` setting alone does not prove those
+drivers were included. Bundle SDL privately, never replace the OS library.
+Every product dependency patch is a required, reproducible build
 input. A dependency bootstrap must either apply each selected patch or prove
 that the exact patch is already applied; a source/patch mismatch must stop the
 build. The package preflight must independently verify the patched prepared

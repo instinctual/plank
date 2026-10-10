@@ -32,7 +32,7 @@ class ProductDependencyCacheTests(unittest.TestCase):
             'scripts/build/relocate-openssl-pc.py', 'scripts/build/sanitize-ffmpeg-build-info.py',
             'scripts/build/verify-host-dependency-patches.sh', cache.IDENTITY_PATCH,
             'scripts/build/build-client-sdl.sh', 'scripts/build/client-sdl.sh',
-            'tests/input/test-sdl-cursor-retirement.py', cache.SDL_PATCH,
+            'tests/input/test-sdl-cursor-retirement.py', 'scripts/test/check-client-sdl.py', cache.SDL_PATCH,
         )
         for name in (*inputs, *(str(p.relative_to(ROOT)) for p in
                                 (ROOT / cache.RECIPES).glob('*.sh'))):

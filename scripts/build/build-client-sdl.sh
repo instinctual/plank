@@ -4,6 +4,10 @@ set -euo pipefail
 repo_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd)
 work_dir=$(realpath -m -- "${1:?SDL dependency work directory required}")
 source "$repo_dir/scripts/build/client-sdl.sh"
+# SDL's ON switches can still silently disable a driver when headers are
+# missing. Refuse that partial build before downloading or configuring.
+pkg-config --exists 'libpipewire-0.3 >= 0.3.44' wayland-client wayland-cursor \
+  wayland-egl wayland-protocols xkbcommon libdecor-0 egl x11
 archive="$work_dir/SDL3-$plank_sdl_version.tar.gz"
 source_dir="$work_dir/SDL3-$plank_sdl_version"
 mkdir -p "$work_dir"
@@ -31,6 +35,7 @@ cmake -S "$source_dir" -B "$work_dir/build" -DCMAKE_BUILD_TYPE=Release \
   -DSDL_ALSA=ON -DSDL_PULSEAUDIO=ON -DSDL_UNIX_CONSOLE_BUILD=OFF
 cmake --build "$work_dir/build" --parallel "${PLANK_BUILD_JOBS:-8}"
 cmake --install "$work_dir/build"
+python3 "$repo_dir/scripts/test/check-client-sdl.py" "$work_dir/install/lib/libSDL3.so.0"
 (sha256sum "$patch_file" | cut -d' ' -f1) > "$work_dir/patch.sha256"
 (cd "$work_dir" && find install -type f -print0 | sort -z | xargs -0 sha256sum > prepared.sha256)
 plank_verify_client_sdl "$repo_dir" "$work_dir"
