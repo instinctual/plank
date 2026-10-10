@@ -716,6 +716,9 @@ async fn receive_input(
 ) -> Result<()> {
     while let Some(packet) = recv.recv().await? {
         push_input_receive(&shared, packet).await?;
+        if shared.stop.load(Ordering::Acquire) || shared.state() == EndpointState::Failed {
+            return Ok(());
+        }
     }
     Ok(())
 }

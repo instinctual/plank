@@ -58,7 +58,10 @@ successful feature reply.
 Transport backpressure does not mean acceptance. The sender retains the exact
 message and its order on `PLANK_TRANSPORT_TIMEOUT`. Client input retries for at
 most two seconds; input/callback ingress and Host feedback queues wait at most
-100 ms for capacity. Unrecoverable pressure ends the session and invokes input
+100 ms for capacity. The shared reliable input receiver retains 128 records
+and pauses reads when full rather than rejecting a recovered burst. A consumer
+that makes no room for two seconds fails closed; cancellation interrupts this
+wait. Unrecoverable pressure ends the session and invokes input
 cleanup instead of silently losing a tip, button, feature request or attach
 acknowledgement. Queues remain bounded. These are failure limits, not delays
 added to uncongested input. Consecutive cursor positions may replace one
@@ -71,6 +74,13 @@ kernel ioctl cannot be forcibly cancelled; it owns no Client object and cannot
 publish a stale reply. The Host completes outstanding kernel GET/SET requests
 with `ENOTCONN` when their transport generation retires. New requests received
 while suspended receive that error immediately.
+
+The Ubuntu raw-HID capture worker exclusively owns discovery, device handles
+and attachment state. Transport callbacks only enqueue validated-size control
+records (at most 64); they do not wait for device polling or input submission.
+Focus loss and reconnect wait for an acknowledged worker suspension. A full
+control inbox retires the attachment and outstanding kernel queries instead
+of silently skipping a report request.
 
 The experimental macOS Client uses `IOHIDDeviceGetReport`/`IOHIDDeviceSetReport`
 on the corresponding physical interface. It converts Linux UHID report types
@@ -104,6 +114,18 @@ interrupted initial probe is not treated as a ready tablet; an incomplete
 group may be recreated. This is required
 because Autodesk Flame caches XInput device IDs.
 
+The Linux Host serializes native input, repeat timers, mailbox rebind and
+disconnect cleanup under one state lock. Lease validation and cleanup therefore
+cannot race a resumed connection. Disconnect also cancels the normalized pen,
+independently of viewport availability. Leave/cancel releases tip, barrel
+buttons and proximity without moving the pointer; failed button writes do not
+advance the accepted-state cache.
+
+Raw endpoint reuse additionally requires verified contact cleanup. A failed
+cleanup is retried before reuse. If it still cannot be verified, only that
+endpoint group is recreated and must complete `UHID_START` again. Ordinary
+healthy focus/disconnect cycles do not replace devices or alter coordinates.
+
 A physical hot-unplug, HID I/O error, changed USB identity or descriptor, or
 explicit final device teardown remains destructive and sends `tablet-detach`.
 An ordinary resumable stream disconnect also suspends transport and retains the
@@ -130,6 +152,10 @@ may start one fresh attachment only after the replacement connection reports
 success. This ordering prevents an early valid attachment from being discarded
 by reconnect cleanup.
 
+The Ubuntu normalized fallback uses the same transport barrier: cancel the old
+pen, stop forwarding during replacement, then resume according to window focus.
+It does not bypass the barrier just because the stream window stays focused.
+
 Linux attachment waits at most fifteen seconds for `tablet-attach-result`,
 allowing for kernel/USB feature queries. If that reliable acknowledgement is
 unavailable, the client closes the local transaction and retries with a new
@@ -139,6 +165,15 @@ application-visible XInput device identities. macOS retains its own attachment
 deadline and HID-worker lifecycle.
 
 ## Acceptance
+
+Device-independent regression checks live in `tests/input/linux-recovery`
+(Rocky builder, pinned Host dependencies, `PLANK_BOOST_SOURCE_DIR` pointing to
+the retained Boost 1.89.0 source, and `PLANK_FFMPEG_INCLUDE` to the prepared
+FFmpeg headers), `scripts/test/test-linux-wacom.sh` (Ubuntu builder), and the
+shared transport's Rust unit tests. The Ubuntu checks also support
+`PLANK_WACOM_SANITIZERS=1`. The standalone Host fixture supplies test input
+settings; actual configuration defaults are checked by the full Host CI suite.
+These tests do not replace physical tablet qualification below.
 
 Compare physical-client and virtual-host nodes for VID/PID/version, interface
 count, axis ranges and resolution, pressure, tilt, distance, tool identity,
