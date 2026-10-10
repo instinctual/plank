@@ -4,6 +4,71 @@ Read `AGENTS.md` and the relevant build runbook first. Machine-specific access,
 credentials, captures and operational evidence belong in the external private
 notes, never in Git.
 
+## Current work — Wacom state recovery
+
+Continue in `build/worktrees/wacom-state-recovery`, branch
+`wacom-state-recovery`, based on parent `252d770f64d5fa2943b44db24f5f1a20372a3282`.
+These are local checkpoints only: nothing from this task is pushed, merged,
+packaged or installed. Mainline packages remain **1.1.035**. Keep the independent
+native Apple Client automation and pending Client PKG-only cleanup separate;
+neither is included in this branch.
+
+| Component | Implementation checkpoint |
+| --- | --- |
+| Parent, before this documentation update | `1c3a2158a421ebd77b93d04c11e1fa43cc232fb3` |
+| Client | `da42d3c941716402fb5c2f1d8dedf6b31e343106` |
+| Linux Host | `65468c3297de82cebfd8f0f0af7dcbd351001cb7` |
+| Host libvirtualhid | `b793fa2f5369218c43e09c58d5b96a0cc638bf05` |
+
+Other recursive pins are unchanged from the baseline below. Changes:
+
+- Serialize Host input delivery, repeat callbacks, reset and lease replacement.
+  Retire held state before publishing a replacement lease; a late old-session
+  reset cannot release the new session's input.
+- Release normalized pen contact, pressure, barrel buttons and proximity on
+  leave/cancel/disconnect. Preserve accepted state when an output write fails.
+- Reuse healthy raw-HID endpoints, but require verified contact cleanup before
+  reuse. Recreate an endpoint when cleanup remains unsuccessful or unverifiable.
+- Give the Ubuntu raw capture worker sole ownership of device lifecycle; queue
+  control requests without holding a shared mutex over device I/O or network
+  enqueue. Both raw and normalized paths now observe the reconnect barrier.
+- Apply bounded receive backpressure to reliable input bursts instead of
+  immediately failing a full 128-record queue. A continuously stalled consumer
+  still fails closed after two seconds; cancellation interrupts the wait.
+
+Coordinates, raw report formats and healthy-device identities are unchanged.
+No kernel touch-state workaround was added, and no particular intermittent
+field failure is claimed reproduced or fixed by hardware evidence yet.
+
+Validation completed:
+
+- Shared transport: 63 tests passed; 65 with `macos-source-first`. Nine
+  certificate/camera/loss-harness tests were ignored in each run, not qualified.
+- libvirtualhid: 118 device-independent tests passed. A full builder run also
+  attempted 16 device-dependent tests, which failed prerequisites because this
+  builder has no `/dev/uinput` or `/dev/uhid`; those remain hardware gates.
+- Host recovery harness: 51 tests passed, then all 51 passed in each of 25
+  shuffled repetitions. It compiles the actual native input/reset paths and
+  requires the retained qualified Boost 1.89.0 source, not distro Boost.
+- Ubuntu builder: report-worker, Wayland cursor, raw-adapter and lifecycle tests
+  passed normally and with AddressSanitizer/UndefinedBehaviorSanitizer. The
+  lifecycle fixture intentionally fails mocked udev discovery without touching
+  physical devices. No candidate was installed on either builder.
+
+Local component evidence is under `build/tests/wacom-state-recovery/`. The
+Ubuntu component checkout tested parent `b864290a2c658ecc75f6cf94345eeaec59fa78b7`
+with the exact Client pin above; later parent changes affect Host, transport and
+documentation, not the tested Client source or its test runner. Source bundles
+were SHA-256 verified and imported Client-first with recursive fetch disabled.
+
+Next: read the release build runbook, increment the candidate version, build
+matching Linux Host/Ubuntu Client packages and run the affected macOS compile
+gates for shared transport. Then qualify real hover, tip, pressure, barrel
+buttons, Flame Tablet Margins, mouse/keyboard, focus changes, reconnect,
+hot-unplug and packet-loss recovery. Include healthy endpoint identity reuse
+and unhealthy-endpoint recreation. Component tests are not live tablet,
+streaming, WAN-loss or long-soak acceptance. No installed session was changed.
+
 ## Current build — 1.1.035 from main
 
 The operator requested all four installable packages from `main`, without a
