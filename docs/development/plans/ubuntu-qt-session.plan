@@ -80,3 +80,49 @@ existing production path intact for baseline comparison and rollback.
 
 Qt documents GUI/render-thread separation and native GPU integration. Those
 APIs enable the approach; they do not establish performance or color fidelity.
+
+## First qualification findings
+
+The isolated component passes 22 QtTest checks on the Ubuntu 26.04 / Qt 6.10.2
+builder, both offscreen and on an isolated GNOME/Wayland compositor. The same
+22 checks pass with ASan/UBSan and leak detection enabled. Mouse events in this
+suite are injected at Qt's event boundary, not physical seat or Wacom input.
+No remote session or hardware acceptance is implied.
+
+The precision gate deliberately tests the *bound framebuffer*, not just the
+reported OpenGL context format. Stock Qt Wayland decorations report a 10-bit
+context but use an R8/G8/B8 content framebuffer on the test compositor. That
+gate fails as intended. In a separate diagnostic process with
+`QT_WAYLAND_DISABLE_WINDOWDECORATION=1`, both windowed and fullscreen invocations
+use an R10/G10/B10 framebuffer and retain every code in all four 1024-level
+red/green/blue/gray ramps. The virtual builder uses Mesa llvmpipe; this is a
+precision/lifecycle feasibility check, not GPU throughput or panel qualification.
+
+Qt 6.10.2's `QWaylandEglWindow::contentFBO()` creates a default-format content
+FBO for decorated windows; its EGL window setup also requests 8-bit alpha when
+decoration support is enabled. This finding must be resolved before integrating
+video, and cannot be hidden by logging only `QOpenGLContext::format()`.
+
+Do not ship a global disable-decoration environment override, remove window
+controls, enable HDR, or patch Qt silently to make this gate pass. The next
+design gate is to preserve 10-bit direct presentation in decorated/windowed
+mode without regressing the ordinary main window. Evaluate a Qt-owned native
+video surface/overlay arrangement or deliberately integrated window chrome,
+then qualify the complete presenter path. This is still inside the Ubuntu-only
+experiment; the shipping Client remains unchanged.
+
+Source references for this finding:
+
+- https://github.com/qt/qtbase/blob/v6.10.2/src/plugins/platforms/wayland/plugins/hardwareintegration/wayland-egl/qwaylandeglwindow.cpp
+- https://github.com/qt/qtbase/blob/v6.10.2/src/plugins/platforms/wayland/plugins/hardwareintegration/wayland-egl/qwaylandglcontext.cpp
+- https://github.com/qt/qtbase/blob/v6.10.2/src/plugins/platforms/wayland/qwaylanddisplay.cpp
+
+Reproduce component tests on the Ubuntu builder with
+`PLANK_QT_SESSION_TEST_BUILD=<dedicated-shadow-build> scripts/test/run-qt-session-tests.sh`.
+The standalone probe is built in that directory's `probe/` subdirectory. It
+does not connect, capture microphone/camera/tablet input, or require credentials.
+`scripts/test/run-qt-session-compositor.sh` runs a separate headless compositor
+with a private runtime directory/session bus and in-memory settings; it never
+attaches to the user's desktop. Set `PLANK_QT_CHECK_PRECISION=1` to include the
+fail-closed framebuffer gate. The decoration-disable environment variable above
+is only a diagnostic comparison, not a successful decorated-window gate.

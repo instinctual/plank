@@ -21,6 +21,7 @@ int main(int argc, char** argv)
     parser.addOption({QStringLiteral("screen"), QStringLiteral("Output index (0-based)"), QStringLiteral("index"), QStringLiteral("0")});
     parser.addOption({QStringLiteral("quit-after"), QStringLiteral("Exit after this many seconds (0 disables)"), QStringLiteral("seconds"), QStringLiteral("0")});
     parser.addOption({QStringLiteral("precision-check"), QStringLiteral("Require and test an actual 10-bit OpenGL framebuffer; exits with pass/fail")});
+    parser.addOption({QStringLiteral("snapshot"), QStringLiteral("Save the synthetic toolbar UI for review (not a precision test)"), QStringLiteral("path")});
     parser.process(app);
     bool validScreen = false, validTimeout = false;
     const int screen = parser.value("screen").toInt(&validScreen);
@@ -57,6 +58,15 @@ int main(int argc, char** argv)
     QShortcut waiting(QKeySequence(Qt::Key_F8), &window);
     QObject::connect(&waiting, &QShortcut::activated, &window, [&window] { window.setWaiting(!window.waiting()); });
     window.resize(1280, 720);
+    if (parser.isSet("snapshot")) {
+        window.setPinned(true);
+        QTimer::singleShot(1000, &window, [&window, &parser] {
+            if (!window.grabWindow().save(parser.value("snapshot"))) {
+                qWarning("Could not save the synthetic UI snapshot");
+                QCoreApplication::exit(1);
+            }
+        });
+    }
     if (parser.isSet("precision-check")) runQtFramebufferPrecisionCheck(window);
     if (parser.isSet("fullscreen")) window.showFullScreen();
     else window.show();

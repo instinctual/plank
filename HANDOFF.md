@@ -4,7 +4,43 @@ Read `AGENTS.md` and the relevant build runbook first. Machine-specific access,
 credentials, captures and operational evidence belong in the external private
 notes, never in Git.
 
-## Current work — Client session recovery
+## Current work — Ubuntu Qt session experiment
+
+Continue in `build/worktrees/ubuntu-qt-session`, on matching parent/Client
+`ubuntu-qt-session` branches. Base is parent `1572c09` / Client `58f4df09` from
+`client-session-recovery`, not main. The original recovery worktree and its
+uncommitted final upstream-status notes are preserved. Canonical checkout's
+separate PKG-only edits and all other branches are untouched.
+
+Read [the plan](docs/development/plans/ubuntu-qt-session.plan). The initial Qt
+window/input/toolbar component is isolated from shipping `app.pro`, and has no
+transport or decoder dependency. Local Client checkpoint `cbc55f97` implements
+single-window toolbar/recovery UI, viewport-based coordinate mapping, complete
+press/release ownership and focus/resize/disconnect cleanup. Raw-HID and
+normalized tablet integration are not implemented; synthesized tablet-mouse
+events are deliberately suppressed in this prototype. Mac and Host behavior
+are unchanged.
+
+22 component tests pass offscreen, on a separate GNOME/Wayland compositor, and
+under ASan/UBSan with leak detection on the Ubuntu builder. Probe compilation
+and bounded launch/exit also pass. This is not a product build, physical-input
+test, media benchmark or Wacom acceptance.
+
+The next gate is GPU presentation. The actual Qt decorated Wayland framebuffer
+is 8-bit even though its GL context reports 10-bit. The gate correctly rejects
+it. A separate diagnostic run with Qt decorations disabled retains all 1024
+RGB/gray codes in an actual 10-bit framebuffer. Do not turn that diagnostic
+override into product behavior: ordinary window controls and main-window
+behavior must be preserved. The plan records exact Qt source references and
+the next presentation-design check. No decoded frame has used this prototype.
+
+No candidate package, installation, push, merge or release has been performed
+for this branch. Existing .036/.037 artifacts remain unchanged. Builder tests
+used SHA-256-verified Git bundles and clean detached worktrees, not archives or
+an end-user machine. No occupied client was contacted. See private notes for
+builder paths; public reproduction commands are in the plan.
+
+## Previous work — Client session recovery
 
 Continue in `build/worktrees/wacom-state-recovery`, now on
 `client-session-recovery`. Parent base `5ac23ba7f6f5a84c347e3081791521e25a369c2e`

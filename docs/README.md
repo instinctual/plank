@@ -17,6 +17,8 @@
   artifacts and signing boundaries.
   [Dependency maintenance](development/dependency-maintenance.md) covers update
   automation, script-pinned inputs and upgrade qualification.
+  [Ubuntu Qt session experiment](development/plans/ubuntu-qt-session.plan)
+  tracks the isolated window/input prototype and its precision gates.
   [Native media forwarding](development/investigations/native-media-forwarding.md)
   investigates preserving webcam and microphone device payloads through transport.
   [Installed media reader](development/investigations/installed-media-reader.md)
