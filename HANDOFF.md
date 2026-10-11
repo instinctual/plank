@@ -9,7 +9,7 @@ notes, never in Git.
 Continue in `build/worktrees/wacom-persistent`, branch `wacom-persistent`, based
 on `client-session-recovery` parent `1572c09e26d6ce7db20d9d1feefe11a3155963b8`.
 This is separate from the unshipped `ubuntu-qt-session` experiment. Candidate
-version is **1.1.038-wacom-persistent**, Linux Host only. Client source remains
+version is **1.1.039-wacom-persistent**, Linux Host only. Client source remains
 `58f4df097c1cdf11bf6b4b429701f156e2b10109`; the existing
 `1.1.037-client-session-recovery` DEB can test this Host without an update.
 No protocol, Client, macOS or physical-tablet policy changes are involved.
@@ -38,11 +38,30 @@ fresh-launch reconnects do not create/destroy devices, Client generation-counter
 restart can reuse the same device, changed identity replaces it, stale reports
 and late lease cleanup cannot affect the new stream, and final shutdown closes
 the endpoints. The full Host input CI now runs this fixture as well as the
-production test binary. All 69 root CI-policy tests pass.
+production test binary. All 70 root CI-policy tests pass.
 
-All 56 component tests also passed five shuffled repetitions with ASan/UBSan
-and leak detection. Evidence is under `build/tests/wacom-persistent/`.
-Candidate packaging is pending. No machine has been
+The first hosted attempt at parent `258104f7e6182b5c0b6c116dbf61adf32aa9c01d`
+([run](https://github.com/instinctual/plank/actions/runs/38116001405)) built
+the `.038` Host and RPM, passed package gates, three native loss matrices and
+25 shuffled production input-suite runs (45 passed, three kernel-dependent
+skips per run). It then failed compiling the additional wrapped-UHID fixture:
+its CMake target omitted header-only Boost links. No artifact was uploaded.
+Local fixtures had inadvertently obtained those headers from distro Boost.
+The target now links pinned Asio, Endian and Format explicitly, and CI rejects
+system Boost paths in the fixture's compiler dependencies. All 56 component
+tests passed another 25 shuffled runs using only pinned Boost headers.
+All 56 also passed five shuffled repetitions with ASan/UBSan and leak detection,
+again using only pinned Boost headers. The `.039` hosted candidate retry is pending.
+Evidence is under `build/tests/wacom-persistent/`.
+
+All four Host dependency caches missed in that first attempt. The earlier
+Ubuntu SDL cache work changed the shared cache script, which participates in
+every component fingerprint; this invalidated unrelated Host keys. Versions
+were unchanged, and new exact-input caches were saved successfully. Keep this
+cache-granularity inefficiency separate from the test-target repair; no cache
+validation was weakened.
+
+No machine has been
 installed, restarted or interrupted. Do not merge/release without acceptance.
 Next hardware gate: with Flame left running, interrupt the Client network for
 about ten seconds, reconnect, and verify stable Host XInput device identities,

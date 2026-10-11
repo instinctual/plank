@@ -33,6 +33,11 @@ cmake -S "$root/tests/input/linux-recovery" -B "$fixture_build" \
   -DPLANK_BOOST_SOURCE_DIR="${PLANK_BOOST_SOURCE_DIR:?qualified Boost source required}" \
   -DPLANK_FFMPEG_INCLUDE="$ffmpeg_dir/include"
 cmake --build "$fixture_build" --parallel 2
+if rg -l --glob '*.o.d' '/usr/(local/)?include/boost/' \
+    "$fixture_build/CMakeFiles/input-recovery.dir"; then
+  echo 'Host input fixture used system Boost headers instead of the pinned source' >&2
+  exit 1
+fi
 "$fixture_build/input-recovery" --gtest_color=no \
   --gtest_repeat=25 --gtest_shuffle --gtest_random_seed=837
 echo 'host_input_lifecycle_gate=pass hardware_acceptance=not-performed'

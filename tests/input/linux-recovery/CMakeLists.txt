@@ -41,7 +41,7 @@ add_subdirectory("${PLANK_GTEST_SOURCE}" googletest EXCLUDE_FROM_ALL)
 if(NOT EXISTS "${PLANK_BOOST_SOURCE_DIR}/libs/log/CMakeLists.txt")
   message(FATAL_ERROR "Set PLANK_BOOST_SOURCE_DIR to the builder's retained Boost 1.89.0 source")
 endif()
-set(BOOST_INCLUDE_LIBRARIES log thread filesystem asio)
+set(BOOST_INCLUDE_LIBRARIES log thread filesystem asio endian format)
 add_subdirectory("${PLANK_BOOST_SOURCE_DIR}" boost EXCLUDE_FROM_ALL)
 find_package(Threads REQUIRED)
 enable_testing()
@@ -65,6 +65,10 @@ target_include_directories(input-recovery PRIVATE
   "${HOST}" "${HOST}/third-party" "${PLANK_FFMPEG_INCLUDE}" "${PLANK_ROOT}/protocol/plank-transport/include")
 target_compile_definitions(input-recovery PRIVATE SUNSHINE_TESTS PLANK_TRANSPORT)
 target_link_options(input-recovery PRIVATE -Wl,--wrap=open -Wl,--wrap=write -Wl,--wrap=close)
-target_link_libraries(input-recovery PRIVATE libvirtualhid::libvirtualhid gtest_main Boost::log Boost::thread Boost::filesystem Threads::Threads)
+# Header-only libraries still need target links to propagate their pinned include
+# directories. BOOST_INCLUDE_LIBRARIES selects subprojects, not consumer headers.
+target_link_libraries(input-recovery PRIVATE libvirtualhid::libvirtualhid gtest_main
+  Boost::log Boost::thread Boost::filesystem Boost::asio Boost::endian Boost::format
+  Threads::Threads)
 add_test(NAME input-recovery COMMAND input-recovery)
 set_tests_properties(input-recovery PROPERTIES TIMEOUT 30)
