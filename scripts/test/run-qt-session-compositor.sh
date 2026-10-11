@@ -29,13 +29,15 @@ dbus-run-session -- bash -eu -c '
     export QSG_RHI_BACKEND=opengl
     unset QT_QUICK_BACKEND
     "$PLANK_QT_SESSION_TEST_BUILD/tests/qtsession"
-    "$PLANK_QT_SESSION_TEST_BUILD/probe/plank-qt-session-probe" --fullscreen --quit-after 2
+    "$PLANK_QT_SESSION_TEST_BUILD/probe/plank-qt-session-probe" --native-child --fullscreen --quit-after 2
     if test "${PLANK_QT_CHECK_PRECISION:-0}" = 1; then
+        # Only the decorated shell/native scene is the proposed architecture.
+        # The direct decorated QQuickView remains a separate negative comparison.
         precision_status=0
-        "$PLANK_QT_SESSION_TEST_BUILD/probe/plank-qt-session-probe" --precision-check || precision_status=1
-        "$PLANK_QT_SESSION_TEST_BUILD/probe/plank-qt-session-probe" --precision-check --fullscreen || precision_status=1
         "$PLANK_QT_SESSION_TEST_BUILD/probe/plank-qt-session-probe" --precision-check --native-child || precision_status=1
         "$PLANK_QT_SESSION_TEST_BUILD/probe/plank-qt-session-probe" --precision-check --native-child --fullscreen || precision_status=1
+        "$PLANK_QT_SESSION_TEST_BUILD/probe/plank-qt-session-probe" --precision-check --native-child --roundtrip || precision_status=1
+        "$PLANK_QT_SESSION_TEST_BUILD/probe/plank-qt-session-probe" --precision-check --native-child --fullscreen --roundtrip || precision_status=1
         exit "$precision_status"
     fi
 '

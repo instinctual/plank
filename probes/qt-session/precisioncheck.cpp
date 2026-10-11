@@ -103,8 +103,17 @@ void runQtFramebufferPrecisionCheck(QQuickWindow& window)
     // Initial exposure can precede the compositor's fullscreen configure.
     // Test a later frame, after the GUI loop has handled that transition.
     QTimer::singleShot(2000, &window, [&window, armed] {
-        qInfo("Precision gate: settled window %dx%d, state %d, native child %d",
-              window.width(), window.height(), int(window.windowState()), !window.isTopLevel());
+        QWindow* topLevel = &window;
+        while (topLevel->parent()) topLevel = topLevel->parent();
+        const auto margins = topLevel->frameMargins();
+        qInfo("Precision gate: settled window %dx%d, top-level state %d, native child %d; frame margins %d,%d,%d,%d",
+              window.width(), window.height(), int(topLevel->windowState()), !window.isTopLevel(),
+              margins.left(), margins.top(), margins.right(), margins.bottom());
+        if (!window.isTopLevel() && topLevel->windowState() != Qt::WindowFullScreen && margins.top() <= 0) {
+            qWarning("Precision gate: native child must preserve the top-level window decoration");
+            QCoreApplication::exit(1);
+            return;
+        }
         armed->store(true);
         window.update();
     });
