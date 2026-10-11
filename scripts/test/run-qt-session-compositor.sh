@@ -30,6 +30,9 @@ dbus-run-session -- bash -eu -c '
     unset QT_QUICK_BACKEND
     "$PLANK_QT_SESSION_TEST_BUILD/tests/qtsession"
     "$PLANK_QT_SESSION_TEST_BUILD/probe/plank-qt-session-probe" --fullscreen --quit-after 2
+    if test "${PLANK_QT_CHECK_PRECISION:-0}" = 1; then
+        "$PLANK_QT_SESSION_TEST_BUILD/probe/plank-qt-session-probe" --precision-check
+    fi
 '
 # Logs are intentionally retained in the named, owner-only temporary directory.
 printf 'Compositor log retained in %s\n' "$runtime"

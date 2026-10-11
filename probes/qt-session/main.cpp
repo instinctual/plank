@@ -1,4 +1,5 @@
 #include "sessionwindow.h"
+#include "precisioncheck.h"
 
 #include <QCommandLineParser>
 #include <QGuiApplication>
@@ -19,6 +20,7 @@ int main(int argc, char** argv)
     parser.addOption({QStringLiteral("fullscreen"), QStringLiteral("Start fullscreen on the selected output")});
     parser.addOption({QStringLiteral("screen"), QStringLiteral("Output index (0-based)"), QStringLiteral("index"), QStringLiteral("0")});
     parser.addOption({QStringLiteral("quit-after"), QStringLiteral("Exit after this many seconds (0 disables)"), QStringLiteral("seconds"), QStringLiteral("0")});
+    parser.addOption({QStringLiteral("precision-check"), QStringLiteral("Require and test an actual 10-bit OpenGL framebuffer; exits with pass/fail")});
     parser.process(app);
     bool validScreen = false, validTimeout = false;
     const int screen = parser.value("screen").toInt(&validScreen);
@@ -28,6 +30,7 @@ int main(int argc, char** argv)
         qCritical("Invalid screen or timeout argument");
         return 2;
     }
+    if (parser.isSet("precision-check")) QQuickWindow::setGraphicsApi(QSGRendererInterface::OpenGL);
     QtSessionWindow window;
     if (window.status() != QQuickView::Ready) return 1;
     window.setScreen(app.screens().at(screen));
@@ -54,9 +57,10 @@ int main(int argc, char** argv)
     QShortcut waiting(QKeySequence(Qt::Key_F8), &window);
     QObject::connect(&waiting, &QShortcut::activated, &window, [&window] { window.setWaiting(!window.waiting()); });
     window.resize(1280, 720);
+    if (parser.isSet("precision-check")) runQtFramebufferPrecisionCheck(window);
     if (parser.isSet("fullscreen")) window.showFullScreen();
     else window.show();
     updateGeometry();
-    if (timeout) QTimer::singleShot(timeout * 1000, &app, &QGuiApplication::quit);
+    if (timeout && !parser.isSet("precision-check")) QTimer::singleShot(timeout * 1000, &app, &QGuiApplication::quit);
     return app.exec();
 }
