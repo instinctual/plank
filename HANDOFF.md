@@ -14,25 +14,33 @@ separate PKG-only edits and all other branches are untouched.
 
 Read [the plan](docs/development/plans/ubuntu-qt-session.plan). The initial Qt
 window/input/toolbar component is isolated from shipping `app.pro`, and has no
-transport or decoder dependency. Local Client checkpoint `cbc55f97` implements
-single-window toolbar/recovery UI, viewport-based coordinate mapping, complete
+transport or decoder dependency. Validated root `2b1123a` / Client `dedab3ef`
+implements a Qt decorated top-level with one native video/toolbar/recovery scene,
+viewport-based coordinate mapping, complete
 press/release ownership and focus/resize/disconnect cleanup. Raw-HID and
 normalized tablet integration are not implemented; synthesized tablet-mouse
 events are deliberately suppressed in this prototype. Mac and Host behavior
 are unchanged.
 
-22 component tests pass offscreen, on a separate GNOME/Wayland compositor, and
-under ASan/UBSan with leak detection on the Ubuntu builder. Probe compilation
+24 component tests pass offscreen, on a separate GNOME/Wayland compositor, and
+under ASan/UBSan with leak detection on the Ubuntu builder. The same checks
+pass with forced 125% Qt scale on that compositor. Probe compilation
 and bounded launch/exit also pass. This is not a product build, physical-input
 test, media benchmark or Wacom acceptance.
 
-The next gate is GPU presentation. The actual Qt decorated Wayland framebuffer
-is 8-bit even though its GL context reports 10-bit. The gate correctly rejects
-it. A separate diagnostic run with Qt decorations disabled retains all 1024
-RGB/gray codes in an actual 10-bit framebuffer. Do not turn that diagnostic
-override into product behavior: ordinary window controls and main-window
-behavior must be preserved. The plan records exact Qt source references and
-the next presentation-design check. No decoded frame has used this prototype.
+The framebuffer gate passes for the Qt-owned native scene inside ordinary Qt
+window chrome. All 1024 codes in each RGB/gray ramp survive in windowed and
+fullscreen modes, before/after repeated transitions, at 100% and forced 125%.
+The title-bar margin is checked in windowed mode. No Qt patch, global decoration
+override, HDR, manual native-surface ownership or extra CPU video copy is used.
+This is Mesa llvmpipe feasibility, not panel/Intel GPU or decoded-frame proof.
+
+The direct decorated Qt Quick window remains an 8-bit negative comparison.
+Its settled fullscreen path is 10-bit: the earlier first-frame-only inference
+was premature and is corrected in the plan. Next: integrate and qualify actual
+EGL/VA-API and Vulkan presenters without silently replacing either path, then
+the asynchronous session controller and unchanged Wacom transport. No decoded
+frame has used this prototype, and no live session acceptance is claimed.
 
 No candidate package, installation, push, merge or release has been performed
 for this branch. Existing .036/.037 artifacts remain unchanged. Builder tests

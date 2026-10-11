@@ -15,7 +15,11 @@ dispatch events on that window. Do not wrap a Qt-owned native surface in an SDL
 window or retain two event dispatchers for the same surface.
 
 Use one Qt Quick scene per output: video underlay, Host-authoritative tablet
-cursor, toolbar and recovery prompt. Toolbar input stays in window-local logical
+cursor, toolbar and recovery prompt. A normal Qt raster top-level owns window
+decorations; the scene is its Qt-owned native child. Video never passes through
+the raster backing store or Qt Wayland's 8-bit decoration framebuffer. Qt owns
+both native lifetimes and their shared input hierarchy; no manual Wayland
+surface/queue dispatch is added. Toolbar input stays in window-local logical
 coordinates, independently of the video viewport and letterboxing. No cursor
 warps, global-pointer polling or second native toolbar window. Remote drag
 ownership lasts through its matching release even when crossing the toolbar;
@@ -83,33 +87,45 @@ APIs enable the approach; they do not establish performance or color fidelity.
 
 ## First qualification findings
 
-The isolated component passes 22 QtTest checks on the Ubuntu 26.04 / Qt 6.10.2
+The isolated component passes 24 QtTest checks on the Ubuntu 26.04 / Qt 6.10.2
 builder, both offscreen and on an isolated GNOME/Wayland compositor. The same
-22 checks pass with ASan/UBSan and leak detection enabled. Mouse events in this
+24 checks pass with ASan/UBSan and leak detection enabled. Mouse events in this
 suite are injected at Qt's event boundary, not physical seat or Wacom input.
 No remote session or hardware acceptance is implied.
 
 The precision gate deliberately tests the *bound framebuffer*, not just the
-reported OpenGL context format. Stock Qt Wayland decorations report a 10-bit
-context but use an R8/G8/B8 content framebuffer on the test compositor. That
-gate fails as intended. In a separate diagnostic process with
-`QT_WAYLAND_DISABLE_WINDOWDECORATION=1`, both windowed and fullscreen invocations
-use an R10/G10/B10 framebuffer and retain every code in all four 1024-level
-red/green/blue/gray ramps. The virtual builder uses Mesa llvmpipe; this is a
-precision/lifecycle feasibility check, not GPU throughput or panel qualification.
+reported OpenGL context format. A directly decorated Qt Quick window reports a
+10-bit context but uses an R8/G8/B8 content framebuffer on the test compositor.
+That gate fails as intended. The initial fullscreen test inspected the first
+frame before compositor configuration settled; a later-frame test correctly
+finds an R10/G10/B10 fullscreen framebuffer. Do not repeat the earlier inference
+that settled fullscreen also uses the 8-bit content buffer.
+
+The proposed `QtSessionShell` preserves ordinary window decorations around a
+native Qt Quick child. Windowed and fullscreen tests, including four mode
+transitions before readback, retain every code in all four 1024-level
+red/green/blue/gray ramps. The windowed gate also checks that the top-level title
+bar still has a nonzero frame margin. These checks pass at 100% and with forced
+`QT_SCALE_FACTOR=1.25`, without a Qt patch, HDR, or disabling window decorations.
+The 24 component checks also pass under that forced scale. This is not a real
+compositor fractional-scale or mixed-monitor hardware acceptance test.
+
+The virtual builder uses Mesa llvmpipe; these are precision/lifecycle feasibility
+checks, not GPU throughput, panel or decoded-video qualification. No video frame
+has traversed the new component. Actual EGL/VA-API and Vulkan presenter integration
+remains the next gate; Qt Quick's graphics-API selection must not silently remove
+one of those qualified paths or add a CPU frame copy.
 
 Qt 6.10.2's `QWaylandEglWindow::contentFBO()` creates a default-format content
 FBO for decorated windows; its EGL window setup also requests 8-bit alpha when
-decoration support is enabled. This finding must be resolved before integrating
-video, and cannot be hidden by logging only `QOpenGLContext::format()`.
+decoration support is enabled. The native-child arrangement avoids that content
+FBO rather than hiding the loss by logging only `QOpenGLContext::format()`.
 
 Do not ship a global disable-decoration environment override, remove window
-controls, enable HDR, or patch Qt silently to make this gate pass. The next
-design gate is to preserve 10-bit direct presentation in decorated/windowed
-mode without regressing the ordinary main window. Evaluate a Qt-owned native
-video surface/overlay arrangement or deliberately integrated window chrome,
-then qualify the complete presenter path. This is still inside the Ubuntu-only
-experiment; the shipping Client remains unchanged.
+controls, enable HDR, or patch Qt silently to make this gate pass. The separate
+`QT_WAYLAND_DISABLE_WINDOWDECORATION=1` diagnostic confirmed the direct-window
+problem but is not part of the proposed design. The ordinary main window remains
+unchanged. This is still an Ubuntu-only experiment, disabled in shipping builds.
 
 Source references for this finding:
 
@@ -124,5 +140,8 @@ does not connect, capture microphone/camera/tablet input, or require credentials
 `scripts/test/run-qt-session-compositor.sh` runs a separate headless compositor
 with a private runtime directory/session bus and in-memory settings; it never
 attaches to the user's desktop. Set `PLANK_QT_CHECK_PRECISION=1` to include the
-fail-closed framebuffer gate. The decoration-disable environment variable above
-is only a diagnostic comparison, not a successful decorated-window gate.
+fail-closed native-child framebuffer and title-bar gates. The standalone probe's
+`--precision-check` without `--native-child` remains the direct-window comparison;
+it is expected to fail in decorated mode on the current Qt/GNOME combination.
+Use `--native-child` for the proposed arrangement, and `--roundtrip` with a
+precision check for repeated fullscreen/windowed transitions.
