@@ -1,0 +1,82 @@
+# Ubuntu Qt-owned session
+
+Status: implementation started on `ubuntu-qt-session`, from parent
+`1572c09e26d6ce7db20d9d1feefe11a3155963b8` / Client
+`58f4df097c1cdf11bf6b4b429701f156e2b10109` (`client-session-recovery`).
+The .036 Wacom and .037 lifecycle repairs are retained. This is not a mainline
+merge and does not supersede either candidate's pending hardware acceptance.
+
+## Scope and decisions
+
+Ubuntu 26.04 only. Leave the macOS Client, both Hosts, protocol, decoder policy,
+audio synchronization and raw-HID Wacom implementation unchanged. Qt owns the
+session window and input on its GUI thread. Workers must not create, destroy or
+dispatch events on that window. Do not wrap a Qt-owned native surface in an SDL
+window or retain two event dispatchers for the same surface.
+
+Use one Qt Quick scene per output: video underlay, Host-authoritative tablet
+cursor, toolbar and recovery prompt. Toolbar input stays in window-local logical
+coordinates, independently of the video viewport and letterboxing. No cursor
+warps, global-pointer polling or second native toolbar window. Remote drag
+ownership lasts through its matching release even when crossing the toolbar;
+local toolbar drags must never reach the Host. Focus loss, geometry replacement,
+disconnect and teardown release held remote input.
+
+The renderer provides its exact source/destination rectangles in pixels. Input
+maps Qt logical coordinates through that same viewport; do not reconstruct a
+second aspect-fit transform from the negotiated Host dimensions. Each output
+uses its actual backing size, including fractional scale. Window resizing must
+not renegotiate Host resolution.
+
+## Ordered implementation gates
+
+1. Build the real Qt window/input/toolbar component in an isolated, non-networked
+   qualification executable. Exercise edge reveal (1 second), hide (5 seconds),
+   pinning, live dragging, keyboard/button release, letterbox, fractional scale,
+   mixed output slices and unresponsive-Host UI. No application package changes
+   or fabricated remote-session/performance claims at this stage.
+2. Adapt the existing exact-format GPU presenters to the Qt-owned surface.
+   Prefer direct scene-graph render-node/underlay rendering rather than an extra
+   intermediate image. Preserve VA-API Y410/XR30 identity and software FFmpeg
+   planar precision; qualify all 1024 levels, full range and channel identity.
+   A requested 10-bit surface is not proof that the actual swapchain is 10-bit.
+   Fail qualification on an 8-bit substitution. No video QImage/readback path.
+3. Move Ubuntu session lifecycle to asynchronous Qt GUI orchestration. Retain
+   transport/decoder workers, bounded queues and .037 callback retirement.
+   Reuse SDL/PipeWire audio initially, without SDL video/event ownership. Wire
+   live stats, acknowledged bitrate, microphone/camera, recovery and disconnect.
+4. Attach unchanged raw-HID/normalized tablet transport to the new UI owner.
+   Mouse uses the compositor cursor; tablet uses Host-authoritative position
+   and cursor shape within the same Qt scene. Never infer tablet position from
+   the mouse or send synthetic mouse movement to align a cursor.
+5. Qualify on an unoccupied authorized Development NUC: fullscreen/windowed,
+   100% and 125%, one/two unequal monitors, custom cursor, hover/tip/buttons,
+   pressure and Flame Tablet Margins, network loss, reconnect, Host reboot,
+   minimize/restore, repeated teardown and moving-video/audio soak. Compare
+   CPU, latency and frame-drop behavior against .037 using identical profiles.
+6. Only after those gates, make the Ubuntu implementation the default and
+   remove superseded Ubuntu SDL-video/manual Wayland UI code. Keep macOS paths.
+   Build a branch-labelled candidate; no merge or release without acceptance.
+
+## Code findings behind this order
+
+`Session::exec()` currently waits for the SDL worker after initial launch,
+blocking normal Qt GUI dispatch for the active Linux stream. The SDL EGL
+renderer can recreate native Wayland surfaces during backend selection. Custom
+toolbar and tablet-cursor objects then need parent-surface rebuilding. Qt
+window ownership cannot be substituted safely by changing one creation call.
+
+The first component deliberately has no transport or decoder dependency. Its
+signals define the UI-to-session boundary, not a new wire protocol. Shipping
+build files must not enable it before the renderer/lifecycle gates. Retain the
+existing production path intact for baseline comparison and rollback.
+
+## References
+
+- https://doc.qt.io/qt-6.10/qquickwindow.html
+- https://doc.qt.io/qt-6.10/qtquick-visualcanvas-scenegraph.html
+- https://doc.qt.io/qt-6.10/qsgrendernode.html
+- https://doc.qt.io/qt-6.10/qwindow.html
+
+Qt documents GUI/render-thread separation and native GPU integration. Those
+APIs enable the approach; they do not establish performance or color fidelity.
