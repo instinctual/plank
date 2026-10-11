@@ -34,6 +34,8 @@ dbus-run-session -- bash -eu -c '
         precision_status=0
         "$PLANK_QT_SESSION_TEST_BUILD/probe/plank-qt-session-probe" --precision-check || precision_status=1
         "$PLANK_QT_SESSION_TEST_BUILD/probe/plank-qt-session-probe" --precision-check --fullscreen || precision_status=1
+        "$PLANK_QT_SESSION_TEST_BUILD/probe/plank-qt-session-probe" --precision-check --native-child || precision_status=1
+        "$PLANK_QT_SESSION_TEST_BUILD/probe/plank-qt-session-probe" --precision-check --native-child --fullscreen || precision_status=1
         exit "$precision_status"
     fi
 '

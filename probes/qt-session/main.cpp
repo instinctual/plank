@@ -3,9 +3,27 @@
 
 #include <QCommandLineParser>
 #include <QGuiApplication>
+#include <QPainter>
+#include <QRasterWindow>
 #include <QScreen>
 #include <QShortcut>
 #include <QTimer>
+
+#include <memory>
+
+namespace {
+// Qualification only: ordinary Qt decorations on a raster shell, with a
+// Qt-owned native video child. No video pixels traverse the shell's backing
+// store. This checks precision feasibility, not production window controls.
+class PrecisionShell final : public QRasterWindow
+{
+    void paintEvent(QPaintEvent*) override
+    {
+        QPainter painter(this);
+        painter.fillRect(QRect(QPoint(), size()), Qt::black);
+    }
+};
+}
 
 int main(int argc, char** argv)
 {
@@ -21,20 +39,33 @@ int main(int argc, char** argv)
     parser.addOption({QStringLiteral("screen"), QStringLiteral("Output index (0-based)"), QStringLiteral("index"), QStringLiteral("0")});
     parser.addOption({QStringLiteral("quit-after"), QStringLiteral("Exit after this many seconds (0 disables)"), QStringLiteral("seconds"), QStringLiteral("0")});
     parser.addOption({QStringLiteral("precision-check"), QStringLiteral("Require and test an actual 10-bit OpenGL framebuffer; exits with pass/fail")});
+    parser.addOption({QStringLiteral("native-child"), QStringLiteral("Precision-only comparison: put the Qt surface inside a normally decorated Qt raster shell")});
     parser.addOption({QStringLiteral("snapshot"), QStringLiteral("Save the synthetic toolbar UI for review (not a precision test)"), QStringLiteral("path")});
     parser.process(app);
     bool validScreen = false, validTimeout = false;
     const int screen = parser.value("screen").toInt(&validScreen);
     const int timeout = parser.value("quit-after").toInt(&validTimeout);
     if (!validScreen || screen < 0 || screen >= app.screens().size() ||
-            !validTimeout || timeout < 0 || timeout > 3600) {
-        qCritical("Invalid screen or timeout argument");
+            !validTimeout || timeout < 0 || timeout > 3600 ||
+            (parser.isSet("native-child") && !parser.isSet("precision-check"))) {
+        qCritical("Invalid screen/timeout, or native-child used without precision-check");
         return 2;
     }
     if (parser.isSet("precision-check")) QQuickWindow::setGraphicsApi(QSGRendererInterface::OpenGL);
-    QtSessionWindow window;
+    std::unique_ptr<PrecisionShell> shell;
+    if (parser.isSet("native-child")) shell = std::make_unique<PrecisionShell>();
+    QtSessionWindow window(shell.get());
     if (window.status() != QQuickView::Ready) return 1;
-    window.setScreen(app.screens().at(screen));
+    QWindow* topLevel = shell ? static_cast<QWindow*>(shell.get()) : &window;
+    topLevel->setScreen(app.screens().at(screen));
+    if (shell) {
+        shell->setTitle(QStringLiteral("PLANK Qt precision shell — not a remote session"));
+        const auto resizeChild = [&window, &shell] {
+            window.setGeometry(QRect(QPoint(), shell->size()));
+        };
+        QObject::connect(shell.get(), &QWindow::widthChanged, &window, resizeChild);
+        QObject::connect(shell.get(), &QWindow::heightChanged, &window, resizeChild);
+    }
     // This is an illustrative letterboxed *test* canvas, not a negotiated
     // stream or a second production aspect-fit implementation.
     const auto updateGeometry = [&window] {
@@ -57,7 +88,7 @@ int main(int argc, char** argv)
     QObject::connect(&fullscreen, &QShortcut::activated, &window, &QtSessionWindow::toggleFullscreen);
     QShortcut waiting(QKeySequence(Qt::Key_F8), &window);
     QObject::connect(&waiting, &QShortcut::activated, &window, [&window] { window.setWaiting(!window.waiting()); });
-    window.resize(1280, 720);
+    topLevel->resize(1280, 720);
     if (parser.isSet("snapshot")) {
         window.setPinned(true);
         QTimer::singleShot(1000, &window, [&window, &parser] {
@@ -68,8 +99,9 @@ int main(int argc, char** argv)
         });
     }
     if (parser.isSet("precision-check")) runQtFramebufferPrecisionCheck(window);
-    if (parser.isSet("fullscreen")) window.showFullScreen();
-    else window.show();
+    if (parser.isSet("fullscreen")) topLevel->showFullScreen();
+    else topLevel->show();
+    if (shell) window.show();
     updateGeometry();
     if (timeout && !parser.isSet("precision-check")) QTimer::singleShot(timeout * 1000, &app, &QGuiApplication::quit);
     return app.exec();

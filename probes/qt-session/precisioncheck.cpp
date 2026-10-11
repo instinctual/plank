@@ -98,8 +98,18 @@ bool checkFramebuffer()
 
 void runQtFramebufferPrecisionCheck(QQuickWindow& window)
 {
+    const auto armed = std::make_shared<std::atomic_bool>(false);
     const auto started = std::make_shared<std::atomic_bool>(false);
-    QObject::connect(&window, &QQuickWindow::afterRendering, &window, [&window, started] {
+    // Initial exposure can precede the compositor's fullscreen configure.
+    // Test a later frame, after the GUI loop has handled that transition.
+    QTimer::singleShot(2000, &window, [&window, armed] {
+        qInfo("Precision gate: settled window %dx%d, state %d, native child %d",
+              window.width(), window.height(), int(window.windowState()), !window.isTopLevel());
+        armed->store(true);
+        window.update();
+    });
+    QObject::connect(&window, &QQuickWindow::afterRendering, &window, [&window, armed, started] {
+        if (!armed->load()) return;
         if (started->exchange(true)) return;
         window.beginExternalCommands();
         const bool passed = checkFramebuffer();
