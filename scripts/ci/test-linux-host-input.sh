@@ -22,4 +22,17 @@ cmake --build "$host_build" --parallel 2 --target test_sunshine
     --gtest_filter='InputConfigDefaults.*:InputRetainedSessionTest.*:RawHidTablet.*:RawHidContactIo.*:NormalizedPen.*:ReliableQueue.*' \
     --gtest_repeat=25 --gtest_shuffle --gtest_random_seed=837
 )
+# The full Host tests skip kernel-UHID cases on a builder. Run the link-wrapped
+# component fixture too: it exercises actual endpoint creation, suspension,
+# reservation cleanup and reattachment without touching any input devices.
+fixture_build="$host_build/cmake-build-input-lifecycle"
+cxx_compiler=$(sed -n 's/^CMAKE_CXX_COMPILER:[^=]*=//p' "$host_build/CMakeCache.txt")
+test -x "$cxx_compiler"
+cmake -S "$root/tests/input/linux-recovery" -B "$fixture_build" \
+  -DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_COMPILER="$cxx_compiler" \
+  -DPLANK_BOOST_SOURCE_DIR="${PLANK_BOOST_SOURCE_DIR:?qualified Boost source required}" \
+  -DPLANK_FFMPEG_INCLUDE="$ffmpeg_dir/include"
+cmake --build "$fixture_build" --parallel 2
+"$fixture_build/input-recovery" --gtest_color=no \
+  --gtest_repeat=25 --gtest_shuffle --gtest_random_seed=837
 echo 'host_input_lifecycle_gate=pass hardware_acceptance=not-performed'

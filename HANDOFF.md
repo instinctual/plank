@@ -4,7 +4,53 @@ Read `AGENTS.md` and the relevant build runbook first. Machine-specific access,
 credentials, captures and operational evidence belong in the external private
 notes, never in Git.
 
-## Current work — Client session recovery
+## Current work — persistent Linux desktop tablet
+
+Continue in `build/worktrees/wacom-persistent`, branch `wacom-persistent`, based
+on `client-session-recovery` parent `1572c09e26d6ce7db20d9d1feefe11a3155963b8`.
+This is separate from the unshipped `ubuntu-qt-session` experiment. Candidate
+version is **1.1.038-wacom-persistent**, Linux Host only. Client source remains
+`58f4df097c1cdf11bf6b4b429701f156e2b10109`; the existing
+`1.1.037-client-session-recovery` DEB can test this Host without an update.
+No protocol, Client, macOS or physical-tablet policy changes are involved.
+Linux Host fix `65dc0f1be60fe78d0457364f83813118c70bc8a8` is pushed. Host
+libvirtualhid remains `b793fa2f5369218c43e09c58d5b96a0cc638bf05`; header-only
+common-C remains `3a97a58f215323753cfd1180af760ec7e3253538`.
+
+Read-only field evidence showed orphaned Desktop reservation cleanup replacing
+a raw-HID endpoint group after network interruption. XInput then reused a former
+eraser ID for the new stylus. Restarting Flame cleared the observed symptom;
+the recorded stroke sample did not contain a tip-down event, so do not claim a
+complete input-event reproduction. Private evidence remains outside Git.
+
+The fix removes tablet destruction from reservation cleanup, terminate-all and
+last-stream teardown. Session join still releases held input and suspends raw
+forwarding. Devices belong to the desktop worker's input subsystem, not a
+stream reservation. Matching identity/descriptors reuse healthy endpoints;
+changed devices, incomplete probes and repeatedly unverifiable contact cleanup
+retain their existing recovery. Worker shutdown/user-desktop transitions still
+destroy devices. Authentication and desktop ownership checks are unchanged.
+
+Validation so far: the two new reservation regression tests fail on the old
+implementation and pass with the fix. All 56 isolated Host input tests pass,
+including 25 shuffled repetitions. The wrapped-UHID fixture confirms repeated
+fresh-launch reconnects do not create/destroy devices, Client generation-counter
+restart can reuse the same device, changed identity replaces it, stale reports
+and late lease cleanup cannot affect the new stream, and final shutdown closes
+the endpoints. The full Host input CI now runs this fixture as well as the
+production test binary. All 69 root CI-policy tests pass.
+
+All 56 component tests also passed five shuffled repetitions with ASan/UBSan
+and leak detection. Evidence is under `build/tests/wacom-persistent/`.
+Candidate packaging is pending. No machine has been
+installed, restarted or interrupted. Do not merge/release without acceptance.
+Next hardware gate: with Flame left running, interrupt the Client network for
+about ten seconds, reconnect, and verify stable Host XInput device identities,
+hover, tip/barrel buttons, pressure and Tablet Margins. Also test ordinary
+disconnect/reconnect, Client restart and authorized takeover. Real-kernel
+cleanup, XInput identity and Flame acceptance are not proved by the fixture.
+
+## Inherited candidate — Client session recovery
 
 Continue in `build/worktrees/wacom-state-recovery`, now on
 `client-session-recovery`. Parent base `5ac23ba7f6f5a84c347e3081791521e25a369c2e`

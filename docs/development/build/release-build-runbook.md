@@ -1081,8 +1081,11 @@ process-less Desktop identity with stable GameStream application ID
 `apps.json`, `file_apps`, per-application or global preparation commands,
 Steam/Low-Res launch entries, mutable box art, an application-art HTTP
 endpoint, or the Linux arbitrary-command launcher. Launch/resume state remains
-an in-memory Desktop reservation with the existing retained-input and display
-cleanup hooks.
+an in-memory Desktop reservation with display restoration. Its cleanup must not
+destroy retained input devices: those belong to the desktop worker's input
+subsystem and survive normal disconnect/reconnect and authorized takeover.
+Session join still releases held input. Worker shutdown and genuine tablet
+detach/failure retain their explicit cleanup/recovery paths.
 
 The build also prints `host_legacy_http_surface_absence_gate=pass` and
 `host_secure_credential_write_gate=pass`. The host has no remote-file

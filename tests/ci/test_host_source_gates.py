@@ -7,6 +7,15 @@ ROOT = Path(__file__).resolve().parents[2]
 
 
 class HostSourceGateTests(unittest.TestCase):
+    def test_host_input_gate_exercises_reservation_and_uhid_lifetimes(self):
+        build = (ROOT / 'scripts/ci/test-linux-host-input.sh').read_text()
+        fixture = (ROOT / 'tests/input/linux-recovery/CMakeLists.txt').read_text()
+        self.assertIn('"$root/tests/input/linux-recovery"', build)
+        self.assertIn('"$fixture_build/input-recovery"', build)
+        self.assertIn('"${HOST}/src/process.cpp"', fixture)
+        self.assertIn('-Wl,--wrap=open', fixture)
+        self.assertIn('googletest libdisplaydevice', fixture)
+
     def test_macos_microphone_consumers_link_the_signing_requirement(self):
         for name in ('scripts/build/build-macos-host.sh',
                      'scripts/test/build-macos-preview.sh',
