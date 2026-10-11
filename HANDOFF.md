@@ -9,7 +9,7 @@ notes, never in Git.
 Continue in `build/worktrees/wacom-persistent`, branch `wacom-persistent`, based
 on `client-session-recovery` parent `1572c09e26d6ce7db20d9d1feefe11a3155963b8`.
 This is separate from the unshipped `ubuntu-qt-session` experiment. Candidate
-version is **1.1.039-wacom-persistent**, Linux Host only. Client source remains
+**1.1.039-wacom-persistent**, Linux Host only, is built and downloaded. Client source remains
 `58f4df097c1cdf11bf6b4b429701f156e2b10109`; the existing
 `1.1.037-client-session-recovery` DEB can test this Host without an update.
 No protocol, Client, macOS or physical-tablet policy changes are involved.
@@ -51,8 +51,29 @@ The target now links pinned Asio, Endian and Format explicitly, and CI rejects
 system Boost paths in the fixture's compiler dependencies. All 56 component
 tests passed another 25 shuffled runs using only pinned Boost headers.
 All 56 also passed five shuffled repetitions with ASan/UBSan and leak detection,
-again using only pinned Boost headers. The `.039` hosted candidate retry is pending.
-Evidence is under `build/tests/wacom-persistent/`.
+again using only pinned Boost headers. Evidence is under `build/tests/wacom-persistent/`.
+The `.039` Host-only retry passed at exact parent
+`9c780c30fc99297fb17341afb69db821ee895752`
+([run](https://github.com/instinctual/plank/actions/runs/38156644894)).
+All four dependency caches restored and verified; bootstrap took 27 seconds.
+Source/privacy and clipboard gates passed. The Host job took 24m17s, including
+fresh application/test compilation, RPM gates, three consecutive native loss
+matrices (900 frames per run, zero unrecovered source symbols), 25 shuffled
+production input runs (45 passed, three kernel-dependent skips each), and
+25 shuffled wrapped-UHID fixture runs (56 passed each). The RPM remains the
+`BUILD_TESTS=OFF` production payload. No hardware acceptance is claimed.
+
+The original RPM is checksum/provenance-verified in the canonical catalog:
+`artifacts/packages/candidates/1.1.039-wacom-persistent/linux/`
+`plank-host-1.1.039-0.wacom_persistent.1.el9.x86_64.rpm`.
+Size: 8721998 bytes. SHA-256:
+`a674d4a9a500c00fee985651014370ee15a7784892c7a43ca40637645303a884`.
+The extracted media ELF reports `1.1.039-wacom-persistent`; its SHA-256 is
+`df3b0d51207bd4b0a7333e6e8233160cfd152dc232dd68202bea77950a529537`.
+Local inspection also verified the RPM-owned root:root `0700` log directory.
+The downloaded and locally collected manifests are byte-identical. The full
+CI log is retained at `build/tests/wacom-persistent/host-1.1.039-ci.log`.
+No build remains running. No merge, release or installation was performed.
 
 All four Host dependency caches missed in that first attempt. The earlier
 Ubuntu SDL cache work changed the shared cache script, which participates in
@@ -61,9 +82,10 @@ were unchanged, and new exact-input caches were saved successfully. Keep this
 cache-granularity inefficiency separate from the test-target repair; no cache
 validation was weakened.
 
-No machine has been
-installed, restarted or interrupted. Do not merge/release without acceptance.
-Next hardware gate: with Flame left running, interrupt the Client network for
+No package has been installed and no machine restarted or interrupted.
+Do not merge/release without acceptance.
+Next hardware gate: after installing the Host and restarting Flame once to
+clear any previously cached device identities, leave Flame running and interrupt the Client network for
 about ten seconds, reconnect, and verify stable Host XInput device identities,
 hover, tip/barrel buttons, pressure and Tablet Margins. Also test ordinary
 disconnect/reconnect, Client restart and authorized takeover. Real-kernel
