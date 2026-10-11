@@ -18,13 +18,18 @@ bool checkFramebuffer()
     auto* gl = context->extraFunctions();
     GLint framebuffer = 0;
     gl->glGetIntegerv(GL_FRAMEBUFFER_BINDING, &framebuffer);
+    qInfo("Qt GL renderer: %s; active framebuffer: %d",
+          reinterpret_cast<const char*>(gl->glGetString(GL_RENDERER)), framebuffer);
     const GLenum attachment = framebuffer ? GL_COLOR_ATTACHMENT0 :
             (context->isOpenGLES() ? GL_BACK : GL_BACK_LEFT);
     GLint bits[3] = {};
     gl->glGetFramebufferAttachmentParameteriv(GL_FRAMEBUFFER, attachment, GL_FRAMEBUFFER_ATTACHMENT_RED_SIZE, &bits[0]);
     gl->glGetFramebufferAttachmentParameteriv(GL_FRAMEBUFFER, attachment, GL_FRAMEBUFFER_ATTACHMENT_GREEN_SIZE, &bits[1]);
     gl->glGetFramebufferAttachmentParameteriv(GL_FRAMEBUFFER, attachment, GL_FRAMEBUFFER_ATTACHMENT_BLUE_SIZE, &bits[2]);
-    qInfo("Qt framebuffer precision: R%d G%d B%d", bits[0], bits[1], bits[2]);
+    const auto actual = context->format();
+    qInfo("Qt context format: R%d G%d B%d; framebuffer precision: R%d G%d B%d",
+          actual.redBufferSize(), actual.greenBufferSize(), actual.blueBufferSize(),
+          bits[0], bits[1], bits[2]);
     if (gl->glGetError() != GL_NO_ERROR || bits[0] != 10 || bits[1] != 10 || bits[2] != 10) {
         qWarning("Precision gate: requested 10-bit surface was not proven as an actual RGB10 framebuffer");
         return false;

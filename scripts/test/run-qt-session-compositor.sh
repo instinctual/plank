@@ -31,7 +31,10 @@ dbus-run-session -- bash -eu -c '
     "$PLANK_QT_SESSION_TEST_BUILD/tests/qtsession"
     "$PLANK_QT_SESSION_TEST_BUILD/probe/plank-qt-session-probe" --fullscreen --quit-after 2
     if test "${PLANK_QT_CHECK_PRECISION:-0}" = 1; then
-        "$PLANK_QT_SESSION_TEST_BUILD/probe/plank-qt-session-probe" --precision-check
+        precision_status=0
+        "$PLANK_QT_SESSION_TEST_BUILD/probe/plank-qt-session-probe" --precision-check || precision_status=1
+        "$PLANK_QT_SESSION_TEST_BUILD/probe/plank-qt-session-probe" --precision-check --fullscreen || precision_status=1
+        exit "$precision_status"
     fi
 '
 # Logs are intentionally retained in the named, owner-only temporary directory.
