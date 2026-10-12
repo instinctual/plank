@@ -4,11 +4,46 @@ Read `AGENTS.md` and the relevant build runbook first. Machine-specific access,
 credentials, captures and operational evidence belong in the external private
 notes, never in Git.
 
-## Current work — persistent Linux desktop tablet
+## Current baseline — persistent tablet and Client recovery integrated
 
-Continue in `build/worktrees/wacom-persistent`, branch `wacom-persistent`, based
-on `client-session-recovery` parent `1572c09e26d6ce7db20d9d1feefe11a3155963b8`.
-This is separate from the unshipped `ubuntu-qt-session` experiment. Candidate
+The operator authorized merging `wacom-persistent` into main. The parent,
+Linux Host and Client now use `main`; the two changed dependencies use their
+established product branches. All integration is fast-forward, preserving the
+candidate commits and their authorship. Continue in
+`build/worktrees/wacom-persistent` on **main**, not the canonical checkout's
+separate, dirty `client-pkg-only` branch.
+
+| Component | Integrated source / branch |
+| --- | --- |
+| Parent feature tip, before this integration record | `0799dee` / `main` |
+| Linux Host | `65dc0f1be60fe78d0457364f83813118c70bc8a8` / `main` |
+| Client | `58f4df097c1cdf11bf6b4b429701f156e2b10109` / `main` |
+| Client common-C | `437be9a0a4d164efdf9ed20dc6dd5a2b7b9edc90` / `plank/client` |
+| Host libvirtualhid | `b793fa2f5369218c43e09c58d5b96a0cc638bf05` / `plank/main` |
+
+This includes `wacom-state-recovery`, `client-session-recovery`, persistent
+desktop tablets, the reproducible private Ubuntu SDL repair, and Mac Client
+PKG-only packaging. It does not include the independent `ubuntu-qt-session`,
+`apple-native-integration` or `native-builds` work. The ordinary product Kymux
+pin remains `3f7a9d8618978287186e5d6ce0eaa067743cb06c`; no dependency update PR
+was merged as part of this task. Host header-only common-C remains unchanged.
+
+All 70 root CI-policy tests were rerun successfully. Privacy checks passed for
+the complete newly integrated range in each changed repository. Product source
+and dependency pins are identical to the successful `.039` Host candidate;
+only HANDOFF differs. Previous `.036` and `.037` validation below still applies
+to their exact recorded components, not to an unperformed new hardware test.
+
+No installation, signed package rebuild or release publication was requested.
+Existing candidates keep their original filenames/checksums. Mainline version
+is `1.1.039`; future packages must be rebuilt from main, never relabeled.
+Live network-interruption/Flame acceptance and the separate hotkey diagnostic
+remain open. Feature branches are retained; no cleanup was requested.
+
+## Candidate evidence — persistent Linux desktop tablet
+
+The candidate was prepared on `wacom-persistent`, based on
+`client-session-recovery` parent `1572c09e26d6ce7db20d9d1feefe11a3155963b8`.
 **1.1.039-wacom-persistent**, Linux Host only, is built and downloaded.
 Client source remains
 `58f4df097c1cdf11bf6b4b429701f156e2b10109`; the existing
@@ -74,7 +109,8 @@ The extracted media ELF reports `1.1.039-wacom-persistent`; its SHA-256 is
 Local inspection also verified the RPM-owned root:root `0700` log directory.
 The downloaded and locally collected manifests are byte-identical. The full
 CI log is retained at `build/tests/wacom-persistent/host-1.1.039-ci.log`.
-No build remains running. No merge, release or installation was performed.
+No candidate build remains running. The later integration is recorded above;
+no release or installation was performed.
 
 All four Host dependency caches missed in that first attempt. The earlier
 Ubuntu SDL cache work changed the shared cache script, which participates in
@@ -84,13 +120,12 @@ cache-granularity inefficiency separate from the test-target repair; no cache
 validation was weakened.
 
 No package has been installed and no machine restarted or interrupted.
-Do not merge/release without acceptance.
+The operator authorized integration; real hardware acceptance remains pending.
 Next hardware gate: after installing the Host and restarting Flame once to
 clear any previously cached device identities, leave Flame running and interrupt
 the Client network for about ten seconds, reconnect, and verify stable Host
 XInput device identities, hover, tip/barrel buttons, pressure and Tablet Margins.
-Also test ordinary
-disconnect/reconnect, Client restart and authorized takeover. Real-kernel
+Also test ordinary disconnect/reconnect, Client restart and authorized takeover. Real-kernel
 cleanup, XInput identity and Flame acceptance are not proved by the fixture.
 
 ## Open diagnostic — application hotkeys
@@ -122,8 +157,8 @@ Qt session experiment is separate, paused and not included in these packages.
 
 ## Inherited candidate — Client session recovery
 
-Continue in `build/worktrees/wacom-state-recovery`, now on
-`client-session-recovery`. Parent base `5ac23ba7f6f5a84c347e3081791521e25a369c2e`
+The inherited candidate was prepared in `build/worktrees/wacom-state-recovery`
+on `client-session-recovery`. Parent base `5ac23ba7f6f5a84c347e3081791521e25a369c2e`
 includes the complete `.036` Wacom work below; this is not based on main.
 Client source `58f4df097c1cdf11bf6b4b429701f156e2b10109` and common-C
 `437be9a0a4d164efdf9ed20dc6dd5a2b7b9edc90` are pushed. Exact Ubuntu package
@@ -287,7 +322,7 @@ streaming, WAN-loss or long-soak acceptance. Mac Client live acceptance on both
 macOS 15 and macOS 27 remains separate from the SDK27 build. No installed session
 was changed.
 
-## Current build — 1.1.035 from main
+## Previous mainline build — 1.1.035
 
 The operator requested all four installable packages from `main`, without a
 release publication or installation. Source is
@@ -327,7 +362,7 @@ name denotes mainline package provenance, not release publication. Mac Client
 streaming/input/audio qualification on both supported OS generations remains a
 separate gate.
 
-## Current baseline — consolidated main
+## Previous mainline baseline — scaling and Wacom consolidation
 
 The operator authorized merging the pending fixes and parent PR #24 to establish
 a clean baseline. Parent, Client and Linux Host are consolidated on `main`, with
