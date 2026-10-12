@@ -15,7 +15,7 @@ separate, dirty `client-pkg-only` branch.
 
 | Component | Integrated source / branch |
 | --- | --- |
-| Parent feature tip, before this integration record | `0799dee` / `main` |
+| Parent package source | `2b3279755bd7ed27ffcd380a0121e9793bf469e6` / `main` |
 | Linux Host | `65dc0f1be60fe78d0457364f83813118c70bc8a8` / `main` |
 | Client | `58f4df097c1cdf11bf6b4b429701f156e2b10109` / `main` |
 | Client common-C | `437be9a0a4d164efdf9ed20dc6dd5a2b7b9edc90` / `plank/client` |
@@ -34,11 +34,49 @@ and dependency pins are identical to the successful `.039` Host candidate;
 only HANDOFF differs. Previous `.036` and `.037` validation below still applies
 to their exact recorded components, not to an unperformed new hardware test.
 
-No installation, signed package rebuild or release publication was requested.
-Existing candidates keep their original filenames/checksums. Mainline version
-is `1.1.039`; future packages must be rebuilt from main, never relabeled.
-Live network-interruption/Flame acceptance and the separate hotkey diagnostic
-remain open. Feature branches are retained; no cleanup was requested.
+The operator subsequently requested all four mainline packages, **without a
+release publication**. All four **1.1.039** packages are now built from the
+exact parent package source above, downloaded and checksum/provenance-verified.
+Existing candidates keep their original filenames/checksums; none was relabeled.
+
+| Package | Successful hosted build |
+| --- | --- |
+| Rocky 9.7 Host RPM | [38287535913](https://github.com/instinctual/plank/actions/runs/38287535913) |
+| Ubuntu 26.04 Client DEB | [38286682059, Client job](https://github.com/instinctual/plank/actions/runs/38286682059/job/114936731007) |
+| Signed/notarized macOS 27 Host PKG | [38287229443](https://github.com/instinctual/plank/actions/runs/38287229443) |
+| Signed/notarized macOS 15+ Client PKG | [38287233183](https://github.com/instinctual/plank/actions/runs/38287233183) |
+
+The original files and combined provenance manifest are in
+`artifacts/packages/releases/1.1.039/{linux,macos}/`. The local catalog uses
+`releases/` for unqualified mainline versions; **no GitHub release or tag was
+created**. Mac Client delivery is PKG-only. SHA-256 values:
+
+| File | SHA-256 |
+| --- | --- |
+| `linux/plank-host-1.1.039-1.el9.x86_64.rpm` | `8db345237dba1808a3b731e66337f5fff27d167668c6519d8f4734c74d5201e0` |
+| `linux/plank-client_1.1.039_amd64.deb` | `1dfb05a39ce42f8f9cdaf1fdcebb7cc0c0ff418ae881e5fb668f947bccb5e78c` |
+| `macos/plank-host_1.1.039_arm64.pkg` | `0af10e2ef2dfbe129e1274142fda644df96fd3f71cf10049f1cd56aada8eec3a` |
+| `macos/plank-client_1.1.039_arm64.pkg` | `5786914eee466ca764a2dd14021d11723cea0886ef8aa3c6e5dd199a5ad7fc81` |
+
+Hosted compilation, automated regression tests and package checks passed. The
+Host ran three 900-frame loss matrices with zero unrecovered source symbols,
+25 shuffled production input-suite repetitions (45 passes and three unavailable
+kernel-dependent cases each), and 25 wrapped-UHID fixture repetitions (56 passes
+each). The RPM is the `BUILD_TESTS=OFF` production payload and owns its root:root
+`0700` log directory. The Ubuntu DEB contains the patched private SDL 3.4.2
+runtime and passed Wacom worker/reconnect, render shutdown, cursor lifecycle,
+runtime dependency and no-autostart checks. Both Mac PKGs passed notarization,
+stapling and Gatekeeper on their builders. No hardware acceptance is implied.
+
+The original all-product run's Host job failed before compilation when fetching
+the unchanged AMF dependency (`bad pack header`). Only the Host was redispatched
+at the identical source; that retry passed without source changes or relaxed
+gates. Verified dependency caches were saved on main. The original run remains
+red because of that first Host job; its Client artifact is successful.
+
+No build remains running, no package was installed and no session was
+interrupted. Live network-interruption/Flame acceptance and the separate hotkey
+diagnostic remain open. Feature branches are retained; no cleanup was requested.
 
 ## Candidate evidence — persistent Linux desktop tablet
 
