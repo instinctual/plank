@@ -9,7 +9,8 @@ notes, never in Git.
 Continue in `build/worktrees/wacom-persistent`, branch `wacom-persistent`, based
 on `client-session-recovery` parent `1572c09e26d6ce7db20d9d1feefe11a3155963b8`.
 This is separate from the unshipped `ubuntu-qt-session` experiment. Candidate
-**1.1.039-wacom-persistent**, Linux Host only, is built and downloaded. Client source remains
+**1.1.039-wacom-persistent**, Linux Host only, is built and downloaded.
+Client source remains
 `58f4df097c1cdf11bf6b4b429701f156e2b10109`; the existing
 `1.1.037-client-session-recovery` DEB can test this Host without an update.
 No protocol, Client, macOS or physical-tablet policy changes are involved.
@@ -85,11 +86,39 @@ validation was weakened.
 No package has been installed and no machine restarted or interrupted.
 Do not merge/release without acceptance.
 Next hardware gate: after installing the Host and restarting Flame once to
-clear any previously cached device identities, leave Flame running and interrupt the Client network for
-about ten seconds, reconnect, and verify stable Host XInput device identities,
-hover, tip/barrel buttons, pressure and Tablet Margins. Also test ordinary
+clear any previously cached device identities, leave Flame running and interrupt
+the Client network for about ten seconds, reconnect, and verify stable Host
+XInput device identities, hover, tip/barrel buttons, pressure and Tablet Margins.
+Also test ordinary
 disconnect/reconnect, Client restart and authorized takeover. Real-kernel
 cleanup, XInput identity and Flame acceptance are not proved by the fixture.
+
+## Open diagnostic — application hotkeys
+
+The operator reports ordinary typing and Shift capitalization work, but some
+Flame shortcuts using Shift do not. Read-only inspection found no Client USB
+keyboard disconnect/reset since boot and no Host virtual-keyboard replacement
+after Flame started. Neither side showed held modifiers when sampled; Flame
+had focus and its log still recorded other shortcuts. These observations do
+not prove delivery of the particular failing shortcut, which has not yet been
+specified.
+
+A later raw-Wacom endpoint replacement was observed on the older Host candidate,
+but no causal link to the keyboard symptom is established. The inspected Host
+was still `.036`, with Client `.037`; the new `.039` Host was not installed.
+Do not attribute the symptom to the uninstalled persistent-tablet repair.
+No keys were injected/reset, devices grabbed, debugger attached, application
+restarted or session interrupted. No keyboard fix was implemented.
+
+Next diagnostic, only with operator participation: identify one exact safe
+failing combination, including whether Shift is paired with a key or pen/mouse
+action, then compare bounded passive Client and Host input observations.
+Do not collect arbitrary typed content or passwords. Private machine/log
+locations remain outside Git. There is no running trace or monitoring task.
+
+The independent Ubuntu SDL cursor-retirement fix remains necessary: preserving
+Host tablet endpoints does not repair Client Wayland surface teardown. The
+Qt session experiment is separate, paused and not included in these packages.
 
 ## Inherited candidate — Client session recovery
 
