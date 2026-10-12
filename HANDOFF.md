@@ -34,10 +34,12 @@ and dependency pins are identical to the successful `.039` Host candidate;
 only HANDOFF differs. Previous `.036` and `.037` validation below still applies
 to their exact recorded components, not to an unperformed new hardware test.
 
-The operator subsequently requested all four mainline packages, **without a
-release publication**. All four **1.1.039** packages are now built from the
-exact parent package source above, downloaded and checksum/provenance-verified.
-Existing candidates keep their original filenames/checksums; none was relabeled.
+All four **1.1.039** mainline packages were built from the exact parent package
+source above, downloaded and checksum/provenance-verified. The operator then
+authorized publication. [PLANK 1.1.039](https://github.com/instinctual/plank/releases/tag/v1.1.039)
+was published on 2026-10-12 as the latest release, using those unchanged
+packages. Existing candidates keep their original filenames/checksums; none
+was relabeled.
 
 | Package | Successful hosted build |
 | --- | --- |
@@ -47,9 +49,13 @@ Existing candidates keep their original filenames/checksums; none was relabeled.
 | Signed/notarized macOS 15+ Client PKG | [38287233183](https://github.com/instinctual/plank/actions/runs/38287233183) |
 
 The original files and combined provenance manifest are in
-`artifacts/packages/releases/1.1.039/{linux,macos}/`. The local catalog uses
-`releases/` for unqualified mainline versions; **no GitHub release or tag was
-created**. Mac Client delivery is PKG-only. SHA-256 values:
+`artifacts/packages/releases/1.1.039/{linux,macos}/`. Annotated tag `v1.1.039`
+points to the exact package source `2b3279755bd7ed27ffcd380a0121e9793bf469e6`,
+not a later documentation commit. The release has four installers, a flat-name
+`SHA256SUMS`, and a public `manifest.json`; their server-side hashes matched
+the local files before publication. A fresh download of the published assets
+also passed all four checksums and byte-for-byte metadata comparisons.
+Mac Client delivery is PKG-only. SHA-256 values:
 
 | File | SHA-256 |
 | --- | --- |
@@ -558,8 +564,15 @@ X11/x264 conversion and Linux Client sizing are unchanged.
 
 ## Last published release and rollback
 
+[PLANK 1.1.039](https://github.com/instinctual/plank/releases/tag/v1.1.039)
+is the latest published release. Exact source, package hashes and build evidence
+are recorded at the top of this file. [Release notes](docs/releases/1.1.039.md)
+compare against 1.1.030 and explicitly preserve the remaining hardware gates;
+publication does not claim that unperformed tests passed. No machines were
+automatically upgraded.
+
 [PLANK 1.1.030](https://github.com/instinctual/plank/releases/tag/v1.1.030)
-remains the latest release. Exact source is
+remains the previous published rollback point. Exact source is
 `e515fe411d5185d3236a8b5c19a14b012375183e`; original verified packages and
 manifests remain under `artifacts/packages/releases/1.1.030/`.
 The release's Client is `0af6d9fc`, Linux Host `b8308a44`, Client common-C
