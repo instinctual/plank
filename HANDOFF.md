@@ -26,8 +26,10 @@ Client checkpoint includes decoder/presenter integration, with qualification pen
 Hosted run `39314870467` compiled the presenter and passed normal tests,
 but UBSan caught a window-change callback during the base QQuickItem destructor.
 The derived item now disconnects that callback before base destruction. The
-next run also checks explicit limited-range BT.709 for macOS Host streams;
-the full-range identity contract remains unchanged.
+next run also checks generic explicit limited-range BT.709 conversion. Current
+macOS Host profiles actually require full-range BT.709, as enforced by the
+unchanged bitstream-profile validator; the legacy setup color-range field is
+not authoritative. Both actual Apple profile fixtures are now converter tests.
 The last fully passing hosted checkpoint is `c831ac30` / parent
 `b36c5be`, run [39313310791](https://github.com/instinctual/plank/actions/runs/39313310791).
 It passed the complete ordinary Client build, component/sanitizer tests and
@@ -47,8 +49,11 @@ are bounded/cancellable; UI-thread qualification is rejected. Presentation
 feedback advances the existing audio clock only after Qt's primary-output swap.
 Reconnect retires old feedback and opens a fresh delivery generation. These
 new paths still need their hosted tests and real GPU qualification.
-Session, input and audio wiring still remain; do not enable packaging
-or claim a live Client at this checkpoint.
+The experimental asynchronous Qt Session owner is now connected to decoder,
+transport and audio startup/recovery/teardown, but input and full toolbar wiring
+remain incomplete. The next hosted run compiles this complete opt-in application
+in addition to the ordinary Client and component tests. Do not enable packaging
+or claim a usable live Client yet.
 Dependency pins remain those listed
 in the inherited baseline below. The Qt surface/input/toolbar and video
 components remain isolated from the shipping session lifecycle. Raw-HID and

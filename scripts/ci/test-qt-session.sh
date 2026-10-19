@@ -21,7 +21,7 @@ cd "$PLANK_SOURCE_ROOT"
     git rev-parse HEAD
     git submodule status --recursive
     qmake6 -query QT_VERSION
-    echo 'software_gpu_only=true hardware_acceptance=not-performed live_session=not-implemented'
+    echo 'software_gpu_only=true hardware_acceptance=not-performed live_session=not-qualified'
 } > "$reports/source.txt"
 python3 tests/packaging/test-client-qt-package.py 2>&1 | tee "$reports/coinstall.log"
 bash scripts/test/run-qt-session-tests.sh 2>&1 | tee "$reports/components.log"
@@ -45,5 +45,24 @@ PLANK_CLIENT_VARIANT=production \
     bash scripts/build/build-client-package-binaries.sh "$PLANK_SOURCE_ROOT/apps/client" \
     "$PLANK_CLIENT_FFMPEG_WORK" "$PLANK_WORK_ROOT/baseline-client-build" \
     2>&1 | tee "$reports/baseline-client-build.log"
+# Compile the real opt-in runtime as well, without bypassing the package guard
+# or emitting an installer. This must not remain a collection of unlinked
+# component prototypes. Both builds use the same verified dependency inputs.
+source scripts/package/package-version.sh
+plank_load_package_version "$PLANK_SOURCE_ROOT"
+source scripts/build/build-paths.sh
+plank_build_path_flags "$PLANK_SOURCE_ROOT" "$PLANK_WORK_ROOT/qt-runtime-build"
+plank_native_dependency_flags
+export PKG_CONFIG_PATH="$PLANK_CLIENT_FFMPEG_WORK/install/lib/pkgconfig:$PLANK_CLIENT_SDL_WORK/install/lib/pkgconfig"
+export LD_LIBRARY_PATH="$PLANK_CLIENT_FFMPEG_WORK/install/lib:$PLANK_CLIENT_SDL_WORK/install/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+mkdir -p "$PLANK_WORK_ROOT/qt-runtime-build"
+(
+    cd "$PLANK_WORK_ROOT/qt-runtime-build"
+    qmake6 "$PLANK_SOURCE_ROOT/apps/client" CONFIG+=release CONFIG+=plank-transport CONFIG+=plank-qt-session \
+        "PLANK_TRANSPORT_DIR=$PLANK_SOURCE_ROOT/protocol/plank-transport" "PLANK_VERSION=$PLANK_PACKAGE_VERSION" \
+        "QMAKE_CFLAGS+=$PLANK_C_FILE_FLAGS" "QMAKE_CXXFLAGS+=$PLANK_C_FILE_FLAGS"
+    make -j"$(nproc)"
+    QT_QPA_PLATFORM=offscreen timeout 20 app/plank-client-qt --version
+) 2>&1 | tee "$reports/qt-runtime-build.log"
 test -z "$(git status --porcelain)"
-echo 'Qt isolated component gates passed; no live Client package or hardware acceptance.' >> "$GITHUB_STEP_SUMMARY"
+echo 'Qt component gates and both Client compiles passed; no live Client package or hardware acceptance.' >> "$GITHUB_STEP_SUMMARY"
