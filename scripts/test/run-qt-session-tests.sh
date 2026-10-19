@@ -36,6 +36,13 @@ for variant in production qt; do
         ./clientidentity
     )
 done
+mkdir -p "$build_root/input-tests"
+(
+    cd "$build_root/input-tests"
+    "$qmake" "$source_root/apps/client/tests/qtinput/qtinput.pro" "${qmake_flags[@]}"
+    make -j"${PLANK_BUILD_JOBS:-4}"
+    ./qtinput
+)
 mkdir -p "$build_root/tests" "$build_root/video-tests" "$build_root/pool-tests" "$build_root/probe"
 (
     cd "$build_root/tests"

@@ -7,162 +7,74 @@ notes, never in Git.
 ## Current work — Ubuntu Qt session experiment
 
 Continue in `build/worktrees/ubuntu-qt-session`, on matching parent/Client
-`ubuntu-qt-session` branches. Originally based on parent `1572c09` / Client
-`58f4df09` from `client-session-recovery`, the branch now includes main
-`38e00a557670df063926af1ef3466156145302ae` (the 1.1.039 release baseline).
-The Qt Client commits remain on top of that same released Client source.
-Persistent-tablet Host integration is included; the independent CUDA candidate
-is not. Canonical checkout's separate PKG-only edits and other branches are
-untouched.
+`ubuntu-qt-session` branches, based on main
+`38e00a557670df063926af1ef3466156145302ae` (1.1.039).
+The persistent-tablet and Client session-recovery fixes are included.
+The independent CUDA candidate and canonical checkout's unrelated PKG edits
+remain untouched. Read [the plan](docs/development/plans/ubuntu-qt-session.plan).
 
-No Development NUC is currently available. The operator authorized continued
-isolated development/testing and will manually test a usable candidate later.
-The eventual `plank-client-qt` DEB / **PLANK Client Qt** app must co-install with
-the regular Client using separate binary, desktop ID, settings and logs; see
-the plan. Do not deploy over the production Client or contact stale test targets.
+The operator requires full feature equivalence and continued work until their
+input is necessary. No Development NUC is currently available. Build/test only
+on GitHub-hosted Ubuntu Actions; do not request VM prerequisite installation or
+contact stale hardware addresses. The eventual **PLANK Client Qt** /
+`plank-client-qt` DEB must co-install without sharing production configuration,
+bookmarks, trust, logs, libraries or executable/application identity.
 
-Read [the plan](docs/development/plans/ubuntu-qt-session.plan). The current
-Client checkpoint includes decoder/presenter integration, with qualification pending.
-Hosted run `39314870467` compiled the presenter and passed normal tests,
-but UBSan caught a window-change callback during the base QQuickItem destructor.
-The derived item now disconnects that callback before base destruction. The
-next run also checks generic explicit limited-range BT.709 conversion. Current
-macOS Host profiles actually require full-range BT.709, as enforced by the
-unchanged bitstream-profile validator; the legacy setup color-range field is
-not authoritative. Both actual Apple profile fixtures are now converter tests.
-The last fully passing hosted checkpoint is `c831ac30` / parent
-`b36c5be`, run [39313310791](https://github.com/instinctual/plank/actions/runs/39313310791).
-It passed the complete ordinary Client build, component/sanitizer tests and
-100%/125% compositor checks. The video mailbox suite now has 15 passing tests.
-The GPU semaphore handoff correctly reports skipped on hosted Mesa, not accepted.
-New work unifies software/hardware frame delivery
-and connects the pooled converter to the Qt render node with explicit Vulkan/GL
-image ownership. A dedicated RGB10 image and binary GPU semaphores avoid an
-extra CPU image copy. Matching device/driver identity is mandatory. The new
-120-roundtrip interop probe can qualify that path on supported hardware; hosted
-Mesa lacks external semaphores and must report it skipped, not accepted.
-The operator now explicitly requests full feature equivalence and continued
-implementation without intermediate stops. The plan contains the live-feature
-checklist. The new decoder adapter preserves mandatory exact-profile probes,
-uses the pooled allocator, and feeds a one-slot Qt presenter. Qualification waits
-are bounded/cancellable; UI-thread qualification is rejected. Presentation
-feedback advances the existing audio clock only after Qt's primary-output swap.
-Reconnect retires old feedback and opens a fresh delivery generation. These
-new paths still need their hosted tests and real GPU qualification.
-The experimental asynchronous Qt Session owner is now connected to decoder,
-transport and audio startup/recovery/teardown, but input and full toolbar wiring
-remain incomplete. The next hosted run compiles this complete opt-in application
-in addition to the ordinary Client and component tests. Do not enable packaging
-or claim a usable live Client yet.
-Dependency pins remain those listed
-in the inherited baseline below. The Qt surface/input/toolbar and video
-components remain isolated from the shipping session lifecycle. Raw-HID and
-normalized tablet integration are not implemented; synthesized tablet-mouse
-events are deliberately suppressed in the prototype. No Host or macOS-specific
-session code was changed. The shared software-frame allocator and decoder
-fixtures have been refactored; only Ubuntu component validation was performed.
+### Validated checkpoint
 
-Implemented since the initial window prototype:
+Parent `ca0a92139e438d26c46d0c3094ec91849c7b4c5a` / Client `03443873`,
+[hosted run 39317676404](https://github.com/instinctual/plank/actions/runs/39317676404),
+passed the complete experimental Qt application compile, complete ordinary
+Client regression build/preflight, component tests, ASan/UBSan with leak
+detection and the isolated GNOME/Wayland 100%/forced-125% compositor tests.
+This is not a real network session or Intel GPU qualification.
 
-- Exact packed-format EGL render node, immutable VA-API decoder-surface leases,
-  bounded surface synchronization and GPU-fence retirement. This compiles but
-  actual Intel decoding/export/import is not yet qualified.
-- The real video shader passes synthetic GPU-texture tests: every 10-bit
-  RGB/gray level, original 8-bit codes after expansion, full-range BT.709 gray,
-  crop/offset and linear downscale. Substituted 8-bit targets are rejected.
-- Decoder-to-GUI mailbox holds one pending frame and one queued notification;
-  reconnect retires old producers and teardown cannot deliver into a new
-  session. Tests include 10,001 submissions while GUI dispatch is stopped,
-  100 concurrent teardown iterations and synchronous close from a delivery.
-- Separate package/runtime identity and configuration, launcher, settings,
-  trust store, caches, logs and private libraries. Twelve packaging tests
-  include install/purge in a disposable dpkg root while preserving a synthetic
-  production Client and its administrator-edited configuration. This is not a
-  product installation on the builder or a qualified real DEB.
-- Window-independent `PlVkFramePool`, reused by the existing renderer and ready
-  for the Qt software path. It preserves cacheable imported reference frames,
-  holds their backing storage through GPU transfer completion, and retires those
-  leases outside GPU callbacks/FFmpeg pool locks. The ordinary mapped/system
-  fallbacks remain. No per-frame GPU wait or additional CPU pixel copy was added.
-- Eighteen allocator tests cover concurrent decoding, pool/AVFrame lifetimes,
-  malformed bounds, failures, negative strides and callbacks delivered during
-  allocation. Six use the unchanged production codec fixtures for actual FFmpeg
-  decoding plus Vulkan plane transfers/readback. All visible samples match the
-  reference decode, including 10-bit samples. This uses lavapipe, not Intel.
+That checkpoint integrates the asynchronous Qt session owner with existing
+transport, authentication, exact-profile decoder selection, audio synchronization,
+recovery and teardown. Qt owns the windows and event dispatch; no SDL video
+surface or second Wayland event loop is introduced. The same immutable
+VA-API/software frame leases feed a one-slot presenter. Primary swap feedback
+advances the unchanged audio clock. Qualification waits are bounded/cancellable.
 
-Both identity variants, all 24 surface/input tests and all 12 video/lifetime
-tests, plus all 18 pool tests, pass normally and with ASan/UBSan plus leak
-detection on the Ubuntu builder. Concurrency stress is not a claim of
-ThreadSanitizer qualification.
-The root's 70 CI-policy, eight package-catalog and ten build-path tests pass;
-launcher checks pass. The same 24 surface/input tests and all eight
-native-child framebuffer/shader configurations pass on the separate
-GNOME/Wayland compositor at 100% and forced 125% using this exact code checkpoint.
+The software converter and shader tests preserve all 1024 codes, RGB identity,
+full-range BT.709, crop/offset, downscaling and the unchanged encoded fixtures.
+Current macOS Host profiles require full-range BT.709; the legacy setup-range
+field is not authoritative. Both actual Apple profile fixtures are tested.
+Generic limited-range conversion tests do not imply that macOS streams are limited.
 
-These are Mesa llvmpipe/lavapipe feasibility and lifecycle tests, not panel/Intel
-GPU, physical input, Wacom or live-session acceptance. The directly
-decorated Qt Quick window remains an 8-bit negative comparison; its settled
-fullscreen path is 10-bit. See the plan's correction of the early first-frame
-inference.
+Hosted Mesa does not expose the required Vulkan/OpenGL external semaphores.
+The 120-roundtrip interop qualification correctly reports skipped, not accepted.
+Actual Intel VA-API decoding/export, Vulkan-to-GL delivery, display precision,
+performance, audio/video soak and physical Wacom remain pending hardware gates.
 
-Next: connect and qualify actual decoder/presenter delivery, preserving both
-the VA-API Y410/EGL and pooled Vulkan software-decode paths, then asynchronous
-session orchestration and unchanged input/audio transport. Real decoded frames
-have exercised the reusable Vulkan pool, but have not reached a Qt session
-window. The co-installable package scaffolding does not
-enable the Qt session runtime: an explicit build/package guard prevents shipping
-the ordinary SDL Client under the experimental name. Remove that temporary
-guard only with actual runtime integration and its tests.
+### Current implementation / next work
 
-The operator corrected the build location: **use GitHub-hosted Ubuntu Actions**,
-not the retained Ubuntu VM. The VM's missing PipeWire development package is
-not a blocker and requires no operator action. The hosted dependency installer
-already includes it. Use `bash scripts/ci/dispatch.sh linux-client-qt-tests false`
-from the clean, pushed experimental branch. This explicit job builds/tests the
-isolated components, not a renamed SDL Client or a distributable Qt DEB.
+Client `3e82de48` additionally connects toolbar bitrate acknowledgement,
+shared rate/loss/RTT statistics, microphone/camera controls, overlay, Qt physical
+keyboard/mouse input, unchanged raw-HID/normalized tablet workers, Host cursor
+shapes/positions and Wayland shortcut/pointer policy. The ordinary Client now
+shares its bounded cursor-message parser with the Qt frontend. New input tests
+cover key identities, malformed cursor chunks and reconnect sequence epochs.
+These additions need their next hosted build/tests; they are not yet qualified.
 
-Hosted validation at parent `1b63fd7f1f6eaaa5de807f9530236db7f6ec48b6`
-([39308324953](https://github.com/instinctual/plank/actions/runs/39308324953))
-**passed**, including all 19 software-converter tests normally and under
-ASan/UBSan with leak detection enabled. They include all 1024 RGB
-levels, full-range BT.709, odd-sized chroma, negative strides, six unchanged
-production decode fixtures and rejection of precision/range substitutions.
-The converter explicitly selects R8/R16 plane storage and the same matrix as
-the packed hardware path; it does not delegate those choices to inferred
-libplacebo color conversion. The ordinary renderer's upload default is unchanged.
-Normal co-install, identity, input, mailbox and pool tests also passed, as did
-the compositor/precision checks at 100% and forced 125% scale.
+Continue checking input/focus/reconnect and compositor-request lifetimes,
+complete exact P010 hardware presentation and visible-output qualification,
+then exercise the integrated runtime and produce the independently installable
+candidate. The package guard still prevents distributing a renamed SDL client.
+No Qt candidate has been delivered or installed. No merge or release is authorized.
 
-Both identity variants, all 24 window/input tests, 12 video/lifetime tests and
-18 pool tests also pass under sanitizers. Software-only lavapipe/GL selection
-is explicit; loading unrelated Vulkan drivers previously produced enumeration
-leak reports. Leak checks are not suppressed. The complete ordinary Client
-compiled and linked, and its normal preflight, dependency, version, logging,
-input, microphone and shutdown checks passed. That baseline binary was not
-packaged or uploaded as a Qt Client. All 73 CI-policy tests and the separate
-privacy/clipboard jobs passed too.
-The full compile still reports the existing FFmpeg Vulkan queue-callback
-deprecations and unused Quinn telemetry warnings; it is not warning-free.
+Dispatch from a clean pushed branch with:
+`bash scripts/ci/dispatch.sh linux-client-qt-tests false`.
+The job builds both full application variants and isolated tests, not a package.
+Build warnings currently include inherited FFmpeg Vulkan queue-callback
+deprecations and unused Quinn telemetry; do not claim a warning-free build.
 
-The bitrate preflight now distinguishes session-local toolbar properties from
-global preferences: generic property checks cover settings, while legacy
-serialization/access/CLI checks remain app-wide. Positive and negative
-regression fixtures execute the actual gate. The hosted report artifact is
-`qt-session-tests-39308324953-1`; a local retained copy is under ignored
-`build/tests/ubuntu-qt-session/github-39308324953/`. Subsequent notes-only
-commits do not change the tested application sources.
-
-The compositor probe reports external-memory/semaphore capabilities without
-logging device identifiers. This runner exposes external memory but not the
-external semaphores required by the proposed Vulkan-to-GL handoff. Actual
-cross-API delivery is implemented but remains hardware-unqualified; do not claim that the
-capability diagnostic proves working interop or physical GPU performance.
-
-Parent and Client experimental branches are pushed. No Qt candidate package,
-installation, merge into main or release has been performed. No build is left
-running. Existing released packages remain unchanged. Earlier VM evidence above
-is historical; current build/test work runs only on disposable hosted Ubuntu workers. No occupied
-client was contacted. Public reproduction commands are in the plan.
+Dependency pins remain unchanged: Linux Host `65dc0f1be60fe78d0457364f83813118c70bc8a8`,
+Client common-C `437be9a0a4d164efdf9ed20dc6dd5a2b7b9edc90`,
+qmdns `920c097ffa742e2968290f15d4dde6693aec02e5`,
+Kymux `3f7a9d8618978287186e5d6ce0eaa067743cb06c`,
+build-deps `c29c4822cb96f5bfeb8640e72601c5cf4e3c3137`.
+No Host, macOS-specific session or wire-protocol changes are part of this work.
 
 ## Inherited main baseline — persistent tablet and Client recovery integrated
 
