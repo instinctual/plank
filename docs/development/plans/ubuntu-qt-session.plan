@@ -128,10 +128,11 @@ The 24 component checks also pass under that forced scale. This is not a real
 compositor fractional-scale or mixed-monitor hardware acceptance test.
 
 The virtual builder uses Mesa llvmpipe; these are precision/lifecycle feasibility
-checks, not GPU throughput, panel or decoded-video qualification. No video frame
-has traversed the new component. Actual EGL/VA-API and Vulkan presenter integration
-remains the next gate; Qt Quick's graphics-API selection must not silently remove
-one of those qualified paths or add a CPU frame copy.
+checks, not GPU throughput, panel or decoded-video qualification. No decoded
+video frame has traversed the new component. The EGL/VA-API adapter described
+below compiles but its real import/decoder path remains unqualified. Vulkan
+presenter integration remains pending; Qt Quick's graphics-API selection must
+not silently remove one of those qualified paths or add a CPU frame copy.
 
 Qt 6.10.2's `QWaylandEglWindow::contentFBO()` creates a default-format content
 FBO for decorated windows; its EGL window setup also requests 8-bit alpha when
@@ -162,3 +163,88 @@ fail-closed native-child framebuffer and title-bar gates. The standalone probe's
 it is expected to fail in decorated mode on the current Qt/GNOME combination.
 Use `--native-child` for the proposed arrangement, and `--roundtrip` with a
 precision check for repeated fullscreen/windowed transitions.
+
+## Packed video and delivery checkpoint
+
+Validated parent `5d19f9cd371a2e6c5ba7e9c3a2c2ba010dca77b3` / Client
+`f816851f7f8088a397a1bfafd2083f0dedb750b2` adds `qtvideo.pri` to the isolated
+probe, not the live Client session:
+
+- `QtVaapiVideoFrame` retains the decoder's AVFrame while its exported DMA-BUF
+  is sampled. It validates exact packed format, bit depth, range, matrix,
+  object/plane layout and linear-buffer bounds. Surface synchronization is
+  bounded to 100 ms on the decoder worker, never the Qt GUI thread.
+- `QtEglVideoItem` imports that DMA-BUF into a scene-graph render node. At most
+  three GPU leases are retained. Fences retire completed sampling without a
+  per-frame `glFinish`, CPU pixel map or readback. Real Intel driver behavior,
+  multi-output delivery and device-loss recovery are still pending gates.
+- The shared packed-format interpretation is also used by the existing VA-API
+  renderer, without changing its channel mapping. Other shipping renderer and
+  transport paths remain intact.
+- `QtVideoMailbox` coalesces frames to one pending frame and one queued GUI
+  notification. Connection generations reject late callbacks; closing the
+  session from a delivery is safe. A worker does not wait for GUI dispatch.
+
+Twelve component checks pass normally and with ASan/UBSan/leak detection.
+They use wrapped VA-API exports, not a real decoder/device. The separate shader
+probe uses test-only CPU-generated GPU textures and readback; neither is part
+of the proposed runtime. With `--video-precision-check`, all 1024 native RGB/gray
+levels and crop/offset remain exact. Eight-bit expansion retains every original
+code; legal adjacent-integer UNORM rounding is not mistaken for loss of source
+precision. Full-range BT.709 gray and linear downscale also pass. An 8-bit
+intermediate must fail the 10-bit gate.
+
+All eight native-child framebuffer/shader configurations pass at 100% and forced
+125% on the isolated compositor, including repeated fullscreen/windowed changes.
+The same 24 input/window tests pass there and under sanitizers. This does not
+qualify physical fractional-scale outputs, hardware decoding, GPU throughput or
+live video/audio synchronization.
+
+`run-qt-session-tests.sh` now needs `PLANK_CLIENT_FFMPEG_WORK` pointing to the
+canonical patched private FFmpeg 9.0.1 tree. It verifies both patch application
+and the qualified resulting source hash; do not bootstrap a second copy.
+Use a separate shadow build with `PLANK_QT_SESSION_SANITIZERS=1`,
+`ASAN_OPTIONS=detect_leaks=1` and `UBSAN_OPTIONS=halt_on_error=1` for sanitizers.
+No ThreadSanitizer or Intel hardware acceptance is implied.
+
+## Co-installation contract
+
+| Resource | Ordinary Client | Qt experiment |
+| --- | --- | --- |
+| DEB / executable | `plank-client` | `plank-client-qt` |
+| Display name | PLANK Client | PLANK Client Qt |
+| Desktop ID | `la.instinctual.Plank.Client` | `la.instinctual.Plank.Client.Qt` |
+| QSettings application | `PLANK` | `PLANK Client Qt` |
+| Administrator policy | `/etc/plank/client.conf` | `/etc/plank/client-qt.conf` |
+| Private libraries | `/usr/lib/plank` | `/usr/lib/plank-client-qt` |
+| Logs below XDG state home | `plank/logs` | `plank-client-qt/logs` |
+
+The distinct Qt application name also separates bookmarks, Host trust, caches
+and application data. There is no automatic import or shared mutable state.
+Portable-mode markers are ignored by the experiment. Both apps may be installed;
+concurrent live streams using the same physical input devices are not qualified.
+Both packages grant the same Wacom device access using separately owned udev
+files. Removing either package must not remove the other's files or rules.
+
+The `PLANK_CLIENT_VARIANT=qt` scaffolding selects the names and private RPATH;
+default production naming is unchanged. The experimental package may not claim
+`Conflicts`, `Replaces`, `Provides`, production URL handlers or autostart. The
+package collector only accepts it as a branch-labelled Ubuntu candidate.
+`scripts/test/check-client-qt-package.py` audits the built DEB and can compare
+its file list with the actual production DEB before delivery.
+
+All twelve `tests/packaging/test-client-qt-package.py` checks pass on Ubuntu.
+Its synthetic install/purge test uses a disposable dpkg root, verifies production
+binary/library/configuration preservation and never installs product software on
+the builder. Both compiled application-identity test variants pass and verify
+separate bookmark/trust namespaces. This is packaging preparation, not a claim
+that a usable Qt Client DEB exists.
+
+A temporary build/package guard explicitly rejects Qt product builds while
+live sessions still use the ordinary SDL path. Remove that guard with the
+actual Qt session integration and its end-to-end tests. Do not distribute a
+renamed SDL Client or the non-networked probe as a completed Qt Client. When
+ready, assign a new build version, explicitly set the branch and Qt variant,
+run the normal release runbook plus isolation gates, and collect the exact DEB
+under `artifacts/packages/candidates/<version>-ubuntu-qt-session/linux/`.
+No merge, release or remote installation is authorized by this testing request.

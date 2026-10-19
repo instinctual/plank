@@ -21,35 +21,54 @@ The eventual `plank-client-qt` DEB / **PLANK Client Qt** app must co-install wit
 the regular Client using separate binary, desktop ID, settings and logs; see
 the plan. Do not deploy over the production Client or contact stale test targets.
 
-Read [the plan](docs/development/plans/ubuntu-qt-session.plan). The initial Qt
-window/input/toolbar component is isolated from shipping `app.pro`, and has no
-transport or decoder dependency. Validated root `2b1123a` / Client `dedab3ef`
-implements a Qt decorated top-level with one native video/toolbar/recovery scene,
-viewport-based coordinate mapping, complete
-press/release ownership and focus/resize/disconnect cleanup. Raw-HID and
+Read [the plan](docs/development/plans/ubuntu-qt-session.plan). Current code
+checkpoint: parent `5d19f9cd371a2e6c5ba7e9c3a2c2ba010dca77b3`, Client
+`f816851f7f8088a397a1bfafd2083f0dedb750b2`. Dependency pins remain those listed
+in the inherited baseline below. The Qt surface/input/toolbar and video
+components remain isolated from the shipping session lifecycle. Raw-HID and
 normalized tablet integration are not implemented; synthesized tablet-mouse
-events are deliberately suppressed in this prototype. Mac and Host behavior
-are unchanged.
+events are deliberately suppressed in the prototype. Host code and macOS
+runtime behavior are unchanged.
 
-24 component tests pass offscreen, on a separate GNOME/Wayland compositor, and
-under ASan/UBSan with leak detection on the Ubuntu builder. The same checks
-pass with forced 125% Qt scale on that compositor. Probe compilation
-and bounded launch/exit also pass. This is not a product build, physical-input
-test, media benchmark or Wacom acceptance.
+Implemented since the initial window prototype:
 
-The framebuffer gate passes for the Qt-owned native scene inside ordinary Qt
-window chrome. All 1024 codes in each RGB/gray ramp survive in windowed and
-fullscreen modes, before/after repeated transitions, at 100% and forced 125%.
-The title-bar margin is checked in windowed mode. No Qt patch, global decoration
-override, HDR, manual native-surface ownership or extra CPU video copy is used.
-This is Mesa llvmpipe feasibility, not panel/Intel GPU or decoded-frame proof.
+- Exact packed-format EGL render node, immutable VA-API decoder-surface leases,
+  bounded surface synchronization and GPU-fence retirement. This compiles but
+  actual Intel decoding/export/import is not yet qualified.
+- The real video shader passes synthetic GPU-texture tests: every 10-bit
+  RGB/gray level, original 8-bit codes after expansion, full-range BT.709 gray,
+  crop/offset and linear downscale. Substituted 8-bit targets are rejected.
+- Decoder-to-GUI mailbox holds one pending frame and one queued notification;
+  reconnect retires old producers and teardown cannot deliver into a new
+  session. Tests include 10,001 submissions while GUI dispatch is stopped,
+  100 concurrent teardown iterations and synchronous close from a delivery.
+- Separate package/runtime identity and configuration, launcher, settings,
+  trust store, caches, logs and private libraries. Twelve packaging tests
+  include install/purge in a disposable dpkg root while preserving a synthetic
+  production Client and its administrator-edited configuration. This is not a
+  product installation on the builder or a qualified real DEB.
 
-The direct decorated Qt Quick window remains an 8-bit negative comparison.
-Its settled fullscreen path is 10-bit: the earlier first-frame-only inference
-was premature and is corrected in the plan. Next: integrate and qualify actual
-EGL/VA-API and Vulkan presenters without silently replacing either path, then
-the asynchronous session controller and unchanged Wacom transport. No decoded
-frame has used this prototype, and no live session acceptance is claimed.
+Both identity variants, all 24 surface/input tests and all 12 video/lifetime
+tests pass normally and with ASan/UBSan plus leak detection on the Ubuntu
+builder. Concurrency stress is not a claim of ThreadSanitizer qualification.
+The root's 70 CI-policy, eight package-catalog and ten build-path tests pass;
+launcher checks pass. The same 24 surface/input tests and all eight
+native-child framebuffer/shader configurations pass on the separate
+GNOME/Wayland compositor at 100% and forced 125% using this exact code checkpoint.
+
+These are Mesa llvmpipe feasibility and lifecycle tests, not panel/Intel GPU,
+physical input, Wacom, decoded-video or live-session acceptance. The directly
+decorated Qt Quick window remains an 8-bit negative comparison; its settled
+fullscreen path is 10-bit. See the plan's correction of the early first-frame
+inference.
+
+Next: connect and qualify actual decoder/presenter delivery, preserving both
+the VA-API Y410/EGL and pooled Vulkan software-decode paths, then asynchronous
+session orchestration and unchanged input/audio transport. No decoded frame
+has traversed this prototype. The co-installable package scaffolding does not
+enable the Qt session runtime: an explicit build/package guard prevents shipping
+the ordinary SDL Client under the experimental name. Remove that temporary
+guard only with actual runtime integration and its tests.
 
 No Qt candidate package, installation, push, merge into main or release has been
 performed. Existing released packages remain unchanged. Builder tests
