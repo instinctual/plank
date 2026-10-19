@@ -22,11 +22,16 @@ the regular Client using separate binary, desktop ID, settings and logs; see
 the plan. Do not deploy over the production Client or contact stale test targets.
 
 Read [the plan](docs/development/plans/ubuntu-qt-session.plan). The current
-Client checkpoint is `014fdd9d` (decoder/presenter integration, qualification pending).
+Client checkpoint includes decoder/presenter integration, with qualification pending.
+Hosted run `39314870467` compiled the presenter and passed normal tests,
+but UBSan caught a window-change callback during the base QQuickItem destructor.
+The derived item now disconnects that callback before base destruction. The
+next run also checks explicit limited-range BT.709 for macOS Host streams;
+the full-range identity contract remains unchanged.
 The last fully passing hosted checkpoint is `c831ac30` / parent
 `b36c5be`, run [39313310791](https://github.com/instinctual/plank/actions/runs/39313310791).
 It passed the complete ordinary Client build, component/sanitizer tests and
-100%/125% compositor checks. The video mailbox suite now has 13 passing tests.
+100%/125% compositor checks. The video mailbox suite now has 15 passing tests.
 The GPU semaphore handoff correctly reports skipped on hosted Mesa, not accepted.
 New work unifies software/hardware frame delivery
 and connects the pooled converter to the Qt render node with explicit Vulkan/GL

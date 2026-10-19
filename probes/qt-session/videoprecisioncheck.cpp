@@ -35,12 +35,14 @@ bool checkVideo()
     gl->glGenTextures(1, &texture);
     std::vector<GLuint> pixels(1024 * 4);
     bool passed = true;
-    for (int test = 0; test < 5 && passed; ++test) {
+    for (int test = 0; test < 6 && passed; ++test) {
         const bool eightBit = test == 1;
-        const bool bt709 = test == 2;
+        const bool limited = test == 5;
+        const bool bt709 = test == 2 || limited;
         const bool crop = test == 3;
         const bool filter = test == 4;
-        const Mapping mapping = eightBit ? Mapping::Identity8 : bt709 ? Mapping::Bt709Full10 : Mapping::Identity10;
+        const Mapping mapping = eightBit ? Mapping::Identity8 : limited ? Mapping::Bt709Limited10 :
+            bt709 ? Mapping::Bt709Full10 : Mapping::Identity10;
         for (int row = 0; row < 4; ++row) {
             for (int code = 0; code < 1024; ++code) {
                 const GLuint level = filter ? (code & 1 ? 1023 : 0) : GLuint(code);
@@ -86,6 +88,7 @@ bool checkVideo()
                     const GLuint source8 = expected / 4;
                     if (eightBit) expected = qRound(source8 * 1023.0 / 255.0);
                     if (bt709) expected = code;
+                    if (limited) expected = qRound(std::clamp((double(code) - 64.0) / 876.0, 0.0, 1.0) * 1023.0);
                     if (filter) expected = row == channel || row == 3 ? 512 : 0;
                     const GLuint actual = (result[(3 - row) * width + x] >> (10 * channel)) & 1023;
                     // GL 4.6 section 2.3.5.2 permits either adjacent integer
@@ -98,6 +101,8 @@ bool checkVideo()
                         const GLuint upper = (source8 * 1023 + 254) / 255;
                         matches = actual >= lower && actual <= upper &&
                             qRound(actual * 255.0 / 1023.0) == int(source8);
+                    } else if (limited) {
+                        matches = std::abs(int(actual) - int(expected)) <= 1;
                     } else if (filter && (row == channel || row == 3)) {
                         // The exact midpoint is 511.5 in the 10-bit target.
                         matches = actual == 511 || actual == 512;
