@@ -1,5 +1,6 @@
 #include "videoprecisioncheck.h"
 #include "packedvideoblitter.h"
+#include "egltextureimport.h"
 #include "gpuinteropcheck.h"
 #include "softwareinteropcheck.h"
 
@@ -16,6 +17,54 @@
 namespace {
 using Mapping = PlankPackedVideo::Mapping;
 
+// Exercise the production EGLImage-to-texture operation, not just the shader
+// with directly uploaded textures. No VA-API/DMABUF qualification is implied.
+class ImportedTexture final
+{
+public:
+    ~ImportedTexture()
+    {
+        if (auto* context = QOpenGLContext::currentContext())
+            context->extraFunctions()->glDeleteTextures(1, &texture);
+        if (image != EGL_NO_IMAGE_KHR && destroyImage) destroyImage(display, image);
+    }
+
+    bool import(GLuint source, QString& error)
+    {
+        display = eglGetCurrentDisplay();
+        auto createImage = reinterpret_cast<PFNEGLCREATEIMAGEKHRPROC>(eglGetProcAddress("eglCreateImageKHR"));
+        destroyImage = reinterpret_cast<PFNEGLDESTROYIMAGEKHRPROC>(eglGetProcAddress("eglDestroyImageKHR"));
+        if (display == EGL_NO_DISPLAY || !createImage || !destroyImage) {
+            error = QStringLiteral("Video fixture requires EGL image support");
+            return false;
+        }
+        auto* gl = QOpenGLContext::currentContext()->extraFunctions();
+        gl->glBindTexture(GL_TEXTURE_2D, source);
+        gl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        const EGLint attributes[] = {EGL_GL_TEXTURE_LEVEL_KHR, 0, EGL_IMAGE_PRESERVED_KHR, EGL_TRUE, EGL_NONE};
+        image = createImage(display, eglGetCurrentContext(), EGL_GL_TEXTURE_2D_KHR,
+                            reinterpret_cast<EGLClientBuffer>(quintptr(source)), attributes);
+        if (image == EGL_NO_IMAGE_KHR) {
+            error = QStringLiteral("Video fixture EGL image creation failed: 0x%1").arg(eglGetError(), 0, 16);
+            return false;
+        }
+        if (!importQtEglTexture(image, texture, error)) return false;
+        GLint binding = 0;
+        gl->glGetIntegerv(GL_TEXTURE_BINDING_2D, &binding);
+        if (GLuint(binding) != source || texture == source) {
+            error = QStringLiteral("EGL import failed to preserve the texture binding or create an alias");
+            return false;
+        }
+        return true;
+    }
+
+    GLuint texture = 0;
+private:
+    EGLDisplay display = EGL_NO_DISPLAY;
+    EGLImageKHR image = EGL_NO_IMAGE_KHR;
+    PFNEGLDESTROYIMAGEKHRPROC destroyImage = nullptr;
+};
+
 bool checkVideo()
 {
     auto* context = QOpenGLContext::currentContext();
@@ -31,6 +80,13 @@ bool checkVideo()
     }
     const QSize drawable(viewport[2], viewport[3]);
     QtPackedVideoBlitter blitter;
+    GLuint rejected = 0;
+    QString rejectionError;
+    if (importQtEglTexture(EGL_NO_IMAGE_KHR, rejected, rejectionError) || rejected ||
+            rejectionError.isEmpty() || gl->glGetError() != GL_NO_ERROR) {
+        qWarning("Qt EGL import did not safely reject an invalid image");
+        return false;
+    }
     GLuint texture = 0, chroma = 0;
     gl->glGenTextures(1, &texture);
     gl->glGenTextures(1, &chroma);
@@ -85,7 +141,9 @@ bool checkVideo()
         const QtSessionGeometry geometry{{1024, 4}, {qreal(sourceX), 0, qreal(sourceWidth), 4},
             {11, 73, qreal(width), 4}, drawable, drawable};
         QString error;
-        if (!blitter.draw(texture, GL_TEXTURE_2D, mapping, geometry, error, p010 ? chroma : 0)) {
+        ImportedTexture imported, importedChroma;
+        if (!imported.import(texture, error) || (p010 && !importedChroma.import(chroma, error)) ||
+                !blitter.draw(imported.texture, mapping, geometry, error, importedChroma.texture)) {
             qWarning().noquote() << error;
             passed = false;
             break;
@@ -136,7 +194,7 @@ bool checkVideo()
             }
         }
         if (gl->glGetError() != GL_NO_ERROR) passed = false;
-        qInfo("Qt video shader case %d: %s", test, passed ? "pass" : "fail");
+        qInfo("Qt EGL import/shader case %d: %s", test, passed ? "pass" : "fail");
     }
     if (passed) {
         // Fail closed on a substituted 8-bit intermediate, even when the
@@ -152,7 +210,7 @@ bool checkVideo()
         gl->glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, rgb8, 0);
         QString error;
         passed = gl->glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE &&
-            !blitter.draw(texture, GL_TEXTURE_2D, Mapping::Identity10,
+            !blitter.draw(texture, Mapping::Identity10,
                           {{1024, 4}, {0, 0, 1024, 4}, {0, 0, 1024, 4}, {1024, 4}, {1024, 4}}, error) &&
             error.contains(QStringLiteral("precision"));
         gl->glBindFramebuffer(GL_FRAMEBUFFER, GLuint(originalFramebuffer));
@@ -162,7 +220,7 @@ bool checkVideo()
     }
     gl->glDeleteTextures(1, &texture);
     gl->glDeleteTextures(1, &chroma);
-    qInfo("Qt video precision gate: %s (synthetic GPU textures; not hardware decode qualification)", passed ? "pass" : "fail");
+    qInfo("Qt video precision gate: %s (synthetic EGL images; not hardware decode qualification)", passed ? "pass" : "fail");
     return passed;
 }
 }

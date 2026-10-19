@@ -68,7 +68,7 @@ bool checkQtSoftwareInterop()
         // Detect accidental overlapping ownership before drawing.
         if (image->beginWrite(error) || error.isEmpty()) return false;
         for (int repeat = 0; repeat < 2; ++repeat) {
-            if (!blitter.draw(image->glTexture(), GL_TEXTURE_2D,
+            if (!blitter.draw(image->glTexture(),
                               PlankPackedVideo::Mapping::Identity10, geometry, error)) {
                 qWarning().noquote() << error; return false;
             }

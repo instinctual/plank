@@ -4,9 +4,12 @@ Status: the live Qt runtime is integrated. Candidate 1.1.043-ubuntu-qt-session
 passed the GitHub-hosted compile, component, compositor, sanitizer, launcher
 and package gates and is available for operator installation. It repairs the
 cursor-texture double deletion discovered during the first physical tablet test.
-That incident also exposed an unresolved exact-format GPU presentation gate;
-the operator could not confirm pre-crash video behavior. No physical
-GPU/input or real-stream acceptance is claimed. See HANDOFF for exact provenance.
+The next physical test confirms frozen/poorly updating video with a responsive
+toolbar. An actual Intel desktop OpenGL probe identifies the unsupported
+external-texture target used by the Qt packed-frame importer. Candidate 1.1.044
+switches these raw RGB/R/RG imports to ordinary 2D textures and extends the
+compositor tests through the actual EGLImage binding operation. Hosted and
+real-stream acceptance of that repair are pending. See HANDOFF for provenance.
 Implementation started on `ubuntu-qt-session`, from parent
 `1572c09e26d6ce7db20d9d1feefe11a3155963b8` / Client
 `58f4df097c1cdf11bf6b4b429701f156e2b10109` (`client-session-recovery`).

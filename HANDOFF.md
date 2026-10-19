@@ -6,6 +6,33 @@ notes, never in Git.
 
 ## Current work — Ubuntu Qt session experiment
 
+### Hardware presentation failure — repair awaiting hosted qualification
+
+The operator reports that 1.1.043 connects and its toolbar responds, but the
+remote image does not update normally. With permission, short thread snapshots
+were collected from the already-affected Qt process and it was immediately
+resumed. No package was installed, input injected, or Host process changed.
+There is no captured deadlock: GUI/decoder threads were waiting normally and
+presentation counters show some frames delivered. The log does show repeated
+hardware presentation failure, software fallback and decode queue overflow.
+
+An independent surfaceless EGL probe under the desktop user's account confirms
+that the actual Intel desktop OpenGL driver rejects `GL_TEXTURE_EXTERNAL_OES`
+with `GL_INVALID_ENUM`, while `GL_TEXTURE_2D` succeeds. The Qt importer chose
+the unsupported target for packed Y410/XR30 and XYUV/XR24 images. The repair
+imports all already-reinterpreted RGB/R/RG planes as ordinary 2D textures; it
+does not change color mapping, decoding policy, transport or input. The unused
+external-sampler variant is removed from this Qt-only renderer. Import failures
+now report the failed operation and graphics error, once per failed generation.
+
+The compositor precision regression now creates real EGLImages and uses the
+same import helper as the renderer before checking packed 8/10-bit and planar
+P010 values, crop and filtering. The former direct-texture fixture skipped the
+failing operation. This remains synthetic qualification, not a substitute for
+hardware VA-API DMA-BUF/live-session testing. The next candidate is 1.1.044;
+it is not built or accepted yet. The production Client and both Hosts are unchanged.
+SSH is closed and no debugger remains attached. Private backtraces stay outside Git.
+
 ### Operator Wacom crash — repaired candidate ready
 
 The first physical test of 1.1.042 crashed when using the tablet. Read-only
