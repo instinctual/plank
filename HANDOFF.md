@@ -13,23 +13,26 @@ tablet input. They also report a longstanding duplicate arrow at the physical
 screen's top-left, outside the now-windowed session. Do not treat that as a
 Host-video or coordinate-mapping defect without evidence. The Qt tablet cursor
 is scene-local; the shared evdev grab and compositor cursor lifecycle remain
-investigation candidates, not proven causes. Live inspection is currently
-blocked by test-Client connectivity; no session/input/display reset was made.
+investigation candidates, not proven causes. Test-Client connectivity recovered;
+live inspection is underway with permission to interrupt the test session.
 
-The approved windowed solution adds a small **Show Toolbar** button inside the
-session's upper-right corner, below the ordinary title bar. A click or one-second
-hover reveals the existing toolbar. Pin remains unchanged, the five-second
-hide policy is retained, and the button is absent in fullscreen or recovery.
-Qt owns the scene and all hit testing; no new popup/native surface or decoration
-implementation is added. Remote drags retain ownership across the button.
-Four additional component regressions cover local input isolation, drag/hover,
-shell fullscreen transitions, recovery, Pin, and released-input controls.
-Hosted compositor runs also save synthetic UI screenshots at both scales.
+The operator refined the windowed solution: **no additional Show Toolbar
+button**. Use a wider, twelve-logical-pixel activation strip below the native
+title bar. Fullscreen retains its three-pixel physical-edge trigger. The
+one-second dwell, five-second hide and Pin policy are unchanged. Mode follows
+the top-level shell rather than the native child. Qt owns all hit testing;
+no new popup/native surface or decoration implementation is added. Remote
+drags suppress reveal. Added regressions cover dwell/cancellation, shell
+fullscreen transitions, recovery, Pin and released-input fullscreen controls.
+Hosted compositor runs save synthetic UI screenshots at both scales.
 
 Candidate version is **1.1.045-ubuntu-qt-session**. Local 73 CI-policy tests and
 shell/whitespace checks pass. The package fixture passes its four portable
-cases; ten Ubuntu-only cases are explicitly skipped locally. Full compilation,
-compositor/sanitizer tests and packaging must run on GitHub-hosted Ubuntu next.
+cases; ten Ubuntu-only cases are explicitly skipped locally. The initial
+button-based run compiled and passed offscreen tests but stopped on an
+unexpected motion assertion in the GNOME button test; it produced no package.
+The revised hover-only solution must pass all hosted compilation,
+compositor/sanitizer tests and packaging before it is recommended.
 No new artifact, hardware acceptance, deployment, merge or release is claimed.
 
 ### Retained hardware presentation repair
