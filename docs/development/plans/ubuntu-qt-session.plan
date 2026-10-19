@@ -3,8 +3,10 @@
 Status: implementation started on `ubuntu-qt-session`, from parent
 `1572c09e26d6ce7db20d9d1feefe11a3155963b8` / Client
 `58f4df097c1cdf11bf6b4b429701f156e2b10109` (`client-session-recovery`).
-The .036 Wacom and .037 lifecycle repairs are retained. This is not a mainline
-merge and does not supersede either candidate's pending hardware acceptance.
+Refreshed with main `38e00a557670df063926af1ef3466156145302ae`, the 1.1.039
+release baseline. The .036 Wacom and .037 lifecycle repairs and persistent-tablet
+Host integration are retained. The independent CUDA candidate is not included.
+This does not merge the Qt experiment into main or qualify it for shipping.
 
 ## Scope and decisions
 
@@ -57,7 +59,7 @@ not renegotiate Host resolution.
    100% and 125%, one/two unequal monitors, custom cursor, hover/tip/buttons,
    pressure and Flame Tablet Margins, network loss, reconnect, Host reboot,
    minimize/restore, repeated teardown and moving-video/audio soak. Compare
-   CPU, latency and frame-drop behavior against .037 using identical profiles.
+   CPU, latency and frame-drop behavior against 1.1.039 using identical profiles.
 6. Only after those gates, make the Ubuntu implementation the default and
    remove superseded Ubuntu SDL-video/manual Wayland UI code. Keep macOS paths.
    Build a branch-labelled candidate; no merge or release without acceptance.

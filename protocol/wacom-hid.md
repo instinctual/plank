@@ -126,11 +126,23 @@ cleanup is retried before reuse. If it still cannot be verified, only that
 endpoint group is recreated and must complete `UHID_START` again. Ordinary
 healthy focus/disconnect cycles do not replace devices or alter coordinates.
 
-A physical hot-unplug, HID I/O error, changed USB identity or descriptor, or
-explicit final device teardown remains destructive and sends `tablet-detach`.
-An ordinary resumable stream disconnect also suspends transport and retains the
-same endpoints. Stale reports from an older or suspended generation are
-discarded.
+A physical hot-unplug or HID I/O error sends `tablet-detach`; changed USB
+identity or descriptors also require a new endpoint group. Normal stream
+disconnect, reconnect, Client restart, orphan-reservation cleanup and authorized
+takeover retain healthy matching endpoints. The stream reservation does not own
+the devices: the Linux desktop worker's input subsystem does. This preserves
+Flame's cached stylus/eraser identities even when the last transport is gone and
+the next Client uses a fresh launch instead of resume.
+
+Disconnect still releases held keys, mouse buttons and pen contact and suspends
+raw forwarding. Retention is not an authenticated connection: a replacement
+must pass the existing account/desktop-ownership checks, rebind its mailbox and
+complete the descriptor handshake before reports are accepted. Stale reports
+from an older or suspended generation are discarded. A new Client process may
+restart its generation counter only after the old transport has been stopped.
+Worker shutdown, including a desktop-user/X-server transition or service
+restart, still destroys its devices; this is not persistence across Host
+process restarts. No extra privileged tablet daemon is introduced.
 
 On macOS, a dedicated HID run loop exclusively opens every interface with
 `kIOHIDOptionsTypeSeizeDevice` before sending the grouped attachment. A partial
@@ -174,6 +186,17 @@ shared transport's Rust unit tests. The Ubuntu checks also support
 `PLANK_WACOM_SANITIZERS=1`. The standalone Host fixture supplies test input
 settings; actual configuration defaults are checked by the full Host CI suite.
 These tests do not replace physical tablet qualification below.
+
+The Host fixture also compiles the real Desktop reservation implementation,
+using the pinned `libdisplaydevice` headers and a no-op display-restore boundary.
+`PLANK_LIBDISPLAYDEVICE_SOURCE`, `PLANK_LIBVIRTUALHID_SOURCE` and
+`PLANK_GTEST_SOURCE` may select existing clean dependency checkouts; their
+revisions must match the Host's gitlinks. Link-wrapped UHID tests count actual
+create/destroy calls through repeated disconnect/fresh-launch cycles, Client
+generation-counter restart, changed tablet identity and final worker cleanup.
+They verify stale-generation rejection and late old-lease reset isolation,
+but do not simulate PAM/HTTP admission or a real hid-wacom kernel probe.
+Both the full Host suite and this isolated fixture run in hosted input CI.
 
 Compare physical-client and virtual-host nodes for VID/PID/version, interface
 count, axis ranges and resolution, pressure, tilt, distance, tool identity,

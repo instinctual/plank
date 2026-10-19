@@ -7,10 +7,13 @@ notes, never in Git.
 ## Current work — Ubuntu Qt session experiment
 
 Continue in `build/worktrees/ubuntu-qt-session`, on matching parent/Client
-`ubuntu-qt-session` branches. Base is parent `1572c09` / Client `58f4df09` from
-`client-session-recovery`, not main. The original recovery worktree and its
-uncommitted final upstream-status notes are preserved. Canonical checkout's
-separate PKG-only edits and all other branches are untouched.
+`ubuntu-qt-session` branches. Originally based on parent `1572c09` / Client
+`58f4df09` from `client-session-recovery`, the branch now includes main
+`38e00a557670df063926af1ef3466156145302ae` (the 1.1.039 release baseline).
+The Qt Client commits remain on top of that same released Client source.
+Persistent-tablet Host integration is included; the independent CUDA candidate
+is not. Canonical checkout's separate PKG-only edits and other branches are
+untouched.
 
 Read [the plan](docs/development/plans/ubuntu-qt-session.plan). The initial Qt
 window/input/toolbar component is isolated from shipping `app.pro`, and has no
@@ -42,16 +45,211 @@ EGL/VA-API and Vulkan presenters without silently replacing either path, then
 the asynchronous session controller and unchanged Wacom transport. No decoded
 frame has used this prototype, and no live session acceptance is claimed.
 
-No candidate package, installation, push, merge or release has been performed
-for this branch. Existing .036/.037 artifacts remain unchanged. Builder tests
+No Qt candidate package, installation, push, merge into main or release has been
+performed. Existing released packages remain unchanged. Builder tests
 used SHA-256-verified Git bundles and clean detached worktrees, not archives or
 an end-user machine. No occupied client was contacted. See private notes for
 builder paths; public reproduction commands are in the plan.
 
-## Previous work — Client session recovery
+## Inherited main baseline — persistent tablet and Client recovery integrated
 
-Continue in `build/worktrees/wacom-state-recovery`, now on
-`client-session-recovery`. Parent base `5ac23ba7f6f5a84c347e3081791521e25a369c2e`
+The operator authorized merging `wacom-persistent` into main. The parent,
+Linux Host and Client now use `main`; the two changed dependencies use their
+established product branches. All integration is fast-forward, preserving the
+candidate commits and their authorship. The main baseline lives in
+`build/worktrees/wacom-persistent`; the active Qt experiment remains in the
+separate worktree named above.
+
+| Component | Integrated source / branch |
+| --- | --- |
+| Parent package source | `2b3279755bd7ed27ffcd380a0121e9793bf469e6` / `main` |
+| Linux Host | `65dc0f1be60fe78d0457364f83813118c70bc8a8` / `main` |
+| Client | `58f4df097c1cdf11bf6b4b429701f156e2b10109` / `main` |
+| Client common-C | `437be9a0a4d164efdf9ed20dc6dd5a2b7b9edc90` / `plank/client` |
+| Host libvirtualhid | `b793fa2f5369218c43e09c58d5b96a0cc638bf05` / `plank/main` |
+
+This includes `wacom-state-recovery`, `client-session-recovery`, persistent
+desktop tablets, the reproducible private Ubuntu SDL repair, and Mac Client
+PKG-only packaging. It does not include the independent `ubuntu-qt-session`,
+`apple-native-integration` or `native-builds` work. The ordinary product Kymux
+pin remains `3f7a9d8618978287186e5d6ce0eaa067743cb06c`; no dependency update PR
+was merged as part of this task. Host header-only common-C remains unchanged.
+
+All 70 root CI-policy tests were rerun successfully. Privacy checks passed for
+the complete newly integrated range in each changed repository. Product source
+and dependency pins are identical to the successful `.039` Host candidate;
+only HANDOFF differs. Previous `.036` and `.037` validation below still applies
+to their exact recorded components, not to an unperformed new hardware test.
+
+All four **1.1.039** mainline packages were built from the exact parent package
+source above, downloaded and checksum/provenance-verified. The operator then
+authorized publication. [PLANK 1.1.039](https://github.com/instinctual/plank/releases/tag/v1.1.039)
+was published on 2026-10-12 as the latest release, using those unchanged
+packages. Existing candidates keep their original filenames/checksums; none
+was relabeled.
+
+| Package | Successful hosted build |
+| --- | --- |
+| Rocky 9.7 Host RPM | [38287535913](https://github.com/instinctual/plank/actions/runs/38287535913) |
+| Ubuntu 26.04 Client DEB | [38286682059, Client job](https://github.com/instinctual/plank/actions/runs/38286682059/job/114936731007) |
+| Signed/notarized macOS 27 Host PKG | [38287229443](https://github.com/instinctual/plank/actions/runs/38287229443) |
+| Signed/notarized macOS 15+ Client PKG | [38287233183](https://github.com/instinctual/plank/actions/runs/38287233183) |
+
+The original files and combined provenance manifest are in
+`artifacts/packages/releases/1.1.039/{linux,macos}/`. Annotated tag `v1.1.039`
+points to the exact package source `2b3279755bd7ed27ffcd380a0121e9793bf469e6`,
+not a later documentation commit. The release has four installers, a flat-name
+`SHA256SUMS`, and a public `manifest.json`; their server-side hashes matched
+the local files before publication. A fresh download of the published assets
+also passed all four checksums and byte-for-byte metadata comparisons.
+Mac Client delivery is PKG-only. SHA-256 values:
+
+| File | SHA-256 |
+| --- | --- |
+| `linux/plank-host-1.1.039-1.el9.x86_64.rpm` | `8db345237dba1808a3b731e66337f5fff27d167668c6519d8f4734c74d5201e0` |
+| `linux/plank-client_1.1.039_amd64.deb` | `1dfb05a39ce42f8f9cdaf1fdcebb7cc0c0ff418ae881e5fb668f947bccb5e78c` |
+| `macos/plank-host_1.1.039_arm64.pkg` | `0af10e2ef2dfbe129e1274142fda644df96fd3f71cf10049f1cd56aada8eec3a` |
+| `macos/plank-client_1.1.039_arm64.pkg` | `5786914eee466ca764a2dd14021d11723cea0886ef8aa3c6e5dd199a5ad7fc81` |
+
+Hosted compilation, automated regression tests and package checks passed. The
+Host ran three 900-frame loss matrices with zero unrecovered source symbols,
+25 shuffled production input-suite repetitions (45 passes and three unavailable
+kernel-dependent cases each), and 25 wrapped-UHID fixture repetitions (56 passes
+each). The RPM is the `BUILD_TESTS=OFF` production payload and owns its root:root
+`0700` log directory. The Ubuntu DEB contains the patched private SDL 3.4.2
+runtime and passed Wacom worker/reconnect, render shutdown, cursor lifecycle,
+runtime dependency and no-autostart checks. Both Mac PKGs passed notarization,
+stapling and Gatekeeper on their builders. No hardware acceptance is implied.
+
+The original all-product run's Host job failed before compilation when fetching
+the unchanged AMF dependency (`bad pack header`). Only the Host was redispatched
+at the identical source; that retry passed without source changes or relaxed
+gates. Verified dependency caches were saved on main. The original run remains
+red because of that first Host job; its Client artifact is successful.
+
+No build remains running, no package was installed and no session was
+interrupted. Live network-interruption/Flame acceptance and the separate hotkey
+diagnostic remain open. Feature branches are retained; no cleanup was requested.
+
+## Candidate evidence — persistent Linux desktop tablet
+
+The candidate was prepared on `wacom-persistent`, based on
+`client-session-recovery` parent `1572c09e26d6ce7db20d9d1feefe11a3155963b8`.
+**1.1.039-wacom-persistent**, Linux Host only, is built and downloaded.
+Client source remains
+`58f4df097c1cdf11bf6b4b429701f156e2b10109`; the existing
+`1.1.037-client-session-recovery` DEB can test this Host without an update.
+No protocol, Client, macOS or physical-tablet policy changes are involved.
+Linux Host fix `65dc0f1be60fe78d0457364f83813118c70bc8a8` is pushed. Host
+libvirtualhid remains `b793fa2f5369218c43e09c58d5b96a0cc638bf05`; header-only
+common-C remains `3a97a58f215323753cfd1180af760ec7e3253538`.
+
+Read-only field evidence showed orphaned Desktop reservation cleanup replacing
+a raw-HID endpoint group after network interruption. XInput then reused a former
+eraser ID for the new stylus. Restarting Flame cleared the observed symptom;
+the recorded stroke sample did not contain a tip-down event, so do not claim a
+complete input-event reproduction. Private evidence remains outside Git.
+
+The fix removes tablet destruction from reservation cleanup, terminate-all and
+last-stream teardown. Session join still releases held input and suspends raw
+forwarding. Devices belong to the desktop worker's input subsystem, not a
+stream reservation. Matching identity/descriptors reuse healthy endpoints;
+changed devices, incomplete probes and repeatedly unverifiable contact cleanup
+retain their existing recovery. Worker shutdown/user-desktop transitions still
+destroy devices. Authentication and desktop ownership checks are unchanged.
+
+Validation so far: the two new reservation regression tests fail on the old
+implementation and pass with the fix. All 56 isolated Host input tests pass,
+including 25 shuffled repetitions. The wrapped-UHID fixture confirms repeated
+fresh-launch reconnects do not create/destroy devices, Client generation-counter
+restart can reuse the same device, changed identity replaces it, stale reports
+and late lease cleanup cannot affect the new stream, and final shutdown closes
+the endpoints. The full Host input CI now runs this fixture as well as the
+production test binary. All 70 root CI-policy tests pass.
+
+The first hosted attempt at parent `258104f7e6182b5c0b6c116dbf61adf32aa9c01d`
+([run](https://github.com/instinctual/plank/actions/runs/38116001405)) built
+the `.038` Host and RPM, passed package gates, three native loss matrices and
+25 shuffled production input-suite runs (45 passed, three kernel-dependent
+skips per run). It then failed compiling the additional wrapped-UHID fixture:
+its CMake target omitted header-only Boost links. No artifact was uploaded.
+Local fixtures had inadvertently obtained those headers from distro Boost.
+The target now links pinned Asio, Endian and Format explicitly, and CI rejects
+system Boost paths in the fixture's compiler dependencies. All 56 component
+tests passed another 25 shuffled runs using only pinned Boost headers.
+All 56 also passed five shuffled repetitions with ASan/UBSan and leak detection,
+again using only pinned Boost headers. Evidence is under `build/tests/wacom-persistent/`.
+The `.039` Host-only retry passed at exact parent
+`9c780c30fc99297fb17341afb69db821ee895752`
+([run](https://github.com/instinctual/plank/actions/runs/38156644894)).
+All four dependency caches restored and verified; bootstrap took 27 seconds.
+Source/privacy and clipboard gates passed. The Host job took 24m17s, including
+fresh application/test compilation, RPM gates, three consecutive native loss
+matrices (900 frames per run, zero unrecovered source symbols), 25 shuffled
+production input runs (45 passed, three kernel-dependent skips each), and
+25 shuffled wrapped-UHID fixture runs (56 passed each). The RPM remains the
+`BUILD_TESTS=OFF` production payload. No hardware acceptance is claimed.
+
+The original RPM is checksum/provenance-verified in the canonical catalog:
+`artifacts/packages/candidates/1.1.039-wacom-persistent/linux/`
+`plank-host-1.1.039-0.wacom_persistent.1.el9.x86_64.rpm`.
+Size: 8721998 bytes. SHA-256:
+`a674d4a9a500c00fee985651014370ee15a7784892c7a43ca40637645303a884`.
+The extracted media ELF reports `1.1.039-wacom-persistent`; its SHA-256 is
+`df3b0d51207bd4b0a7333e6e8233160cfd152dc232dd68202bea77950a529537`.
+Local inspection also verified the RPM-owned root:root `0700` log directory.
+The downloaded and locally collected manifests are byte-identical. The full
+CI log is retained at `build/tests/wacom-persistent/host-1.1.039-ci.log`.
+No candidate build remains running. The later integration is recorded above;
+no release or installation was performed.
+
+All four Host dependency caches missed in that first attempt. The earlier
+Ubuntu SDL cache work changed the shared cache script, which participates in
+every component fingerprint; this invalidated unrelated Host keys. Versions
+were unchanged, and new exact-input caches were saved successfully. Keep this
+cache-granularity inefficiency separate from the test-target repair; no cache
+validation was weakened.
+
+No package has been installed and no machine restarted or interrupted.
+The operator authorized integration; real hardware acceptance remains pending.
+Next hardware gate: after installing the Host and restarting Flame once to
+clear any previously cached device identities, leave Flame running and interrupt
+the Client network for about ten seconds, reconnect, and verify stable Host
+XInput device identities, hover, tip/barrel buttons, pressure and Tablet Margins.
+Also test ordinary disconnect/reconnect, Client restart and authorized takeover. Real-kernel
+cleanup, XInput identity and Flame acceptance are not proved by the fixture.
+
+## Open diagnostic — application hotkeys
+
+The operator reports ordinary typing and Shift capitalization work, but some
+Flame shortcuts using Shift do not. Read-only inspection found no Client USB
+keyboard disconnect/reset since boot and no Host virtual-keyboard replacement
+after Flame started. Neither side showed held modifiers when sampled; Flame
+had focus and its log still recorded other shortcuts. These observations do
+not prove delivery of the particular failing shortcut, which has not yet been
+specified.
+
+A later raw-Wacom endpoint replacement was observed on the older Host candidate,
+but no causal link to the keyboard symptom is established. The inspected Host
+was still `.036`, with Client `.037`; the new `.039` Host was not installed.
+Do not attribute the symptom to the uninstalled persistent-tablet repair.
+No keys were injected/reset, devices grabbed, debugger attached, application
+restarted or session interrupted. No keyboard fix was implemented.
+
+Next diagnostic, only with operator participation: identify one exact safe
+failing combination, including whether Shift is paired with a key or pen/mouse
+action, then compare bounded passive Client and Host input observations.
+Do not collect arbitrary typed content or passwords. Private machine/log
+locations remain outside Git. There is no running trace or monitoring task.
+
+The independent Ubuntu SDL cursor-retirement fix remains necessary: preserving
+Host tablet endpoints does not repair Client Wayland surface teardown. The
+Qt session experiment is separate, paused and not included in these packages.
+
+## Inherited candidate — Client session recovery
+
+The inherited candidate was prepared in `build/worktrees/wacom-state-recovery`
+on `client-session-recovery`. Parent base `5ac23ba7f6f5a84c347e3081791521e25a369c2e`
 includes the complete `.036` Wacom work below; this is not based on main.
 Client source `58f4df097c1cdf11bf6b4b429701f156e2b10109` and common-C
 `437be9a0a4d164efdf9ed20dc6dd5a2b7b9edc90` are pushed. Exact Ubuntu package
@@ -215,7 +413,7 @@ streaming, WAN-loss or long-soak acceptance. Mac Client live acceptance on both
 macOS 15 and macOS 27 remains separate from the SDK27 build. No installed session
 was changed.
 
-## Current build — 1.1.035 from main
+## Previous mainline build — 1.1.035
 
 The operator requested all four installable packages from `main`, without a
 release publication or installation. Source is
@@ -255,7 +453,7 @@ name denotes mainline package provenance, not release publication. Mac Client
 streaming/input/audio qualification on both supported OS generations remains a
 separate gate.
 
-## Current baseline — consolidated main
+## Previous mainline baseline — scaling and Wacom consolidation
 
 The operator authorized merging the pending fixes and parent PR #24 to establish
 a clean baseline. Parent, Client and Linux Host are consolidated on `main`, with
@@ -413,8 +611,15 @@ X11/x264 conversion and Linux Client sizing are unchanged.
 
 ## Last published release and rollback
 
+[PLANK 1.1.039](https://github.com/instinctual/plank/releases/tag/v1.1.039)
+is the latest published release. Exact source, package hashes and build evidence
+are recorded at the top of this file. [Release notes](docs/releases/1.1.039.md)
+compare against 1.1.030 and explicitly preserve the remaining hardware gates;
+publication does not claim that unperformed tests passed. No machines were
+automatically upgraded.
+
 [PLANK 1.1.030](https://github.com/instinctual/plank/releases/tag/v1.1.030)
-remains the latest release. Exact source is
+remains the previous published rollback point. Exact source is
 `e515fe411d5185d3236a8b5c19a14b012375183e`; original verified packages and
 manifests remain under `artifacts/packages/releases/1.1.030/`.
 The release's Client is `0af6d9fc`, Linux Host `b8308a44`, Client common-C

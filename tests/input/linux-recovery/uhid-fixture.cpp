@@ -11,6 +11,10 @@
 #include <condition_variable>
 #include <map>
 #include <thread>
+#include "src/globals.h"
+#include "src/input.h"
+#include "src/platform/virtualhid_input.h"
+#include "src/process.h"
 #include "src/raw_hid_tablet.h"
 #include <moonlight-common-c/src/plank.h>
 
@@ -28,6 +32,8 @@ namespace {
   std::condition_variable changed;
   std::map<int, Endpoint> endpoints;
   bool auto_start = true;
+  unsigned create_count = 0;
+  unsigned destroy_count = 0;
 
   std::vector<std::uint8_t> frame(std::uint16_t type, std::uint16_t generation,
                                 const void *payload = nullptr, std::size_t size = 0) {
@@ -71,8 +77,80 @@ namespace {
   }
 
   class RawHidLifecycle : public ::testing::Test {
-    void SetUp() override { std::lock_guard lock(io_mutex); auto_start = false; }
+  protected:
+    void SetUp() override {
+      std::lock_guard lock(io_mutex);
+      ASSERT_TRUE(endpoints.empty());
+      auto_start = false;
+      create_count = destroy_count = 0;
+    }
     void TearDown() override { std::lock_guard lock(io_mutex); auto_start = true; EXPECT_TRUE(endpoints.empty()); }
+  };
+
+  // Exercise the real input owner and reservation calls around the UHID state
+  // machine. Only device syscalls, contact verification and display restore are
+  // replaced; no actual desktop, PAM, network connection or kernel probe runs.
+  class DesktopTabletLifecycle : public RawHidLifecycle {
+  protected:
+    void SetUp() override {
+      RawHidLifecycle::SetUp();
+      ASSERT_FALSE(task_pool.running());
+      auto platform = platf::input();
+      ASSERT_TRUE(platform);
+      platf::virtualhid::get_input_context(platform) =
+        platf::virtualhid::input_context_t {lvh::BackendKind::fake};
+      input::testing::set_platform_input(std::move(platform));
+    }
+
+    void TearDown() override {
+      shutdown_input();
+      reservation.terminate();
+      RawHidLifecycle::TearDown();
+    }
+
+    void shutdown_input() {
+      if (session) input::reset(session, lease);
+      static_cast<task_pool_util::TaskPool &>(task_pool) = task_pool_util::TaskPool {};
+      session.reset();
+      input::testing::set_platform_input({});
+    }
+
+    void connect() {
+      ASSERT_EQ(reservation.execute(proc::desktop_app_id), 0);
+      mail = std::make_shared<safe::mail_raw_t>();
+      session = input::alloc(mail, "plank-desktop", lease);
+      input::testing::raw_tablet(session).set_contact_cleanup_for_test([] { return true; });
+    }
+
+    void attach_client(std::uint16_t generation, std::uint32_t product = 0x0358) {
+      PLANK_RAW_HID_DEVICE_MESSAGE device {};
+      device.interfaceCount = util::endian::little<std::uint16_t>(1);
+      device.bus = util::endian::little<std::uint16_t>(3);
+      device.vendor = util::endian::little<std::uint32_t>(0x056a);
+      device.product = util::endian::little(product);
+      const std::uint8_t descriptor[] {0x05, 0x01, 0x09, 0x02, 0xa1, 0x01, 0xc0};
+      ASSERT_TRUE(input::testing::handle_raw_hid(session, frame(PLANK_RAW_HID_DEVICE, generation, &device, sizeof(device))));
+      ASSERT_TRUE(input::testing::handle_raw_hid(session, frame(PLANK_RAW_HID_DESCRIPTOR, generation, descriptor, sizeof(descriptor))));
+    }
+
+    void start_kernel_device() {
+      uhid_event start {};
+      start.type = UHID_START;
+      inject(start);
+      ASSERT_TRUE(mail->queue<std::vector<std::uint8_t>>(mail::raw_hid_feedback)->pop(1s));
+    }
+
+    void expect_lifecycle(unsigned creates, unsigned destroys, std::size_t live) {
+      std::lock_guard lock(io_mutex);
+      EXPECT_EQ(create_count, creates);
+      EXPECT_EQ(destroy_count, destroys);
+      EXPECT_EQ(endpoints.size(), live);
+    }
+
+    proc::proc_t reservation;
+    safe::mail_t mail;
+    std::shared_ptr<input::input_t> session;
+    std::uint64_t lease = 0;
   };
 }
 
@@ -109,12 +187,74 @@ extern "C" ssize_t __wrap_write(int fd, const void *data, size_t size) {
   uhid_event event;
   std::memcpy(&event, data, sizeof(event));
   found->second.replies.push_back(event);
+  if (event.type == UHID_CREATE2) ++create_count;
+  if (event.type == UHID_DESTROY) ++destroy_count;
   if (event.type == UHID_CREATE2 && auto_start) {
     uhid_event start {}; start.type = UHID_START;
     if (__real_write(found->second.peer, &start, sizeof(start)) != sizeof(start)) return -1;
   }
   changed.notify_all();
   return size;
+}
+
+TEST_F(DesktopTabletLifecycle, NetworkReconnectKeepsKernelDevicesAndRejectsStaleReports) {
+  ASSERT_NO_FATAL_FAILURE(connect());
+  ASSERT_NO_FATAL_FAILURE(attach_client(1));
+  ASSERT_NO_FATAL_FAILURE(start_kernel_device());
+  const auto epoch = input::testing::raw_tablet(session).endpoint_epoch();
+  std::weak_ptr<input::input_t> retained = session;
+  const std::uint8_t report[] {0x02, 0x00};
+
+  for (std::uint16_t generation = 2; generation <= 6; ++generation) {
+    SCOPED_TRACE(generation);
+    const auto old_lease = lease;
+    auto old_feedback = mail->queue<std::vector<std::uint8_t>>(mail::raw_hid_feedback);
+    input::reset(session, lease);
+    EXPECT_FALSE(input::testing::handle_raw_hid(session, frame(PLANK_RAW_HID_INPUT, generation - 1, report, sizeof(report))));
+    session.reset();
+    reservation.terminate(); // Orphan cleanup or completed session takeover.
+    ASSERT_FALSE(retained.expired());
+    expect_lifecycle(1, 0, 1);
+
+    ASSERT_NO_FATAL_FAILURE(connect());
+    EXPECT_EQ(session, retained.lock());
+    EXPECT_GT(lease, old_lease);
+    ASSERT_NO_FATAL_FAILURE(attach_client(generation));
+    ASSERT_TRUE(mail->queue<std::vector<std::uint8_t>>(mail::raw_hid_feedback)->pop(1s));
+    EXPECT_FALSE(old_feedback->peek());
+    EXPECT_FALSE(input::testing::normalized_pen_enabled(session));
+    input::reset(session, old_lease); // A late reset must not suspend the new stream.
+    EXPECT_TRUE(input::testing::handle_raw_hid(session, frame(PLANK_RAW_HID_INPUT, generation, report, sizeof(report))));
+    EXPECT_FALSE(input::testing::handle_raw_hid(session, frame(PLANK_RAW_HID_INPUT, generation - 1, report, sizeof(report))));
+    EXPECT_EQ(input::testing::raw_tablet(session).endpoint_epoch(), epoch);
+    expect_lifecycle(1, 0, 1);
+  }
+
+  shutdown_input();
+  EXPECT_TRUE(retained.expired());
+  expect_lifecycle(1, 1, 0);
+}
+
+TEST_F(DesktopTabletLifecycle, ClientRestartCanReuseTheSameGenerationButChangedTabletIsRecreated) {
+  ASSERT_NO_FATAL_FAILURE(connect());
+  ASSERT_NO_FATAL_FAILURE(attach_client(1));
+  ASSERT_NO_FATAL_FAILURE(start_kernel_device());
+  input::reset(session, lease);
+  session.reset();
+  ASSERT_NO_FATAL_FAILURE(connect());
+  ASSERT_NO_FATAL_FAILURE(attach_client(1)); // A new Client process restarts its counter.
+  ASSERT_TRUE(mail->queue<std::vector<std::uint8_t>>(mail::raw_hid_feedback)->pop(1s));
+  expect_lifecycle(1, 0, 1);
+
+  input::reset(session, lease);
+  session.reset();
+  ASSERT_NO_FATAL_FAILURE(connect());
+  ASSERT_NO_FATAL_FAILURE(attach_client(1, 0x0357));
+  expect_lifecycle(2, 1, 1);
+  EXPECT_FALSE(mail->queue<std::vector<std::uint8_t>>(mail::raw_hid_feedback)->peek());
+  ASSERT_NO_FATAL_FAILURE(start_kernel_device());
+  shutdown_input();
+  expect_lifecycle(2, 2, 0);
 }
 
 TEST_F(RawHidLifecycle, LateStartWhileSuspendedCanBeReusedAndRequestsComplete) {

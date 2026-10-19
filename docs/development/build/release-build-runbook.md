@@ -765,6 +765,14 @@ CMake generation error saying that `simple-web-server` contains a missing
 `Boost::boost` target means the candidate predates that integration fix; do
 not redownload Boost or reuse an older configured build directory.
 
+The isolated Linux input fixture must link its header-only Boost consumers
+(`Boost::asio`, `Boost::endian`, `Boost::format`) as well as the compiled
+libraries. `BOOST_INCLUDE_LIBRARIES` alone does not propagate their include
+directories. Missing `boost/asio.hpp` or `boost/format.hpp` in this fixture is
+a target dependency omission, not a missing download. A builder with distro
+Boost headers can mask it; verify compiler dependency files contain no
+`/usr/include/boost/` paths after rebuilding the fixture.
+
 The `operator` account on `hardware-test-host` uses a C-shell login environment. When deploying
 or validating there, invoke `/bin/bash -s` explicitly and send the script to
 that shell. Do not pass Bash constructs such
@@ -1081,8 +1089,11 @@ process-less Desktop identity with stable GameStream application ID
 `apps.json`, `file_apps`, per-application or global preparation commands,
 Steam/Low-Res launch entries, mutable box art, an application-art HTTP
 endpoint, or the Linux arbitrary-command launcher. Launch/resume state remains
-an in-memory Desktop reservation with the existing retained-input and display
-cleanup hooks.
+an in-memory Desktop reservation with display restoration. Its cleanup must not
+destroy retained input devices: those belong to the desktop worker's input
+subsystem and survive normal disconnect/reconnect and authorized takeover.
+Session join still releases held input. Worker shutdown and genuine tablet
+detach/failure retain their explicit cleanup/recovery paths.
 
 The build also prints `host_legacy_http_surface_absence_gate=pass` and
 `host_secure_credential_write_gate=pass`. The host has no remote-file

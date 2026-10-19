@@ -43,8 +43,11 @@ The Linux Host job also builds the fake-backend input tests after packaging and
 runs the input/raw-HID suites 25 times in shuffled order. Tests use the exact
 candidate sources and prepared dependencies. The RPM remains the production
 `BUILD_TESTS=OFF` payload; missing `/dev/uhid` cases are explicit skips, not live
-tablet acceptance. Keep real mouse/Wacom disconnect/reconnect qualification as
-a separate hardware gate.
+tablet acceptance. A separate link-wrapped UHID fixture then exercises the real
+input/reservation lifecycle for 25 shuffled repetitions without kernel devices.
+It verifies endpoint retention/replacement and shutdown, not real hid-wacom
+probing. Keep mouse/Wacom disconnect/reconnect qualification as a separate
+hardware gate.
 
 Feature builds retain their branch-qualified visible and package versions.
 These jobs do not install products or perform live display, audio, input,
