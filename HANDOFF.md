@@ -22,8 +22,8 @@ bookmarks, trust, logs, libraries or executable/application identity.
 
 ### Validated checkpoint
 
-Parent `ca0a92139e438d26c46d0c3094ec91849c7b4c5a` / Client `03443873`,
-[hosted run 39317676404](https://github.com/instinctual/plank/actions/runs/39317676404),
+Parent `d426aba0325cfedf7cb8665093274233768b60b4` / Client `ccd2e601`,
+[hosted run 39322586364](https://github.com/instinctual/plank/actions/runs/39322586364),
 passed the complete experimental Qt application compile, complete ordinary
 Client regression build/preflight, component tests, ASan/UBSan with leak
 detection and the isolated GNOME/Wayland 100%/forced-125% compositor tests.
@@ -49,26 +49,30 @@ performance, audio/video soak and physical Wacom remain pending hardware gates.
 
 ### Current implementation / next work
 
-Client `85b13486` additionally connects toolbar bitrate acknowledgement,
+The current Client additionally connects toolbar bitrate acknowledgement,
 shared rate/loss/RTT statistics, microphone/camera controls, overlay, Qt physical
 keyboard/mouse input, unchanged raw-HID/normalized tablet workers, Host cursor
 shapes/positions and Wayland shortcut/pointer policy. The ordinary Client now
 shares its bounded cursor-message parser with the Qt frontend. New input tests
 cover key identities, malformed cursor chunks and reconnect sequence epochs.
-Run `39320037725` passed the component/compositor/sanitizer tests and ordinary
-Client build, then found an incorrectly typed Qt signal sender in the full Qt
-application. It is corrected. The next run also exercises retained tablet-reader
+The successful hosted checkpoint also exercises retained tablet-reader
 lifecycle, cross-output drag geometry, P010 two-plane GPU conversion, idle
 inhibition, visible-output precision qualification, and stale-generation
-rejection. These newest additions are not yet qualified.
+rejection. The earlier incorrectly typed Qt signal sender is corrected, and
+both complete applications compiled and linked successfully.
 
 The launcher now uses Qt display enumeration without an SDL video probe. Exact
 decoder qualification remains on the session surface, not an unknown temporary
 window. Unix termination follows the Qt asynchronous teardown path. A new
 compiled display-enumeration test and three complete launcher smoke cycles run
-with SDL video unavailable. These newest gates await the next hosted run.
+with SDL video unavailable. Run `39324170570` builds these gates and the first
+co-installable package from parent `0ef59edf` / Client `85b13486`.
+The follow-up additionally keeps Ctrl+Alt+Shift+Q local during startup,
+released input and Host timeout, with tests for repeat suppression, no remote
+key leakage and non-Latin layout fallback. Both local and streaming shortcuts
+use the same layout resolver. These latest gates still await hosted results.
 
-Candidate version is **1.1.041-ubuntu-qt-session**. The package source/linkage
+The next candidate version is **1.1.042-ubuntu-qt-session**. The package source/linkage
 guard requires the actual Qt session owners; it cannot relabel an ordinary SDL
 Client. No Qt candidate has been delivered or installed. No merge or release is
 authorized. Continue checking hosted results and fix failures before delivery.
