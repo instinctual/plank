@@ -9,6 +9,11 @@ command -v dbus-run-session >/dev/null
 test -x "$PLANK_QT_SESSION_TEST_BUILD/tests/qtsession"
 runtime=$(mktemp -d /tmp/plank-qt-compositor.XXXXXXXX)
 chmod 0700 "$runtime"
+if [[ -n ${PLANK_QT_COMPOSITOR_REPORT:-} ]]; then
+    # The disposable runner needs this diagnostic after a failed startup too.
+    # It contains only this isolated compositor, never a user's desktop/log.
+    trap 'if [[ -f "$runtime/compositor.log" ]]; then cp "$runtime/compositor.log" "$PLANK_QT_COMPOSITOR_REPORT"; fi' EXIT
+fi
 export XDG_RUNTIME_DIR="$runtime"
 export GSETTINGS_BACKEND=memory
 unset DISPLAY WAYLAND_DISPLAY

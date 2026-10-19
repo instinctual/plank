@@ -11,7 +11,7 @@ This does not merge the Qt experiment into main or qualify it for shipping.
 ## Scope and decisions
 
 The operator has no identifiable Development NUC available for this experiment.
-Continue isolated development/testing on the Ubuntu builder; record Intel GPU,
+Continue isolated development/testing on GitHub-hosted Ubuntu Actions; record Intel GPU,
 physical input and live-session gates as pending. Do not contact old end-user
 addresses or infer hardware acceptance from software-rendered builder tests.
 When a usable Client candidate is ready, the operator will install and test it.
@@ -239,13 +239,44 @@ production must still qualify the real GPU and exact profile.
 Both identity variants, 24 input/window and 12 delivery/lifetime checks still
 pass under sanitizers. All eight scene/framebuffer/shader configurations still
 pass at 100% and forced 125% in the isolated compositor. The ordinary renderer
-and decoder translation units pass a syntax-only check; a full Client configure
-requires the missing PipeWire development package on the builder. This does
+and decoder translation units pass a syntax-only check. The earlier local
+builder lacked PipeWire headers; the operator has now explicitly required
+GitHub-hosted Actions instead. Its normal Client dependency installer already
+includes those headers and the independently verified private SDL build. This does
 not qualify Vulkan-to-Qt interop, real VA-API, live sessions or throughput.
 
 Next remains decoder-to-Qt presentation (including explicit cross-API ownership),
 then asynchronous Session integration. Do not enable packaging until those are
-wired. See HANDOFF for the builder prerequisite and current validation state.
+wired. See HANDOFF for current hosted validation state.
+
+## Hosted software-conversion work
+
+The `linux-client-qt-tests` dispatch target builds from the exact pushed branch
+on Ubuntu 26.04 / Qt 6.10.2, reusing the normal verified Client bootstrap/cache.
+It installs no product and uploads only isolated-test reports. Do not resume
+builds on the retained Ubuntu VM for this experiment.
+
+`QtSoftwareVideoConverter` reuses the pooled decoder allocations, uploads the
+planes without another CPU pixel copy, and performs full-range identity or
+BT.709 conversion into an exact RGB10_A2 Vulkan image. The output must match the
+decoded dimensions: Qt's final presenter owns scaling/cropping once. No HDR,
+transfer-function conversion, dithering or silent 8-bit target is accepted.
+Tests cover all RGB code values, channel order, full-range YCbCr gray/color,
+actual encoded fixtures and rejection of format/range/size substitutions.
+This conversion is not yet connected to the Qt scene or a network session.
+
+The probe also inventories Vulkan/OpenGL external-memory and semaphore support
+and compares device/driver identities without logging their UUIDs. A capability
+report is not successful interop. Opaque handles must come from matching
+devices/drivers; DMA-BUF export with an implicit modifier must not be assumed to
+work across drivers. The eventual GPU handoff must explicitly synchronize both
+directions without a per-frame CPU readback or global GPU finish.
+
+Primary interop references:
+
+- https://registry.khronos.org/OpenGL/extensions/EXT/EXT_external_objects.txt
+- https://registry.khronos.org/OpenGL/extensions/EXT/EXT_external_objects_fd.txt
+- https://github.com/haasn/libplacebo/blob/v7.360.0/src/include/libplacebo/vulkan.h
 
 ## Co-installation contract
 

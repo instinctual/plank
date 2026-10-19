@@ -21,9 +21,9 @@ The eventual `plank-client-qt` DEB / **PLANK Client Qt** app must co-install wit
 the regular Client using separate binary, desktop ID, settings and logs; see
 the plan. Do not deploy over the production Client or contact stale test targets.
 
-Read [the plan](docs/development/plans/ubuntu-qt-session.plan). Current code
-checkpoint: parent `cf34d49de312a6587c929fb9fdccc612c5e42860`, Client
-`6e34e649a390bcb3a723edaa51f6a4399e40caa9`. Dependency pins remain those listed
+Read [the plan](docs/development/plans/ubuntu-qt-session.plan). The current
+Client checkpoint is `74306a9294b571767ce2a764fb03950b00dda953`.
+Dependency pins remain those listed
 in the inherited baseline below. The Qt surface/input/toolbar and video
 components remain isolated from the shipping session lifecycle. Raw-HID and
 normalized tablet integration are not implemented; synthesized tablet-mouse
@@ -83,20 +83,31 @@ enable the Qt session runtime: an explicit build/package guard prevents shipping
 the ordinary SDL Client under the experimental name. Remove that temporary
 guard only with actual runtime integration and its tests.
 
-Full application configure is blocked on the Ubuntu builder's missing
-`libpipewire-0.3-dev`; sudo requires administrator authentication. Do not disable
-PipeWire or substitute distro SDL to pass the build. After the administrator
-installs that documented prerequisite, rebuild/verify the retained private SDL
-with `scripts/build/build-client-sdl.sh` and record `PLANK_CLIENT_SDL_WORK` in
-the builder manifest before packaging. The changed existing renderer/decoder
-translation units pass a syntax-only check against private SDL/FFmpeg headers;
-that is not a full application build. Standalone tests do not need SDL/PipeWire.
+The operator corrected the build location: **use GitHub-hosted Ubuntu Actions**,
+not the retained Ubuntu VM. The VM's missing PipeWire development package is
+not a blocker and requires no operator action. The hosted dependency installer
+already includes it. Use `bash scripts/ci/dispatch.sh linux-client-qt-tests false`
+from the clean, pushed experimental branch. This explicit job builds/tests the
+isolated components, not a renamed SDL Client or a distributable Qt DEB.
 
-No Qt candidate package, installation, push, merge into main or release has been
-performed. Existing released packages remain unchanged. Builder tests
-used SHA-256-verified Git bundles and clean detached worktrees, not archives or
-an end-user machine. No occupied client was contacted. See private notes for
-builder paths; public reproduction commands are in the plan.
+First hosted run [39302882777](https://github.com/instinctual/plank/actions/runs/39302882777)
+at parent `996a67974d2a6ecae66ae9a9610b1c9d34cb9418` bootstrapped and cached
+the pinned dependencies, including the patched private SDL with PipeWire.
+Identity/co-install, surface/input, video-mailbox and pool checks passed.
+The new GPU planar-to-RGB10 converter passed RGB identity ramps and six actual
+H.264/HEVC decode fixtures, but failed four full-range BT.709 numerical checks.
+The follow-up replaces inferred color conversion with the same explicit matrix
+as the packed hardware path, adds chroma/negative-stride checks, and rejects
+implicit crop/interlace/ICC/film-grain processing. Those changes still require
+the next hosted run; do not report them as passed. The added compositor probe
+reports external-memory/semaphore and device/driver-match capabilities without
+logging identifiers. Actual Vulkan-to-GL delivery remains unimplemented.
+
+Parent and Client experimental branches are pushed. No Qt candidate package,
+installation, merge into main or release has been performed. Existing released
+packages remain unchanged. Earlier VM evidence above is historical; current
+build/test work runs only on disposable hosted Ubuntu workers. No occupied
+client was contacted. Public reproduction commands are in the plan.
 
 ## Inherited main baseline — persistent tablet and Client recovery integrated
 

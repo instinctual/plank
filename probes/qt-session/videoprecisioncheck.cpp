@@ -1,5 +1,6 @@
 #include "videoprecisioncheck.h"
 #include "packedvideoblitter.h"
+#include "gpuinteropcheck.h"
 
 #include <QCoreApplication>
 #include <QOpenGLContext>
@@ -18,6 +19,7 @@ bool checkVideo()
 {
     auto* context = QOpenGLContext::currentContext();
     if (!context) return false;
+    reportQtGpuInteropCapabilities();
     auto* gl = context->extraFunctions();
     GLint viewport[4] = {};
     gl->glGetIntegerv(GL_VIEWPORT, viewport);

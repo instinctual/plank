@@ -19,8 +19,10 @@ cd "$PLANK_SOURCE_ROOT"
 } > "$reports/source.txt"
 python3 tests/packaging/test-client-qt-package.py 2>&1 | tee "$reports/coinstall.log"
 bash scripts/test/run-qt-session-tests.sh 2>&1 | tee "$reports/components.log"
-PLANK_QT_CHECK_PRECISION=1 bash scripts/test/run-qt-session-compositor.sh 2>&1 | tee "$reports/compositor.log"
+PLANK_QT_COMPOSITOR_REPORT="$reports/gnome.log" PLANK_QT_CHECK_PRECISION=1 \
+    bash scripts/test/run-qt-session-compositor.sh 2>&1 | tee "$reports/compositor.log"
 QT_SCALE_FACTOR=1.25 PLANK_QT_CHECK_PRECISION=1 \
+    PLANK_QT_COMPOSITOR_REPORT="$reports/gnome-125.log" \
     bash scripts/test/run-qt-session-compositor.sh 2>&1 | tee "$reports/compositor-125.log"
 PLANK_QT_SESSION_TEST_BUILD="$PLANK_WORK_ROOT/qt-session-tests-asan" \
     PLANK_QT_SESSION_SANITIZERS=1 ASAN_OPTIONS=detect_leaks=1:halt_on_error=1 \
