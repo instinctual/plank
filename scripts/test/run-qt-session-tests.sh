@@ -13,6 +13,17 @@ test "$(sha256sum "$ffmpeg_source/libavcodec/hevc/hevcdec.c" | cut -d' ' -f1)" =
 export PKG_CONFIG_PATH="$PLANK_CLIENT_FFMPEG_WORK/install/lib/pkgconfig${PKG_CONFIG_PATH:+:$PKG_CONFIG_PATH}"
 test "$(pkg-config --variable=prefix libavutil)" = "$PLANK_CLIENT_FFMPEG_WORK/install"
 qmake=${QMAKE:-qmake6}
+for variant in production qt; do
+    mkdir -p "$build_root/identity-$variant"
+    (
+        cd "$build_root/identity-$variant"
+        identity_config=()
+        if [[ $variant == qt ]]; then identity_config+=(CONFIG+=plank-qt-session); fi
+        "$qmake" "$source_root/apps/client/tests/clientidentity/clientidentity.pro" "${identity_config[@]}"
+        make -j"${PLANK_BUILD_JOBS:-4}"
+        ./clientidentity
+    )
+done
 mkdir -p "$build_root/tests" "$build_root/video-tests" "$build_root/probe"
 (
     cd "$build_root/tests"

@@ -8,6 +8,8 @@ if (($# < 2 || $# > 4)); then
 fi
 
 repo_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd)
+source "$repo_dir/scripts/package/client-package-identity.sh"
+plank_client_package_identity
 moonlight_binary=$(realpath -- "$1")
 ffmpeg_work_dir=$(realpath -- "$2")
 output_dir=$(realpath -m -- "${3:-${PLANK_WORK_ROOT:-${repo_dir}/build}/package-client-output}")
@@ -39,6 +41,16 @@ done
 source "${repo_dir}/scripts/package/package-version.sh"
 plank_load_package_version "$repo_dir"
 package_version=$PLANK_PACKAGE_VERSION
+if [[ $client_product == client-qt && $PLANK_BUILD_BRANCH_RESOLVED == main ]]; then
+  echo 'The Qt experimental Client must be built as a candidate, not main' >&2
+  exit 1
+fi
+desktop_source="$repo_dir/packaging/client/linux/desktop/la.instinctual.Plank.Client.desktop"
+appstream_source="$moonlight_source_dir/app/deploy/linux/la.instinctual.Plank.Client.appdata.xml"
+if [[ $client_product == client-qt ]]; then
+  desktop_source="$repo_dir/packaging/client/linux/qt/$client_desktop_id.desktop"
+  appstream_source="$repo_dir/packaging/client/linux/qt/$client_desktop_id.appdata.xml"
+fi
 
 for command_name in cmp dpkg-deb dpkg-shlibdeps du git install md5sum realpath rg sha256sum strip tar; do
   command -v "$command_name" >/dev/null || {
@@ -116,44 +128,44 @@ cleanup() {
   rm -rf -- "$work_dir"
 }
 trap cleanup EXIT
-stage_dir="${work_dir}/debian/plank-client"
-private_lib_dir="${stage_dir}/usr/lib/plank"
+stage_dir="${work_dir}/debian/${client_package}"
+private_lib_dir="${stage_dir}/usr/lib/${client_lib_name}"
 mkdir -p "$stage_dir/DEBIAN" "$private_lib_dir" "$work_dir/debian"
 
 install -D -m 0755 "$moonlight_binary" \
-  "$stage_dir/usr/bin/plank-client"
+  "$stage_dir/usr/bin/$client_package"
 # Static Cargo dependencies may carry assembly DWARF even in a release build.
 # Drop debug sections during package assembly; retain symbols and executable code.
-strip --strip-debug "$stage_dir/usr/bin/plank-client"
+strip --strip-debug "$stage_dir/usr/bin/$client_package"
 install -D -m 0644 "$repo_dir/packaging/client/config/plank-client.conf" \
-  "$stage_dir/etc/plank/client.conf"
-printf '%s\n' '/etc/plank/client.conf' \
+  "$stage_dir/etc/plank/$client_config"
+printf '%s\n' "/etc/plank/$client_config" \
   >"$stage_dir/DEBIAN/conffiles"
 install -D -m 0644 \
-  "$repo_dir/packaging/client/linux/desktop/la.instinctual.Plank.Client.desktop" \
-  "$stage_dir/usr/share/applications/la.instinctual.Plank.Client.desktop"
+  "$desktop_source" \
+  "$stage_dir/usr/share/applications/$client_desktop_id.desktop"
 install -D -m 0644 \
-  "$moonlight_source_dir/app/deploy/linux/la.instinctual.Plank.Client.appdata.xml" \
-  "$stage_dir/usr/share/metainfo/la.instinctual.Plank.Client.appdata.xml"
+  "$appstream_source" \
+  "$stage_dir/usr/share/metainfo/$client_desktop_id.appdata.xml"
 install -D -m 0644 \
   "$repo_dir/packaging/client/linux/udev/70-plank-client-wacom.rules" \
-  "$stage_dir/usr/lib/udev/rules.d/70-plank-client-wacom.rules"
+  "$stage_dir/usr/lib/udev/rules.d/70-$client_package-wacom.rules"
 install -m 0755 "$repo_dir/packaging/client/linux/deb/postinst" \
   "$stage_dir/DEBIAN/postinst"
 install -m 0755 "$repo_dir/packaging/client/linux/deb/postrm" \
   "$stage_dir/DEBIAN/postrm"
 install -D -m 0644 "$moonlight_source_dir/app/res/plank-logo.png" \
-  "$stage_dir/usr/share/icons/hicolor/512x512/apps/plank-client.png"
+  "$stage_dir/usr/share/icons/hicolor/512x512/apps/$client_package.png"
 install -D -m 0644 "$moonlight_source_dir/LICENSE" \
-  "$stage_dir/usr/share/doc/plank-client/copyright"
+  "$stage_dir/usr/share/doc/$client_package/copyright"
 install -D -m 0644 "$kyber_source_dir/COPYING.AGPLv3" \
-  "$stage_dir/usr/share/doc/plank-client/COPYING.Kyber.AGPLv3"
+  "$stage_dir/usr/share/doc/$client_package/COPYING.Kyber.AGPLv3"
 install -D -m 0644 "$kyber_source_dir/COPYING.md" \
-  "$stage_dir/usr/share/doc/plank-client/COPYING.Kyber.md"
+  "$stage_dir/usr/share/doc/$client_package/COPYING.Kyber.md"
 install -D -m 0644 "$ffmpeg_source_dir/COPYING.LGPLv2.1" \
-  "$stage_dir/usr/share/doc/plank-client/COPYING.FFmpeg.LGPLv2.1"
+  "$stage_dir/usr/share/doc/$client_package/COPYING.FFmpeg.LGPLv2.1"
 install -D -m 0644 "$ffmpeg_source_dir/COPYING.LGPLv3" \
-  "$stage_dir/usr/share/doc/plank-client/COPYING.FFmpeg.LGPLv3"
+  "$stage_dir/usr/share/doc/$client_package/COPYING.FFmpeg.LGPLv3"
 
 for library in libavcodec libavutil libswscale libswresample; do
   cp -a "${ffmpeg_lib_dir}/${library}.so."* "$private_lib_dir/"
@@ -161,52 +173,52 @@ done
 cp -a "$client_sdl_work/install/lib/"libSDL3.so.* "$private_lib_dir/"
 python3 "$repo_dir/scripts/test/check-client-sdl.py" "$private_lib_dir/libSDL3.so.0"
 install -m 0644 "$client_sdl_work/SDL3-$plank_sdl_version/LICENSE.txt" \
-  "$stage_dir/usr/share/doc/plank-client/COPYING.SDL3"
+  "$stage_dir/usr/share/doc/$client_package/COPYING.SDL3"
 install -m 0644 "$repo_dir/$plank_sdl_patch_relative" \
-  "$stage_dir/usr/share/doc/plank-client/SDL3-cursor-retirement.patch"
+  "$stage_dir/usr/share/doc/$client_package/SDL3-cursor-retirement.patch"
 cmp --silent "$moonlight_source_dir/app/res/plank-logo.png" \
-  "$stage_dir/usr/share/icons/hicolor/512x512/apps/plank-client.png" || {
+  "$stage_dir/usr/share/icons/hicolor/512x512/apps/$client_package.png" || {
   echo "packaged client logo differs from the approved runtime source" >&2
   exit 1
 }
 version_output=$(
   QT_QPA_PLATFORM=offscreen \
     env -u LD_LIBRARY_PATH \
-    "$stage_dir/usr/bin/plank-client" --version 2>&1
+    "$stage_dir/usr/bin/$client_package" --version 2>&1
 )
-grep -Fxq "PLANK ${package_version}" <<<"$version_output" || {
+grep -Fxq "${client_app_name} ${package_version}" <<<"$version_output" || {
   echo "packaged client did not report the expected PLANK version" >&2
   printf '%s\n' "$version_output" >&2
   exit 1
 }
 echo "client_headless_version_gate=pass"
 echo "client_logo_identity_gate=pass"
-cat >"$work_dir/debian/control" <<'EOF'
-Source: plank-client
+cat >"$work_dir/debian/control" <<EOF
+Source: ${client_package}
 Section: net
 Priority: optional
 Maintainer: PLANK Engineering <engineering@instinctual.la>
 Standards-Version: 4.7.0
 
-Package: plank-client
+Package: ${client_package}
 Architecture: amd64
 Description: PLANK remote workstation client
 EOF
-cat >"$work_dir/shlibs.local" <<'EOF'
-libavcodec 63 plank-client
-libavutil 61 plank-client
-libswscale 10 plank-client
-libswresample 7 plank-client
-libSDL3 0 plank-client
+cat >"$work_dir/shlibs.local" <<EOF
+libavcodec 63 ${client_package}
+libavutil 61 ${client_package}
+libswscale 10 ${client_package}
+libswresample 7 ${client_package}
+libSDL3 0 ${client_package}
 EOF
 
 (
   cd "$work_dir"
   mapfile -d '' packaged_elfs < <(
-    find debian/plank-client/usr/bin debian/plank-client/usr/lib/plank \
+    find "$stage_dir/usr/bin" "$private_lib_dir" \
       -type f -print0 | sort -z
   )
-  dpkg-shlibdeps -O -Lshlibs.local -xplank-client \
+  dpkg-shlibdeps -O -Lshlibs.local -x"$client_package" \
     -l"$private_lib_dir" \
     "${packaged_elfs[@]}"
 ) >"$work_dir/shlibdeps"
@@ -216,7 +228,7 @@ depends=$(sed -n 's/^shlibs:Depends=//p' "$work_dir/shlibdeps")
   exit 1
 }
 
-cat >"$stage_dir/usr/share/doc/plank-client/BUILD-INFO" <<EOF
+cat >"$stage_dir/usr/share/doc/$client_package/BUILD-INFO" <<EOF
 Moonlight-Qt commit: ${moonlight_commit}
 moonlight-common-c commit: ${common_commit}
 Kyber kymux commit: ${kyber_commit}
@@ -226,17 +238,19 @@ SDL version: ${plank_sdl_version} (PLANK Wayland tablet cursor retirement patch)
 SDL source SHA-256: ${plank_sdl_sha256}
 SDL patch SHA-256: $(sha256sum "$repo_dir/$plank_sdl_patch_relative" | awk '{print $1}')
 Unstripped build binary SHA-256: $(sha256sum "$moonlight_binary" | awk '{print $1}')
-Packaged binary SHA-256: $(sha256sum "$stage_dir/usr/bin/plank-client" | awk '{print $1}')
+Packaged binary SHA-256: $(sha256sum "$stage_dir/usr/bin/$client_package" | awk '{print $1}')
 EOF
 installed_size=$(du -sk "$stage_dir/usr" | awk '{print $1}')
 sed -e "s/@VERSION@/${package_version}/" \
+  -e "s/@PACKAGE@/${client_package}/" \
+  -e "s/@DISPLAY_NAME@/${client_display_name}/" \
   -e "s/@INSTALLED_SIZE@/${installed_size}/" \
   -e "s/@DEPENDS@/${depends}/" \
   "$repo_dir/packaging/client/linux/deb/control.in" >"$stage_dir/DEBIAN/control"
 
 find "$stage_dir" -type d -exec chmod 0755 {} +
 chmod 0644 "$stage_dir/DEBIAN/control" \
-  "$stage_dir/usr/share/doc/plank-client/BUILD-INFO"
+  "$stage_dir/usr/share/doc/$client_package/BUILD-INFO"
 
 (
   cd "$stage_dir"
@@ -246,7 +260,7 @@ chmod 0644 "$stage_dir/DEBIAN/md5sums"
 find "$stage_dir" -exec touch -h -d "@${source_epoch}" {} +
 export SOURCE_DATE_EPOCH="$source_epoch"
 mkdir -p "$output_dir"
-deb_file="${output_dir}/plank-client_${package_version}_amd64.deb"
+deb_file="${output_dir}/${client_package}_${package_version}_amd64.deb"
 python3 "$repo_dir/scripts/test/check-package-build-paths.py" "$stage_dir"
 dpkg-deb --root-owner-group --uniform-compression -Zxz --build "$stage_dir" "$deb_file"
 
@@ -266,18 +280,18 @@ for required_package in \
   }
 done
 package_manifest=$(dpkg-deb --contents "$deb_file")
-grep -Eq '^-rw-r--r-- root/root +[0-9]+ .*\./etc/plank/client\.conf$' \
-  <<<"$package_manifest" || {
+grep -F "./etc/plank/$client_config" <<<"$package_manifest" | \
+  grep -Eq '^-rw-r--r-- root/root +[0-9]+ ' || {
   echo "client administrator policy does not have root-owned mode 0644" >&2
   exit 1
 }
-grep -Fq './etc/plank/client.conf' \
+grep -Fq "./etc/plank/$client_config" \
   <<<"$package_manifest" || {
   echo "client DEB is missing the root-owned administrator policy" >&2
   exit 1
 }
 client_policy=$(dpkg-deb --fsys-tarfile "$deb_file" | \
-  tar -xOf - ./etc/plank/client.conf)
+  tar -xOf - "./etc/plank/$client_config")
 grep -Fxq '[network]' <<<"$client_policy" || {
   echo "client administrator policy is missing its network section" >&2
   exit 1
@@ -292,7 +306,7 @@ grep -Fxq '# mdns_discovery = false' <<<"$client_policy" || {
 }
 control_audit_dir=$(mktemp -d --tmpdir plank-client-control.XXXXXX)
 dpkg-deb --control "$deb_file" "$control_audit_dir"
-grep -Fxq '/etc/plank/client.conf' \
+grep -Fxq "/etc/plank/$client_config" \
   "$control_audit_dir/conffiles" || {
   echo "client administrator policy is not registered as a Debian conffile" >&2
   exit 1
@@ -304,34 +318,34 @@ if grep -Eq \
   exit 1
 fi
 echo "client_autostart_absence_gate=pass"
-grep -Fq './usr/share/applications/la.instinctual.Plank.Client.desktop' \
+grep -Fq "./usr/share/applications/$client_desktop_id.desktop" \
   <<<"$package_manifest" || {
   echo "client DEB is missing the canonical PLANK desktop entry" >&2
   exit 1
 }
-grep -Fq './usr/share/metainfo/la.instinctual.Plank.Client.appdata.xml' \
+grep -Fq "./usr/share/metainfo/$client_desktop_id.appdata.xml" \
     <<<"$package_manifest" || {
   echo "client DEB is missing the canonical PLANK AppStream metadata" >&2
   exit 1
 }
 desktop_entry=$(dpkg-deb --fsys-tarfile "$deb_file" | \
-  tar -xOf - ./usr/share/applications/la.instinctual.Plank.Client.desktop)
-grep -Fxq 'Name=PLANK Client' <<<"$desktop_entry" || {
+  tar -xOf - "./usr/share/applications/$client_desktop_id.desktop")
+grep -Fxq "Name=$client_display_name" <<<"$desktop_entry" || {
   echo "client desktop metadata does not identify PLANK Client" >&2
   exit 1
 }
 appstream_metadata=$(dpkg-deb --fsys-tarfile "$deb_file" | \
-  tar -xOf - ./usr/share/metainfo/la.instinctual.Plank.Client.appdata.xml)
-grep -Fq '<name>PLANK Client</name>' <<<"$appstream_metadata" || {
+  tar -xOf - "./usr/share/metainfo/$client_desktop_id.appdata.xml")
+grep -Fq "<name>$client_display_name</name>" <<<"$appstream_metadata" || {
   echo "client AppStream metadata does not identify PLANK Client" >&2
   exit 1
 }
-grep -Fq './usr/share/icons/hicolor/512x512/apps/plank-client.png' \
+grep -Fq "./usr/share/icons/hicolor/512x512/apps/$client_package.png" \
     <<<"$package_manifest" || {
   echo "client DEB is missing the PLANK application icon" >&2
   exit 1
 }
-grep -Fq './usr/bin/plank-client' \
+grep -Fq "./usr/bin/$client_package" \
     <<<"$package_manifest" || {
   echo "client DEB is missing the branded PLANK runtime" >&2
   exit 1
@@ -355,18 +369,18 @@ if grep -Eq \
   echo "client DEB still contains the unsuffixed PLANK application ID" >&2
   exit 1
 fi
-grep -Fq './usr/lib/udev/rules.d/70-plank-client-wacom.rules' \
+grep -Fq "./usr/lib/udev/rules.d/70-$client_package-wacom.rules" \
   <<<"$package_manifest" || {
   echo "client DEB is missing the Wacom udev access rule" >&2
   exit 1
 }
-if grep -Fq './usr/share/doc/plank-client/COPYING.nanors' \
+if grep -Fq "./usr/share/doc/$client_package/COPYING.nanors" \
     <<<"$package_manifest"; then
   echo "client DEB contains a notice for the removed nanors implementation" >&2
   exit 1
 fi
 for kyber_license in COPYING.Kyber.AGPLv3 COPYING.Kyber.md; do
-  grep -Fq "./usr/share/doc/plank-client/${kyber_license}" \
+  grep -Fq "./usr/share/doc/$client_package/${kyber_license}" \
     <<<"$package_manifest" || {
     echo "client DEB is missing the Kyber license file: ${kyber_license}" >&2
     exit 1
@@ -386,14 +400,14 @@ if rg -n 'plank-client\.service|deb-systemd-helper|systemctl[[:space:]]+--user' 
 fi
 rm -rf -- "$control_audit_dir"
 "${repo_dir}/scripts/package/audit-package-runtime.sh" \
-  "$stage_dir/usr/bin/plank-client" "$private_lib_dir"
-packaged_dynamic_section=$(readelf -d "$stage_dir/usr/bin/plank-client")
-rg -Fq '$ORIGIN/../lib/plank' <<<"$packaged_dynamic_section" || {
+  "$stage_dir/usr/bin/$client_package" "$private_lib_dir"
+packaged_dynamic_section=$(readelf -d "$stage_dir/usr/bin/$client_package")
+rg -Fq "\$ORIGIN/../lib/$client_lib_name" <<<"$packaged_dynamic_section" || {
   echo "client runtime does not carry its private relative RUNPATH" >&2
   exit 1
 }
 unmanaged_loader_output=$(env -u LD_LIBRARY_PATH \
-  ldd "$stage_dir/usr/bin/plank-client")
+  ldd "$stage_dir/usr/bin/$client_package")
 for soname in libavcodec.so.63 libavutil.so.61 libswscale.so.10 libswresample.so.7 libSDL3.so.0; do
   unmanaged_path=$(awk -v name="$soname" \
     '$1 == name && $2 == "=>" {print $3}' <<<"$unmanaged_loader_output")
@@ -413,4 +427,7 @@ if dpkg-deb --field "$deb_file" Depends | rg -q 'libdecor-0-plugin-1-gtk'; then
 fi
 echo "client_deb=${deb_file}"
 echo "client_deb_manifest_gate=pass"
-plank_collect_package "$repo_dir" client linux amd64 ubuntu-26.04 "$deb_file"
+if [[ $client_product == client-qt ]]; then
+  python3 "$repo_dir/scripts/test/check-client-qt-package.py" "$deb_file"
+fi
+plank_collect_package "$repo_dir" "$client_product" linux amd64 ubuntu-26.04 "$deb_file"

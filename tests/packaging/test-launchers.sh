@@ -36,7 +36,7 @@ if [[ -e ${repo_dir}/packaging/client/linux/bin/plank-client ]]; then
   echo 'Client package still carries an unnecessary launcher wrapper' >&2
   exit 1
 fi
-grep -Fq '\$$ORIGIN/../lib/plank' "${client_project}" || {
+grep -Fq '\$$ORIGIN/../lib/$$PLANK_PRIVATE_LIB_NAME' "${client_project}" || {
   echo 'Client executable does not define its private relative RUNPATH' >&2
   exit 1
 }
@@ -72,11 +72,11 @@ if rg -q '^[[:space:]]*mdns_discovery[[:space:]]*=' "${client_policy}"; then
   exit 1
 fi
 
-for required_log_token in XDG_STATE_HOME '.local/state' 'plank/logs'; do
+for required_log_token in XDG_STATE_HOME '.local/state' 'PlankClientIdentity::logDirectory'; do
   rg -Fq "${required_log_token}" "${client_path}"
 done
 for required_log_token in \
-  'plank-client-*.log' \
+  'logNamePattern = logPrefix + QStringLiteral("-*.log");' \
   'MAX_LOG_SIZE_BYTES (10 * 1024 * 1024)' \
   'QFileDevice::ReadOwner | QFileDevice::WriteOwner | QFileDevice::ExeOwner' \
   'QFileDevice::ReadOwner | QFileDevice::WriteOwner' \

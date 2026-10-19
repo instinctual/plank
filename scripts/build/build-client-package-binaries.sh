@@ -8,6 +8,8 @@ if (($# < 2 || $# > 3)); then
 fi
 
 repo_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd)
+source "$repo_dir/scripts/package/client-package-identity.sh"
+plank_client_package_identity
 source_dir=$(realpath -- "$1")
 ffmpeg_work_dir=$(realpath -- "$2")
 build_dir=$(realpath -m -- "${3:-${repo_dir}/build/package-client}")
@@ -1152,10 +1154,10 @@ done
 echo "client_reconnect_local_event_gate=pass"
 
 for required_client_identity_token in \
-  'QGuiApplication::setApplicationDisplayName("PLANK Client");' \
-  'SDL_SetAppMetadata("PLANK Client",' \
-  '"la.instinctual.Plank.Client");' \
-  'app.setDesktopFileName("la.instinctual.Plank.Client");'; do
+  'QGuiApplication::setApplicationDisplayName(PlankClientIdentity::displayName);' \
+  'SDL_SetAppMetadata(PlankClientIdentity::displayName,' \
+  'QCoreApplication::setApplicationName(PlankClientIdentity::applicationName);' \
+  'app.setDesktopFileName(PlankClientIdentity::desktopId);'; do
   rg -Fq "$required_client_identity_token" "$source_dir/app/main.cpp" || {
     echo "client application identity is missing: ${required_client_identity_token}" >&2
     exit 1
@@ -1533,7 +1535,7 @@ fi
   echo "client package still carries an unnecessary launcher wrapper" >&2
   exit 1
 }
-rg -Fq '\$$ORIGIN/../lib/plank' "$source_dir/app/app.pro" || {
+rg -Fq '\$$ORIGIN/../lib/$$PLANK_PRIVATE_LIB_NAME' "$source_dir/app/app.pro" || {
   echo "client build does not define its private relative runtime path" >&2
   exit 1
 }
@@ -1603,14 +1605,14 @@ echo "client_mdns_default_off_gate=pass"
 for required_log_token in \
   XDG_STATE_HOME \
   '.local/state' \
-  'plank/logs'; do
+  'PlankClientIdentity::logDirectory'; do
   rg -Fq "$required_log_token" "$source_dir/app/path.cpp" || {
     echo "client persistent log path invariant is missing: ${required_log_token}" >&2
     exit 1
   }
 done
 for required_log_token in \
-  'plank-client-*.log' \
+  'logNamePattern = logPrefix + QStringLiteral("-*.log");' \
   'MAX_LOG_SIZE_BYTES (10 * 1024 * 1024)' \
   'QFileDevice::ReadOwner | QFileDevice::WriteOwner | QFileDevice::ExeOwner' \
   'QFileDevice::ReadOwner | QFileDevice::WriteOwner' \
@@ -1624,6 +1626,21 @@ for required_log_token in \
   }
 done
 echo "client_persistent_log_source_gate=pass"
+
+# Both identities are executable contracts, including settings/trust/log
+# isolation. Never substitute a source-only naming check for this test.
+for variant in production qt; do
+  identity_test_build="$build_dir/tests/identity-$variant"
+  mkdir -p "$identity_test_build"
+  (
+    cd "$identity_test_build"
+    identity_config=()
+    if [[ $variant == qt ]]; then identity_config+=(CONFIG+=plank-qt-session); fi
+    qmake6 "$source_dir/tests/clientidentity/clientidentity.pro" "${identity_config[@]}"
+    make -j"${PLANK_BUILD_JOBS:-4}"
+    ./clientidentity
+  )
+done
 
 policy_test_build=$(mktemp -d --tmpdir plank-client-policy-test.XXXXXX)
 cleanup_policy_test() {
@@ -1781,7 +1798,7 @@ bash "$repo_dir/scripts/test/test-client-camera-session.sh" "$repo_dir" "$source
 mkdir -p "$build_dir"
 (
   cd "$build_dir"
-  qmake6 "$source_dir" CONFIG+=release CONFIG+=plank-transport "${frame_flow_qmake[@]}" \
+  qmake6 "$source_dir" CONFIG+=release CONFIG+=plank-transport "${frame_flow_qmake[@]}" "${client_qmake_config[@]}" \
     "PLANK_TRANSPORT_DIR=${plank_transport_dir}" \
     "PLANK_VERSION=${package_version}" \
     "QMAKE_CFLAGS+=$PLANK_C_FILE_FLAGS" \
@@ -1789,7 +1806,7 @@ mkdir -p "$build_dir"
   make -j"$(nproc)"
 )
 
-client_binary="${build_dir}/app/plank-client"
+client_binary="${build_dir}/app/${client_package}"
 [[ -x ${client_binary} ]] || {
   echo "PLANK client package binary was not produced" >&2
   exit 1
@@ -1858,7 +1875,7 @@ done
 log_runtime_root=$(mktemp -d)
 log_runtime_home="${log_runtime_root}/home"
 log_runtime_state="${log_runtime_root}/state"
-log_runtime_dir="${log_runtime_state}/plank/logs"
+log_runtime_dir="${log_runtime_state}/${client_log_path}"
 log_runtime_config="${log_runtime_root}/config"
 log_runtime_cache="${log_runtime_root}/cache"
 log_runtime_session="${log_runtime_root}/runtime"
@@ -1867,7 +1884,7 @@ mkdir -p "$log_runtime_home" "$log_runtime_dir" "$log_runtime_config" \
 chmod 0700 "$log_runtime_home" "$log_runtime_dir" "$log_runtime_config" \
   "$log_runtime_cache" "$log_runtime_session"
 for old_log in {01..11}; do
-  touch "${log_runtime_dir}/plank-client-20000101-000000-000-${old_log}.log"
+  touch "${log_runtime_dir}/${client_package}-20000101-000000-000-${old_log}.log"
 done
 chmod 0600 "${log_runtime_dir}"/*.log
 
@@ -1889,7 +1906,7 @@ if [[ $log_runtime_status -ne 0 ]]; then
 fi
 
 mapfile -t runtime_logs < <(find "$log_runtime_dir" -maxdepth 1 -type f \
-  -name 'plank-client-*.log' -print)
+  -name "${client_package}-*.log" -print)
 if [[ ${#runtime_logs[@]} -ne 10 ]]; then
   printf '%s\n' "$log_runtime_output" >&2
   echo "client did not retain exactly 10 persistent logs" >&2

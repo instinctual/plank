@@ -65,6 +65,23 @@ class CollectionTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             MODULE.collect(args)
 
+    def test_qt_client_is_candidate_only(self):
+        args = self.arguments('ubuntu-qt-session')
+        args.package = args.package.rename(args.package.with_name('plank-client-qt_1.2.3-ubuntu-qt-session_amd64.deb'))
+        args.product = 'client-qt'
+        args.platform = 'linux'
+        args.architecture = 'amd64'
+        args.target_os = 'ubuntu-26.04'
+        MODULE.collect(args)
+        self.assertTrue((self.root / 'artifacts/packages/candidates/1.2.3-ubuntu-qt-session/linux' / args.package.name).is_file())
+        args.branch = 'main'
+        with self.assertRaisesRegex(ValueError, 'candidate DEB'):
+            MODULE.collect(args)
+        args.branch = 'ubuntu-qt-session'
+        args.platform = 'macos'
+        with self.assertRaisesRegex(ValueError, 'candidate DEB'):
+            MODULE.collect(args)
+
     def test_wrong_branch_filename(self):
         args = self.arguments()
         args.branch = 'other'

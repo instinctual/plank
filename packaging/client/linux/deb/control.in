@@ -1,4 +1,4 @@
-Package: plank-client
+Package: @PACKAGE@
 Version: @VERSION@
 Architecture: amd64
 Installed-Size: @INSTALLED_SIZE@
@@ -6,7 +6,7 @@ Maintainer: PLANK Engineering <engineering@instinctual.la>
 Section: net
 Priority: optional
 Depends: bash, intel-media-va-driver-non-free, libdecor-0-plugin-1-cairo, qml6-module-qtquick, qml6-module-qtquick-controls, qml6-module-qtquick-layouts, qml6-module-qtquick-window, qt6-svg-plugins, udev, @DEPENDS@
-Description: PLANK remote workstation client
+Description: @DISPLAY_NAME@ remote workstation client
  Dedicated client for authenticated PLANK sessions.
  The package carries its qualified FFmpeg and SDL runtimes privately and leaves
  the Ubuntu system libraries unchanged.
