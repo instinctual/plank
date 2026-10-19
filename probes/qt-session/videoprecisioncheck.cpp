@@ -31,14 +31,17 @@ bool checkVideo()
     }
     const QSize drawable(viewport[2], viewport[3]);
     QtPackedVideoBlitter blitter;
-    GLuint texture = 0;
+    GLuint texture = 0, chroma = 0;
     gl->glGenTextures(1, &texture);
+    gl->glGenTextures(1, &chroma);
     std::vector<GLuint> pixels(1024 * 4);
     bool passed = true;
-    for (int test = 0; test < 6 && passed; ++test) {
+    for (int test = 0; test < 9 && passed; ++test) {
         const bool eightBit = test == 1;
-        const bool limited = test == 5;
-        const bool bt709 = test == 2 || limited;
+        const bool p010 = test >= 6;
+        const bool color = test == 8;
+        const bool limited = test == 5 || test == 7;
+        const bool bt709 = test == 2 || limited || p010;
         const bool crop = test == 3;
         const bool filter = test == 4;
         const Mapping mapping = eightBit ? Mapping::Identity8 : limited ? Mapping::Bt709Limited10 :
@@ -64,13 +67,25 @@ bool checkVideo()
         gl->glBindTexture(GL_TEXTURE_2D, texture);
         gl->glTexImage2D(GL_TEXTURE_2D, 0, eightBit ? GL_RGBA8 : GL_RGB10_A2, 1024, 4, 0, GL_RGBA,
                          eightBit ? GL_UNSIGNED_BYTE : GL_UNSIGNED_INT_2_10_10_10_REV, pixels.data());
+        if (p010) {
+            std::vector<GLushort> luma(1024 * 4), uv(512 * 2 * 2);
+            for (int y = 0; y < 4; ++y)
+                for (int x = 0; x < 1024; ++x) luma[y * 1024 + x] = GLushort(x << 6);
+            for (int i = 0; i < 512 * 2; ++i) {
+                uv[i * 2] = GLushort((color ? 640 : 512) << 6);
+                uv[i * 2 + 1] = GLushort((color ? 384 : 512) << 6);
+            }
+            gl->glTexImage2D(GL_TEXTURE_2D, 0, GL_R16, 1024, 4, 0, GL_RED, GL_UNSIGNED_SHORT, luma.data());
+            gl->glBindTexture(GL_TEXTURE_2D, chroma);
+            gl->glTexImage2D(GL_TEXTURE_2D, 0, GL_RG16, 512, 2, 0, GL_RG, GL_UNSIGNED_SHORT, uv.data());
+        }
         const int width = crop || filter ? 512 : 1024;
         const int sourceX = crop ? 512 : 0;
         const int sourceWidth = crop ? 512 : 1024;
         const QtSessionGeometry geometry{{1024, 4}, {qreal(sourceX), 0, qreal(sourceWidth), 4},
             {11, 73, qreal(width), 4}, drawable, drawable};
         QString error;
-        if (!blitter.draw(texture, GL_TEXTURE_2D, mapping, geometry, error)) {
+        if (!blitter.draw(texture, GL_TEXTURE_2D, mapping, geometry, error, p010 ? chroma : 0)) {
             qWarning().noquote() << error;
             passed = false;
             break;
@@ -88,6 +103,10 @@ bool checkVideo()
                     const GLuint source8 = expected / 4;
                     if (eightBit) expected = qRound(source8 * 1023.0 / 255.0);
                     if (bt709) expected = code;
+                    if (color) {
+                        const double delta[] = {-1.5748 * 128.0, (-0.1873242729 + 0.4681242729) * 128.0, 1.8556 * 128.0};
+                        expected = qRound(std::clamp(double(code) + delta[channel], 0.0, 1023.0));
+                    }
                     if (limited) expected = qRound(std::clamp((double(code) - 64.0) / 876.0, 0.0, 1.0) * 1023.0);
                     if (filter) expected = row == channel || row == 3 ? 512 : 0;
                     const GLuint actual = (result[(3 - row) * width + x] >> (10 * channel)) & 1023;
@@ -101,7 +120,7 @@ bool checkVideo()
                         const GLuint upper = (source8 * 1023 + 254) / 255;
                         matches = actual >= lower && actual <= upper &&
                             qRound(actual * 255.0 / 1023.0) == int(source8);
-                    } else if (limited) {
+                    } else if (limited || color) {
                         matches = std::abs(int(actual) - int(expected)) <= 1;
                     } else if (filter && (row == channel || row == 3)) {
                         // The exact midpoint is 511.5 in the 10-bit target.
@@ -142,6 +161,7 @@ bool checkVideo()
         qInfo("Qt video rejects RGB8 substitution: %s", passed ? "pass" : "fail");
     }
     gl->glDeleteTextures(1, &texture);
+    gl->glDeleteTextures(1, &chroma);
     qInfo("Qt video precision gate: %s (synthetic GPU textures; not hardware decode qualification)", passed ? "pass" : "fail");
     return passed;
 }

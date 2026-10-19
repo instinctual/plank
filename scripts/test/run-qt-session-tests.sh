@@ -43,6 +43,13 @@ mkdir -p "$build_root/input-tests"
     make -j"${PLANK_BUILD_JOBS:-4}"
     ./qtinput
 )
+mkdir -p "$build_root/input-runtime-tests"
+(
+    cd "$build_root/input-runtime-tests"
+    "$qmake" "$source_root/apps/client/tests/qtinputruntime/qtinputruntime.pro" "${qmake_flags[@]}"
+    make -j"${PLANK_BUILD_JOBS:-4}"
+    QT_QPA_PLATFORM=offscreen ./qtinputruntime
+)
 mkdir -p "$build_root/tests" "$build_root/video-tests" "$build_root/pool-tests" "$build_root/probe"
 (
     cd "$build_root/tests"

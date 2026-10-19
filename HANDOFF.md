@@ -49,17 +49,21 @@ performance, audio/video soak and physical Wacom remain pending hardware gates.
 
 ### Current implementation / next work
 
-Client `3e82de48` additionally connects toolbar bitrate acknowledgement,
+Client `ccd2e601` additionally connects toolbar bitrate acknowledgement,
 shared rate/loss/RTT statistics, microphone/camera controls, overlay, Qt physical
 keyboard/mouse input, unchanged raw-HID/normalized tablet workers, Host cursor
 shapes/positions and Wayland shortcut/pointer policy. The ordinary Client now
 shares its bounded cursor-message parser with the Qt frontend. New input tests
 cover key identities, malformed cursor chunks and reconnect sequence epochs.
-These additions need their next hosted build/tests; they are not yet qualified.
+Run `39320037725` passed the component/compositor/sanitizer tests and ordinary
+Client build, then found an incorrectly typed Qt signal sender in the full Qt
+application. It is corrected. The next run also exercises retained tablet-reader
+lifecycle, cross-output drag geometry, P010 two-plane GPU conversion, idle
+inhibition, visible-output precision qualification, and stale-generation
+rejection. These newest additions are not yet qualified.
 
-Continue checking input/focus/reconnect and compositor-request lifetimes,
-complete exact P010 hardware presentation and visible-output qualification,
-then exercise the integrated runtime and produce the independently installable
+Continue checking the complete runtime and compositor-request lifetimes,
+then produce the independently installable
 candidate. The package guard still prevents distributing a renamed SDL client.
 No Qt candidate has been delivered or installed. No merge or release is authorized.
 
