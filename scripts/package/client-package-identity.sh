@@ -31,13 +31,11 @@ plank_client_package_identity() {
 }
 
 plank_client_require_session_runtime() {
-  # Namespace/package scaffolding is deliberately ahead of live-session
-  # integration. Do not accidentally ship the ordinary SDL path under the Qt
-  # name. Remove this temporary gate only with the Qt session-runtime wiring
-  # and its end-to-end candidate tests, not merely a renamed executable.
+  # An isolated package name alone must never relabel the ordinary SDL client.
+  # Source and linked-runtime checks complement, not replace, live acceptance.
   if [[ ${PLANK_CLIENT_VARIANT:-production} == qt ]]; then
-    echo 'Qt live-session integration is not enabled yet; refusing to package the SDL Client as PLANK Client Qt.' >&2
-    echo 'Continue with scripts/test/run-qt-session-tests.sh and the isolated Qt probe.' >&2
-    return 1
+    local script_dir
+    script_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../test" && pwd)
+    python3 "$script_dir/check-client-qt-runtime.py" --source "${1:?Client source required}" "${@:2}"
   fi
 }

@@ -100,6 +100,11 @@ class QtPackageTests(unittest.TestCase):
         (production / 'DEBIAN/control').write_text(self.control.replace('plank-client-qt', 'plank-client'))
         (production / 'usr/bin').mkdir(parents=True)
         (production / 'usr/bin/plank-client').write_text('production\n')
+        # Published production packages carry relative private-library links;
+        # their namespace must not be mistaken for the candidate's namespace.
+        (production / 'usr/lib/plank').mkdir(parents=True)
+        (production / 'usr/lib/plank/libfixture.so.1').write_text('production\n')
+        (production / 'usr/lib/plank/libfixture.so').symlink_to('libfixture.so.1')
         output = self.root / 'production.deb'
         def build():
             subprocess.run(['dpkg-deb', '--root-owner-group', '--build', str(production), str(output)],
@@ -151,19 +156,44 @@ class QtPackageTests(unittest.TestCase):
 
 
 class IdentityContractTests(unittest.TestCase):
-    def test_partial_experiment_cannot_be_mislabeled_as_live_client(self):
+    def test_integrated_source_is_required_for_the_qt_package(self):
         for variant in ('production', 'qt'):
             result = subprocess.run(['bash', '-c',
-                'source "$1"; plank_client_require_session_runtime',
-                'fixture', str(ROOT / 'scripts/package/client-package-identity.sh')],
+                'source "$1"; plank_client_require_session_runtime "$2"',
+                'fixture', str(ROOT / 'scripts/package/client-package-identity.sh'), str(ROOT / 'apps/client')],
                 text=True, capture_output=True,
                 env={**os.environ, 'PLANK_CLIENT_VARIANT': variant})
-            self.assertEqual(result.returncode, 1 if variant == 'qt' else 0)
+            self.assertEqual(result.returncode, 0, result.stderr)
             if variant == 'qt':
-                self.assertIn('Qt live-session integration is not enabled yet', result.stderr)
+                self.assertIn('client_qt_runtime_gate=pass', result.stdout)
         for relative in ('scripts/build/build-client-package-binaries.sh',
                          'scripts/package/build-client-deb.sh'):
             self.assertIn('plank_client_require_session_runtime', (ROOT / relative).read_text())
+        self.assertIn('--binary "$moonlight_binary"', (ROOT / 'scripts/package/build-client-deb.sh').read_text())
+
+    def test_rejects_a_renamed_sdl_session(self):
+        spec = importlib.util.spec_from_file_location('runtime', ROOT / 'scripts/test/check-client-qt-runtime.py')
+        runtime = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(runtime)
+        with tempfile.TemporaryDirectory() as directory:
+            source = Path(directory)
+            for name in ('app/app.pro', 'app/streaming/session.cpp', 'app/streaming/qt/sessionruntime.cpp'):
+                target = source / name
+                target.parent.mkdir(parents=True, exist_ok=True)
+                target.write_text((ROOT / 'apps/client' / name).read_text())
+            runtime.check_source(source)
+            session = source / 'app/streaming/session.cpp'
+            session.write_text(session.read_text().replace('runtime->start(qtWindow);', 'execInternal();'))
+            with self.assertRaisesRegex(ValueError, 'ordinary session loop'):
+                runtime.check_source(source)
+
+    @unittest.skipUnless(shutil.which('nm'), 'requires binary inspection tool')
+    def test_rejects_a_binary_without_qt_session_owners(self):
+        spec = importlib.util.spec_from_file_location('runtime', ROOT / 'scripts/test/check-client-qt-runtime.py')
+        runtime = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(runtime)
+        with self.assertRaises(ValueError):
+            runtime.check_binary(Path('/usr/bin/true'))
 
     def test_build_and_package_share_names(self):
         for variant, expected in [('production', ['plank-client', 'PLANK', 'client.conf', 'plank']),

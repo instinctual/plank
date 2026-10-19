@@ -49,7 +49,7 @@ performance, audio/video soak and physical Wacom remain pending hardware gates.
 
 ### Current implementation / next work
 
-Client `ccd2e601` additionally connects toolbar bitrate acknowledgement,
+Client `0ca96fcc` additionally connects toolbar bitrate acknowledgement,
 shared rate/loss/RTT statistics, microphone/camera controls, overlay, Qt physical
 keyboard/mouse input, unchanged raw-HID/normalized tablet workers, Host cursor
 shapes/positions and Wayland shortcut/pointer policy. The ordinary Client now
@@ -62,14 +62,23 @@ lifecycle, cross-output drag geometry, P010 two-plane GPU conversion, idle
 inhibition, visible-output precision qualification, and stale-generation
 rejection. These newest additions are not yet qualified.
 
-Continue checking the complete runtime and compositor-request lifetimes,
-then produce the independently installable
-candidate. The package guard still prevents distributing a renamed SDL client.
-No Qt candidate has been delivered or installed. No merge or release is authorized.
+The launcher now uses Qt display enumeration without an SDL video probe. Exact
+decoder qualification remains on the session surface, not an unknown temporary
+window. Unix termination follows the Qt asynchronous teardown path. A new
+compiled display-enumeration test and three complete launcher smoke cycles run
+with SDL video unavailable. These newest gates await the next hosted run.
+
+Candidate version is **1.1.041-ubuntu-qt-session**. The package source/linkage
+guard requires the actual Qt session owners; it cannot relabel an ordinary SDL
+Client. No Qt candidate has been delivered or installed. No merge or release is
+authorized. Continue checking hosted results and fix failures before delivery.
 
 Dispatch from a clean pushed branch with:
 `bash scripts/ci/dispatch.sh linux-client-qt-tests false`.
-The job builds both full application variants and isolated tests, not a package.
+That target builds both full application variants and isolated tests, not a package.
+Use `bash scripts/ci/dispatch.sh linux-client-qt false` to run the same gates and
+then package the exact Qt binary with the independent identity. All checks run
+on GitHub-hosted Ubuntu; do not install a package on a builder.
 Build warnings currently include inherited FFmpeg Vulkan queue-callback
 deprecations and unused Quinn telemetry; do not claim a warning-free build.
 

@@ -33,6 +33,11 @@ dbus-run-session -- bash -eu -c '
     export QT_QPA_PLATFORM=wayland
     export QSG_RHI_BACKEND=opengl
     unset QT_QUICK_BACKEND
+    if test -n "${PLANK_QT_CLIENT_BINARY:-}"; then
+        python3 "$PLANK_SOURCE_ROOT/scripts/test/smoke-qt-client.py" \
+            --binary "$PLANK_QT_CLIENT_BINARY" --reports "$PLANK_QT_LAUNCHER_REPORTS"
+        exit
+    fi
     "$PLANK_QT_SESSION_TEST_BUILD/tests/qtsession"
     "$PLANK_QT_SESSION_TEST_BUILD/probe/plank-qt-session-probe" --native-child --fullscreen --quit-after 2
     if test "${PLANK_QT_CHECK_PRECISION:-0}" = 1; then

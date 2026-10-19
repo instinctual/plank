@@ -1,6 +1,8 @@
 # Ubuntu Qt-owned session
 
-Status: implementation started on `ubuntu-qt-session`, from parent
+Status: the live Qt runtime is integrated; hosted candidate qualification is
+in progress. No physical GPU/input or real-stream acceptance is claimed.
+Implementation started on `ubuntu-qt-session`, from parent
 `1572c09e26d6ce7db20d9d1feefe11a3155963b8` / Client
 `58f4df097c1cdf11bf6b4b429701f156e2b10109` (`client-session-recovery`).
 Refreshed with main `38e00a557670df063926af1ef3466156145302ae`, the 1.1.039
@@ -135,6 +137,11 @@ Qt documents GUI/render-thread separation and native GPU integration. Those
 APIs enable the approach; they do not establish performance or color fidelity.
 
 ## First qualification findings
+
+The following sections retain staged qualification evidence, not the current
+implementation backlog. Early statements that live runtime or packaging was
+not connected describe those checkpoints. Current implementation and package
+state are summarized in `HANDOFF.md` and the final section below.
 
 The isolated component passes 24 QtTest checks on the Ubuntu 26.04 / Qt 6.10.2
 builder, both offscreen and on an isolated GNOME/Wayland compositor. The same
@@ -359,11 +366,32 @@ the builder. Both compiled application-identity test variants pass and verify
 separate bookmark/trust namespaces. This is packaging preparation, not a claim
 that a usable Qt Client DEB exists.
 
-A temporary build/package guard explicitly rejects Qt product builds while
-live sessions still use the ordinary SDL path. Remove that guard with the
-actual Qt session integration and its end-to-end tests. Do not distribute a
-renamed SDL Client or the non-networked probe as a completed Qt Client. When
-ready, assign a new build version, explicitly set the branch and Qt variant,
-run the normal release runbook plus isolation gates, and collect the exact DEB
-under `artifacts/packages/candidates/<version>-ubuntu-qt-session/linux/`.
+A source/linkage gate now requires the actual Qt lifecycle, renderer, input and
+Wayland policy owners in the binary. It replaces the earlier blanket prohibition
+once live-runtime integration was complete. Do not distribute a renamed SDL
+Client or the non-networked probe as a completed Qt Client. The hosted
+`linux-client-qt` target runs the complete qualification before building the
+branch-labelled DEB under
+`artifacts/packages/candidates/<version>-ubuntu-qt-session/linux/`.
 No merge, release or remote installation is authorized by this testing request.
+
+## Integrated candidate scope
+
+The Qt session now uses the existing launch/authentication, takeover, media,
+profile selection, reconnect and asynchronous teardown paths. Qt owns display
+enumeration, windows, toolbar, cursor and keyboard/mouse dispatch; even launcher
+decoder probing no longer initializes SDL video. Exact-format qualification
+runs on the real session surface instead. SDL audio remains intentionally reused.
+
+The complete toolbar includes bitrate acknowledgement, shared video/loss/RTT
+telemetry, microphone/camera, stats, pin/drag, fullscreen, minimize and disconnect.
+Keyboard shortcut policy and idle/pointer inhibition use Qt's Wayland connection.
+Raw and normalized tablet readers retain their current recovery implementation.
+Mouse input uses the same render viewport, including cross-output drags.
+Primary-output presentation feedback continues driving the existing audio clock.
+
+Hosted gates include real shader precision checks, P010/packed imports using
+synthetic surfaces, all current exact-profile fixtures, generation/lease tests,
+tablet-lifecycle test doubles, ordinary-Client regression builds and Qt launcher
+smoke tests. They do not simulate a physical GPU or prove a real network session.
+Hardware acceptance remains the next mandatory gate after candidate delivery.

@@ -36,6 +36,14 @@ for variant in production qt; do
         ./clientidentity
     )
 done
+mkdir -p "$build_root/system-properties-tests"
+(
+    cd "$build_root/system-properties-tests"
+    "$qmake" "$source_root/apps/client/tests/qtsystemproperties/qtsystemproperties.pro" "${qmake_flags[@]}"
+    make -j"${PLANK_BUILD_JOBS:-4}"
+    QT_QPA_PLATFORM=offscreen ./qtsystemproperties
+    QT_QPA_PLATFORM=offscreen QT_SCALE_FACTOR=1.25 ./qtsystemproperties
+)
 mkdir -p "$build_root/input-tests"
 (
     cd "$build_root/input-tests"

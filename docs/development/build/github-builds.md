@@ -63,11 +63,17 @@ the isolated Qt components, and runs co-installation fixtures, normal/sanitized
 tests and a private headless GNOME compositor at 100% and forced 125% scale.
 It also compiles/links the ordinary Client and runs its existing preflight
 checks to protect shared code such as the extracted software-frame allocator.
-It uploads test evidence, not a DEB. Software Vulkan/GL results do not qualify
-Intel VA-API decoding, physical input, live audio or playback performance.
-The normal package gate continues to reject the Qt variant until the actual
-session runtime is integrated. Do not use the retained Ubuntu VM as a fallback
-builder for this experiment.
+It also builds the complete Qt Client and checks three real launcher/shutdown
+cycles on the isolated compositor, with SDL video deliberately unavailable.
+The test-only target uploads evidence, not a DEB. To build the independently
+installable candidate after these same gates, use
+`bash scripts/ci/dispatch.sh linux-client-qt false`. It packages the exact Qt
+binary just tested, validates source and linked runtime ownership, and collects
+`plank-client-qt` in the branch-qualified candidate catalog. This target cannot
+produce a mainline release or overwrite the ordinary Client identity.
+Software Vulkan/GL results do not qualify Intel VA-API decoding, physical input,
+live audio or playback performance. Do not use the retained Ubuntu VM as a
+fallback builder for this experiment.
 
 ## macOS distribution credentials
 
@@ -317,7 +323,8 @@ as equivalent workloads: the second job additionally signed and notarized.
 ## Diagnosing a hosted build
 
 Manual dispatch accepts `product=all`, `linux-host`, `linux-client`,
-`macos-host` or `macos-client`. A selected-product run has an independent
+`linux-client-qt-tests`, `linux-client-qt`, `macos-host` or `macos-client`.
+A selected-product run has an independent
 concurrency group, so retrying it does not cancel other platforms. Inspect the
 failed job's first error, not the final nonzero-exit summary.
 

@@ -11,15 +11,21 @@ class QtSessionWorkflowTests(unittest.TestCase):
         workflow = (ROOT / '.github/workflows/build.yml').read_text()
         job = workflow.split('  linux-client-qt-tests:\n')[1].split('  macos:\n')[0]
         self.assertIn("github.event_name == 'workflow_dispatch'", job)
-        self.assertIn("inputs.product == 'linux-client-qt-tests' && !inputs.signed", job)
+        self.assertIn("inputs.product == 'linux-client-qt-tests' || inputs.product == 'linux-client-qt'", job)
+        self.assertIn('&& !inputs.signed', job)
         self.assertIn('runs-on: ubuntu-26.04', job)
         self.assertIn('needs: policy', job)
         self.assertIn('product: linux-client', job)
         self.assertIn('scripts/ci/bootstrap.sh linux-client', job)
         self.assertIn('scripts/ci/test-qt-session.sh', job)
         self.assertIn('qt-session-reports/', job)
-        for forbidden in ('self-hosted', 'secrets.', 'environment:', 'build-client-deb.sh'):
+        for forbidden in ('self-hosted', 'secrets.', 'environment:'):
             self.assertNotIn(forbidden, job)
+        package = job.split('- name: Package the independently installable Qt candidate')[1]
+        self.assertIn("if: ${{ inputs.product == 'linux-client-qt' }}", package)
+        self.assertIn('PLANK_CLIENT_VARIANT: qt', package)
+        self.assertIn('qt-runtime-build/app/plank-client-qt', package)
+        self.assertIn('scripts/package/build-client-deb.sh', package)
 
     def test_keeps_qualification_and_runtime_gates(self):
         script = (ROOT / 'scripts/ci/test-qt-session.sh').read_text()
@@ -29,12 +35,19 @@ class QtSessionWorkflowTests(unittest.TestCase):
                      'PLANK_QT_SESSION_SANITIZERS=1', 'detect_leaks=1', 'halt_on_error=1',
                      'PLANK_CLIENT_VARIANT=production', 'build-client-package-binaries.sh',
                      'VK_DRIVER_FILES', 'LIBGL_ALWAYS_SOFTWARE=1',
+                     'PLANK_QT_CLIENT_BINARY', 'PLANK_QT_LAUNCHER_REPORTS',
                      'hardware_acceptance=not-performed'):
             self.assertIn(gate, script)
         self.assertNotIn('build-client-deb.sh', script)
         runner = (ROOT / 'scripts/test/run-qt-session-tests.sh').read_text()
         self.assertIn('qtsoftwarevideo.pro', runner)
         self.assertIn('timeout 120 ./qtsoftwarevideo', runner)
+        self.assertIn('qtsystemproperties.pro', runner)
+        self.assertIn('QT_SCALE_FACTOR=1.25 ./qtsystemproperties', runner)
+        smoke = (ROOT / 'scripts/test/smoke-qt-client.py').read_text()
+        self.assertIn("environment['SDL_VIDEO_DRIVER'] = 'plank-disabled-for-qt-test'", smoke)
+        self.assertIn('process.terminate()', smoke)
+        self.assertIn('process.wait(timeout=20)', smoke)
 
     def test_bitrate_gate_distinguishes_session_ui_from_global_preferences(self):
         script = (ROOT / 'scripts/build/build-client-package-binaries.sh').read_text()

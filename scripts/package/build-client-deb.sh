@@ -10,11 +10,11 @@ fi
 repo_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd)
 source "$repo_dir/scripts/package/client-package-identity.sh"
 plank_client_package_identity
-plank_client_require_session_runtime
 moonlight_binary=$(realpath -- "$1")
 ffmpeg_work_dir=$(realpath -- "$2")
 output_dir=$(realpath -m -- "${3:-${PLANK_WORK_ROOT:-${repo_dir}/build}/package-client-output}")
 moonlight_source_dir=$(realpath -- "${4:-${repo_dir}/apps/client}")
+plank_client_require_session_runtime "$moonlight_source_dir" --binary "$moonlight_binary"
 common_source_dir="${moonlight_source_dir}/moonlight-common-c/moonlight-common-c"
 kyber_source_dir="${repo_dir}/third_party/kyber-kymux"
 approved_client_logo="${repo_dir}/branding/assets/plank-logo.png"

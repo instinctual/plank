@@ -10,7 +10,7 @@ on:
         description: Product to rebuild (all on ordinary push/PR)
         type: choice
         default: all
-        options: [all, linux-host, linux-client, linux-client-qt-tests, macos-host, macos-client, macos-fullscreen-probe]
+        options: [all, linux-host, linux-client, linux-client-qt-tests, linux-client-qt, macos-host, macos-client, macos-fullscreen-probe]
       source_sha:
         description: Expected commit (optional in UI; required by the dispatch helper)
         type: string
@@ -139,8 +139,8 @@ jobs:
         run: df -h
 
   linux-client-qt-tests:
-    # Explicit experimental qualification, not a renamed SDL package or release.
-    if: ${{ github.event_name == 'workflow_dispatch' && inputs.product == 'linux-client-qt-tests' && !inputs.signed }}
+    # Explicit opt-in only. Candidate packaging requires the same qualification.
+    if: ${{ github.event_name == 'workflow_dispatch' && (inputs.product == 'linux-client-qt-tests' || inputs.product == 'linux-client-qt') && !inputs.signed }}
     needs: policy
     runs-on: ubuntu-26.04
     timeout-minutes: 60
@@ -175,6 +175,36 @@ jobs:
           product: linux-client
       - name: Build and exercise the Qt session components
         run: bash scripts/ci/test-qt-session.sh
+      - name: Package the independently installable Qt candidate
+        if: ${{ inputs.product == 'linux-client-qt' }}
+        env:
+          PLANK_CLIENT_VARIANT: qt
+        run: |
+          export PLANK_CLIENT_SDL_WORK="$PLANK_DEP_ROOT/client-sdl"
+          bash "$PLANK_SOURCE_ROOT/scripts/package/build-client-deb.sh" \
+            "$PLANK_WORK_ROOT/qt-runtime-build/app/plank-client-qt" \
+            "$PLANK_DEP_ROOT/client-ffmpeg" "$PLANK_WORK_ROOT/qt-client-package" \
+            "$PLANK_SOURCE_ROOT/apps/client"
+          # Compare with the exact production baseline this experiment extends.
+          # Download only; never install either product on the hosted builder.
+          curl --fail --location --retry 3 \
+            https://github.com/instinctual/plank/releases/download/v1.1.039/plank-client_1.1.039_amd64.deb \
+            --output "$PLANK_WORK_ROOT/production-client.deb"
+          printf '%s  %s\n' \
+            1dfb05a39ce42f8f9cdaf1fdcebb7cc0c0ff418ae881e5fb668f947bccb5e78c \
+            "$PLANK_WORK_ROOT/production-client.deb" | sha256sum --check
+          mapfile -t candidates < <(find "$PLANK_ARTIFACT_ROOT" -type f -name 'plank-client-qt_*.deb')
+          test "${#candidates[@]}" -eq 1
+          python3 scripts/test/check-client-qt-package.py "${candidates[0]}" \
+            --production-package "$PLANK_WORK_ROOT/production-client.deb"
+      - name: Retain Qt candidate packages
+        if: ${{ inputs.product == 'linux-client-qt' }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: linux-client-qt-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ env.PLANK_ARTIFACT_ROOT }}/
+          if-no-files-found: error
+          retention-days: 7
       - name: Retain qualification evidence, not an installable Client
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1

@@ -42,7 +42,7 @@ def read_tar(package, kind, wanted, restrict_directories=False):
                 if name in names:
                     raise ValueError('duplicate package path: ' + name)
                 names.add(name)
-                if member.issym():
+                if member.issym() and restrict_directories:
                     target = PurePosixPath(member.linkname)
                     if not name.startswith(PREFIXES[0]) or target.is_absolute() or len(target.parts) != 1:
                         raise ValueError('symlink leaves the private library directory')

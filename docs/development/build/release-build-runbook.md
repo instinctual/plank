@@ -306,6 +306,16 @@ assumed the bundle advertises `HEAD`; use the exact ref printed by
 
 ## Client DEB — linux-client-builder only
 
+For the Ubuntu Qt experiment, the operator requires GitHub-hosted builders,
+not the retained VM. From the clean pushed `ubuntu-qt-session` branch run
+`bash scripts/ci/dispatch.sh linux-client-qt false`. This performs both full
+Client builds, component/sanitizer/compositor/launcher gates and then packages
+the real `plank-client-qt` binary. See `github-builds.md` for the test-only
+dispatch. No production package is installed on a builder; the co-installation
+test uses a disposable dpkg root. Validate the delivered Qt candidate against
+the production DEB with `scripts/test/check-client-qt-package.py` before
+hardware testing. Never relabel the ordinary binary or use the probe as a Client.
+
 The Host/Client base version is packaging/VERSION. Increment it for new package
 bytes. Starting with **1.1.001**, retain a three-digit, zero-padded patch component
 (1.1.002, 1.1.003, and so on) in the product version and package filenames.

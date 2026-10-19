@@ -37,7 +37,7 @@ PLANK_QT_SESSION_TEST_BUILD="$PLANK_WORK_ROOT/qt-session-tests-asan" \
 # The extracted allocator is also used by the existing SDL renderer. Compile
 # and link that complete Client, with all its ordinary preflight tests, to
 # guard against regressions outside the isolated experiment. Do not package or
-# upload it as a Qt Client: that runtime still has its separate integration gate.
+# upload it as a Qt Client: only the separately compiled runtime may be packaged.
 export CARGO_HOME="$PLANK_CARGO_ROOT" RUSTUP_HOME="$PLANK_RUSTUP_ROOT"
 export PATH="$CARGO_HOME/bin:$PATH" CARGO_NET_OFFLINE=true
 export PLANK_CLIENT_SDL_WORK="$PLANK_DEP_ROOT/client-sdl"
@@ -45,8 +45,8 @@ PLANK_CLIENT_VARIANT=production \
     bash scripts/build/build-client-package-binaries.sh "$PLANK_SOURCE_ROOT/apps/client" \
     "$PLANK_CLIENT_FFMPEG_WORK" "$PLANK_WORK_ROOT/baseline-client-build" \
     2>&1 | tee "$reports/baseline-client-build.log"
-# Compile the real opt-in runtime as well, without bypassing the package guard
-# or emitting an installer. This must not remain a collection of unlinked
+# Compile the real opt-in runtime as well, before the optional package step.
+# This must not remain a collection of unlinked
 # component prototypes. Both builds use the same verified dependency inputs.
 source scripts/package/package-version.sh
 plank_load_package_version "$PLANK_SOURCE_ROOT"
@@ -64,5 +64,9 @@ mkdir -p "$PLANK_WORK_ROOT/qt-runtime-build"
     make -j"$(nproc)"
     QT_QPA_PLATFORM=offscreen timeout 20 app/plank-client-qt --version
 ) 2>&1 | tee "$reports/qt-runtime-build.log"
+PLANK_QT_CLIENT_BINARY="$PLANK_WORK_ROOT/qt-runtime-build/app/plank-client-qt" \
+    PLANK_QT_LAUNCHER_REPORTS="$reports" \
+    PLANK_QT_COMPOSITOR_REPORT="$reports/gnome-launcher.log" \
+    bash scripts/test/run-qt-session-compositor.sh 2>&1 | tee "$reports/launcher-smoke.log"
 test -z "$(git status --porcelain)"
-echo 'Qt component gates and both Client compiles passed; no live Client package or hardware acceptance.' >> "$GITHUB_STEP_SUMMARY"
+echo 'Qt component/launcher gates and both Client compiles passed; live-stream and hardware acceptance remain pending.' >> "$GITHUB_STEP_SUMMARY"
