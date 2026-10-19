@@ -12,6 +12,7 @@ mapfile -t vulkan_test_drivers < <(dpkg -L mesa-vulkan-drivers | grep -E '/lvp_i
 test "${#vulkan_test_drivers[@]}" -eq 1
 export VK_DRIVER_FILES="${vulkan_test_drivers[0]}" LIBGL_ALWAYS_SOFTWARE=1
 export PLANK_CLIENT_FFMPEG_WORK="$PLANK_DEP_ROOT/client-ffmpeg"
+export PLANK_CLIENT_SDL_WORK="$PLANK_DEP_ROOT/client-sdl"
 export PLANK_QT_SESSION_TEST_BUILD="$PLANK_WORK_ROOT/qt-session-tests"
 reports="$PLANK_WORK_ROOT/qt-session-reports"
 mkdir -p "$reports"

@@ -22,9 +22,13 @@ the regular Client using separate binary, desktop ID, settings and logs; see
 the plan. Do not deploy over the production Client or contact stale test targets.
 
 Read [the plan](docs/development/plans/ubuntu-qt-session.plan). The current
-Client checkpoint is `943e219e` (GPU ownership integration, qualification pending).
-The last fully passing hosted checkpoint remains `889a96a8` / parent
-`1b63fd7`, documented below. New work unifies software/hardware frame delivery
+Client checkpoint is `014fdd9d` (decoder/presenter integration, qualification pending).
+The last fully passing hosted checkpoint is `c831ac30` / parent
+`b36c5be`, run [39313310791](https://github.com/instinctual/plank/actions/runs/39313310791).
+It passed the complete ordinary Client build, component/sanitizer tests and
+100%/125% compositor checks. The video mailbox suite now has 13 passing tests.
+The GPU semaphore handoff correctly reports skipped on hosted Mesa, not accepted.
+New work unifies software/hardware frame delivery
 and connects the pooled converter to the Qt render node with explicit Vulkan/GL
 image ownership. A dedicated RGB10 image and binary GPU semaphores avoid an
 extra CPU image copy. Matching device/driver identity is mandatory. The new
@@ -32,7 +36,13 @@ extra CPU image copy. Matching device/driver identity is mandatory. The new
 Mesa lacks external semaphores and must report it skipped, not accepted.
 The operator now explicitly requests full feature equivalence and continued
 implementation without intermediate stops. The plan contains the live-feature
-checklist. Session, input and audio wiring still remain; do not enable packaging
+checklist. The new decoder adapter preserves mandatory exact-profile probes,
+uses the pooled allocator, and feeds a one-slot Qt presenter. Qualification waits
+are bounded/cancellable; UI-thread qualification is rejected. Presentation
+feedback advances the existing audio clock only after Qt's primary-output swap.
+Reconnect retires old feedback and opens a fresh delivery generation. These
+new paths still need their hosted tests and real GPU qualification.
+Session, input and audio wiring still remain; do not enable packaging
 or claim a live Client at this checkpoint.
 Dependency pins remain those listed
 in the inherited baseline below. The Qt surface/input/toolbar and video
@@ -135,7 +145,7 @@ commits do not change the tested application sources.
 The compositor probe reports external-memory/semaphore capabilities without
 logging device identifiers. This runner exposes external memory but not the
 external semaphores required by the proposed Vulkan-to-GL handoff. Actual
-cross-API delivery remains unimplemented/unqualified; do not claim that the
+cross-API delivery is implemented but remains hardware-unqualified; do not claim that the
 capability diagnostic proves working interop or physical GPU performance.
 
 Parent and Client experimental branches are pushed. No Qt candidate package,

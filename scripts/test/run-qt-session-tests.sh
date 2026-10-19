@@ -11,6 +11,9 @@ patch --batch --reverse --no-backup-if-mismatch --dry-run -d "$ffmpeg_source" -p
 test "$(sha256sum "$ffmpeg_source/libavcodec/hevc/hevcdec.c" | cut -d' ' -f1)" = \
     f3e5ce5ab334c0bc39661dccd68dcc91f90c47fcaae72d3c20511088f71387e8
 export PKG_CONFIG_PATH="$PLANK_CLIENT_FFMPEG_WORK/install/lib/pkgconfig${PKG_CONFIG_PATH:+:$PKG_CONFIG_PATH}"
+if [[ -n ${PLANK_CLIENT_SDL_WORK:-} ]]; then
+    export PKG_CONFIG_PATH="$PLANK_CLIENT_SDL_WORK/install/lib/pkgconfig:$PKG_CONFIG_PATH"
+fi
 test "$(pkg-config --variable=prefix libavutil)" = "$PLANK_CLIENT_FFMPEG_WORK/install"
 qmake=${QMAKE:-qmake6}
 qmake_flags=()
@@ -58,6 +61,13 @@ mkdir -p "$build_root/software-video-tests"
     "$qmake" "$source_root/apps/client/tests/qtsoftwarevideo/qtsoftwarevideo.pro" "${qmake_flags[@]}"
     make -j"${PLANK_BUILD_JOBS:-4}"
     timeout 120 ./qtsoftwarevideo
+)
+mkdir -p "$build_root/presenter-tests"
+(
+    cd "$build_root/presenter-tests"
+    "$qmake" "$source_root/apps/client/tests/qtpresenter/qtpresenter.pro" "${qmake_flags[@]}"
+    make -j"${PLANK_BUILD_JOBS:-4}"
+    QT_QPA_PLATFORM=offscreen QT_QUICK_BACKEND=software timeout 30 ./qtpresenter
 )
 (
     cd "$build_root/probe"
