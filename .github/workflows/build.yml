@@ -10,7 +10,7 @@ on:
         description: Product to rebuild (all on ordinary push/PR)
         type: choice
         default: all
-        options: [all, linux-host, linux-client, macos-host, macos-client, macos-fullscreen-probe]
+        options: [all, linux-host, linux-client, linux-client-qt-tests, macos-host, macos-client, macos-fullscreen-probe]
       source_sha:
         description: Expected commit (optional in UI; required by the dispatch helper)
         type: string
@@ -137,6 +137,52 @@ jobs:
       - name: Report disk usage
         if: always()
         run: df -h
+
+  linux-client-qt-tests:
+    # Explicit experimental qualification, not a renamed SDL package or release.
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.product == 'linux-client-qt-tests' && !inputs.signed }}
+    needs: policy
+    runs-on: ubuntu-26.04
+    timeout-minutes: 60
+    env:
+      PLANK_BUILD_JOBS: '4'
+      QT_QPA_PLATFORM: offscreen
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - run: python3 scripts/ci/context.py
+      - run: bash scripts/ci/install-linux-deps.sh client
+      - name: Install isolated compositor and software GPU test drivers
+        run: |
+          sudo apt-get install -y --no-install-recommends gnome-shell dbus-x11 \
+            mesa-vulkan-drivers libvulkan-dev libgl1-mesa-dri \
+            qml6-module-qtquick qml6-module-qtquick-window qml6-module-qtquick-controls \
+            qml6-module-qtquick-layouts qml6-module-qtquick-templates qml6-module-qtqml-workerscript
+      - name: Restore and verify dependencies
+        if: ${{ !inputs.clean_bootstrap }}
+        uses: ./.github/actions/dependency-cache
+        with:
+          operation: restore
+          product: linux-client
+      - run: bash scripts/ci/bootstrap.sh linux-client
+      - name: Save dependencies
+        if: ${{ !inputs.clean_bootstrap }}
+        uses: ./.github/actions/dependency-cache
+        with:
+          operation: save
+          product: linux-client
+      - name: Build and exercise the Qt session components
+        run: bash scripts/ci/test-qt-session.sh
+      - name: Retain qualification evidence, not an installable Client
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: qt-session-tests-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ env.PLANK_WORK_ROOT }}/qt-session-reports/
+          if-no-files-found: warn
+          retention-days: 7
 
   macos:
     if: ${{ !inputs.signed && (!inputs.product || inputs.product == 'all' || inputs.product == 'macos-host' || inputs.product == 'macos-client') }}

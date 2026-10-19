@@ -54,6 +54,19 @@ These jobs do not install products or perform live display, audio, input,
 network-loss or hardware-decoder qualification. Existing hardware gates and
 local builders remain available until hosted builds are qualified.
 
+## Ubuntu Qt experiment qualification
+
+For `ubuntu-qt-session`, use
+`bash scripts/ci/dispatch.sh linux-client-qt-tests false`. This explicit hosted
+Ubuntu 26.04 job shares the verified Client dependency caches/bootstrap, builds
+the isolated Qt components, and runs co-installation fixtures, normal/sanitized
+tests and a private headless GNOME compositor at 100% and forced 125% scale.
+It uploads test evidence, not a DEB. Software Vulkan/GL results do not qualify
+Intel VA-API decoding, physical input, live audio or playback performance.
+The normal package gate continues to reject the Qt variant until the actual
+session runtime is integrated. Do not use the retained Ubuntu VM as a fallback
+builder for this experiment.
+
 ## macOS distribution credentials
 
 Ordinary CI intentionally has no Apple credentials. Its unsigned results are

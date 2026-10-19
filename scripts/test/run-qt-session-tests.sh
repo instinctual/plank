@@ -52,6 +52,13 @@ mkdir -p "$build_root/tests" "$build_root/video-tests" "$build_root/pool-tests" 
     make -j"${PLANK_BUILD_JOBS:-4}"
     timeout 120 ./plvkframepool
 )
+mkdir -p "$build_root/software-video-tests"
+(
+    cd "$build_root/software-video-tests"
+    "$qmake" "$source_root/apps/client/tests/qtsoftwarevideo/qtsoftwarevideo.pro" "${qmake_flags[@]}"
+    make -j"${PLANK_BUILD_JOBS:-4}"
+    timeout 120 ./qtsoftwarevideo
+)
 (
     cd "$build_root/probe"
     "$qmake" "$source_root/probes/qt-session/qt-session.pro" "${qmake_flags[@]}"

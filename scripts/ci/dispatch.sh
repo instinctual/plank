@@ -6,7 +6,7 @@ signed=${2:-false}
 clean_bootstrap=false
 case ${3:-} in '') ;; --clean-bootstrap) clean_bootstrap=true;; *) exit 2;; esac
 (( $# <= 3 )) || exit 2
-case $product in all|linux-host|linux-client|macos-host|macos-client|macos-fullscreen-probe) ;; *) exit 2 ;; esac
+case $product in all|linux-host|linux-client|linux-client-qt-tests|macos-host|macos-client|macos-fullscreen-probe) ;; *) exit 2 ;; esac
 case $signed in
   false) ;;
   true) case $product in macos-host|macos-client|macos-fullscreen-probe) ;; *) exit 2;; esac ;;
