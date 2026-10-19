@@ -79,11 +79,26 @@ bool checkVideo()
                 const GLuint code = sourceX + x;
                 for (int channel = 0; channel < 3; ++channel) {
                     GLuint expected = row == channel || row == 3 ? code : 0;
-                    if (eightBit) expected = qRound((expected / 4) * 1023.0 / 255.0);
+                    const GLuint source8 = expected / 4;
+                    if (eightBit) expected = qRound(source8 * 1023.0 / 255.0);
                     if (bt709) expected = code;
                     if (filter) expected = row == channel || row == 3 ? 512 : 0;
                     const GLuint actual = (result[(3 - row) * width + x] >> (10 * channel)) & 1023;
-                    if (actual != expected) {
+                    // GL 4.6 section 2.3.5.2 permits either adjacent integer
+                    // when converting a non-integral UNORM value. Eight-bit
+                    // expansion must still recover the exact original code;
+                    // do not relax native ten-bit ramps or their crop test.
+                    bool matches = actual == expected;
+                    if (eightBit) {
+                        const GLuint lower = source8 * 1023 / 255;
+                        const GLuint upper = (source8 * 1023 + 254) / 255;
+                        matches = actual >= lower && actual <= upper &&
+                            qRound(actual * 255.0 / 1023.0) == int(source8);
+                    } else if (filter && (row == channel || row == 3)) {
+                        // The exact midpoint is 511.5 in the 10-bit target.
+                        matches = actual == 511 || actual == 512;
+                    }
+                    if (!matches) {
                         qWarning("Video gate case %d row %d x %d channel %d: %u instead of %u",
                                  test, row, x, channel, actual, expected);
                         passed = false;
