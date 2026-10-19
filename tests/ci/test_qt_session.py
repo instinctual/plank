@@ -25,6 +25,7 @@ class QtSessionWorkflowTests(unittest.TestCase):
                      'test-client-qt-package.py', 'run-qt-session-tests.sh',
                      'run-qt-session-compositor.sh', 'QT_SCALE_FACTOR=1.25',
                      'PLANK_QT_SESSION_SANITIZERS=1', 'detect_leaks=1', 'halt_on_error=1',
+                     'PLANK_CLIENT_VARIANT=production', 'build-client-package-binaries.sh',
                      'hardware_acceptance=not-performed'):
             self.assertIn(gate, script)
         self.assertNotIn('build-client-deb.sh', script)
