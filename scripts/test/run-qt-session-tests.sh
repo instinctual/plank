@@ -5,7 +5,11 @@ build_root=${PLANK_QT_SESSION_TEST_BUILD:?Set a dedicated Qt-session test build 
 : "${PLANK_CLIENT_FFMPEG_WORK:?Set the retained private Client FFmpeg work directory}"
 ffmpeg_source="$PLANK_CLIENT_FFMPEG_WORK/ffmpeg-9.0.1"
 patch="$source_root/apps/client/app/deploy/linux/ffmpeg-patches/0001-hevc-enable-hwaccel-for-identity-gbr.patch"
-git -C "$ffmpeg_source" apply --reverse --check "$patch"
+patch --batch --reverse --no-backup-if-mismatch --dry-run -d "$ffmpeg_source" -p1 < "$patch"
+# The release preflight pins the resulting source too: patch-context offsets
+# alone are not proof that this is the qualified prepared dependency.
+test "$(sha256sum "$ffmpeg_source/libavcodec/hevc/hevcdec.c" | cut -d' ' -f1)" = \
+    f3e5ce5ab334c0bc39661dccd68dcc91f90c47fcaae72d3c20511088f71387e8
 export PKG_CONFIG_PATH="$PLANK_CLIENT_FFMPEG_WORK/install/lib/pkgconfig${PKG_CONFIG_PATH:+:$PKG_CONFIG_PATH}"
 test "$(pkg-config --variable=prefix libavutil)" = "$PLANK_CLIENT_FFMPEG_WORK/install"
 qmake=${QMAKE:-qmake6}
