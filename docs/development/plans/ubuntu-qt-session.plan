@@ -1,8 +1,11 @@
 # Ubuntu Qt-owned session
 
-Status: the live Qt runtime is integrated. Candidate 1.1.042-ubuntu-qt-session
+Status: the live Qt runtime is integrated. Candidate 1.1.043-ubuntu-qt-session
 passed the GitHub-hosted compile, component, compositor, sanitizer, launcher
-and package gates and is available for operator installation. No physical
+and package gates and is available for operator installation. It repairs the
+cursor-texture double deletion discovered during the first physical tablet test.
+That incident also exposed an unresolved exact-format GPU presentation gate;
+the operator could not confirm pre-crash video behavior. No physical
 GPU/input or real-stream acceptance is claimed. See HANDOFF for exact provenance.
 Implementation started on `ubuntu-qt-session`, from parent
 `1572c09e26d6ce7db20d9d1feefe11a3155963b8` / Client
@@ -365,7 +368,7 @@ All fourteen `tests/packaging/test-client-qt-package.py` checks pass on Ubuntu.
 Its synthetic install/purge test uses a disposable dpkg root, verifies production
 binary/library/configuration preservation and never installs product software on
 the builder. Both compiled application-identity test variants pass and verify
-separate bookmark/trust namespaces. The actual 1.1.042 candidate also passes
+separate bookmark/trust namespaces. The actual 1.1.043 candidate also passes
 the payload comparison against the published 1.1.039 production DEB.
 
 A source/linkage gate now requires the actual Qt lifecycle, renderer, input and
@@ -398,10 +401,14 @@ tablet-lifecycle test doubles, ordinary-Client regression builds and Qt launcher
 smoke tests. They do not simulate a physical GPU or prove a real network session.
 Hardware acceptance remains the next mandatory gate after candidate delivery.
 
-Hosted run 39326092739 built and packaged parent
-`b8463a3073fda975bf1a61b7a011813bbdb1f913` / Client
-`6b103dec26b724526fc43d41a0e00db4024ec268`. It passes 31 window/input cases
+Hosted run 39333288277 built and packaged parent
+`fa9ff666fb1c9292ae19ff4711671be157e55777` / Client
+`16f99202fde2942692d2acc5ac26bc96eda9aad7`. It passes 32 window/input cases
 offscreen, at 100% and forced 125% on GNOME/Wayland, and under ASan/UBSan.
+The new rendered test replaces the tablet cursor texture 24 times, then covers
+clear/recreate, mouse/tablet visibility changes and final destruction. The node
+alone owns and retires its textures; no manual pre-deletion is permitted before
+`setTexture()`. Raw-HID forwarding and Host tablet lifetime are unchanged.
 Startup/released-input/timeout Disconnect uses the same keyboard-layout
 resolver as active-stream shortcuts. Three full launcher cycles pass with
 SDL video deliberately unavailable. The separate DEB is in the normal package

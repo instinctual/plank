@@ -6,7 +6,7 @@ notes, never in Git.
 
 ## Current work — Ubuntu Qt session experiment
 
-### Operator Wacom crash — follow-up candidate in progress
+### Operator Wacom crash — repaired candidate ready
 
 The first physical test of 1.1.042 crashed when using the tablet. Read-only
 inspection verified the installed executable hash against the candidate.
@@ -20,12 +20,19 @@ The minimal repair leaves texture retirement to the owning node. A rendered
 regression test replaces the cursor shape 24 times, varies dimensions, clears
 and recreates it, and switches mouse/tablet visibility before destruction.
 It is included in the existing normal, sanitizer and 100%/125% compositor gates.
-Candidate 1.1.043 is being prepared on the same branch; validation/build results
-are not yet available. Do not recommend 1.1.042 for further tablet testing.
+Candidate 1.1.043 passed all those hosted checks and is downloaded below.
+The first follow-up run caught an incorrect background-color assumption in the
+new test after all 24 replacements passed; the corrected assertion uses the
+rendered scene background. That failed run produced no package. The successful
+run passes all 32 window/input cases at each scale and under ASan/UBSan.
+Do not recommend 1.1.042 for further tablet testing. Physical confirmation of
+the repair is still pending; no remote installation was performed.
 
 The same physical log also reports exact-format presentation gate failures and
-software fallback. This is a separate unresolved hardware/presentation gate,
-not evidence that the cursor fix solves playback. No input was injected, no
+software fallback. The operator did not observe long enough to confirm whether
+video was updating before the crash. This is a separate unresolved hardware/
+presentation gate, not evidence that the cursor fix solves playback or that
+the operator observed frozen video. No input was injected, no
 process was attached/restarted, and no target package/configuration was changed.
 The read-only SSH session is closed; machine-specific evidence stays private.
 
@@ -45,21 +52,21 @@ bookmarks, trust, logs, libraries or executable/application identity.
 
 ### Candidate ready for operator testing
 
-**1.1.042-ubuntu-qt-session** is built, downloaded and checksum/provenance
+**1.1.043-ubuntu-qt-session** is built, downloaded and checksum/provenance
 verified. Exact package sources:
 
-- Parent `b8463a3073fda975bf1a61b7a011813bbdb1f913`.
-- Client `6b103dec26b724526fc43d41a0e00db4024ec268`.
-- Successful [GitHub-hosted run 39326092739](https://github.com/instinctual/plank/actions/runs/39326092739).
-- Package: `artifacts/packages/candidates/1.1.042-ubuntu-qt-session/linux/plank-client-qt_1.1.042-ubuntu-qt-session_amd64.deb`.
-- SHA-256: `7ad64bf66d3b95dd863037f1bd35565266438dbb7cb3f6843db3d337ce94df4a`.
-- Packaged executable SHA-256: `2064afd13b8624885322fedffbb7e68dfcbdbb48080fe2d98e055de756fc98d1`.
-- Retained reports: `artifacts/qualification/ubuntu-qt-session-1.1.042/`.
+- Parent `fa9ff666fb1c9292ae19ff4711671be157e55777`.
+- Client `16f99202fde2942692d2acc5ac26bc96eda9aad7`.
+- Successful [GitHub-hosted run 39333288277](https://github.com/instinctual/plank/actions/runs/39333288277).
+- Package: `artifacts/packages/candidates/1.1.043-ubuntu-qt-session/linux/plank-client-qt_1.1.043-ubuntu-qt-session_amd64.deb`.
+- SHA-256: `7f5dab2ca7742872211909144e381e50ca0f8abe4abe670a3d20a3086272a157`.
+- Packaged executable SHA-256: `920de56c005aaf7dbd9d2c70e7c849079a9131249526388065a9f036286ebca7`.
+- Retained reports: `artifacts/qualification/ubuntu-qt-session-1.1.043/`.
 
 Both full application builds passed: the experimental Qt app and the ordinary
 Client regression build/preflight. Component tests, ASan/UBSan with leak
 detection and isolated GNOME/Wayland 100%/forced-125% tests passed, including
-31 window/input cases at each scale. All 14 package-fixture checks passed.
+32 window/input cases at each scale. All 14 package-fixture checks passed.
 The actual candidate and published 1.1.039 production DEB have no overlapping
 non-directory payload paths. The synthetic install/purge test preserves the
 production fixture; neither real package was installed on the builder.
