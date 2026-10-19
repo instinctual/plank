@@ -6,7 +6,7 @@ notes, never in Git.
 
 ## Current work — Ubuntu Qt session experiment
 
-### Hardware presentation failure — repair awaiting hosted qualification
+### Hardware presentation failure — candidate ready for retest
 
 The operator reports that 1.1.043 connects and its toolbar responds, but the
 remote image does not update normally. With permission, short thread snapshots
@@ -29,39 +29,19 @@ The compositor precision regression now creates real EGLImages and uses the
 same import helper as the renderer before checking packed 8/10-bit and planar
 P010 values, crop and filtering. The former direct-texture fixture skipped the
 failing operation. This remains synthetic qualification, not a substitute for
-hardware VA-API DMA-BUF/live-session testing. The next candidate is 1.1.044;
-it is not built or accepted yet. The production Client and both Hosts are unchanged.
+hardware VA-API DMA-BUF/live-session testing. Candidate 1.1.044 passed the hosted
+gates and is downloaded below; physical acceptance is pending. The production
+Client and both Hosts are unchanged.
 SSH is closed and no debugger remains attached. Private backtraces stay outside Git.
 
-### Operator Wacom crash — repaired candidate ready
+### Retained Wacom crash repair
 
-The first physical test of 1.1.042 crashed when using the tablet. Read-only
-inspection verified the installed executable hash against the candidate.
-The kernel fault offset in the installed Qt 6.10.2 library resolves precisely
-to the owned-texture destructor call in `QSGSimpleTextureNode::setTexture()`.
-`QtTabletCursorItem` manually deleted that same owned texture immediately
-before calling `setTexture()`. This is an experimental Client cursor-renderer
-double deletion, not a Host/raw-HID change. No core dump was available.
-
-The minimal repair leaves texture retirement to the owning node. A rendered
-regression test replaces the cursor shape 24 times, varies dimensions, clears
-and recreates it, and switches mouse/tablet visibility before destruction.
-It is included in the existing normal, sanitizer and 100%/125% compositor gates.
-Candidate 1.1.043 passed all those hosted checks and is downloaded below.
-The first follow-up run caught an incorrect background-color assumption in the
-new test after all 24 replacements passed; the corrected assertion uses the
-rendered scene background. That failed run produced no package. The successful
-run passes all 32 window/input cases at each scale and under ASan/UBSan.
-Do not recommend 1.1.042 for further tablet testing. Physical confirmation of
-the repair is still pending; no remote installation was performed.
-
-The same physical log also reports exact-format presentation gate failures and
-software fallback. The operator did not observe long enough to confirm whether
-video was updating before the crash. This is a separate unresolved hardware/
-presentation gate, not evidence that the cursor fix solves playback or that
-the operator observed frozen video. No input was injected, no
-process was attached/restarted, and no target package/configuration was changed.
-The read-only SSH session is closed; machine-specific evidence stays private.
+The 1.1.043 cursor-texture ownership repair remains included. The prior
+1.1.042 tablet crash resolved to double deletion in
+`QSGSimpleTextureNode::setTexture()`. Qt now owns that texture's retirement.
+The rendered 24-replacement/clear/visibility/destruction regression passes
+again under normal, sanitizer and 100%/125% compositor tests. Do not recommend
+1.1.042. Live tablet acceptance remains pending while video is being repaired.
 
 Continue in `build/worktrees/ubuntu-qt-session`, on matching parent/Client
 `ubuntu-qt-session` branches, based on main
@@ -79,16 +59,16 @@ bookmarks, trust, logs, libraries or executable/application identity.
 
 ### Candidate ready for operator testing
 
-**1.1.043-ubuntu-qt-session** is built, downloaded and checksum/provenance
+**1.1.044-ubuntu-qt-session** is built, downloaded and checksum/provenance
 verified. Exact package sources:
 
-- Parent `fa9ff666fb1c9292ae19ff4711671be157e55777`.
-- Client `16f99202fde2942692d2acc5ac26bc96eda9aad7`.
-- Successful [GitHub-hosted run 39333288277](https://github.com/instinctual/plank/actions/runs/39333288277).
-- Package: `artifacts/packages/candidates/1.1.043-ubuntu-qt-session/linux/plank-client-qt_1.1.043-ubuntu-qt-session_amd64.deb`.
-- SHA-256: `7f5dab2ca7742872211909144e381e50ca0f8abe4abe670a3d20a3086272a157`.
-- Packaged executable SHA-256: `920de56c005aaf7dbd9d2c70e7c849079a9131249526388065a9f036286ebca7`.
-- Retained reports: `artifacts/qualification/ubuntu-qt-session-1.1.043/`.
+- Parent `ebbc237aad6e11b490dea427423da687a2cd97f9`.
+- Client `bb7d75a8f232cf02c33b03a687ef8369f7df06b3`.
+- Successful [GitHub-hosted run 39337612932](https://github.com/instinctual/plank/actions/runs/39337612932).
+- Package: `artifacts/packages/candidates/1.1.044-ubuntu-qt-session/linux/plank-client-qt_1.1.044-ubuntu-qt-session_amd64.deb`.
+- SHA-256: `6e2b6d69b015cfb77b0d686249095cea4502fb708d3bc52e0d277a0fb2c7dc10`.
+- Packaged executable SHA-256: `e726d5c5bba0daa15c48808667fc5b579ce1b46a11130032ff57fb953f6302a6`.
+- Retained reports: `artifacts/qualification/ubuntu-qt-session-1.1.044/`.
 
 Both full application builds passed: the experimental Qt app and the ordinary
 Client regression build/preflight. Component tests, ASan/UBSan with leak
@@ -110,6 +90,8 @@ surface or second Wayland event loop is introduced. The same immutable
 VA-API/software frame leases feed a one-slot presenter. Primary swap feedback
 advances the unchanged audio clock. Qualification waits are bounded/cancellable.
 
+All nine EGL-image import/shader cases pass in windowed/fullscreen and mode
+round trips at both scales, including rejection of an 8-bit intermediate.
 The software converter and shader tests preserve all 1024 codes, RGB identity,
 full-range BT.709, crop/offset, downscaling and the unchanged encoded fixtures.
 Current macOS Host profiles require full-range BT.709; the legacy setup-range
@@ -145,9 +127,11 @@ key leakage and non-Latin layout fallback. Both local and streaming shortcuts
 use the same layout resolver. All these hosted gates passed. The earlier .041
 run was superseded before packaging; it is not the delivered candidate.
 
-**Next action requires an available physical Client.** The operator should
-install the exact DEB, launch **PLANK Client Qt**, create a fresh bookmark and
-keep the ordinary Client closed during testing. Confirm exact-profile H.264
+**Next action: operator retest on the available physical Client.** Install the
+exact DEB, launch **PLANK Client Qt** and reuse its test bookmark; keep the
+ordinary Client closed. First confirm moving video and mouse/keyboard response
+with the previously failing HEVC 10-bit profile, then tablet hover/tip input.
+After that, confirm exact-profile H.264
 High 10 software and HEVC Rext 10-bit hardware paths, toolbar/letterbox and
 window controls, keyboard/mouse, Wacom pressure/Tablet Margins and recovery,
 one/two outputs and scale changes, microphone/camera, and a moving-video/audio
