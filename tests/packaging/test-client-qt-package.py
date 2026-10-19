@@ -67,7 +67,9 @@ class QtPackageTests(unittest.TestCase):
             AUDIT.validate(self.package())
 
     def test_rejects_wrong_config_ownership(self):
-        self.write('DEBIAN/conffiles', '/etc/plank/client.conf\n')
+        # dpkg itself refuses a conffile absent from the payload. Use an
+        # existing wrong file so this exercises our independent policy gate.
+        self.write('DEBIAN/conffiles', '/usr/bin/plank-client-qt\n')
         with self.assertRaisesRegex(ValueError, 'conffile'):
             AUDIT.validate(self.package())
 
@@ -108,6 +110,44 @@ class QtPackageTests(unittest.TestCase):
         build()
         with self.assertRaisesRegex(ValueError, 'overlaps production'):
             AUDIT.validate(candidate, output)
+
+    def test_install_remove_leave_production_intact(self):
+        # Synthetic package files only, in a disposable dpkg root. The
+        # reviewed hooks honor DPKG_ROOT and must not touch the builder's udev.
+        candidate = self.package()
+        production = self.root / 'production'
+        (production / 'DEBIAN').mkdir(parents=True)
+        (production / 'DEBIAN/control').write_text(self.control.replace('plank-client-qt', 'plank-client'))
+        (production / 'DEBIAN/conffiles').write_text('/etc/plank/client.conf\n')
+        sentinels = {'usr/bin/plank-client': 'production binary\n',
+                     'etc/plank/client.conf': 'production config\n',
+                     'usr/lib/plank/libfixture.so.1': 'production library\n'}
+        for name, content in sentinels.items():
+            path = production / name
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text(content)
+        package = self.root / 'production.deb'
+        subprocess.run(['dpkg-deb', '--root-owner-group', '--build', str(production), str(package)],
+                       check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        install_root = self.root / 'installed'
+        install_root.mkdir()
+        def dpkg(*args):
+            subprocess.run(['dpkg', '--root=' + str(install_root), '--force-not-root',
+                            '--force-script-chrootless', *args], check=True,
+                           stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
+        dpkg('--install', str(package))
+        sentinels['etc/plank/client.conf'] += 'administrator change\n'
+        (install_root / 'etc/plank/client.conf').write_text(sentinels['etc/plank/client.conf'])
+        dpkg('--install', str(candidate))
+        self.assertTrue((install_root / 'usr/bin/plank-client-qt').is_file())
+        dpkg('--purge', 'plank-client-qt')
+        self.assertFalse((install_root / 'usr/bin/plank-client-qt').exists())
+        self.assertFalse((install_root / 'etc/plank/client-qt.conf').exists())
+        for name, content in sentinels.items():
+            self.assertEqual((install_root / name).read_text(), content)
+        status = subprocess.check_output(['dpkg-query', '--admindir=' + str(install_root / 'var/lib/dpkg'),
+                                         '-W', '-f=${Status}', 'plank-client'], text=True)
+        self.assertEqual(status, 'install ok installed')
 
 
 class IdentityContractTests(unittest.TestCase):
