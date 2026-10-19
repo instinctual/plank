@@ -13,13 +13,21 @@ test "$(sha256sum "$ffmpeg_source/libavcodec/hevc/hevcdec.c" | cut -d' ' -f1)" =
 export PKG_CONFIG_PATH="$PLANK_CLIENT_FFMPEG_WORK/install/lib/pkgconfig${PKG_CONFIG_PATH:+:$PKG_CONFIG_PATH}"
 test "$(pkg-config --variable=prefix libavutil)" = "$PLANK_CLIENT_FFMPEG_WORK/install"
 qmake=${QMAKE:-qmake6}
+qmake_flags=()
+case ${PLANK_QT_SESSION_SANITIZERS:-0} in
+    0) ;;
+    1) qmake_flags+=(CONFIG+=debug
+        'QMAKE_CXXFLAGS+=-fsanitize=address,undefined -fno-omit-frame-pointer'
+        'QMAKE_LFLAGS+=-fsanitize=address,undefined') ;;
+    *) echo 'PLANK_QT_SESSION_SANITIZERS must be 0 or 1' >&2; exit 2 ;;
+esac
 for variant in production qt; do
     mkdir -p "$build_root/identity-$variant"
     (
         cd "$build_root/identity-$variant"
         identity_config=()
         if [[ $variant == qt ]]; then identity_config+=(CONFIG+=plank-qt-session); fi
-        "$qmake" "$source_root/apps/client/tests/clientidentity/clientidentity.pro" "${identity_config[@]}"
+        "$qmake" "$source_root/apps/client/tests/clientidentity/clientidentity.pro" "${identity_config[@]}" "${qmake_flags[@]}"
         make -j"${PLANK_BUILD_JOBS:-4}"
         ./clientidentity
     )
@@ -27,19 +35,19 @@ done
 mkdir -p "$build_root/tests" "$build_root/video-tests" "$build_root/probe"
 (
     cd "$build_root/tests"
-    "$qmake" "$source_root/apps/client/tests/qtsession/qtsession.pro"
+    "$qmake" "$source_root/apps/client/tests/qtsession/qtsession.pro" "${qmake_flags[@]}"
     make -j"${PLANK_BUILD_JOBS:-4}"
     QT_QPA_PLATFORM=offscreen QT_QUICK_BACKEND=software ./qtsession
 )
 (
     cd "$build_root/video-tests"
-    "$qmake" "$source_root/apps/client/tests/qtvideo/qtvideo.pro"
+    "$qmake" "$source_root/apps/client/tests/qtvideo/qtvideo.pro" "${qmake_flags[@]}"
     make -j"${PLANK_BUILD_JOBS:-4}"
     ./qtvideo
 )
 (
     cd "$build_root/probe"
-    "$qmake" "$source_root/probes/qt-session/qt-session.pro"
+    "$qmake" "$source_root/probes/qt-session/qt-session.pro" "${qmake_flags[@]}"
     make -j"${PLANK_BUILD_JOBS:-4}"
     QT_QPA_PLATFORM=offscreen QT_QUICK_BACKEND=software ./plank-qt-session-probe --quit-after 1
 )
