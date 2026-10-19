@@ -51,6 +51,38 @@ not renegotiate Host resolution.
 
 ## Ordered implementation gates
 
+The operator requires feature equivalence, not a reduced demonstration. The
+following live-runtime checklist is a completion gate; component tests alone
+do not check these boxes. Reuse the established transport, authentication,
+decoder-policy, audio-clock and tablet implementations behind UI-independent
+boundaries rather than maintaining a second implementation of those contracts.
+
+- [ ] Asynchronous connect, cancel, takeover, disconnect and application exit;
+      Qt continues processing input throughout startup, recovery and shutdown.
+- [ ] Exact-profile hardware-first decode, software fallback, 8/10-bit identity
+      and full-range YCbCr presentation; retained GPU resources and bounded queues.
+- [ ] Fullscreen/windowed, minimize/restore, one or several outputs, native and
+      scaled-span presentation, fractional scale, and one shared input transform.
+- [ ] Complete toolbar: live drag/pin, bitrate acknowledgement, rate/loss/RTT,
+      microphone, camera, fullscreen, minimize, disconnect and stats overlay.
+- [ ] Keyboard and system-shortcut policy, absolute mouse/buttons/wheel,
+      clipboard, Host cursor shapes, and Host-authoritative tablet cursor.
+- [ ] Unchanged raw-HID and normalized Wacom forwarding, focus release,
+      reconnect generations, pressure, tip/buttons and Tablet Margins.
+- [ ] Existing audio playback/synchronization, microphone/camera forwarding and
+      device selection, including hotplug and shutdown without retained devices.
+- [ ] Host timeout/Wait/Disconnect, GDM/desktop handoff, desktop-lock recovery,
+      network interruption and decoder recovery without an unresponsive UI.
+- [ ] Separately installable real Qt Client candidate, production-file/state
+      isolation, GitHub-hosted clean build, regression and package-content gates.
+- [ ] Operator hardware acceptance and moving-video/audio soak; explicitly
+      pending until an authorized physical Client is available.
+
+Do not stop after individual component checkpoints while implementation can
+continue without operator input. Do not remove the packaging guard until the
+live runtime is connected, or describe hosted software-GPU tests as hardware
+acceptance. The ordinary Client remains the behavior and rollback reference.
+
 1. Build the real Qt window/input/toolbar component in an isolated, non-networked
    qualification executable. Exercise edge reveal (1 second), hide (5 seconds),
    pinning, live dragging, keyboard/button release, letterbox, fractional scale,

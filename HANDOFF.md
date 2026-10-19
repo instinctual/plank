@@ -22,7 +22,18 @@ the regular Client using separate binary, desktop ID, settings and logs; see
 the plan. Do not deploy over the production Client or contact stale test targets.
 
 Read [the plan](docs/development/plans/ubuntu-qt-session.plan). The current
-Client checkpoint is `889a96a89ee9e95068a3d5c8e4021dcf60c9e2a6`.
+Client checkpoint is `943e219e` (GPU ownership integration, qualification pending).
+The last fully passing hosted checkpoint remains `889a96a8` / parent
+`1b63fd7`, documented below. New work unifies software/hardware frame delivery
+and connects the pooled converter to the Qt render node with explicit Vulkan/GL
+image ownership. A dedicated RGB10 image and binary GPU semaphores avoid an
+extra CPU image copy. Matching device/driver identity is mandatory. The new
+120-roundtrip interop probe can qualify that path on supported hardware; hosted
+Mesa lacks external semaphores and must report it skipped, not accepted.
+The operator now explicitly requests full feature equivalence and continued
+implementation without intermediate stops. The plan contains the live-feature
+checklist. Session, input and audio wiring still remain; do not enable packaging
+or claim a live Client at this checkpoint.
 Dependency pins remain those listed
 in the inherited baseline below. The Qt surface/input/toolbar and video
 components remain isolated from the shipping session lifecycle. Raw-HID and
