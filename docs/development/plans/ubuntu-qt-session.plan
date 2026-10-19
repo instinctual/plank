@@ -271,9 +271,12 @@ This conversion is not yet connected to the Qt scene or a network session.
 Plane uploads explicitly select R8/R16 storage. The converter uses the decoded
 bit depth for full-range normalization/neutral chroma and the same explicit
 BT.709 matrix as the packed hardware path. The ordinary renderer retains its
-existing automatic plane selection. The 19 conversion tests pass normally on
-the hosted software GPU, including odd dimensions and inverted strides; see
-HANDOFF for sanitizer and complete-build results at the exact source checkpoint.
+existing automatic plane selection. The 19 conversion tests pass normally and
+under ASan/UBSan with leak detection on the hosted software GPU, including odd
+dimensions and inverted strides. The complete ordinary Client also compiles/links
+and passes its standard preflight and runtime-dependency checks. See HANDOFF for
+the exact source and hosted run; none of this establishes live Qt session or
+Intel GPU acceptance.
 
 The probe also inventories Vulkan/OpenGL external-memory and semaphore support
 and compares device/driver identities without logging their UUIDs. A capability

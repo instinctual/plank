@@ -61,6 +61,8 @@ For `ubuntu-qt-session`, use
 Ubuntu 26.04 job shares the verified Client dependency caches/bootstrap, builds
 the isolated Qt components, and runs co-installation fixtures, normal/sanitized
 tests and a private headless GNOME compositor at 100% and forced 125% scale.
+It also compiles/links the ordinary Client and runs its existing preflight
+checks to protect shared code such as the extracted software-frame allocator.
 It uploads test evidence, not a DEB. Software Vulkan/GL results do not qualify
 Intel VA-API decoding, physical input, live audio or playback performance.
 The normal package gate continues to reject the Qt variant until the actual

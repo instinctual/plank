@@ -90,9 +90,10 @@ already includes it. Use `bash scripts/ci/dispatch.sh linux-client-qt-tests fals
 from the clean, pushed experimental branch. This explicit job builds/tests the
 isolated components, not a renamed SDL Client or a distributable Qt DEB.
 
-Hosted validation at parent `d8f37181bdab2d40134a1e94e5443b8a24b9aa35`
-([39306226757](https://github.com/instinctual/plank/actions/runs/39306226757))
-passed all 19 new software-converter tests normally. They include all 1024 RGB
+Hosted validation at parent `1b63fd7f1f6eaaa5de807f9530236db7f6ec48b6`
+([39308324953](https://github.com/instinctual/plank/actions/runs/39308324953))
+**passed**, including all 19 software-converter tests normally and under
+ASan/UBSan with leak detection enabled. They include all 1024 RGB
 levels, full-range BT.709, odd-sized chroma, negative strides, six unchanged
 production decode fixtures and rejection of precision/range substitutions.
 The converter explicitly selects R8/R16 plane storage and the same matrix as
@@ -101,19 +102,24 @@ libplacebo color conversion. The ordinary renderer's upload default is unchanged
 Normal co-install, identity, input, mailbox and pool tests also passed, as did
 the compositor/precision checks at 100% and forced 125% scale.
 
-That run failed leak detection during Vulkan device enumeration (768 bytes in
-six allocations). Parent `5107d08b75bf7299538349481e5299dc6be26cfa` explicitly
-selects lavapipe and software GL for this software-only job, without disabling
-leak detection. Its hosted run
-[39307342541](https://github.com/instinctual/plank/actions/runs/39307342541)
-passes all component tests normally and under ASan/UBSan/leak detection, plus
-the compositor checks. The full baseline Client preflight then rejected the
-session-local toolbar bitrate property as a removed global preference. The
-follow-up scopes generic property checks to settings, retains app-wide legacy
-serialization/CLI checks, and tests both valid and forbidden declarations.
-All 73 local CI-policy tests pass. The complete ordinary Client compile/link
-and its normal preflights still need a successful hosted rerun. That baseline
-binary is not packaged as a Qt Client.
+Both identity variants, all 24 window/input tests, 12 video/lifetime tests and
+18 pool tests also pass under sanitizers. Software-only lavapipe/GL selection
+is explicit; loading unrelated Vulkan drivers previously produced enumeration
+leak reports. Leak checks are not suppressed. The complete ordinary Client
+compiled and linked, and its normal preflight, dependency, version, logging,
+input, microphone and shutdown checks passed. That baseline binary was not
+packaged or uploaded as a Qt Client. All 73 CI-policy tests and the separate
+privacy/clipboard jobs passed too.
+The full compile still reports the existing FFmpeg Vulkan queue-callback
+deprecations and unused Quinn telemetry warnings; it is not warning-free.
+
+The bitrate preflight now distinguishes session-local toolbar properties from
+global preferences: generic property checks cover settings, while legacy
+serialization/access/CLI checks remain app-wide. Positive and negative
+regression fixtures execute the actual gate. The hosted report artifact is
+`qt-session-tests-39308324953-1`; a local retained copy is under ignored
+`build/tests/ubuntu-qt-session/github-39308324953/`. Subsequent notes-only
+commits do not change the tested application sources.
 
 The compositor probe reports external-memory/semaphore capabilities without
 logging device identifiers. This runner exposes external memory but not the
@@ -122,9 +128,9 @@ cross-API delivery remains unimplemented/unqualified; do not claim that the
 capability diagnostic proves working interop or physical GPU performance.
 
 Parent and Client experimental branches are pushed. No Qt candidate package,
-installation, merge into main or release has been performed. Existing released
-packages remain unchanged. Earlier VM evidence above is historical; current
-build/test work runs only on disposable hosted Ubuntu workers. No occupied
+installation, merge into main or release has been performed. No build is left
+running. Existing released packages remain unchanged. Earlier VM evidence above
+is historical; current build/test work runs only on disposable hosted Ubuntu workers. No occupied
 client was contacted. Public reproduction commands are in the plan.
 
 ## Inherited main baseline — persistent tablet and Client recovery integrated
