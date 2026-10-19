@@ -1,7 +1,9 @@
 # Ubuntu Qt-owned session
 
-Status: the live Qt runtime is integrated; hosted candidate qualification is
-in progress. No physical GPU/input or real-stream acceptance is claimed.
+Status: the live Qt runtime is integrated. Candidate 1.1.042-ubuntu-qt-session
+passed the GitHub-hosted compile, component, compositor, sanitizer, launcher
+and package gates and is available for operator installation. No physical
+GPU/input or real-stream acceptance is claimed. See HANDOFF for exact provenance.
 Implementation started on `ubuntu-qt-session`, from parent
 `1572c09e26d6ce7db20d9d1feefe11a3155963b8` / Client
 `58f4df097c1cdf11bf6b4b429701f156e2b10109` (`client-session-recovery`).
@@ -359,12 +361,12 @@ package collector only accepts it as a branch-labelled Ubuntu candidate.
 `scripts/test/check-client-qt-package.py` audits the built DEB and can compare
 its file list with the actual production DEB before delivery.
 
-All twelve `tests/packaging/test-client-qt-package.py` checks pass on Ubuntu.
+All fourteen `tests/packaging/test-client-qt-package.py` checks pass on Ubuntu.
 Its synthetic install/purge test uses a disposable dpkg root, verifies production
 binary/library/configuration preservation and never installs product software on
 the builder. Both compiled application-identity test variants pass and verify
-separate bookmark/trust namespaces. This is packaging preparation, not a claim
-that a usable Qt Client DEB exists.
+separate bookmark/trust namespaces. The actual 1.1.042 candidate also passes
+the payload comparison against the published 1.1.039 production DEB.
 
 A source/linkage gate now requires the actual Qt lifecycle, renderer, input and
 Wayland policy owners in the binary. It replaces the earlier blanket prohibition
@@ -395,3 +397,14 @@ synthetic surfaces, all current exact-profile fixtures, generation/lease tests,
 tablet-lifecycle test doubles, ordinary-Client regression builds and Qt launcher
 smoke tests. They do not simulate a physical GPU or prove a real network session.
 Hardware acceptance remains the next mandatory gate after candidate delivery.
+
+Hosted run 39326092739 built and packaged parent
+`b8463a3073fda975bf1a61b7a011813bbdb1f913` / Client
+`6b103dec26b724526fc43d41a0e00db4024ec268`. It passes 31 window/input cases
+offscreen, at 100% and forced 125% on GNOME/Wayland, and under ASan/UBSan.
+Startup/released-input/timeout Disconnect uses the same keyboard-layout
+resolver as active-stream shortcuts. Three full launcher cycles pass with
+SDL video deliberately unavailable. The separate DEB is in the normal package
+catalog; it has not been deployed, merged, released or physically accepted.
+The software runner cannot qualify Vulkan/GL external semaphore interop; that
+test remains explicitly skipped rather than converted into a pass.

@@ -16,20 +16,37 @@ remain untouched. Read [the plan](docs/development/plans/ubuntu-qt-session.plan)
 The operator requires full feature equivalence and continued work until their
 input is necessary. No Development NUC is currently available. Build/test only
 on GitHub-hosted Ubuntu Actions; do not request VM prerequisite installation or
-contact stale hardware addresses. The eventual **PLANK Client Qt** /
+contact stale hardware addresses. The **PLANK Client Qt** /
 `plank-client-qt` DEB must co-install without sharing production configuration,
 bookmarks, trust, logs, libraries or executable/application identity.
 
-### Validated checkpoint
+### Candidate ready for operator testing
 
-Parent `d426aba0325cfedf7cb8665093274233768b60b4` / Client `ccd2e601`,
-[hosted run 39322586364](https://github.com/instinctual/plank/actions/runs/39322586364),
-passed the complete experimental Qt application compile, complete ordinary
-Client regression build/preflight, component tests, ASan/UBSan with leak
-detection and the isolated GNOME/Wayland 100%/forced-125% compositor tests.
-This is not a real network session or Intel GPU qualification.
+**1.1.042-ubuntu-qt-session** is built, downloaded and checksum/provenance
+verified. Exact package sources:
 
-That checkpoint integrates the asynchronous Qt session owner with existing
+- Parent `b8463a3073fda975bf1a61b7a011813bbdb1f913`.
+- Client `6b103dec26b724526fc43d41a0e00db4024ec268`.
+- Successful [GitHub-hosted run 39326092739](https://github.com/instinctual/plank/actions/runs/39326092739).
+- Package: `artifacts/packages/candidates/1.1.042-ubuntu-qt-session/linux/plank-client-qt_1.1.042-ubuntu-qt-session_amd64.deb`.
+- SHA-256: `7ad64bf66d3b95dd863037f1bd35565266438dbb7cb3f6843db3d337ce94df4a`.
+- Packaged executable SHA-256: `2064afd13b8624885322fedffbb7e68dfcbdbb48080fe2d98e055de756fc98d1`.
+- Retained reports: `artifacts/qualification/ubuntu-qt-session-1.1.042/`.
+
+Both full application builds passed: the experimental Qt app and the ordinary
+Client regression build/preflight. Component tests, ASan/UBSan with leak
+detection and isolated GNOME/Wayland 100%/forced-125% tests passed, including
+31 window/input cases at each scale. All 14 package-fixture checks passed.
+The actual candidate and published 1.1.039 production DEB have no overlapping
+non-directory payload paths. The synthetic install/purge test preserves the
+production fixture; neither real package was installed on the builder.
+Runtime dependencies, private FFmpeg/SDL, RPATH, version, actual Qt linkage,
+no-autostart and package metadata gates passed. Three real launcher cycles
+passed with SDL video deliberately unavailable. Privacy/clipboard regressions
+and all 73 root CI policy tests also passed. These are not real network-session
+or Intel GPU qualification results.
+
+The candidate integrates the asynchronous Qt session owner with existing
 transport, authentication, exact-profile decoder selection, audio synchronization,
 recovery and teardown. Qt owns the windows and event dispatch; no SDL video
 surface or second Wayland event loop is introduced. The same immutable
@@ -47,7 +64,7 @@ The 120-roundtrip interop qualification correctly reports skipped, not accepted.
 Actual Intel VA-API decoding/export, Vulkan-to-GL delivery, display precision,
 performance, audio/video soak and physical Wacom remain pending hardware gates.
 
-### Current implementation / next work
+### Implemented scope / remaining acceptance
 
 The current Client additionally connects toolbar bitrate acknowledgement,
 shared rate/loss/RTT statistics, microphone/camera controls, overlay, Qt physical
@@ -65,17 +82,24 @@ The launcher now uses Qt display enumeration without an SDL video probe. Exact
 decoder qualification remains on the session surface, not an unknown temporary
 window. Unix termination follows the Qt asynchronous teardown path. A new
 compiled display-enumeration test and three complete launcher smoke cycles run
-with SDL video unavailable. Run `39324170570` builds these gates and the first
-co-installable package from parent `0ef59edf` / Client `85b13486`.
-The follow-up additionally keeps Ctrl+Alt+Shift+Q local during startup,
+with SDL video unavailable. The candidate also keeps Ctrl+Alt+Shift+Q local during startup,
 released input and Host timeout, with tests for repeat suppression, no remote
 key leakage and non-Latin layout fallback. Both local and streaming shortcuts
-use the same layout resolver. These latest gates still await hosted results.
+use the same layout resolver. All these hosted gates passed. The earlier .041
+run was superseded before packaging; it is not the delivered candidate.
 
-The next candidate version is **1.1.042-ubuntu-qt-session**. The package source/linkage
-guard requires the actual Qt session owners; it cannot relabel an ordinary SDL
-Client. No Qt candidate has been delivered or installed. No merge or release is
-authorized. Continue checking hosted results and fix failures before delivery.
+**Next action requires an available physical Client.** The operator should
+install the exact DEB, launch **PLANK Client Qt**, create a fresh bookmark and
+keep the ordinary Client closed during testing. Confirm exact-profile H.264
+High 10 software and HEVC Rext 10-bit hardware paths, toolbar/letterbox and
+window controls, keyboard/mouse, Wacom pressure/Tablet Margins and recovery,
+one/two outputs and scale changes, microphone/camera, and a moving-video/audio
+soak. Capture the Qt app's separate `plank-client-qt/logs` state directory if
+startup fails. No Host update is needed for this experiment. Do not remove the
+ordinary implementation or claim full feature equivalence before acceptance.
+No package was deployed, no merge/release is authorized, and no build remains
+running. Source and documentation are committed/pushed on the experimental
+branches; the canonical checkout's unrelated edits remain untouched.
 
 Dispatch from a clean pushed branch with:
 `bash scripts/ci/dispatch.sh linux-client-qt-tests false`.
@@ -83,8 +107,10 @@ That target builds both full application variants and isolated tests, not a pack
 Use `bash scripts/ci/dispatch.sh linux-client-qt false` to run the same gates and
 then package the exact Qt binary with the independent identity. All checks run
 on GitHub-hosted Ubuntu; do not install a package on a builder.
-Build warnings currently include inherited FFmpeg Vulkan queue-callback
-deprecations and unused Quinn telemetry; do not claim a warning-free build.
+Warnings include inherited FFmpeg Vulkan queue-callback deprecations, unused
+Quinn telemetry and the existing launcher Back shortcut's multiple bindings;
+do not claim a warning-free build. Minimal headless GNOME lacks optional
+calendar services; its generated warnings did not fail the isolated tests.
 
 Dependency pins remain unchanged: Linux Host `65dc0f1be60fe78d0457364f83813118c70bc8a8`,
 Client common-C `437be9a0a4d164efdf9ed20dc6dd5a2b7b9edc90`,
