@@ -6,6 +6,29 @@ notes, never in Git.
 
 ## Current work — Ubuntu Qt session experiment
 
+### Operator Wacom crash — follow-up candidate in progress
+
+The first physical test of 1.1.042 crashed when using the tablet. Read-only
+inspection verified the installed executable hash against the candidate.
+The kernel fault offset in the installed Qt 6.10.2 library resolves precisely
+to the owned-texture destructor call in `QSGSimpleTextureNode::setTexture()`.
+`QtTabletCursorItem` manually deleted that same owned texture immediately
+before calling `setTexture()`. This is an experimental Client cursor-renderer
+double deletion, not a Host/raw-HID change. No core dump was available.
+
+The minimal repair leaves texture retirement to the owning node. A rendered
+regression test replaces the cursor shape 24 times, varies dimensions, clears
+and recreates it, and switches mouse/tablet visibility before destruction.
+It is included in the existing normal, sanitizer and 100%/125% compositor gates.
+Candidate 1.1.043 is being prepared on the same branch; validation/build results
+are not yet available. Do not recommend 1.1.042 for further tablet testing.
+
+The same physical log also reports exact-format presentation gate failures and
+software fallback. This is a separate unresolved hardware/presentation gate,
+not evidence that the cursor fix solves playback. No input was injected, no
+process was attached/restarted, and no target package/configuration was changed.
+The read-only SSH session is closed; machine-specific evidence stays private.
+
 Continue in `build/worktrees/ubuntu-qt-session`, on matching parent/Client
 `ubuntu-qt-session` branches, based on main
 `38e00a557670df063926af1ef3466156145302ae` (1.1.039).
