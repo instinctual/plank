@@ -151,6 +151,20 @@ class QtPackageTests(unittest.TestCase):
 
 
 class IdentityContractTests(unittest.TestCase):
+    def test_partial_experiment_cannot_be_mislabeled_as_live_client(self):
+        for variant in ('production', 'qt'):
+            result = subprocess.run(['bash', '-c',
+                'source "$1"; plank_client_require_session_runtime',
+                'fixture', str(ROOT / 'scripts/package/client-package-identity.sh')],
+                text=True, capture_output=True,
+                env={**os.environ, 'PLANK_CLIENT_VARIANT': variant})
+            self.assertEqual(result.returncode, 1 if variant == 'qt' else 0)
+            if variant == 'qt':
+                self.assertIn('Qt live-session integration is not enabled yet', result.stderr)
+        for relative in ('scripts/build/build-client-package-binaries.sh',
+                         'scripts/package/build-client-deb.sh'):
+            self.assertIn('plank_client_require_session_runtime', (ROOT / relative).read_text())
+
     def test_build_and_package_share_names(self):
         for variant, expected in [('production', ['plank-client', 'PLANK', 'client.conf', 'plank']),
                                   ('qt', ['plank-client-qt', 'PLANK Client Qt', 'client-qt.conf', 'plank-client-qt'])]:

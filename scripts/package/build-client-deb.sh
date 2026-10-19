@@ -10,6 +10,7 @@ fi
 repo_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd)
 source "$repo_dir/scripts/package/client-package-identity.sh"
 plank_client_package_identity
+plank_client_require_session_runtime
 moonlight_binary=$(realpath -- "$1")
 ffmpeg_work_dir=$(realpath -- "$2")
 output_dir=$(realpath -m -- "${3:-${PLANK_WORK_ROOT:-${repo_dir}/build}/package-client-output}")
