@@ -667,6 +667,16 @@ decode/import and live playback acceptance; see
 
 ## Host RPM — linux-host-builder only
 
+Host candidates require CUDA 13.2 Update 2 (NVCC 13.2.86), with the exact RPM
+component set in `scripts/build/host-cuda.sh`. Run its verifier before costly
+work; packaging repeats it. The operator reports 1.1.039 working on the new
+595.104.02 driver baseline, but the rebuilt CUDA candidate still requires
+hardware color/scaling/capture/encode qualification. Preserve the full CUDA
+architecture list and NVENC API 13.0.19 headers. No encoder settings change.
+The dependency cache already fingerprints NVCC and installed RPM versions, so
+old Host FFmpeg cache entries cannot be reused with the new toolchain; Rust,
+Cargo and Boost cache groups are independent.
+
 Host packaging selects `PLANK_TRANSPORT_CARGO_FEATURES=quinn-telemetry` by
 default. The application datagram pacer and platform-specific fast-send switches
 have been removed. All builds use the same 1 Gbps floor for the Host's

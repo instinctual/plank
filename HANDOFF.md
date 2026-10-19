@@ -4,13 +4,35 @@ Read `AGENTS.md` and the relevant build runbook first. Machine-specific access,
 credentials, captures and operational evidence belong in the external private
 notes, never in Git.
 
+## Current candidate — CUDA 13.2 Update 2
+
+Continue in `build/worktrees/cuda-13-2` on `cuda-13-2`, based on main
+`38e00a557670df063926af1ef3466156145302ae`. The operator reports the released
+1.1.039 working without observed issues on NVIDIA 595.104.02 and authorized a
+separate Linux Host toolchain candidate. Version is **1.1.040-cuda-13-2**.
+Do not merge, publish a release, install a package or interrupt a live session
+as part of this build request. The independent Qt Ubuntu prototype stays paused.
+
+Only the Linux Host CUDA build components move to Toolkit 13.2 Update 2
+(NVCC/runtime 13.2.86). Exact RPM pins and a fail-closed component/compiler
+check are shared by hosted installation and package preflight. The existing
+cache fingerprints already include NVCC and installed RPMs; the compiled Host
+dependency tree rebuilds with the new toolchain without weakening cache checks.
+Keep the full GPU architecture set. Host/Client/Kymux and recursive source pins,
+NVENC SDK 13.0.19 headers, encoding settings, transport and macOS are unchanged.
+No new Client package is needed.
+
+Build and component validation are pending. Real capture, identity/color,
+scaling, NVENC and live performance on 595.104.02 remain hardware gates; a
+successful hosted build cannot establish those results.
+
 ## Current baseline — persistent tablet and Client recovery integrated
 
 The operator authorized merging `wacom-persistent` into main. The parent,
 Linux Host and Client now use `main`; the two changed dependencies use their
 established product branches. All integration is fast-forward, preserving the
-candidate commits and their authorship. Continue in
-`build/worktrees/wacom-persistent` on **main**, not the canonical checkout's
+candidate commits and their authorship. Main remains in
+`build/worktrees/wacom-persistent`, not the canonical checkout's
 separate, dirty `client-pkg-only` branch.
 
 | Component | Integrated source / branch |

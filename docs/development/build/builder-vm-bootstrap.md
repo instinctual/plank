@@ -13,7 +13,7 @@ must not be used as fallback package builders.
 
 ## Builder roles
 
-- Host builder: `linux-host-builder`, Rocky Linux 9.7, x86-64, GCC Toolset 14, CUDA 13,
+- Host builder: `linux-host-builder`, Rocky Linux 9.7, x86-64, GCC Toolset 14, CUDA 13.2 Update 2,
   RPM tooling, and local build storage. It is build-only and has no GPU.
 - Client builder: `linux-client-builder` (`192.0.2.42`), Ubuntu Desktop 26.04,
   x86-64, Qt 6.10.2, SDL3, SDL3_ttf, PipeWire development files, and the
@@ -267,14 +267,15 @@ mirror with an ad hoc source copy.
 
 ## Host build inputs
 
-Enable the Rocky 9 development, EPEL, GCC Toolset 14, and NVIDIA CUDA 13
+Enable the Rocky 9 development, EPEL, GCC Toolset 14, and NVIDIA CUDA
 repositories, then install the direct build dependencies:
 
 ```bash
-sudo dnf install -y \
+source "$PLANK_CANONICAL_ROOT/scripts/build/host-cuda.sh"
+sudo dnf install -y --setopt=install_weak_deps=False \
   autoconf automake clang cmake curl gh git libtool make nasm ninja-build patch \
   pkgconf-pkg-config ripgrep rpm-build wget xz \
-  gcc-toolset-14-gcc gcc-toolset-14-gcc-c++ cuda-toolkit-13-0 \
+  gcc-toolset-14-gcc gcc-toolset-14-gcc-c++ "${PLANK_HOST_CUDA_PACKAGES[@]}" \
   glib2-devel libcap-devel libdrm-devel libevdev-devel libva-devel \
   libX11-devel libxcb-devel libXcomposite-devel libXcursor-devel \
   libXfixes-devel libXi-devel libXinerama-devel libXrandr-devel \
@@ -282,7 +283,17 @@ sudo dnf install -y \
   numactl-devel openssl-devel opus-devel pam-devel pipewire-devel \
   pulseaudio-libs-devel python3-devel python3-jinja2 systemd-devel \
   vulkan-loader-devel wayland-devel wayland-protocols-devel
+plank_verify_host_cuda
 ```
+
+CUDA is pinned to Toolkit 13.2 Update 2, compiler/runtime components 13.2.86,
+by `scripts/build/host-cuda.sh`. Install these build-only packages, not the
+`cuda` or `cuda-drivers` metapackages. The same verifier runs in hosted setup
+and before Host package compilation; a mixed component set or a
+`/usr/local/cuda` selection pointing to another toolkit fails closed. Select
+the installed 13.2 toolkit before building. No runtime driver is installed on
+the GPU-less builder. The operator's hardware baseline is 595.104.02; NVENC
+headers remain API 13.0.19, independently of the CUDA compiler version.
 
 Repository enablement is administrator-owned because mirror and entitlement
 configuration differs by site. These compiler paths and the complete CUDA

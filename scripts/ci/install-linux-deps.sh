@@ -5,6 +5,7 @@ source /etc/os-release
 case "$role:$ID:$VERSION_ID" in
   host:rocky:9.7)
     test "$(id -u)" = 0
+    source "$(dirname -- "${BASH_SOURCE[0]}")/../build/host-cuda.sh"
     # Freeze the Rocky minor release rather than following the moving 9 mirror.
     for pair in baseos:BaseOS appstream:AppStream crb:CRB extras:extras; do
       repo=${pair%%:*}; directory=${pair#*:}
@@ -18,14 +19,14 @@ case "$role:$ID:$VERSION_ID" in
       autoconf automake clang cmake curl-minimal git libtool make nasm ninja-build patch \
       pkgconf-pkg-config ripgrep rpm-build cpio wget xz tar gzip python3 python3-jinja2 \
       gcc-toolset-14-gcc gcc-toolset-14-gcc-c++ \
-      cuda-compiler-13-0 cuda-cudart-devel-13-0 cuda-driver-devel-13-0 \
-      cuda-nvml-devel-13-0 cuda-nvrtc-devel-13-0 \
+      "${PLANK_HOST_CUDA_PACKAGES[@]}" \
       glib2-devel libcap-devel libdrm-devel libevdev-devel libva-devel \
       libX11-devel libxcb-devel libXcomposite-devel libXcursor-devel libXfixes-devel \
       libXi-devel libXinerama-devel libXrandr-devel libXtst-devel libxkbcommon-devel \
       mesa-libgbm-devel mesa-libGL-devel numactl-devel openssl-devel opus-devel \
       pam-devel pipewire-devel pulseaudio-libs-devel python3-devel systemd-devel \
       vulkan-loader-devel wayland-devel wayland-protocols-devel
+    plank_verify_host_cuda
     /usr/local/cuda/bin/nvcc --version
     python3 -c 'import jinja2' # Fail before the long FFmpeg bootstrap.
     rpm -qa | sort
