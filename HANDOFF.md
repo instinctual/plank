@@ -22,13 +22,14 @@ the regular Client using separate binary, desktop ID, settings and logs; see
 the plan. Do not deploy over the production Client or contact stale test targets.
 
 Read [the plan](docs/development/plans/ubuntu-qt-session.plan). Current code
-checkpoint: parent `5d19f9cd371a2e6c5ba7e9c3a2c2ba010dca77b3`, Client
-`f816851f7f8088a397a1bfafd2083f0dedb750b2`. Dependency pins remain those listed
+checkpoint: parent `cf34d49de312a6587c929fb9fdccc612c5e42860`, Client
+`6e34e649a390bcb3a723edaa51f6a4399e40caa9`. Dependency pins remain those listed
 in the inherited baseline below. The Qt surface/input/toolbar and video
 components remain isolated from the shipping session lifecycle. Raw-HID and
 normalized tablet integration are not implemented; synthesized tablet-mouse
-events are deliberately suppressed in the prototype. Host code and macOS
-runtime behavior are unchanged.
+events are deliberately suppressed in the prototype. No Host or macOS-specific
+session code was changed. The shared software-frame allocator and decoder
+fixtures have been refactored; only Ubuntu component validation was performed.
 
 Implemented since the initial window prototype:
 
@@ -47,28 +48,49 @@ Implemented since the initial window prototype:
   include install/purge in a disposable dpkg root while preserving a synthetic
   production Client and its administrator-edited configuration. This is not a
   product installation on the builder or a qualified real DEB.
+- Window-independent `PlVkFramePool`, reused by the existing renderer and ready
+  for the Qt software path. It preserves cacheable imported reference frames,
+  holds their backing storage through GPU transfer completion, and retires those
+  leases outside GPU callbacks/FFmpeg pool locks. The ordinary mapped/system
+  fallbacks remain. No per-frame GPU wait or additional CPU pixel copy was added.
+- Eighteen allocator tests cover concurrent decoding, pool/AVFrame lifetimes,
+  malformed bounds, failures, negative strides and callbacks delivered during
+  allocation. Six use the unchanged production codec fixtures for actual FFmpeg
+  decoding plus Vulkan plane transfers/readback. All visible samples match the
+  reference decode, including 10-bit samples. This uses lavapipe, not Intel.
 
 Both identity variants, all 24 surface/input tests and all 12 video/lifetime
-tests pass normally and with ASan/UBSan plus leak detection on the Ubuntu
-builder. Concurrency stress is not a claim of ThreadSanitizer qualification.
+tests, plus all 18 pool tests, pass normally and with ASan/UBSan plus leak
+detection on the Ubuntu builder. Concurrency stress is not a claim of
+ThreadSanitizer qualification.
 The root's 70 CI-policy, eight package-catalog and ten build-path tests pass;
 launcher checks pass. The same 24 surface/input tests and all eight
 native-child framebuffer/shader configurations pass on the separate
 GNOME/Wayland compositor at 100% and forced 125% using this exact code checkpoint.
 
-These are Mesa llvmpipe feasibility and lifecycle tests, not panel/Intel GPU,
-physical input, Wacom, decoded-video or live-session acceptance. The directly
+These are Mesa llvmpipe/lavapipe feasibility and lifecycle tests, not panel/Intel
+GPU, physical input, Wacom or live-session acceptance. The directly
 decorated Qt Quick window remains an 8-bit negative comparison; its settled
 fullscreen path is 10-bit. See the plan's correction of the early first-frame
 inference.
 
 Next: connect and qualify actual decoder/presenter delivery, preserving both
 the VA-API Y410/EGL and pooled Vulkan software-decode paths, then asynchronous
-session orchestration and unchanged input/audio transport. No decoded frame
-has traversed this prototype. The co-installable package scaffolding does not
+session orchestration and unchanged input/audio transport. Real decoded frames
+have exercised the reusable Vulkan pool, but have not reached a Qt session
+window. The co-installable package scaffolding does not
 enable the Qt session runtime: an explicit build/package guard prevents shipping
 the ordinary SDL Client under the experimental name. Remove that temporary
 guard only with actual runtime integration and its tests.
+
+Full application configure is blocked on the Ubuntu builder's missing
+`libpipewire-0.3-dev`; sudo requires administrator authentication. Do not disable
+PipeWire or substitute distro SDL to pass the build. After the administrator
+installs that documented prerequisite, rebuild/verify the retained private SDL
+with `scripts/build/build-client-sdl.sh` and record `PLANK_CLIENT_SDL_WORK` in
+the builder manifest before packaging. The changed existing renderer/decoder
+translation units pass a syntax-only check against private SDL/FFmpeg headers;
+that is not a full application build. Standalone tests do not need SDL/PipeWire.
 
 No Qt candidate package, installation, push, merge into main or release has been
 performed. Existing released packages remain unchanged. Builder tests

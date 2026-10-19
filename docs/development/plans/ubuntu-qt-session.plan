@@ -207,6 +207,46 @@ Use a separate shadow build with `PLANK_QT_SESSION_SANITIZERS=1`,
 `ASAN_OPTIONS=detect_leaks=1` and `UBSAN_OPTIONS=halt_on_error=1` for sanitizers.
 No ThreadSanitizer or Intel hardware acceptance is implied.
 
+## Reusable software-frame pool checkpoint
+
+Parent `cf34d49de312a6587c929fb9fdccc612c5e42860` / Client
+`6e34e649a390bcb3a723edaa51f6a4399e40caa9` extracts the existing Vulkan
+software-frame allocator into `PlVkFramePool`, with no Qt/SDL window dependency.
+The normal renderer delegates to it; the Qt runtime is not connected yet.
+The cacheable host-memory import policy and mapped/system fallbacks remain.
+No extra CPU pixel upload or per-frame GPU finish is introduced.
+
+An imported buffer must not return to FFmpeg for writing until its Vulkan plane
+transfer completes. Completion callbacks only set an atomic flag: they may run
+inside `pl_buf_create` while `av_buffer_pool_get` holds FFmpeg's pool mutex.
+Actual AVBuffer release occurs outside GPU calls and allocator locks. Shutdown
+drains GPU work before retiring pools, and a device-lifetime token lets external
+AVFrame leases outlive the pool. The existing renderer uses its established
+decoder-before-GPU destruction order. Future Qt teardown must run the drain on
+its rendering owner, not the GUI thread.
+
+Eighteen tests pass normally and under ASan/UBSan/leak detection. They include
+forced delayed/reentrant completion, eight decoder threads, retained frame
+clones, allocation/upload errors and malformed/inverted plane bounds. Six
+tests perform actual software decoding of the existing H.264 8/10-bit 4:2:2 and
+4:4:4 plus HEVC 8/10-bit identity fixtures, followed by Vulkan transfer/readback.
+Every visible sample matches the system-memory reference decode. The test-frame
+bytes are unchanged; they now live in shared `ffmpeg-testframes.h` instead of a
+CPP included into the decoder. Fixtures and readback are qualification inputs,
+not a runtime pixel-copy path. lavapipe explicitly serves this isolated test;
+production must still qualify the real GPU and exact profile.
+
+Both identity variants, 24 input/window and 12 delivery/lifetime checks still
+pass under sanitizers. All eight scene/framebuffer/shader configurations still
+pass at 100% and forced 125% in the isolated compositor. The ordinary renderer
+and decoder translation units pass a syntax-only check; a full Client configure
+requires the missing PipeWire development package on the builder. This does
+not qualify Vulkan-to-Qt interop, real VA-API, live sessions or throughput.
+
+Next remains decoder-to-Qt presentation (including explicit cross-API ownership),
+then asynchronous Session integration. Do not enable packaging until those are
+wired. See HANDOFF for the builder prerequisite and current validation state.
+
 ## Co-installation contract
 
 | Resource | Ordinary Client | Qt experiment |
