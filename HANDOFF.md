@@ -22,9 +22,36 @@ Keep the full GPU architecture set. Host/Client/Kymux and recursive source pins,
 NVENC SDK 13.0.19 headers, encoding settings, transport and macOS are unchanged.
 No new Client package is needed.
 
-Build and component validation are pending. Real capture, identity/color,
-scaling, NVENC and live performance on 595.104.02 remain hardware gates; a
-successful hosted build cannot establish those results.
+The Linux Host-only hosted build passed at exact source
+`c018fb26048cf723d3ba5fc4315dbee562472755`:
+[39186329545](https://github.com/instinctual/plank/actions/runs/39186329545).
+The RPM is downloaded and collected under
+`artifacts/packages/candidates/1.1.040-cuda-13-2/linux/`:
+`plank-host-1.1.040-0.cuda_13_2.1.el9.x86_64.rpm` (8,749,513 bytes), SHA-256
+`5f5ebb2b8e4fa672e8a9df2ce91573512d128f01c66296f07a3cec756ed5ec72`.
+The transferred manifest exactly matches the hosted manifest. The package
+contains visible version `1.1.040-cuda-13-2`, CUDA fatbins, the production
+`BUILD_TESTS=OFF` payload and its owned root:root `0700` log directory. RPM
+runtime requirements match 1.1.039 apart from the self-versioned config entry.
+
+Validation passed: 75 CI-policy tests, 17 local packaging/path/collection
+checks plus the release-version contract, dependency-patch verification,
+Rust/protocol/C ABI gates, and three 900-frame controlled-loss matrices at
+150 Mbps/60 fps over 0/0.5/1/3/5% loss (zero unrecovered source symbols).
+The input lifecycle suites ran 25 shuffled repetitions each: 45 production
+passes with three kernel-dependent skips, and 56 wrapped-UHID fixture passes.
+Both CUDA installation and package preflight verified NVCC 13.2.86. Compilation
+retained architectures `75;80;86;87;89;90;100;103;110;120;121` and NVENC headers
+`e844e5b26f46bb77479f063029595293aa8f812d` (SDK 13.0.19).
+Rust, Cargo and Boost caches were reused; the Host FFmpeg/dependency cache was
+rebuilt, patch-verified and saved for the new compiler. All root and recursive
+source pins remain those of the baseline below.
+
+No build remains running. No merge, release publication or installation was
+performed. Next is manual Host installation with the existing 1.1.039 Client,
+then real capture, identity/color, scaling, NVENC and live performance checks
+on 595.104.02. These hardware gates remain pending; hosted results do not prove
+a performance gain or replace live qualification.
 
 ## Current baseline — persistent tablet and Client recovery integrated
 
