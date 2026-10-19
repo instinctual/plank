@@ -6,7 +6,33 @@ notes, never in Git.
 
 ## Current work — Ubuntu Qt session experiment
 
-### Hardware presentation failure — candidate ready for retest
+### Current follow-up — windowed toolbar access and ghost cursor
+
+The operator accepted the 1.1.044 video repair and reports working mouse and
+tablet input. They also report a longstanding duplicate arrow at the physical
+screen's top-left, outside the now-windowed session. Do not treat that as a
+Host-video or coordinate-mapping defect without evidence. The Qt tablet cursor
+is scene-local; the shared evdev grab and compositor cursor lifecycle remain
+investigation candidates, not proven causes. Live inspection is currently
+blocked by test-Client connectivity; no session/input/display reset was made.
+
+The approved windowed solution adds a small **Show Toolbar** button inside the
+session's upper-right corner, below the ordinary title bar. A click or one-second
+hover reveals the existing toolbar. Pin remains unchanged, the five-second
+hide policy is retained, and the button is absent in fullscreen or recovery.
+Qt owns the scene and all hit testing; no new popup/native surface or decoration
+implementation is added. Remote drags retain ownership across the button.
+Four additional component regressions cover local input isolation, drag/hover,
+shell fullscreen transitions, recovery, Pin, and released-input controls.
+Hosted compositor runs also save synthetic UI screenshots at both scales.
+
+Candidate version is **1.1.045-ubuntu-qt-session**. Local 73 CI-policy tests and
+shell/whitespace checks pass. The package fixture passes its four portable
+cases; ten Ubuntu-only cases are explicitly skipped locally. Full compilation,
+compositor/sanitizer tests and packaging must run on GitHub-hosted Ubuntu next.
+No new artifact, hardware acceptance, deployment, merge or release is claimed.
+
+### Retained hardware presentation repair
 
 The operator reports that 1.1.043 connects and its toolbar responds, but the
 remote image does not update normally. With permission, short thread snapshots
@@ -30,8 +56,9 @@ same import helper as the renderer before checking packed 8/10-bit and planar
 P010 values, crop and filtering. The former direct-texture fixture skipped the
 failing operation. This remains synthetic qualification, not a substitute for
 hardware VA-API DMA-BUF/live-session testing. Candidate 1.1.044 passed the hosted
-gates and is downloaded below; physical acceptance is pending. The production
-Client and both Hosts are unchanged.
+gates and is downloaded below. The operator subsequently confirmed that it
+fixed playback; complete profile/soak qualification remains separate. The
+production Client and both Hosts are unchanged.
 SSH is closed and no debugger remains attached. Private backtraces stay outside Git.
 
 ### Retained Wacom crash repair
@@ -41,7 +68,8 @@ The 1.1.043 cursor-texture ownership repair remains included. The prior
 `QSGSimpleTextureNode::setTexture()`. Qt now owns that texture's retirement.
 The rendered 24-replacement/clear/visibility/destruction regression passes
 again under normal, sanitizer and 100%/125% compositor tests. Do not recommend
-1.1.042. Live tablet acceptance remains pending while video is being repaired.
+1.1.042. The operator now reports working tablet/mouse input; pressure, margins
+and interruption/reconnect qualification remain separate gates.
 
 Continue in `build/worktrees/ubuntu-qt-session`, on matching parent/Client
 `ubuntu-qt-session` branches, based on main
@@ -57,7 +85,7 @@ contact stale hardware addresses. The **PLANK Client Qt** /
 `plank-client-qt` DEB must co-install without sharing production configuration,
 bookmarks, trust, logs, libraries or executable/application identity.
 
-### Candidate ready for operator testing
+### Previous candidate — accepted playback repair
 
 **1.1.044-ubuntu-qt-session** is built, downloaded and checksum/provenance
 verified. Exact package sources:
@@ -127,20 +155,19 @@ key leakage and non-Latin layout fallback. Both local and streaming shortcuts
 use the same layout resolver. All these hosted gates passed. The earlier .041
 run was superseded before packaging; it is not the delivered candidate.
 
-**Next action: operator retest on the available physical Client.** Install the
-exact DEB, launch **PLANK Client Qt** and reuse its test bookmark; keep the
-ordinary Client closed. First confirm moving video and mouse/keyboard response
-with the previously failing HEVC 10-bit profile, then tablet hover/tip input.
-After that, confirm exact-profile H.264
+**Next action: qualify and build the windowed-toolbar candidate on GitHub.**
+Then test Show Toolbar after leaving fullscreen with Pin off, returning to
+fullscreen, and repeated hide/reveal with no remote click leakage. Investigate
+the existing desktop ghost arrow when the authorized test Client is reachable.
+Keep the ordinary Client closed during Qt testing. Still confirm exact-profile H.264
 High 10 software and HEVC Rext 10-bit hardware paths, toolbar/letterbox and
 window controls, keyboard/mouse, Wacom pressure/Tablet Margins and recovery,
 one/two outputs and scale changes, microphone/camera, and a moving-video/audio
 soak. Capture the Qt app's separate `plank-client-qt/logs` state directory if
 startup fails. No Host update is needed for this experiment. Do not remove the
 ordinary implementation or claim full feature equivalence before acceptance.
-No package was deployed, no merge/release is authorized, and no build remains
-running. Source and documentation are committed/pushed on the experimental
-branches; the canonical checkout's unrelated edits remain untouched.
+No package was remotely deployed and no merge/release is authorized. Preserve
+the experimental branches and canonical checkout's unrelated edits.
 
 Dispatch from a clean pushed branch with:
 `bash scripts/ci/dispatch.sh linux-client-qt-tests false`.
