@@ -6,6 +6,11 @@ test "${GITHUB_ACTIONS:-}" = true
 source /etc/os-release
 test "$ID:$VERSION_ID" = ubuntu:26.04
 test "$(qmake6 -query QT_VERSION)" = 6.10.2
+# Keep software-only qualification explicit even if a future runner exposes
+# a render device. Physical Intel acceptance belongs to a separate live test.
+mapfile -t vulkan_test_drivers < <(dpkg -L mesa-vulkan-drivers | grep -E '/lvp_icd(\.x86_64)?\.json$')
+test "${#vulkan_test_drivers[@]}" -eq 1
+export VK_DRIVER_FILES="${vulkan_test_drivers[0]}" LIBGL_ALWAYS_SOFTWARE=1
 export PLANK_CLIENT_FFMPEG_WORK="$PLANK_DEP_ROOT/client-ffmpeg"
 export PLANK_QT_SESSION_TEST_BUILD="$PLANK_WORK_ROOT/qt-session-tests"
 reports="$PLANK_WORK_ROOT/qt-session-reports"
