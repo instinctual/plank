@@ -1004,8 +1004,16 @@ for required_bookmark_bitrate_ui_token in \
     exit 1
   }
 done
+# Global preferences must not own bitrate; a session-local toolbar property is
+# valid and does not persist a global default. Check generic property declarations
+# in settings, but keep legacy persistence/access/CLI checks across the app.
+if rg -n 'Q_PROPERTY\(int bitrateKbps|\bbitrateKbps MEMBER' \
+  "$source_dir/app/settings"; then
+  echo "global bitrate property remains in PLANK client settings" >&2
+  exit 1
+fi
 if rg -n \
-  'Q_PROPERTY\(int bitrateKbps|\bbitrateKbps MEMBER|#define SER_BITRATE "bitrate"|plank-bitrate-kbps|getDefaultBitrate|StreamingPreferences\.bitrateKbps|m_Preferences\.bitrateKbps|preferences->bitrateKbps|addValueOption\("bitrate"' \
+  '#define SER_BITRATE "bitrate"|plank-bitrate-kbps|getDefaultBitrate|StreamingPreferences\.bitrateKbps|m_Preferences\.bitrateKbps|preferences->bitrateKbps|addValueOption\("bitrate"' \
   "$source_dir/app" \
   --glob '!**/languages/**'; then
   echo "global or command-line bitrate configuration remains in PLANK client" >&2

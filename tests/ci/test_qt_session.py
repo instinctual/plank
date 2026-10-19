@@ -1,4 +1,6 @@
 from pathlib import Path
+import subprocess
+import tempfile
 import unittest
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -33,6 +35,37 @@ class QtSessionWorkflowTests(unittest.TestCase):
         runner = (ROOT / 'scripts/test/run-qt-session-tests.sh').read_text()
         self.assertIn('qtsoftwarevideo.pro', runner)
         self.assertIn('timeout 120 ./qtsoftwarevideo', runner)
+
+    def test_bitrate_gate_distinguishes_session_ui_from_global_preferences(self):
+        script = (ROOT / 'scripts/build/build-client-package-binaries.sh').read_text()
+        # Execute the real gate, not a second implementation of its patterns.
+        gate = script.split('# Global preferences must not own bitrate;')[1].split("if rg -n 'NVENC")[0]
+        gate = gate[gate.index('\nif rg '):]
+        with tempfile.TemporaryDirectory() as directory:
+            source = Path(directory)
+            for path in ('settings', 'streaming/qt', 'cli'):
+                (source / 'app' / path).mkdir(parents=True)
+            settings = source / 'app/settings/streamingpreferences.h'
+            settings.write_text('// no global bitrate\n')
+            (source / 'app/streaming/qt/sessionwindow.h').write_text(
+                'Q_PROPERTY(int bitrateKbps READ bitrateKbps WRITE setBitrateKbps NOTIFY bitrateChanged)\n')
+            def check():
+                return subprocess.run(['bash', '-c', 'set -euo pipefail; source_dir=$1\n' + gate,
+                                       'gate-test', str(source)], text=True, capture_output=True)
+            self.assertEqual(check().returncode, 0)
+            for token in ('Q_PROPERTY(int bitrateKbps MEMBER bitrateKbps)',
+                          'Q_PROPERTY(int rate READ bitrateKbps MEMBER bitrateKbps)',
+                          '#define SER_BITRATE "bitrate"',
+                          'getDefaultBitrate()', 'StreamingPreferences.bitrateKbps',
+                          'm_Preferences.bitrateKbps', 'preferences->bitrateKbps'):
+                with self.subTest(token=token):
+                    settings.write_text(token + '\n')
+                    self.assertEqual(check().returncode, 1)
+            settings.write_text('// no global bitrate\n')
+            for token in ('plank-bitrate-kbps', 'addValueOption("bitrate")'):
+                with self.subTest(token=token):
+                    (source / 'app/cli/start.cpp').write_text(token + '\n')
+                    self.assertEqual(check().returncode, 1)
 
 
 if __name__ == '__main__':

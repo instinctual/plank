@@ -22,7 +22,7 @@ the regular Client using separate binary, desktop ID, settings and logs; see
 the plan. Do not deploy over the production Client or contact stale test targets.
 
 Read [the plan](docs/development/plans/ubuntu-qt-session.plan). The current
-Client checkpoint is `74306a9294b571767ce2a764fb03950b00dda953`.
+Client checkpoint is `889a96a89ee9e95068a3d5c8e4021dcf60c9e2a6`.
 Dependency pins remain those listed
 in the inherited baseline below. The Qt surface/input/toolbar and video
 components remain isolated from the shipping session lifecycle. Raw-HID and
@@ -90,18 +90,36 @@ already includes it. Use `bash scripts/ci/dispatch.sh linux-client-qt-tests fals
 from the clean, pushed experimental branch. This explicit job builds/tests the
 isolated components, not a renamed SDL Client or a distributable Qt DEB.
 
-First hosted run [39302882777](https://github.com/instinctual/plank/actions/runs/39302882777)
-at parent `996a67974d2a6ecae66ae9a9610b1c9d34cb9418` bootstrapped and cached
-the pinned dependencies, including the patched private SDL with PipeWire.
-Identity/co-install, surface/input, video-mailbox and pool checks passed.
-The new GPU planar-to-RGB10 converter passed RGB identity ramps and six actual
-H.264/HEVC decode fixtures, but failed four full-range BT.709 numerical checks.
-The follow-up replaces inferred color conversion with the same explicit matrix
-as the packed hardware path, adds chroma/negative-stride checks, and rejects
-implicit crop/interlace/ICC/film-grain processing. Those changes still require
-the next hosted run; do not report them as passed. The added compositor probe
-reports external-memory/semaphore and device/driver-match capabilities without
-logging identifiers. Actual Vulkan-to-GL delivery remains unimplemented.
+Hosted validation at parent `d8f37181bdab2d40134a1e94e5443b8a24b9aa35`
+([39306226757](https://github.com/instinctual/plank/actions/runs/39306226757))
+passed all 19 new software-converter tests normally. They include all 1024 RGB
+levels, full-range BT.709, odd-sized chroma, negative strides, six unchanged
+production decode fixtures and rejection of precision/range substitutions.
+The converter explicitly selects R8/R16 plane storage and the same matrix as
+the packed hardware path; it does not delegate those choices to inferred
+libplacebo color conversion. The ordinary renderer's upload default is unchanged.
+Normal co-install, identity, input, mailbox and pool tests also passed, as did
+the compositor/precision checks at 100% and forced 125% scale.
+
+That run failed leak detection during Vulkan device enumeration (768 bytes in
+six allocations). Parent `5107d08b75bf7299538349481e5299dc6be26cfa` explicitly
+selects lavapipe and software GL for this software-only job, without disabling
+leak detection. Its hosted run
+[39307342541](https://github.com/instinctual/plank/actions/runs/39307342541)
+passes all component tests normally and under ASan/UBSan/leak detection, plus
+the compositor checks. The full baseline Client preflight then rejected the
+session-local toolbar bitrate property as a removed global preference. The
+follow-up scopes generic property checks to settings, retains app-wide legacy
+serialization/CLI checks, and tests both valid and forbidden declarations.
+All 73 local CI-policy tests pass. The complete ordinary Client compile/link
+and its normal preflights still need a successful hosted rerun. That baseline
+binary is not packaged as a Qt Client.
+
+The compositor probe reports external-memory/semaphore capabilities without
+logging device identifiers. This runner exposes external memory but not the
+external semaphores required by the proposed Vulkan-to-GL handoff. Actual
+cross-API delivery remains unimplemented/unqualified; do not claim that the
+capability diagnostic proves working interop or physical GPU performance.
 
 Parent and Client experimental branches are pushed. No Qt candidate package,
 installation, merge into main or release has been performed. Existing released

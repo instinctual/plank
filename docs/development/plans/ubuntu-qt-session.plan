@@ -255,6 +255,10 @@ The `linux-client-qt-tests` dispatch target builds from the exact pushed branch
 on Ubuntu 26.04 / Qt 6.10.2, reusing the normal verified Client bootstrap/cache.
 It installs no product and uploads only isolated-test reports. Do not resume
 builds on the retained Ubuntu VM for this experiment.
+The job also compiles/links the complete ordinary Client with its existing
+preflight tests because the extracted frame pool is shared with that renderer.
+This regression binary is not packaged or uploaded as the experimental Client.
+Software-only GPU selection is explicit; leak detection remains enabled.
 
 `QtSoftwareVideoConverter` reuses the pooled decoder allocations, uploads the
 planes without another CPU pixel copy, and performs full-range identity or
@@ -264,6 +268,12 @@ transfer-function conversion, dithering or silent 8-bit target is accepted.
 Tests cover all RGB code values, channel order, full-range YCbCr gray/color,
 actual encoded fixtures and rejection of format/range/size substitutions.
 This conversion is not yet connected to the Qt scene or a network session.
+Plane uploads explicitly select R8/R16 storage. The converter uses the decoded
+bit depth for full-range normalization/neutral chroma and the same explicit
+BT.709 matrix as the packed hardware path. The ordinary renderer retains its
+existing automatic plane selection. The 19 conversion tests pass normally on
+the hosted software GPU, including odd dimensions and inverted strides; see
+HANDOFF for sanitizer and complete-build results at the exact source checkpoint.
 
 The probe also inventories Vulkan/OpenGL external-memory and semaphore support
 and compares device/driver identities without logging their UUIDs. A capability
@@ -271,6 +281,9 @@ report is not successful interop. Opaque handles must come from matching
 devices/drivers; DMA-BUF export with an implicit modifier must not be assumed to
 work across drivers. The eventual GPU handoff must explicitly synchronize both
 directions without a per-frame CPU readback or global GPU finish.
+The hosted Mesa software driver exposes external memory but no external
+semaphores. Its framebuffer/conversion results therefore cannot qualify the
+proposed cross-API handoff. Keep that gate distinct from component compilation.
 
 Primary interop references:
 
