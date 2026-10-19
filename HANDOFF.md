@@ -49,7 +49,7 @@ performance, audio/video soak and physical Wacom remain pending hardware gates.
 
 ### Current implementation / next work
 
-Client `0ca96fcc` additionally connects toolbar bitrate acknowledgement,
+Client `85b13486` additionally connects toolbar bitrate acknowledgement,
 shared rate/loss/RTT statistics, microphone/camera controls, overlay, Qt physical
 keyboard/mouse input, unchanged raw-HID/normalized tablet workers, Host cursor
 shapes/positions and Wayland shortcut/pointer policy. The ordinary Client now
