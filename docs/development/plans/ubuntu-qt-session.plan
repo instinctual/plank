@@ -10,6 +10,21 @@ This does not merge the Qt experiment into main or qualify it for shipping.
 
 ## Scope and decisions
 
+The operator has no identifiable Development NUC available for this experiment.
+Continue isolated development/testing on the Ubuntu builder; record Intel GPU,
+physical input and live-session gates as pending. Do not contact old end-user
+addresses or infer hardware acceptance from software-rendered builder tests.
+When a usable Client candidate is ready, the operator will install and test it.
+
+The experimental DEB must be co-installable with the regular Client. Use a
+distinct `plank-client-qt` package/executable and **PLANK Client Qt** launcher,
+separate desktop/application identity, private library/resource paths, settings,
+bookmarks/trust store and logs. Do not replace or conflict with `plank-client`,
+share mutable settings, overwrite `/etc/plank/client.conf`, or register a second
+handler for the production URL scheme. Package-file overlap, installation and
+removal independence are explicit gates before distributing the experiment.
+This is a testing identity, not a rename of the production product.
+
 Ubuntu 26.04 only. Leave the macOS Client, both Hosts, protocol, decoder policy,
 audio synchronization and raw-HID Wacom implementation unchanged. Qt owns the
 session window and input on its GUI thread. Workers must not create, destroy or

@@ -2,13 +2,25 @@
 set -euo pipefail
 source_root=$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)
 build_root=${PLANK_QT_SESSION_TEST_BUILD:?Set a dedicated Qt-session test build directory}
+: "${PLANK_CLIENT_FFMPEG_WORK:?Set the retained private Client FFmpeg work directory}"
+ffmpeg_source="$PLANK_CLIENT_FFMPEG_WORK/ffmpeg-9.0.1"
+patch="$source_root/apps/client/app/deploy/linux/ffmpeg-patches/0001-hevc-enable-hwaccel-for-identity-gbr.patch"
+git -C "$ffmpeg_source" apply --reverse --check "$patch"
+export PKG_CONFIG_PATH="$PLANK_CLIENT_FFMPEG_WORK/install/lib/pkgconfig${PKG_CONFIG_PATH:+:$PKG_CONFIG_PATH}"
+test "$(pkg-config --variable=prefix libavutil)" = "$PLANK_CLIENT_FFMPEG_WORK/install"
 qmake=${QMAKE:-qmake6}
-mkdir -p "$build_root/tests" "$build_root/probe"
+mkdir -p "$build_root/tests" "$build_root/video-tests" "$build_root/probe"
 (
     cd "$build_root/tests"
     "$qmake" "$source_root/apps/client/tests/qtsession/qtsession.pro"
     make -j"${PLANK_BUILD_JOBS:-4}"
     QT_QPA_PLATFORM=offscreen QT_QUICK_BACKEND=software ./qtsession
+)
+(
+    cd "$build_root/video-tests"
+    "$qmake" "$source_root/apps/client/tests/qtvideo/qtvideo.pro"
+    make -j"${PLANK_BUILD_JOBS:-4}"
+    ./qtvideo
 )
 (
     cd "$build_root/probe"

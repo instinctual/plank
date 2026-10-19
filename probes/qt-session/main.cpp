@@ -1,6 +1,7 @@
 #include "sessionwindow.h"
 #include "sessionshell.h"
 #include "precisioncheck.h"
+#include "videoprecisioncheck.h"
 
 #include <QCommandLineParser>
 #include <QGuiApplication>
@@ -24,6 +25,7 @@ int main(int argc, char** argv)
     parser.addOption({QStringLiteral("screen"), QStringLiteral("Output index (0-based)"), QStringLiteral("index"), QStringLiteral("0")});
     parser.addOption({QStringLiteral("quit-after"), QStringLiteral("Exit after this many seconds (0 disables)"), QStringLiteral("seconds"), QStringLiteral("0")});
     parser.addOption({QStringLiteral("precision-check"), QStringLiteral("Require and test an actual 10-bit OpenGL framebuffer; exits with pass/fail")});
+    parser.addOption({QStringLiteral("video-precision-check"), QStringLiteral("Exercise the real video shader with exact packed GPU textures (not hardware decoding)")});
     parser.addOption({QStringLiteral("native-child"), QStringLiteral("Put the Qt surface inside a normally decorated Qt raster shell")});
     parser.addOption({QStringLiteral("roundtrip"), QStringLiteral("Qualification only: toggle fullscreen/windowed four times before the precision check")});
     parser.addOption({QStringLiteral("snapshot"), QStringLiteral("Save the synthetic toolbar UI for review (not a precision test)"), QStringLiteral("path")});
@@ -33,11 +35,13 @@ int main(int argc, char** argv)
     const int timeout = parser.value("quit-after").toInt(&validTimeout);
     if (!validScreen || screen < 0 || screen >= app.screens().size() ||
             !validTimeout || timeout < 0 || timeout > 3600 ||
-            (parser.isSet("roundtrip") && !parser.isSet("precision-check"))) {
+            (parser.isSet("roundtrip") && !parser.isSet("precision-check") && !parser.isSet("video-precision-check")) ||
+            (parser.isSet("precision-check") && parser.isSet("video-precision-check"))) {
         qCritical("Invalid screen/timeout, or roundtrip used without precision-check");
         return 2;
     }
-    if (parser.isSet("precision-check")) QQuickWindow::setGraphicsApi(QSGRendererInterface::OpenGL);
+    if (parser.isSet("precision-check") || parser.isSet("video-precision-check"))
+        QQuickWindow::setGraphicsApi(QSGRendererInterface::OpenGL);
     std::unique_ptr<QtSessionShell> shell;
     std::unique_ptr<QtSessionWindow> standalone;
     if (parser.isSet("native-child")) shell = std::make_unique<QtSessionShell>();
@@ -79,6 +83,7 @@ int main(int argc, char** argv)
         });
     }
     if (parser.isSet("precision-check")) runQtFramebufferPrecisionCheck(window);
+    if (parser.isSet("video-precision-check")) runQtVideoPrecisionCheck(window);
     if (parser.isSet("fullscreen")) topLevel->showFullScreen();
     else topLevel->show();
     if (parser.isSet("roundtrip")) {
@@ -86,6 +91,7 @@ int main(int argc, char** argv)
             QTimer::singleShot(step * 300, &window, &QtSessionWindow::toggleFullscreen);
     }
     updateGeometry();
-    if (timeout && !parser.isSet("precision-check")) QTimer::singleShot(timeout * 1000, &app, &QGuiApplication::quit);
+    if (timeout && !parser.isSet("precision-check") && !parser.isSet("video-precision-check"))
+        QTimer::singleShot(timeout * 1000, &app, &QGuiApplication::quit);
     return app.exec();
 }

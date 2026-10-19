@@ -15,6 +15,12 @@ Persistent-tablet Host integration is included; the independent CUDA candidate
 is not. Canonical checkout's separate PKG-only edits and other branches are
 untouched.
 
+No Development NUC is currently available. The operator authorized continued
+isolated development/testing and will manually test a usable candidate later.
+The eventual `plank-client-qt` DEB / **PLANK Client Qt** app must co-install with
+the regular Client using separate binary, desktop ID, settings and logs; see
+the plan. Do not deploy over the production Client or contact stale test targets.
+
 Read [the plan](docs/development/plans/ubuntu-qt-session.plan). The initial Qt
 window/input/toolbar component is isolated from shipping `app.pro`, and has no
 transport or decoder dependency. Validated root `2b1123a` / Client `dedab3ef`
