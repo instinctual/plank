@@ -17,6 +17,7 @@ qmake_flags=()
 case ${PLANK_QT_SESSION_SANITIZERS:-0} in
     0) ;;
     1) qmake_flags+=(CONFIG+=debug
+        'QMAKE_CFLAGS+=-fsanitize=address,undefined -fno-omit-frame-pointer'
         'QMAKE_CXXFLAGS+=-fsanitize=address,undefined -fno-omit-frame-pointer'
         'QMAKE_LFLAGS+=-fsanitize=address,undefined') ;;
     *) echo 'PLANK_QT_SESSION_SANITIZERS must be 0 or 1' >&2; exit 2 ;;
@@ -49,7 +50,7 @@ mkdir -p "$build_root/tests" "$build_root/video-tests" "$build_root/pool-tests" 
     cd "$build_root/pool-tests"
     "$qmake" "$source_root/apps/client/tests/plvkframepool/plvkframepool.pro" "${qmake_flags[@]}"
     make -j"${PLANK_BUILD_JOBS:-4}"
-    ./plvkframepool
+    timeout 120 ./plvkframepool
 )
 (
     cd "$build_root/probe"
