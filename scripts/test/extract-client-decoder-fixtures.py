@@ -11,7 +11,7 @@ parser.add_argument("output", type=pathlib.Path)
 args = parser.parse_args()
 args.output.mkdir(parents=True, exist_ok=True)
 video = args.client / "app/streaming/video"
-for filename in ("ffmpeg_videosamples.cpp", "applevideo-test-frame.h"):
+for filename in ("ffmpeg-testframes.h", "applevideo-test-frame.h"):
     source = (video / filename).read_text()
     for name, body in re.findall(r"\b(k_\w+TestFrame)\[[^]]*\]\s*=\s*\{(.*?)\};", source, re.S):
         if "AV1" in name:

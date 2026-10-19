@@ -837,10 +837,9 @@ rg -Fq 'params.enableFramePacing = false;' \
 }
 echo "client_frame_pacing_preference_absence_gate=pass"
 
-# The speed candidate keeps the accepted system-memory allocator as its
-# default and exposes two developer-only alternatives through an environment
-# selector. The mapped allocator is the measured reference experiment. The
-# host-import allocator preserves cacheable FFmpeg reference frames while
+# Prefer the pooled host-import allocator on capable devices; keep the mapped
+# and system-memory fallbacks and developer-only selector. Host import
+# preserves cacheable FFmpeg reference frames while
 # importing their allocations as Vulkan transfer buffers, avoiding the Intel
 # driver's CPU linear-to-tiled upload path.
 for required_frame_allocator_token in \
@@ -856,7 +855,8 @@ for required_frame_allocator_token in \
   'Using persistently mapped Vulkan decode buffers'; do
   rg -Fq "$required_frame_allocator_token" \
     "$source_dir/app/streaming/video/ffmpeg-renderers/plvk.cpp" \
-    "$source_dir/app/streaming/video/ffmpeg-renderers/plvk.h" || {
+    "$source_dir/app/streaming/video/ffmpeg-renderers/plvk.h" \
+    "$source_dir/app/streaming/video/ffmpeg-renderers/plvkframepool.cpp" || {
     echo "Vulkan frame-allocator invariant is missing: ${required_frame_allocator_token}" >&2
     exit 1
   }

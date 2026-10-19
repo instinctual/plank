@@ -32,7 +32,7 @@ for variant in production qt; do
         ./clientidentity
     )
 done
-mkdir -p "$build_root/tests" "$build_root/video-tests" "$build_root/probe"
+mkdir -p "$build_root/tests" "$build_root/video-tests" "$build_root/pool-tests" "$build_root/probe"
 (
     cd "$build_root/tests"
     "$qmake" "$source_root/apps/client/tests/qtsession/qtsession.pro" "${qmake_flags[@]}"
@@ -44,6 +44,12 @@ mkdir -p "$build_root/tests" "$build_root/video-tests" "$build_root/probe"
     "$qmake" "$source_root/apps/client/tests/qtvideo/qtvideo.pro" "${qmake_flags[@]}"
     make -j"${PLANK_BUILD_JOBS:-4}"
     ./qtvideo
+)
+(
+    cd "$build_root/pool-tests"
+    "$qmake" "$source_root/apps/client/tests/plvkframepool/plvkframepool.pro" "${qmake_flags[@]}"
+    make -j"${PLANK_BUILD_JOBS:-4}"
+    ./plvkframepool
 )
 (
     cd "$build_root/probe"
