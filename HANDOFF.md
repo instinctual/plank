@@ -41,7 +41,12 @@ test-only library-cache cleanup, not a leak suppression or a production
 checks actual 1024- and 4096-frame graph requests; producer backpressure must
 allow one graph request plus reserve rather than deadlocking a large-quantum
 device behind a fixed 50ms limit. The prior in-flight run is superseded before
-packaging; no .049 artifact has been accepted or installed.
+packaging; no .049 artifact has been accepted or installed. Run 39374176521
+passed the revised audio tests, real 1024/4096-frame playback, all sanitizer
+checks, and both full Client links. The new backend-object assertion then used
+`app/pipewire.o` instead of qmake release's `app/release/pipewire.o`. Correct the
+gate and retain explicit failure messages; this was a CI-path mistake, not a
+compile failure. Packaging is still pending.
 
 ### Accepted follow-up — hide startup decoder test images
 

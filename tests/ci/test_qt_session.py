@@ -39,6 +39,8 @@ class QtSessionWorkflowTests(unittest.TestCase):
                      'hardware_acceptance=not-performed'):
             self.assertIn(gate, script)
         self.assertNotIn('build-client-deb.sh', script)
+        self.assertIn('test -f app/release/pipewire.o', script)
+        self.assertIn('test ! -f app/release/sdlaud.o', script)
         runner = (ROOT / 'scripts/test/run-qt-session-tests.sh').read_text()
         self.assertIn('qtsoftwarevideo.pro', runner)
         self.assertIn('pipewireaudio.pro', runner)

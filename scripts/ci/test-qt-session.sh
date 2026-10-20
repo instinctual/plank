@@ -65,8 +65,14 @@ mkdir -p "$PLANK_WORK_ROOT/qt-runtime-build"
         "QMAKE_CFLAGS+=$PLANK_C_FILE_FLAGS" "QMAKE_CXXFLAGS+=$PLANK_C_FILE_FLAGS"
     make -j"$(nproc)"
     # Qt playback must not quietly fall back to the legacy SDL renderer.
-    test -f app/pipewire.o
-    test ! -f app/sdlaud.o
+    test -f app/release/pipewire.o || {
+        echo 'Missing native playback object: app/release/pipewire.o' >&2
+        exit 1
+    }
+    test ! -f app/release/sdlaud.o || {
+        echo 'Unexpected legacy playback object: app/release/sdlaud.o' >&2
+        exit 1
+    }
     QT_QPA_PLATFORM=offscreen timeout 20 app/plank-client-qt --version
 ) 2>&1 | tee "$reports/qt-runtime-build.log"
 PLANK_QT_CLIENT_BINARY="$PLANK_WORK_ROOT/qt-runtime-build/app/plank-client-qt" \
