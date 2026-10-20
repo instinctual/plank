@@ -6,57 +6,56 @@ notes, never in Git.
 
 ## Current work — Ubuntu Qt session experiment
 
-### .052 in progress — useful windowed size and configured first exposure
+### .052 ready for manual testing — windowed size and fullscreen restore
 
-The operator accepts .051's spacing, then requests a larger normal window,
-restore of manual resizing across fullscreen toggles and removal of the small
-window preview before fullscreen. The accepted policy keeps the image
-proportional, not a hard window-shape constraint during native Wayland dragging.
-The Qt shell now prepares an aspect-matched normal size within 80% of available
-logical screen space and leaves placement to GNOME. The shell retains normal
-content size and restores it once after a fullscreen exit is acknowledged.
-The child waits for the shell's configured
-exposure before showing; explicit hide/minimize cleanup and .050's covered-parent
-policy remain. No Host resolution request, new persistent setting or render
-scaling change. The ordinary Client and both Hosts are unchanged.
+The operator accepts .051's spacing and requests a useful normal window,
+retention of manual resizing across fullscreen toggles and no small-window
+preview before initial fullscreen. The Qt shell prepares an aspect-matched
+normal size within 80% of the available logical width/height; GNOME controls
+placement. Manual resizing is free-form with proportional video/letterboxing,
+not a hard window-shape constraint or a new Host resolution request.
 
-Focused tests cover initial aspect/size, fractional logical coordinates,
-first-fullscreen geometry and repeated manual resize/restore. Native resources
-are created while hidden in normal state to seed Qt's own restore geometry.
-Initial fullscreen drawing additionally waits for the selected screen's actual
-logical fullscreen dimensions. Child showing is queued after native event
-delivery, rechecking geometry/visible/exposed/minimized state. Visibility changes also cover backends that
-remain exposed while minimized. No arbitrary timing delay or resize loop.
+Hidden native creation retains the selected output. Initial raster painting
+and child showing wait for that output's actual fullscreen geometry: GNOME
+can expose a normal configure before its separate fullscreen configure.
+Normal content size is saved before entering fullscreen and restored once
+after the native normal-state event recreates decorations. Qt Wayland's own
+restore could otherwise subtract the border/title-bar dimensions each time.
+No fixed border offsets, timing delay, resize loop or private Wayland API.
+Explicit hide/minimize cleanup and .050's covered-parent policy remain.
 
-Three hosted failures caught missing initial restore geometry, minimize/restore
-visibility and real GNOME's expose-before-final-size ordering. Tests also had
-to await actual glyph rendering and input-release delivery rather than assume
-that geometry/source property changes meant those events had completed. Keep
-the first-show, restored-size, rendered-glyph and input-release assertions.
-Evidence for runs39482562087,39483520109,39484372569 is retained under
-`artifacts/qualification/ubuntu-qt-session-1.1.052/attempt-{1,2,3}/`.
-The corrected hosted build/compositor/sanitizer/package gates are pending;
-no failed run produced an installer.
-Run39485642618 passes 53 GNOME window/UI cases but still exposes the smaller
-initial child. Diagnostic run39486876615 establishes the actual sequence:
-GNOME first sends a normal configure, then a separate fullscreen configure;
-the child maps between them. Queueing alone cannot solve that. The shell now
-defers initial raster painting and child showing until fullscreen dimensions
-arrive; subsequent manual resizing remains free-form. Preserve the exact first-show
-assertion. Retain `attempt-4/` and `attempt-5/` evidence; temporary verbose
-test logging is removed. No hardcoded size, timer, native Wayland manipulation,
-Host change or relaxed package gate.
-Hidden creation can also reselect a virtual sibling based on the default
-position. Restore the explicitly selected screen before requesting fullscreen;
-add a separate two-output GNOME gate covering different monitor dimensions.
-Run39488101113 was superseded before packaging to include that regression check.
-Run39488450218 passes first-fullscreen exposure but catches Qt Wayland restoring
-1530x615 rather than the requested 1536x648 content area: the difference is its
-window decoration margins. Retain `attempt-6/`. The shell now saves normal content
-size before fullscreen and restores it once on the native normal-state event,
-after decorations have returned. Do not replace this with hardcoded margins or
-relax the repeated manual-size assertion. The corrected hosted gates are pending.
-See the Qt plan for scope. No remote installation, merge or release authorized.
+Hosted run39490258526 passes 55 window/UI cases at both 100% and 125%, separate
+two-monitor selection, offscreen and ASan/UBSan/leak checks, isolated PipeWire
+tests, all synthetic precision/import gates, both complete Client builds,
+three launcher/shutdown cycles, 14 package fixtures and finished-DEB checks.
+Real GPU handoff remains explicitly skipped on software-only drivers; this is
+not fresh Intel decode, live stream, input or acoustic acceptance. The windowed
+snapshot has no live frame and is not a visual-session qualification.
+
+Exact **1.1.052-ubuntu-qt-session** candidate:
+
+- Parent `aaa1482aa58c9650653750e12595c91c79afd97e`.
+- Client `ab38aa1fe9264d7440f3f4bad515f98c2c1a4c44`.
+- Client common-C `437be9a0a4d164efdf9ed20dc6dd5a2b7b9edc90`; qmdnsengine `920c097ffa742e2968290f15d4dde6693aec02e5`.
+- Unchanged Linux Host `65dc0f1be60fe78d0457364f83813118c70bc8a8`; kymux `3f7a9d8618978287186e5d6ce0eaa067743cb06c`.
+- [Successful hosted run39490258526](https://github.com/instinctual/plank/actions/runs/39490258526).
+- Package: `artifacts/packages/candidates/1.1.052-ubuntu-qt-session/linux/plank-client-qt_1.1.052-ubuntu-qt-session_amd64.deb`.
+- Size: 17,159,020 bytes; SHA-256 `61218d071c0f39d82fbd031aac13c3adf366ed6c9422670528aa64bb2496f697`.
+- Packaged executable SHA-256 `2488062947b2adc4d7f6d80e7cb08f0982d2e79ca6edaa4864fbbd09b2292711`.
+- Reports: `artifacts/qualification/ubuntu-qt-session-1.1.052/final/`.
+
+Package checksum, metadata, provenance and executable hash are independently
+verified after download. Earlier failed-run evidence remains in `attempt-1/`
+through `attempt-6/`; no failing run produced an installer. Those runs caught
+initial configure ordering, normal-size restoration and minimize behavior, plus
+fixtures that needed to await real glyph/input-event delivery. The final tests
+retain those assertions. Dependency caches were used; no checks were relaxed.
+
+Next: manually test initial fullscreen, first windowed exit, arbitrary resize,
+repeated toggles, toolbar and input alignment. Position is GNOME-controlled;
+video must remain proportional and the Host mode unchanged. This remains the
+separately installable Qt Client; ordinary Client, both Hosts and native PipeWire
+behavior are unchanged. No remote installation, merge or release was performed.
 
 ### .051 accepted — compact toolbar
 

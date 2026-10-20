@@ -61,6 +61,9 @@ For `ubuntu-qt-session`, use
 Ubuntu 26.04 job shares the verified Client dependency caches/bootstrap, builds
 the isolated Qt components, and runs co-installation fixtures, normal/sanitized
 tests and a private headless GNOME compositor at 100% and forced 125% scale.
+It also checks selected-output retention on two differently sized virtual
+monitors. Fullscreen startup and normal content-size restoration must pass
+without treating a requested window state as proof of completed native sizing.
 Toolbar tests and the standalone probe must select the real launcher's Material
 Dark/Dense style. Default-style screenshots missed inherited edge padding that
 squeezed the production toolbar icons; keep explicit content-size, rendered

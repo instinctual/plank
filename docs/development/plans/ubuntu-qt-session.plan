@@ -42,6 +42,13 @@ hosted GNOME compositor at 100%/125% and with sanitizers, then hand the candidat
 to the operator for visual startup/windowed acceptance. Both Hosts, ordinary
 Client, native PipeWire and transport behavior are unchanged.
 
+Candidate .052 passes hosted run39490258526: 55 window/UI cases at both scales,
+the separate two-monitor fixture, sanitizer/component checks, both complete
+Client builds and package isolation. First-fullscreen geometry and repeated
+normal content-size retention are checked without relaxing the assertions.
+The exact DEB is downloaded and checksum/provenance verified. See HANDOFF for
+sources and evidence; operator visual/live-session acceptance is still pending.
+
 ## Compact toolbar follow-up
 
 Keep the accepted borderless vector icons, 32x32 click targets and 39px toolbar
