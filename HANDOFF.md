@@ -27,8 +27,33 @@ New controlled-feedback tests exercise qualification, live readiness,
 cancellation and generation replacement; the compositor's exact-pixel fixture
 checks black concealment and immediate unchanged live rendering for all nine
 existing format/crop/filter cases. Concealment must still reject an RGB8
-substitution for a ten-bit target. Hosted validation/build is pending.
-No deployment, merge or release is authorized for this candidate.
+substitution for a ten-bit target. Hosted run 39358327903 passed on its first
+attempt. All nine presenter cases passed normally and with ASan/UBSan; all
+40 window/input cases passed offscreen, with sanitizers and on GNOME/Wayland
+at 100%/125%. The compositor passed 72 conceal/reveal pixel scenarios across
+both scales and window modes, retaining the ten-bit target rejection gates.
+Both complete Client builds, ordinary Client preflight, three Qt launcher
+cycles, 14 package fixtures and finished-package gates passed. The downloaded
+DEB has no file overlap with the retained ordinary 1.1.039 Client. Hosted Mesa's
+external-memory/semaphore handoff is still an explicit skip, not Intel hardware
+acceptance. Dependency restore/verification/bootstrap took 21 seconds; the
+combined component and complete-build step took 14m29 of the 17-minute job.
+
+Exact **1.1.048-ubuntu-qt-session** package sources and evidence:
+
+- Parent `e3ef63836b470ce248c90a3e038bfdb73b7ba668`.
+- Client `68cabc025b8f0d4a0a741ab0d0c9a46e5180b299`.
+- Successful [GitHub-hosted run 39358327903](https://github.com/instinctual/plank/actions/runs/39358327903).
+- Package: `artifacts/packages/candidates/1.1.048-ubuntu-qt-session/linux/plank-client-qt_1.1.048-ubuntu-qt-session_amd64.deb`.
+- SHA-256: `acd7fe7ad61a82133a43e8bf70d59b43a6895087c536a5bce3f02a229b341dc4`.
+- Packaged executable SHA-256: `6563b41c087926c15db0c73a86726710c8e7f4ccebb3b2764193ef424c4ef205`.
+- Retained reports: `artifacts/qualification/ubuntu-qt-session-1.1.048/`.
+
+The next operator check is repeated connection/reconnection: no blue test image,
+Connecting remains visible until real Host video, and playback/input start
+normally. Existing interruption, profile, audio and camera/microphone gates
+remain separate. Both source commits are pushed on `ubuntu-qt-session`; no
+remote installation, Host update, merge or release was performed.
 
 ### Current follow-up — borderless, consistently sized toolbar icons
 
