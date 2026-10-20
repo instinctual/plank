@@ -19,7 +19,12 @@ Changing telemetry must not move the slider or control hit regions.
 Regression coverage adds integer/boundary/invalid RTT checks and all four
 microphone/camera visibility combinations, alongside existing real Material
 glyph, hit-target and fullscreen/hide/restore checks at 100%/125% scaling.
-Validation and the GitHub-hosted candidate build are pending. Both Hosts,
+The first hosted run passed spacing, visibility, icon and hit-target tests,
+but the RTT fixture incorrectly changed from UINT_MAX to signed -1, which
+QVariant compares equal under integer promotion. Use -1.0 for that distinct
+negative test value; production telemetry stays unsigned and no product code
+or assertion is weakened. No installer was produced. The corrected hosted
+candidate build is pending. Both Hosts,
 ordinary Client and native PipeWire behavior are unchanged. No remote install,
 merge or release is authorized by this task.
 
