@@ -32,6 +32,16 @@ fullscreen/windowed and hide/minimize/restore cycles, plus repeated actual
 HEVC VA-API qualification with silent audio setup/teardown on hardware.
 Real-session and acoustic acceptance remain separate.
 
+The .050 hosted candidate now passes all gates, including 41 window/input
+cases on GNOME at 100%/125%, offscreen/sanitizer coverage, both complete builds
+and package isolation. The final hosted probe passes 24 actual HEVC VA-API
+startup generations on the authorized Intel Client, split between fullscreen
+with silent PipeWire and windowed without audio. GPU precision/import and 120
+Vulkan/GL ownership handoffs pass through fullscreen/windowed transitions.
+An earlier same-binary A/B reproduces the failure when the old timeout is
+explicitly restored. No Host update or package installation was performed.
+See HANDOFF for exact sources, hashes and remaining live-session/listening gates.
+
 Primary references:
 
 - https://raw.githubusercontent.com/qt/qtbase/v6.10.2/src/plugins/platforms/wayland/qwaylandwindow.cpp

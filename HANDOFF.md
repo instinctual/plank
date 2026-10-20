@@ -6,7 +6,7 @@ notes, never in Git.
 
 ## Current work — Ubuntu Qt session experiment
 
-### .050 candidate — covered Wayland parent stops video presentation
+### .050 ready for manual testing — covered-parent presentation repair
 
 The .049 failure is reproduced on the authorized Intel Client without a Host
 connection, including with no audio stream. Exact-format decoding succeeds,
@@ -29,26 +29,48 @@ It disables the timeout heuristic, not frame callbacks or swap pacing; normal
 hide/minimize handling and the two-second exact-format gate remain. The
 native-child design still avoids Qt's RGB8 decoration framebuffer. New tests
 exercise sustained rendering, fullscreen/windowed changes and hide/restore.
-The first .050 hosted run39383795276 compiled and passed existing component
-tests, but its new compositor regression caught a stale child exposed flag
-after hiding the parent. The shell now explicitly mirrors hide/minimize and
-restore to the child, matching its existing explicit show ownership. Do not
-weaken the test or rely on the disabled timeout to retire hidden surfaces.
-The next run39384596337 passed the hide/fullscreen portions but caught that
-programmatic minimization does not deliver the assumed WindowStateChange event.
-The final implementation uses QWindow's public visibilityChanged signal for
-show/hide/minimize/restore, with the child as connection-lifetime context.
-The ordinary offscreen lifecycle test now also asserts child visibility.
-Compilation/package gates and the compiled hardware rerun are pending; the
-successful diagnostic A/B is not yet full live-session or audio-soak acceptance.
+The first two hosted runs caught a stale child exposed flag after hiding its
+parent, then an incorrect assumption that programmatic minimize delivers a
+WindowStateChange event. The final shell uses QWindow's public visibilityChanged
+signal for show/hide/minimize/restore, with the child as connection-lifetime
+context. Both offscreen visibility and real-compositor swap assertions remain.
+Neither failed run produced an installer; their evidence is retained.
 
-Diagnostic source: parent `c959156c86f525da4e49c3303ce7a11754d35599`,
-Client `6530fb778d57143a5a394fd70ba2b918e196e198`; successful hosted tests-only
-run 39380402684. Evidence:
-`artifacts/qualification/ubuntu-qt-startup-20261019/diagnostics-c959156/`.
-Next: build .050 through `linux-client-qt`, verify the downloaded package,
-rerun its standalone hardware probe, then ask the operator to install/test.
-No merge or release.
+Hosted run39385477049 passes both complete Client builds, all component tests,
+ASan/UBSan/leak checks, 41 compositor cases at 100%/125%, ten-bit precision and
+RGB8-rejection gates, three full-launcher cycles, 14 package fixtures and the
+finished-DEB checks. The Wayland-only swap test is explicitly skipped offscreen
+and under offscreen sanitizers, not counted as passed there. Real isolated
+PipeWire daemon tests pass separately from the deterministic audio tests.
+Downloaded archive/provenance/checksums are verified. Read-only archive
+inspection independently confirms no payload-file overlap with ordinary1.1.039.
+
+The final hosted standalone probe also passes 12 fullscreen HEVC VA-API starts
+with silent PipeWire and 12 windowed starts without audio on the authorized
+Intel Client, with no timeout environment override. Fullscreen/windowed
+roundtrips pass all nine shader/import/conceal cases, RGB8 rejection and 120
+real Vulkan/GL ownership handoffs. Earlier diagnostic A/B also verifies all1024
+RGB/gray framebuffer levels. These are hardware component checks, not a live
+Host connection or audible A/V soak. The temporary probe is removed and SSH
+closed; no package or system setting was installed/changed.
+
+Exact **1.1.050-ubuntu-qt-session** package:
+
+- Parent `eb6d33690df388666b852455f8a51152f63269c5`.
+- Client `730acdd5d6808f7efe9fedf3b7b74db28b40386a`.
+- Client common-C `437be9a0a4d164efdf9ed20dc6dd5a2b7b9edc90`; qmdnsengine `920c097ffa742e2968290f15d4dde6693aec02e5`.
+- Unchanged Linux Host `65dc0f1be60fe78d0457364f83813118c70bc8a8`; kymux `3f7a9d8618978287186e5d6ce0eaa067743cb06c`.
+- [Successful hosted run39385477049](https://github.com/instinctual/plank/actions/runs/39385477049).
+- Package: `artifacts/packages/candidates/1.1.050-ubuntu-qt-session/linux/plank-client-qt_1.1.050-ubuntu-qt-session_amd64.deb`.
+- Size: 17,154,160 bytes; SHA-256 `9c788ad5c8031aa5bbbed9b5ea462c90e9c8f987470360e04e3a4d09aff64ac3`.
+- Packaged executable SHA-256 `9ef85983f78741f91de8689088350c3956d2fbc6f670b8b0f7d4d9feb140feff`.
+- Reports: `artifacts/qualification/ubuntu-qt-session-1.1.050/final/`; earlier failed gates in `attempt-1/` and `attempt-2/`.
+- Final standalone probe SHA-256 `94270f0a54293e9a80f1f74f2f10ebe563d17271cbcd32e84b4444825eec9cf0`.
+
+Next: operator installs .050, restarts PLANK Client Qt and reconnects to the
+unchanged Host. Verify startup/reconnect, fullscreen/windowed/minimize/restore,
+then resume real-output crackle and long A/V-sync testing. Native PipeWire is
+retained; ordinary Client and both Hosts are unchanged. No merge or release.
 
 ### Candidate ready — direct PipeWire playback in Qt only
 
