@@ -12,6 +12,14 @@ int main()
     policy.allowUntil(120000); // Explicit Keep Waiting.
     assert(policy.allowsRequest(90000));
     assert(!policy.allowsRequest(120000));
+    policy.allowContinuously();
+    for (uint64_t now : {0ULL, 14999ULL, 15000ULL, 30000ULL, 60000ULL, 86400000ULL})
+        assert(policy.allowsRequest(now));
+    policy.allowUntil(0); // Explicit disconnect, even during automatic recovery.
+    assert(!policy.allowsRequest(86400000));
+    policy.allowUntil(90015000); // Next session may opt into auto-disconnect.
+    assert(policy.allowsRequest(90014999));
+    assert(!policy.allowsRequest(90015000));
     for (int status : {400, 403, 404, 423}) {
         assert(PlankReconnectPolicy::terminalStatus(status, true));
         assert(PlankReconnectPolicy::terminalStatus(status, false));

@@ -6,7 +6,7 @@ notes, never in Git.
 
 ## Current work — Ubuntu Qt session experiment
 
-### Current follow-up — toolbar labels and icons
+### Current follow-up — toolbar labels, icons and automatic recovery
 
 The operator accepts .045's windowed toolbar interaction. They request the
 regular Client's two-row stats layout and recognizable pin/fullscreen icons.
@@ -18,16 +18,34 @@ colors and three-decimal precision are unchanged.
 Bundled SVG resources replace the repaint-dependent Canvas pin and literal
 square fullscreen character. Pin changes between upright/slashed; fullscreen
 corners point outward or inward based on the top-level shell's actual state.
-Qt SVG support is already a package dependency. No hover, input forwarding,
-video, Wacom or Host policy changes are added. New tests check actual rendered
+Qt SVG support is already a package dependency. No hover, video, Wacom or Host
+policy changes are added. New tests check actual rendered
 icon pixels, resource/state changes, hide/reveal, native window transitions,
 stacked label geometry, stable control positions and no remote click leakage.
 Hosted build/package qualification is pending; no new artifact or deployment
 is claimed yet. The first .046 run stopped before compilation because the
 new Image component assigned its read-only implicit size. A fixed-size Item
 now owns the vector image, and the new tests guard QML loading before accessing
-the scene. Requalify the same candidate; no package came from that failed run.
+the scene. A second run passed QML and stacked geometry, but the icon fixture
+required fully white pixels from thin antialiased strokes. Its foreground
+contrast test still rejects the dark button background and now accepts those
+valid edge pixels. Offscreen UI evidence is also retained for inspection.
+No package came from either failed run. Requalify the same candidate.
 Continue on the existing `ubuntu-qt-session` branches.
+
+The operator also authorized automatic recovery after a cable interruption.
+Read-only inspection confirmed that .045's Ask deadline paused retry requests,
+even after the network returned. The Qt frontend now treats that timeout as a
+notice deadline, not a retry deadline. It shows a Disconnect-only status dialog
+while continuing the established bounded/delayed recovery loop. Successful
+reconnection clears the notice and restores current input geometry without a
+button press. Explicit auto-disconnect still uses its deadline. Authentication
+denial, changed Host identity and active-session takeover remain terminal; no
+new password retry policy or silent takeover is introduced. The regular Client
+and macOS keep their current policy. Qt preferences describe the new behavior.
+Added checks cover continuous/bounded request gating, revocation, terminal
+errors, a single local Disconnect action, cursor visibility and automatic
+notice removal/input restoration. Live cable-loss acceptance remains pending.
 
 ### Accepted windowed toolbar access and separate ghost-cursor investigation
 

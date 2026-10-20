@@ -24,7 +24,9 @@ cd "$PLANK_SOURCE_ROOT"
     echo 'software_gpu_only=true hardware_acceptance=not-performed live_session=not-qualified'
 } > "$reports/source.txt"
 python3 tests/packaging/test-client-qt-package.py 2>&1 | tee "$reports/coinstall.log"
-bash scripts/test/run-qt-session-tests.sh 2>&1 | tee "$reports/components.log"
+mkdir -p "$reports/offscreen"
+PLANK_QT_UI_REPORT_DIR="$reports/offscreen" \
+    bash scripts/test/run-qt-session-tests.sh 2>&1 | tee "$reports/components.log"
 PLANK_QT_COMPOSITOR_REPORT="$reports/gnome.log" PLANK_QT_CHECK_PRECISION=1 PLANK_QT_UI_REPORT_DIR="$reports" \
     bash scripts/test/run-qt-session-compositor.sh 2>&1 | tee "$reports/compositor.log"
 QT_SCALE_FACTOR=1.25 PLANK_QT_CHECK_PRECISION=1 PLANK_QT_UI_REPORT_DIR="$reports" \

@@ -16,6 +16,28 @@ def between(text, start, end):
 
 
 class ReconnectPresentation(unittest.TestCase):
+    def test_qt_wait_notice_does_not_pause_recovery(self):
+        runtime = (source / "app/streaming/qt/sessionruntime.cpp").read_text()
+        begin = between(runtime, "void QtSessionRuntime::beginRecovery", "void QtSessionRuntime::setInputEnabled")
+        self.assertIn("PLANK_UNREACHABLE_DISCONNECT", begin)
+        self.assertIn("m_ReconnectPolicy.allowUntil(m_ReconnectNoticeDeadline)", begin)
+        self.assertIn("m_ReconnectPolicy.allowContinuously()", begin)
+        tick = runtime.split("void QtSessionRuntime::tick()", 1)[1]
+        self.assertIn("m_ReconnectNoticeDeadline = 0;", tick)
+        self.assertIn("setWaiting(true)", tick)
+        self.assertNotIn("m_ReconnectPolicy", tick)
+        ready = between(runtime, "void QtSessionRuntime::setStreaming", "void QtSessionRuntime::updateGeometry")
+        self.assertIn("m_ReconnectNoticeDeadline = 0;", ready)
+        self.assertIn("setWaiting(false)", ready)
+        self.assertLess(ready.index("updateGeometry()"), ready.index("setInputEnabled(m_InputGrabbed)"))
+        stop = between(runtime, "void QtSessionRuntime::stop()", "bool QtSessionRuntime::resetDecoder")
+        self.assertIn("m_ReconnectPolicy.allowUntil(0)", stop)
+        self.assertIn("m_ReconnectCancelled.store(true)", stop)
+        surface = (source / "app/streaming/qt/SessionSurface.qml").read_text()
+        self.assertNotIn("Keep Waiting", surface)
+        self.assertNotIn("keepWaiting", runtime)
+        self.assertIn('objectName: "recoveryDisconnectButton"', surface)
+
     def test_retry_gate_covers_all_http_entry_points(self):
         for signature in ("QJsonObject NvHTTP::postPlankJson", "QJsonObject NvHTTP::requestPinnedMacJson",
                           "NvHTTP::openConnection(QUrl"):

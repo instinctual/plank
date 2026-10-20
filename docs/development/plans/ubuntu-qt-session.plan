@@ -15,8 +15,11 @@ its three-pixel trigger. No extra reveal button or custom title bar is added.
 Hosted compilation, compositor tests at 100%/125%, sanitizers and packaging
 passed. The separate Qt DEB is downloaded and the operator confirmed windowed
 reveal works. Current candidate 1.1.046 restores stacked stats and stateful
-pin/fullscreen vector icons without changing that interaction. Its hosted
-qualification/package run is pending. See HANDOFF for exact artifact status.
+pin/fullscreen vector icons without changing that interaction. The operator
+also approved continuous automatic recovery with a Disconnect-only status
+dialog, retaining explicit auto-disconnect and terminal security failures.
+The Qt timeout now reveals a notice rather than pausing retry requests.
+Its hosted qualification/package run is pending. See HANDOFF for exact status.
 
 The longstanding frozen top-left arrow also reproduces with PLANK closed:
 local pen movement clears it, and opening a standard GNOME dialog restores it.
