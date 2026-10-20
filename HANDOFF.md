@@ -6,6 +6,26 @@ notes, never in Git.
 
 ## Current work — Ubuntu Qt session experiment
 
+### Investigating .049 startup failure — not yet fixed
+
+The operator reports .049 failing to connect. Read-only inspection finds
+successful exact-format HEVC hardware decoding and PipeWire initialization,
+followed by a two-second Qt draw/swap qualification timeout. A subsequent
+attempt fails during preflight before transport startup. This is not evidence
+of unsupported HEVC, packet loss or a Host crash. The exact trigger remains
+unproven; do not bypass ten-bit validation or increase the deadline as a fix.
+
+The operator authorizes briefly interrupting the fallback session for targeted
+diagnostics, without installation or Host changes. Temporary graphics logging
+is enabled only in the diagnostic Client process. Private access/state and
+raw evidence remain in the external notes. Source work adds stage-specific
+qualification errors and a standalone hardware presenter lifecycle fixture:
+actual Apple HEVC test decoding, native-child Qt draw/swap feedback, repeated
+generations, and optional silent PipeWire setup/teardown. It never connects to
+a Host or reads credentials. Hosted compilation/tests and the hardware
+reproduction are still pending. This is diagnostic work, not a new accepted
+package or a claimed connection fix.
+
 ### Candidate ready — direct PipeWire playback in Qt only
 
 The operator authorized direct PipeWire integration after read-only inspection

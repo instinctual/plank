@@ -2,6 +2,7 @@
 #include "sessionshell.h"
 #include "precisioncheck.h"
 #include "videoprecisioncheck.h"
+#include "presentercheck.h"
 
 #include <QCommandLineParser>
 #include <QGuiApplication>
@@ -24,11 +25,15 @@ int main(int argc, char** argv)
     qputenv("QT_QUICK_CONTROLS_MATERIAL_VARIANT", "Dense");
     qputenv("QT_QUICK_CONTROLS_MATERIAL_ACCENT", "#5A9CE6");
     QQuickStyle::setStyle(QStringLiteral("Material"));
+    for (int index = 1; index < argc; ++index) {
+        if (QByteArray(argv[index]) == "--presenter-lifecycle-check")
+            qputenv("QSG_RENDER_LOOP", "basic"); // match the actual Client
+    }
     QGuiApplication app(argc, argv);
     QCoreApplication::setApplicationName(QStringLiteral("PLANK Qt session probe"));
     QCommandLineParser parser;
     parser.setApplicationDescription(QStringLiteral(
-        "Isolated Ubuntu Qt surface/input qualification. No network, credentials, audio or tablet forwarding.\n"
+        "Isolated Ubuntu Qt surface/input qualification. No network, credentials or tablet forwarding.\n"
         "Hover at the top for 1 second; unpinned toolbar hides after 5 seconds away.\n"
         "F8 simulates Host unavailability, F11 toggles fullscreen; Escape exits."));
     parser.addHelpOption();
@@ -37,6 +42,8 @@ int main(int argc, char** argv)
     parser.addOption({QStringLiteral("quit-after"), QStringLiteral("Exit after this many seconds (0 disables)"), QStringLiteral("seconds"), QStringLiteral("0")});
     parser.addOption({QStringLiteral("precision-check"), QStringLiteral("Require and test an actual 10-bit OpenGL framebuffer; exits with pass/fail")});
     parser.addOption({QStringLiteral("video-precision-check"), QStringLiteral("Exercise the real video shader with exact packed GPU textures (not hardware decoding)")});
+    parser.addOption({QStringLiteral("presenter-lifecycle-check"), QStringLiteral("Repeat actual VA-API decode/draw/swap qualification; requires a hardware render device")});
+    parser.addOption({QStringLiteral("with-audio"), QStringLiteral("Open and retire silent native PipeWire playback during presenter qualification")});
     parser.addOption({QStringLiteral("native-child"), QStringLiteral("Put the Qt surface inside a normally decorated Qt raster shell")});
     parser.addOption({QStringLiteral("roundtrip"), QStringLiteral("Qualification only: toggle fullscreen/windowed four times before the precision check")});
     parser.addOption({QStringLiteral("snapshot"), QStringLiteral("Save the synthetic toolbar UI for review (not a precision test)"), QStringLiteral("path")});
@@ -46,12 +53,16 @@ int main(int argc, char** argv)
     const int timeout = parser.value("quit-after").toInt(&validTimeout);
     if (!validScreen || screen < 0 || screen >= app.screens().size() ||
             !validTimeout || timeout < 0 || timeout > 3600 ||
+            (parser.isSet("with-audio") && !parser.isSet("presenter-lifecycle-check")) ||
+            (parser.isSet("presenter-lifecycle-check") &&
+             (parser.isSet("precision-check") || parser.isSet("video-precision-check") ||
+              parser.isSet("roundtrip") || timeout)) ||
             (parser.isSet("roundtrip") && !parser.isSet("precision-check") && !parser.isSet("video-precision-check")) ||
             (parser.isSet("precision-check") && parser.isSet("video-precision-check"))) {
         qCritical("Invalid screen/timeout, or roundtrip used without precision-check");
         return 2;
     }
-    if (parser.isSet("precision-check") || parser.isSet("video-precision-check"))
+    if (parser.isSet("precision-check") || parser.isSet("video-precision-check") || parser.isSet("presenter-lifecycle-check"))
         QQuickWindow::setGraphicsApi(QSGRendererInterface::OpenGL);
     std::unique_ptr<QtSessionShell> shell;
     std::unique_ptr<QtSessionWindow> standalone;
@@ -94,6 +105,7 @@ int main(int argc, char** argv)
     }
     if (parser.isSet("precision-check")) runQtFramebufferPrecisionCheck(window);
     if (parser.isSet("video-precision-check")) runQtVideoPrecisionCheck(window);
+    if (parser.isSet("presenter-lifecycle-check")) runQtPresenterLifecycleCheck(window, parser.isSet("with-audio"));
     if (parser.isSet("fullscreen")) topLevel->showFullScreen();
     else topLevel->show();
     if (parser.isSet("roundtrip")) {

@@ -27,6 +27,9 @@ python3 tests/packaging/test-client-qt-package.py 2>&1 | tee "$reports/coinstall
 mkdir -p "$reports/offscreen"
 PLANK_QT_UI_REPORT_DIR="$reports/offscreen" \
     bash scripts/test/run-qt-session-tests.sh 2>&1 | tee "$reports/components.log"
+# Retain the standalone, non-product diagnostic for authorized hardware checks.
+# It contains no credentials and does not connect to a Host.
+cp "$PLANK_QT_SESSION_TEST_BUILD/probe/plank-qt-session-probe" "$reports/"
 PLANK_QT_COMPOSITOR_REPORT="$reports/gnome.log" PLANK_QT_CHECK_PRECISION=1 PLANK_QT_UI_REPORT_DIR="$reports" \
     bash scripts/test/run-qt-session-compositor.sh 2>&1 | tee "$reports/compositor.log"
 QT_SCALE_FACTOR=1.25 PLANK_QT_CHECK_PRECISION=1 PLANK_QT_UI_REPORT_DIR="$reports" \
