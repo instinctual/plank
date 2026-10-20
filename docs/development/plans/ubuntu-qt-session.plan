@@ -38,6 +38,14 @@ package isolation. Real HDMI/USB routing, cable recovery and a long listening/
 A/V-sync soak remain hardware gates; a simulated clock or null sink is not
 acoustic acceptance. Both Hosts and the regular Linux/macOS Client are unchanged.
 
+The .049 candidate is built and downloaded. Hosted run 39375933711 passes
+component tests, real null-sink playback at 1024/4096-frame quanta, repeated
+cleanup, ASan/UBSan with leak detection, both complete Client builds and
+co-installation/package gates. Standalone D-Bus cache cleanup is test-only;
+never shut down process-global D-Bus from the playback renderer. Exact sources,
+hashes and evidence are in HANDOFF. Real-output listening/sync acceptance and
+interruption/device-routing qualification remain open.
+
 ## Previous accepted checkpoint
 
 Status: the live Qt runtime is integrated. The operator accepted the

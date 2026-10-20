@@ -6,7 +6,7 @@ notes, never in Git.
 
 ## Current work — Ubuntu Qt session experiment
 
-### In progress — direct PipeWire playback in Qt only
+### Candidate ready — direct PipeWire playback in Qt only
 
 The operator authorized direct PipeWire integration after read-only inspection
 confirmed actual short output reads in Qt .048: 11 shortages over 45 seconds,
@@ -21,32 +21,50 @@ FFmpeg compensation. A rolling post-pull headroom guard prevents repeated phase
 catch-up from draining the reserve. Startup/recovery primes one graph quantum
 plus 12ms; this is a bounded continuity/latency tradeoff, not free buffering.
 No ordinary Client, Host, microphone, transport or video policy change. See
-the Qt plan for design and tests. Implementation and hosted validation are in
-progress; no candidate, hardware/audio-soak acceptance or deployment is claimed.
-First hosted run 39372097145 passed all 18 audio component cases (including all
-nine real-resampler drift/batching combinations), normal and sanitized; real
-PipeWire playback/failure behavior also passed in both runs with zero reported
-playback underruns. LeakSanitizer then found 20,540 bytes retained through
-context-loaded modules at process exit. Stream teardown is being corrected to
-destroy under the live loop lock and balance PipeWire initialization. Keep leak
-detection enabled; no suppression or acceptance of that result. Normal teardown
-must also not log a false disconnection warning. The failure-log printer uses
-portable `tail -n 100` for Ubuntu's current utilities. Run 39372849293 confirmed
-that behavior passes but the same 20,540-byte report remains. The standalone
-QCoreApplication test now keeps libdbus loaded and calls its documented
-`dbus_shutdown()` after every renderer/thread is destroyed; unlike the real
-GUI, this isolated test previously had no long-lived D-Bus owner. This is
-test-only library-cache cleanup, not a leak suppression or a production
-`dbus_shutdown()` call. Hosted confirmation remains pending. The next run also
-checks actual 1024- and 4096-frame graph requests; producer backpressure must
-allow one graph request plus reserve rather than deadlocking a large-quantum
-device behind a fixed 50ms limit. The prior in-flight run is superseded before
-packaging; no .049 artifact has been accepted or installed. Run 39374176521
-passed the revised audio tests, real 1024/4096-frame playback, all sanitizer
-checks, and both full Client links. The new backend-object assertion then used
-`app/pipewire.o` instead of qmake release's `app/release/pipewire.o`. Correct the
-gate and retain explicit failure messages; this was a CI-path mistake, not a
-compile failure. Packaging is still pending.
+the Qt plan for design and tests. Candidate **1.1.049-ubuntu-qt-session** is
+downloaded and package-verified; hardware/audio-soak acceptance remains open.
+Successful run 39375933711 passed all 19 audio component cases, including nine actual-FFmpeg
+drift/batching combinations and large-quantum startup. Real isolated PipeWire
+playback, repeated destruction and unavailable-server handling passed normally
+and with ASan/UBSan at 1024/4096 frames. Reported playback underruns were zero.
+All existing component/compositor gates, both complete Client builds, three
+full-launcher cycles, 14 package fixtures and the finished-DEB gates passed.
+The earlier run's backend-object check used the wrong qmake path; the corrected
+gate checks `app/release/pipewire.o` and absence of `app/release/sdlaud.o`, with
+explicit error messages. This is a regression-build gate, not proof of live
+Intel hardware decoding or real-output acoustic behavior.
+
+Early leak-check failures came from libdbus globals being unloaded with the
+standalone test's PipeWire modules. The test now retains the library and calls
+its documented `dbus_shutdown()` only after all renderers/threads are gone.
+The sanitized rerun passes with leak detection enabled and no suppressions.
+Never move that global shutdown into the real renderer; other GUI components
+use D-Bus. Stream destruction itself stays synchronized with the live PipeWire
+loop and balances initialization. Producer high-water follows graph quantum
+plus reserve when larger than 50ms, so large devices can actually prime.
+Before/after evidence is retained under the .049 qualification directory.
+
+Exact package sources and retained evidence:
+
+- Parent `239044961b01576ebfbc8358835b0bf128ee33ba`.
+- Client `0e177030034c4e02cbcfa64c0e2f7d3be7153ea1`.
+- Client common-C `437be9a0a4d164efdf9ed20dc6dd5a2b7b9edc90`; qmdnsengine `920c097ffa742e2968290f15d4dde6693aec02e5`.
+- Unchanged Linux Host `65dc0f1be60fe78d0457364f83813118c70bc8a8`; kymux `3f7a9d8618978287186e5d6ce0eaa067743cb06c`.
+- [Successful hosted run 39375933711](https://github.com/instinctual/plank/actions/runs/39375933711).
+- Package: `artifacts/packages/candidates/1.1.049-ubuntu-qt-session/linux/plank-client-qt_1.1.049-ubuntu-qt-session_amd64.deb`.
+- SHA-256: `996fc09f29ea828d3d0d9474334d64bab1b5f92090b4ef8a06c5ad6a76b9f094`.
+- Packaged executable SHA-256: `fe9e806920deafc9e480312472aeb44a7a1b5bf80d65465645fbf1b0d1fe9129`.
+- Reports: `artifacts/qualification/ubuntu-qt-session-1.1.049/final/`; earlier lifecycle/gate evidence is alongside it.
+
+The downloaded archive and binary hashes match the builder. Read-only `ar`/`tar`
+inspection on the Rocky coordinator independently confirms no payload-file
+overlap with the retained ordinary 1.1.039 DEB; Ubuntu's full dpkg namespace and
+disposable-install/purge tests ran in CI. Do not install DEBs on the builder.
+Next: the operator installs .049, restarts PLANK Client Qt and reconnects to the
+unchanged Host. Verify brief crackles, A/V sync over a long real-output soak,
+OS-selected output routing and interruption recovery. Log `PLANK PipeWire
+playback` provides actual shortages, missing frames, headroom and correction.
+No merge, release, remote installation or real-output listening acceptance.
 
 ### Accepted follow-up — hide startup decoder test images
 

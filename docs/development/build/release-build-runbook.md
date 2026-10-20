@@ -320,7 +320,8 @@ Qt candidates from .049 use direct PipeWire playback. The hosted Qt job installs
 PipeWire/WirePlumber for a private null-sink test daemon, not on the retained VM
 or any user's desktop. It runs PCM/clock/drift tests and real stream lifecycle
 tests normally and under sanitizers. The ordinary Client still compiles SDL
-audio; the Qt build must contain `pipewire.o`, not `sdlaud.o`. Preserve the
+audio; the Qt release build must contain `app/release/pipewire.o`, not
+`app/release/sdlaud.o`. Preserve the
 shared private SDL dependency for the remaining non-playback uses. Neither
 daemon tests nor simulated clock drift qualify audible playback/A/V sync:
 require the operator's real-output listening test and long soak afterward.
