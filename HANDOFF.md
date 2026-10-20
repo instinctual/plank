@@ -32,19 +32,16 @@ drags suppress reveal. Added regressions cover dwell/cancellation, shell
 fullscreen transitions, recovery, Pin and released-input fullscreen controls.
 Hosted compositor runs save synthetic UI screenshots at both scales.
 
-Candidate version is **1.1.045-ubuntu-qt-session**. Local 73 CI-policy tests and
-shell/whitespace checks pass. The package fixture passes its four portable
-cases; ten Ubuntu-only cases are explicitly skipped locally. The initial
-button-based run compiled and passed offscreen tests but stopped on an
-unexpected motion assertion in the GNOME button test; it produced no package.
-The hover-only integration fixture now waits for each actual compositor resize
-and a rendered frame before injecting hover. The subsequent run confirmed the
-headless compositor does not activate the shell for keyboard input; hover must
-work independently of keyboard focus, so the fixture checks exposure and
-current presentation geometry instead. It retains the same reveal, waiting,
-Pin, transition and input-leak assertions. The revised solution must pass all
-hosted compilation, compositor/sanitizer tests and packaging before it is recommended.
-No new artifact, hardware acceptance, deployment, merge or release is claimed.
+Candidate **1.1.045-ubuntu-qt-session** passed the hosted build and package
+gates and is downloaded below. All 35 window/input cases pass offscreen, under
+ASan/UBSan with leak detection, and on isolated GNOME/Wayland at 100% and 125%.
+The new hover cases cover cancellation, repeated native fullscreen/windowed
+transitions, recovery, Pin and released-input controls without Host click leakage.
+Earlier attempts stopped in new test fixtures and produced no packages. The
+final fixture waits for actual compositor geometry, exposure and rendering;
+it does not incorrectly require keyboard activation in a headless input seat.
+The original behavioral assertions remain. Synthetic screenshots were inspected
+at both scales. User confirmation of this windowed-toolbar repair is pending.
 
 ### Retained hardware presentation repair
 
@@ -98,6 +95,30 @@ on GitHub-hosted Ubuntu Actions; do not request VM prerequisite installation or
 contact stale hardware addresses. The **PLANK Client Qt** /
 `plank-client-qt` DEB must co-install without sharing production configuration,
 bookmarks, trust, logs, libraries or executable/application identity.
+
+### Current candidate — windowed toolbar access
+
+**1.1.045-ubuntu-qt-session** is built, downloaded and checksum/provenance
+verified. Exact package sources:
+
+- Parent `2a792fd389eef3344adc40cbbcf2bf57a59c60c1`.
+- Client `95e426587fb79913eee779cefe2b95a1a98c7baa`.
+- Successful [GitHub-hosted run 39345546408](https://github.com/instinctual/plank/actions/runs/39345546408).
+- Package: `artifacts/packages/candidates/1.1.045-ubuntu-qt-session/linux/plank-client-qt_1.1.045-ubuntu-qt-session_amd64.deb`.
+- SHA-256: `ba697979c967a34847e6d527a09996fb1fe99952bb9c3296a4f9162637742aae`.
+- Packaged executable SHA-256: `2fc03cf0eaf027c6f0f53ac1805ac74cd9793aecdb26ec377dcaba8885ea3ceb`.
+- Retained reports: `artifacts/qualification/ubuntu-qt-session-1.1.045/`.
+
+Both complete Client variants compiled and linked; ordinary Client preflight,
+three Qt launcher/shutdown cycles, all 14 package fixtures, actual production
+payload non-overlap, runtime/dependency/RPATH/version/no-autostart gates passed.
+The 73 root CI-policy tests passed. The retained EGLImage/precision tests pass
+again at both scales. Hosted Mesa still lacks the Vulkan/GL external semaphore
+capability: that hardware-sensitive gate remains explicitly skipped. Sources
+and recursive Client/transport pins match the downloaded report and BUILD-INFO.
+No Host/macOS package was built, no candidate was remotely installed, and no
+merge or release was performed. The normal installed Qt launcher was restored
+without the temporary diagnostic environment; SSH and all diagnostics are closed.
 
 ### Previous candidate — accepted playback repair
 
@@ -169,8 +190,8 @@ key leakage and non-Latin layout fallback. Both local and streaming shortcuts
 use the same layout resolver. All these hosted gates passed. The earlier .041
 run was superseded before packaging; it is not the delivered candidate.
 
-**Next action: qualify and build the windowed-toolbar candidate on GitHub.**
-Then test the wider hover strip after leaving fullscreen with Pin off, returning
+**Next action: operator installs the .045 Qt candidate and tests windowed reveal.**
+Test the wider hover strip after leaving fullscreen with Pin off, returning
 to fullscreen, and repeated hide/reveal with no remote click leakage. The
 desktop ghost is independently reproducible without PLANK; do not add input
 workarounds merely to hide it.

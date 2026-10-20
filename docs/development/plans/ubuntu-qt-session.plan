@@ -1,16 +1,25 @@
 # Ubuntu Qt-owned session
 
-Status: the live Qt runtime is integrated. Candidate 1.1.044-ubuntu-qt-session
-passed the GitHub-hosted compile, component, compositor, sanitizer, launcher
-and package gates and is available for operator installation. It repairs the
-cursor-texture double deletion discovered during the first physical tablet test.
-The next physical test confirms frozen/poorly updating video with a responsive
-toolbar. An actual Intel desktop OpenGL probe identifies the unsupported
-external-texture target used by the Qt packed-frame importer. Candidate 1.1.044
-switches these raw RGB/R/RG imports to ordinary 2D textures and extends the
-compositor tests through the actual EGLImage binding operation. Hosted tests
-passed and the package is downloaded; real-stream acceptance of that repair
-is pending. See HANDOFF for provenance.
+Status: the live Qt runtime is integrated. The operator accepted the
+1.1.044-ubuntu-qt-session playback repair and reports working mouse/tablet
+input. That candidate retains the cursor-texture ownership repair, uses
+ordinary 2D textures for the Intel EGLImage import path, and passed the hosted
+compile, component, compositor, sanitizer, launcher and package gates.
+Complete profile, input-recovery and audio/video soak qualification remains
+separate from that acceptance.
+
+The current 1.1.045 follow-up improves unpinned toolbar access after switching
+to a window. It uses a twelve-logical-pixel hover strip below the native title
+bar, with the existing one-second dwell and Pin behavior. Fullscreen retains
+its three-pixel trigger. No extra reveal button or custom title bar is added.
+Hosted compilation, compositor tests at 100%/125%, sanitizers and packaging
+passed. The separate Qt DEB is downloaded; operator testing of windowed reveal
+is next. See HANDOFF for exact source and artifact status.
+
+The longstanding frozen top-left arrow also reproduces with PLANK closed:
+local pen movement clears it, and opening a standard GNOME dialog restores it.
+Disabling Qt's tablet interface did not help. No input workaround is shipped;
+the exact local compositor/driver defect remains unproven.
 Implementation started on `ubuntu-qt-session`, from parent
 `1572c09e26d6ce7db20d9d1feefe11a3155963b8` / Client
 `58f4df097c1cdf11bf6b4b429701f156e2b10109` (`client-session-recovery`).
