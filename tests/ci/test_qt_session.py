@@ -110,6 +110,33 @@ class QtSessionWorkflowTests(unittest.TestCase):
         self.assertLess(source.index('QQuickStyle::setStyle'),
                         source.index('QGuiApplication app('))
 
+    def test_wacom_suspend_gate_keeps_non_destructive_recovery(self):
+        script = (ROOT / 'scripts/build/build-client-package-binaries.sh').read_text()
+        start = script.index('for required_raw_hid_token in \\\n  LI_FF_RAW_HID_FOCUS_SUSPEND')
+        end = script.index('echo "client_raw_hid_focus_suspend_gate=pass"', start)
+        gate = script[start:end]
+        with tempfile.TemporaryDirectory() as directory:
+            source = Path(directory)
+            inputs = source / 'app/streaming/input'
+            inputs.mkdir(parents=True)
+            (inputs / 'input.cpp').write_text('LI_FF_RAW_HID_FOCUS_SUSPEND\n')
+            (inputs / 'linuxrawwacom.h').write_text('void suspendForwarding();\n')
+            adapter = inputs / 'linuxrawwacom.cpp'
+            valid = ('void LinuxRawWacomInput::setActive(bool active) {\n'
+                     '    if (!active) { suspendForwarding(); }\n}\n'
+                     'void LinuxRawWacomInput::suspendForwarding() {\n'
+                     '    sendFrame(PLANK_RAW_HID_SUSPEND, 0, 0, nullptr, 0);\n}\n')
+            def check(contents):
+                adapter.write_text(contents)
+                return subprocess.run(['bash', '-c', 'set -euo pipefail; source_dir=$1\n' + gate,
+                                       'gate-test', str(source)], text=True, capture_output=True)
+            self.assertEqual(check(valid).returncode, 0)
+            self.assertEqual(check(valid.replace('if (!active)', 'if (active)')).returncode, 1)
+            self.assertEqual(check(valid.replace('PLANK_RAW_HID_SUSPEND',
+                                                 'PLANK_RAW_HID_DETACH')).returncode, 1)
+            self.assertEqual(check(valid + 'sendFrame(PLANK_RAW_HID_DETACH, 0, 0, nullptr, 0);\n')
+                             .returncode, 1)
+
 
 if __name__ == '__main__':
     unittest.main()

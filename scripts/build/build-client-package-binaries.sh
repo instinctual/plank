@@ -471,7 +471,7 @@ if rg -n \
 fi
 echo "client_remote_host_control_absence_gate=pass"
 
-# Focus loss must stop local raw-Wacom forwarding without sending the
+# Focus and USB I/O loss must stop local raw-Wacom forwarding without sending the
 # destructive detach that removes and recreates host UHID/XInput endpoints.
 client_common_dir="${source_dir}/moonlight-common-c/moonlight-common-c/src"
 printf '#include "Limelight.h"\nint main() { return 0; }\n' |
@@ -495,7 +495,7 @@ rg -q '#define[[:space:]]+LI_FF_RAW_HID_FOCUS_SUSPEND[[:space:]]+0x20' \
 }
 for required_raw_hid_token in \
   LI_FF_RAW_HID_FOCUS_SUSPEND \
-  suspendForFocusLoss \
+  suspendForwarding \
   'sendFrame(PLANK_RAW_HID_SUSPEND, 0, 0, nullptr, 0)'; do
   rg -Fq "$required_raw_hid_token" \
     "$source_dir/app/streaming/input/input.cpp" \
@@ -505,11 +505,16 @@ for required_raw_hid_token in \
     exit 1
   }
 done
-rg -U -q 'void LinuxRawWacomInput::setActive\(bool active\)(.|\n)*?if \(!active\) \{(.|\n)*?suspendForFocusLoss\(\);' \
+rg -U -q 'void LinuxRawWacomInput::setActive\(bool active\)(.|\n)*?if \(!active\) \{(.|\n)*?suspendForwarding\(\);' \
   "$source_dir/app/streaming/input/linuxrawwacom.cpp" || {
   echo "client focus loss does not use non-destructive raw-HID suspension" >&2
   exit 1
 }
+if rg -q 'sendFrame\(PLANK_RAW_HID_DETACH' \
+  "$source_dir/app/streaming/input/linuxrawwacom.cpp"; then
+  echo "client recovery must not destroy retained Host raw-HID endpoints" >&2
+  exit 1
+fi
 echo "client_raw_hid_focus_suspend_gate=pass"
 
 # A reconnect must prevent the raw-tablet worker from attaching while the

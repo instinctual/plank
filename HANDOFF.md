@@ -24,6 +24,8 @@ The shared Linux raw-HID adapter now uses the existing SUSPEND path for USB
 I/O loss, preserving Host endpoints and releasing held contacts. Wire interface
 ordering uses USB interface numbers, not hidraw names. Descriptor-driven
 completeness checks reject a temporarily partial tablet during driver rebind.
+Discovery also requires a pen-capable evdev node, because the kernel can expose
+hidraw before registering pen input; a surviving touch node is not readiness.
 Genuinely different device metadata/descriptors still reach the Host's existing
 replacement policy. First-generation normalized fallback is unchanged.
 
