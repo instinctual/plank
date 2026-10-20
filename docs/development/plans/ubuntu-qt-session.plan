@@ -37,6 +37,15 @@ and cable-interruption testing: restore the network without
 pressing a dialog button and confirm automatic video/input recovery. See
 HANDOFF for exact source, package hashes and remaining hardware gates.
 
+The operator accepted .047's toolbar. Candidate .048 hides the decoder's
+startup test image while preserving the real exact-format draw and swap check.
+Marked qualification frames are cleared to black in the same GPU command
+stream before controls/swap; live frames retain their existing path. The
+connecting message waits for real live presentation, with generation-scoped
+readiness. Controlled-feedback and compositor pixel regressions cover the
+transition, reconnect generation changes and precision rejection. Hosted
+build/validation is pending; neither Host nor ordinary Client is changed.
+
 The longstanding frozen top-left arrow also reproduces with PLANK closed:
 local pen movement clears it, and opening a standard GNOME dialog restores it.
 Disabling Qt's tablet interface did not help. No input workaround is shipped;

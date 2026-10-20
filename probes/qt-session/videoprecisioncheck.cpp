@@ -193,6 +193,32 @@ bool checkVideo()
                 }
             }
         }
+        if (passed) {
+            // Draw the same exact-format test image, but conceal it before
+            // swap. Check both the image and the surrounding output; startup
+            // and repeated decoder qualification must never flash its colors.
+            passed = blitter.draw(imported.texture, mapping, geometry, error,
+                                  importedChroma.texture, true);
+            const QPoint locations[] = {{11, drawable.height() - 77},
+                {11 + width - 1, drawable.height() - 74},
+                {0, 0}, {drawable.width() - 1, drawable.height() - 1},
+                {drawable.width() / 2, drawable.height() / 2}};
+            for (const auto& point : locations) {
+                GLuint black = 0;
+                gl->glReadPixels(point.x(), point.y(), 1, 1, GL_RGBA,
+                                 GL_UNSIGNED_INT_2_10_10_10_REV, &black);
+                if (black != 0xc0000000U) passed = false;
+            }
+            // A subsequent live frame is immediately visible, with the same
+            // code values/crop/filtering. There is no extra buffering or fade.
+            passed = passed && blitter.draw(imported.texture, mapping, geometry, error,
+                                            importedChroma.texture);
+            std::vector<GLuint> live(width * 4);
+            gl->glReadPixels(11, drawable.height() - 77, width, 4, GL_RGBA,
+                             GL_UNSIGNED_INT_2_10_10_10_REV, live.data());
+            passed = passed && live == result;
+            qInfo("Qt qualification conceal/live reveal case %d: %s", test, passed ? "pass" : "fail");
+        }
         if (gl->glGetError() != GL_NO_ERROR) passed = false;
         qInfo("Qt EGL import/shader case %d: %s", test, passed ? "pass" : "fail");
     }
@@ -209,10 +235,12 @@ bool checkVideo()
         gl->glBindFramebuffer(GL_FRAMEBUFFER, fbo);
         gl->glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, rgb8, 0);
         QString error;
-        passed = gl->glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE &&
-            !blitter.draw(texture, Mapping::Identity10,
-                          {{1024, 4}, {0, 0, 1024, 4}, {0, 0, 1024, 4}, {1024, 4}, {1024, 4}}, error) &&
-            error.contains(QStringLiteral("precision"));
+        passed = gl->glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE;
+        for (const bool concealed : {false, true}) {
+            passed = passed && !blitter.draw(texture, Mapping::Identity10,
+                {{1024, 4}, {0, 0, 1024, 4}, {0, 0, 1024, 4}, {1024, 4}, {1024, 4}}, error, 0, concealed) &&
+                error.contains(QStringLiteral("precision"));
+        }
         gl->glBindFramebuffer(GL_FRAMEBUFFER, GLuint(originalFramebuffer));
         gl->glDeleteFramebuffers(1, &fbo);
         gl->glDeleteTextures(1, &rgb8);

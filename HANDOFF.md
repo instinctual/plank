@@ -6,6 +6,30 @@ notes, never in Git.
 
 ## Current work — Ubuntu Qt session experiment
 
+### Current follow-up — hide startup decoder test images
+
+The operator accepts .047's icons, then reports a momentary light-blue screen
+during connection. Source inspection finds that decoder qualification fills
+the visible output with its test frame; both window backgrounds already use
+black. Candidate **1.1.048-ubuntu-qt-session** explicitly marks qualification
+frames and clears their pixels to black after the existing exact-format GPU
+draw, before Qt draws controls and swaps. No hidden window, extra framebuffer,
+timer, readback or per-live-frame clear is added. The check still validates
+actual import, shader, target precision and swap feedback. Live frames are not
+concealed. The immutable marker stays with retained frames, including any
+older surface still being sampled during a decoder transition.
+
+The connecting message now waits for actual live-frame swap feedback, not
+test-frame presentation or mere live submission. Each decoder generation has
+fresh readiness, so old feedback cannot end a new startup notice. Automatic
+recovery, input, transport, codecs and both Hosts are otherwise unchanged.
+New controlled-feedback tests exercise qualification, live readiness,
+cancellation and generation replacement; the compositor's exact-pixel fixture
+checks black concealment and immediate unchanged live rendering for all nine
+existing format/crop/filter cases. Concealment must still reject an RGB8
+substitution for a ten-bit target. Hosted validation/build is pending.
+No deployment, merge or release is authorized for this candidate.
+
 ### Current follow-up — borderless, consistently sized toolbar icons
 
 The operator reports that .046's icons, including minimize/close, look squeezed
@@ -55,8 +79,9 @@ component/full-build validation, and the remainder setup/packaging. The first
 test-harness cleanup failure required a separate attempt. No build-speed change
 or reduced test policy was made. Build only through the explicit GitHub-hosted
 `linux-client-qt` job. No end-user installation, merge or release was performed.
-Next: operator checks the toolbar appearance and automatic recovery after a
-cable interruption; full live-profile/audio/camera/microphone gates remain.
+The operator subsequently accepted the toolbar appearance. Automatic recovery
+after a cable interruption and full live-profile/audio/camera/microphone gates
+remain separate.
 
 ### Retained toolbar labels, icons and automatic recovery
 
