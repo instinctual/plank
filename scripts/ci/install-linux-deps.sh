@@ -37,7 +37,7 @@ case "$role:$ID:$VERSION_ID" in
       pkg-config python3 python3-venv ripgrep xz-utils dpkg-dev \
       qt6-base-dev qt6-base-private-dev qt6-declarative-dev qt6-svg-dev qt6-svg-plugins qt6-wayland qt6-wayland-dev \
       libsdl3-dev libsdl3-ttf-dev libpipewire-0.3-dev libdecor-0-dev libdrm-dev libinput-dev \
-      libasound2-dev libpulse-dev libegl-dev libgles-dev libxkbcommon-dev \
+      libasound2-dev libpulse-dev libegl-dev libgles-dev libxkbcommon-dev libfontconfig1-dev \
       libxcursor-dev libxrandr-dev libxfixes-dev libxi-dev wayland-protocols \
       libopus-dev libplacebo-dev libssl-dev libudev-dev libva-dev libvdpau-dev \
       libwayland-dev libx11-dev zlib1g-dev

@@ -7,13 +7,18 @@
 #include <QGuiApplication>
 #include <QQuickStyle>
 #include <QScreen>
+#include <QScopeGuard>
 #include <QShortcut>
 #include <QTimer>
+#include <fontconfig/fontconfig.h>
 
 #include <memory>
 
 int main(int argc, char** argv)
 {
+    // Release Material's process-wide font cache after Qt/application teardown,
+    // including early probe exits, without suppressing sanitizer leak checks.
+    const auto fontconfigCleanup = qScopeGuard([] { FcFini(); });
     // Use the same style as the real Client, including its geometry defaults.
     qputenv("QT_QUICK_CONTROLS_MATERIAL_THEME", "Dark");
     qputenv("QT_QUICK_CONTROLS_MATERIAL_VARIANT", "Dense");

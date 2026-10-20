@@ -27,7 +27,13 @@ The isolated probe and Client tests now use the production Material Dark/Dense
 style. Added regressions require actual 24-pixel content geometry, zero style
 insets, wide rendered glyphs, transparent idle backgrounds, hover/press feedback
 and all six controls activating from outside their artwork without remote click
-leakage. Hosted compilation, compositor/sanitizer tests and packaging are pending.
+leakage. First hosted run 39354381789 passes all 40 window/input cases offscreen,
+on GNOME at 100%/125% and under ASan, but LeakSanitizer stops afterward on a
+320-byte Fontconfig configuration allocation reached through Material startup.
+The standalone test/probe now finalize Fontconfig after Qt teardown; leak
+detection remains enabled, without suppressions or a production cleanup change.
+The actual Material screenshots show correctly sized, borderless icons at both
+scales. Full compilation/packaging remains pending; no package was produced.
 Build only through the explicit GitHub-hosted `linux-client-qt` job. Do not
 install on an end-user machine, merge, publish or claim hardware acceptance.
 
