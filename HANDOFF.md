@@ -36,6 +36,13 @@ restore size, and changed icon source/state need not mean the new glyph has
 finished drawing. Keep the post-fullscreen restore-size assertion and wait for
 actual rendered icon pixels. Second-run evidence is retained in `attempt-2/`;
 the product implementation is unchanged by this test correction.
+Run39484372569 passes offscreen, then reproduces the small first-show geometry
+on real GNOME: Qt can deliver exposure from within a native configure before
+applying its final size. Queue the child show until that GUI event completes,
+rechecking visible/exposed/minimized state; do not add a timing delay or size
+guess. The input resize test also waits for actual release-event delivery,
+not only the already-updated geometry property. Preserve both assertions.
+Evidence is retained in `attempt-3/`; no failed run produced an installer.
 See the Qt plan for scope. No remote installation, merge or release authorized.
 
 ### .051 accepted — compact toolbar
