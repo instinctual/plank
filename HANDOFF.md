@@ -22,16 +22,14 @@ Qt SVG support is already a package dependency. No hover, video, Wacom or Host
 policy changes are added. New tests check actual rendered
 icon pixels, resource/state changes, hide/reveal, native window transitions,
 stacked label geometry, stable control positions and no remote click leakage.
-Hosted build/package qualification is pending; no new artifact or deployment
-is claimed yet. The first .046 run stopped before compilation because the
-new Image component assigned its read-only implicit size. A fixed-size Item
-now owns the vector image, and the new tests guard QML loading before accessing
-the scene. A second run passed QML and stacked geometry, but the icon fixture
-required fully white pixels from thin antialiased strokes. Its foreground
-contrast test still rejects the dark button background and now accepts those
-valid edge pixels. Offscreen UI evidence is also retained for inspection.
-No package came from either failed run. Requalify the same candidate.
-Continue on the existing `ubuntu-qt-session` branches.
+Hosted build/package qualification passed; the candidate is downloaded and
+checksum/provenance-verified. Earlier attempts caught a read-only QML Image
+size assignment, an overly strict antialiased-icon test and the standalone
+probe's obsolete Keep Waiting callback. These were corrected without relaxing
+the behavioral gates; none of those attempts produced a package. A fixed-size
+Item owns each vector image, load guards protect the new tests, and the icon
+fixture checks foreground contrast against the dark button background.
+Continue on the existing `ubuntu-qt-session` branches; no deployment is claimed.
 
 The operator also authorized automatic recovery after a cable interruption.
 Read-only inspection confirmed that .045's Ask deadline paused retry requests,
@@ -46,6 +44,29 @@ and macOS keep their current policy. Qt preferences describe the new behavior.
 Added checks cover continuous/bounded request gating, revocation, terminal
 errors, a single local Disconnect action, cursor visibility and automatic
 notice removal/input restoration. Live cable-loss acceptance remains pending.
+
+Exact **1.1.046-ubuntu-qt-session** package sources and evidence:
+
+- Parent `967de834d1d23ffe76ee99de31559355ee169544`.
+- Client `44b6c4f470f7eaa7cd1e3634eaa3d274e44986ca`.
+- Successful [GitHub-hosted run 39350839732](https://github.com/instinctual/plank/actions/runs/39350839732).
+- Package: `artifacts/packages/candidates/1.1.046-ubuntu-qt-session/linux/plank-client-qt_1.1.046-ubuntu-qt-session_amd64.deb`.
+- SHA-256: `67be549b55a082d807e4be75c612281733f6df9a69858d12aebf4a4781dc6de1`.
+- Packaged executable SHA-256: `91dc3dbfad8bd754f2edd34d7385d6cb92d519cf05fe1f9422091040ca40ef14`.
+- Retained reports: `artifacts/qualification/ubuntu-qt-session-1.1.046/`.
+
+All 38 window/input cases pass offscreen, under ASan/UBSan with leak detection,
+and on isolated GNOME/Wayland at 100% and 125%. The restored icons, stacked
+stats and Disconnect-only notice were also visually inspected in the actual
+test renders. Both complete Client variants compiled; the ordinary Client's
+preflight, continuous/bounded reconnect policy, three Qt launcher cycles,
+14 package fixtures, production payload non-overlap and package/runtime gates
+passed. Hosted Mesa still lacks the Vulkan/GL external semaphore capability;
+that hardware-sensitive gate is skipped, not accepted. Microphone and camera
+reuse the existing capture/transport and are wired into the Qt toolbar for
+compatible macOS Hosts, but real-device Qt acceptance remains pending.
+No Host update, remote installation, merge or release was performed. The
+operator reports no Client is currently running; no SSH or trace is active.
 
 ### Accepted windowed toolbar access and separate ghost-cursor investigation
 
@@ -231,9 +252,12 @@ key leakage and non-Latin layout fallback. Both local and streaming shortcuts
 use the same layout resolver. All these hosted gates passed. The earlier .041
 run was superseded before packaging; it is not the delivered candidate.
 
-**Next action: qualify and collect the .046 toolbar-presentation candidate.**
-Then the operator checks stacked stats, both pin states and fullscreen/restore
-icons, including hide/reveal and repeated mode changes. Preserve the accepted
+**Next action: operator installation and .046 toolbar/recovery acceptance.**
+Check stacked stats, both pin states and fullscreen/restore icons, including
+hide/reveal and repeated mode changes. With Keep waiting selected, unplug the
+test Client network beyond the notice timeout, restore it, and verify the
+session and input recover without clicking anything. Test Disconnect and the
+explicit auto-disconnect option separately. Preserve the accepted
 windowed hover strip and ensure no remote click leakage. The
 desktop ghost is independently reproducible without PLANK; do not add input
 workarounds merely to hide it.

@@ -19,7 +19,13 @@ pin/fullscreen vector icons without changing that interaction. The operator
 also approved continuous automatic recovery with a Disconnect-only status
 dialog, retaining explicit auto-disconnect and terminal security failures.
 The Qt timeout now reveals a notice rather than pausing retry requests.
-Its hosted qualification/package run is pending. See HANDOFF for exact status.
+Hosted qualification and packaging passed, and the separate .046 DEB is
+downloaded. All 38 window/input cases pass offscreen, with sanitizers and on
+GNOME/Wayland at 100%/125%; both complete Client builds and package isolation
+also pass. Actual test-render screenshots were inspected. The next gate is
+operator toolbar and cable-interruption testing: restore the network without
+pressing a dialog button and confirm automatic video/input recovery. See
+HANDOFF for exact source, package hashes and remaining hardware gates.
 
 The longstanding frozen top-left arrow also reproduces with PLANK closed:
 local pen movement clears it, and opening a standard GNOME dialog restores it.
@@ -96,7 +102,7 @@ boundaries rather than maintaining a second implementation of those contracts.
       reconnect generations, pressure, tip/buttons and Tablet Margins.
 - [ ] Existing audio playback/synchronization, microphone/camera forwarding and
       device selection, including hotplug and shutdown without retained devices.
-- [ ] Host timeout/Wait/Disconnect, GDM/desktop handoff, desktop-lock recovery,
+- [ ] Host timeout/automatic recovery/Disconnect, GDM/desktop handoff, desktop-lock recovery,
       network interruption and decoder recovery without an unresponsive UI.
 - [ ] Separately installable real Qt Client candidate, production-file/state
       isolation, GitHub-hosted clean build, regression and package-content gates.
