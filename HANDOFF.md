@@ -6,25 +6,39 @@ notes, never in Git.
 
 ## Current work — Ubuntu Qt session experiment
 
-### Investigating .049 startup failure — not yet fixed
+### .050 candidate — covered Wayland parent stops video presentation
 
-The operator reports .049 failing to connect. Read-only inspection finds
-successful exact-format HEVC hardware decoding and PipeWire initialization,
-followed by a two-second Qt draw/swap qualification timeout. A subsequent
-attempt fails during preflight before transport startup. This is not evidence
-of unsupported HEVC, packet loss or a Host crash. The exact trigger remains
-unproven; do not bypass ten-bit validation or increase the deadline as a fix.
+The .049 failure is reproduced on the authorized Intel Client without a Host
+connection, including with no audio stream. Exact-format decoding succeeds,
+but the opaque native video child completely covers its raster parent.
+Wayland continues delivering child frame callbacks while omitting callbacks
+for the covered parent. Qt 6.10.2's timeout heuristic marks that parent hidden
+and propagates the state to the child, stopping rendering and the bounded
+decoder qualification. This is not an HEVC-support, PipeWire or Host failure.
 
-The operator authorizes briefly interrupting the fallback session for targeted
-diagnostics, without installation or Host changes. Temporary graphics logging
-is enabled only in the diagnostic Client process. Private access/state and
-raw evidence remain in the external notes. Source work adds stage-specific
-qualification errors and a standalone hardware presenter lifecycle fixture:
-actual Apple HEVC test decoding, native-child Qt draw/swap feedback, repeated
-generations, and optional silent PipeWire setup/teardown. It never connects to
-a Host or reads credentials. Hosted compilation/tests and the hardware
-reproduction are still pending. This is diagnostic work, not a new accepted
-package or a claimed connection fix.
+The standalone hosted probe reproduces the failure on repeated native-child
+starts, with and without silent PipeWire. Removing the parent passes 12 starts;
+retaining it and setting process-local `QT_WAYLAND_FRAME_CALLBACK_TIMEOUT=0`
+also passes all 12, including audio setup/teardown. Actual Wayland tracing
+confirms the parent/child callback distinction. Raw traces and machine state
+remain in private notes, not Git. No installed package or Host was changed.
+
+Candidate .050 sets that policy before creating Qt surfaces, only in the
+experimental Qt Client and its probes. Explicit diagnostic overrides remain.
+It disables the timeout heuristic, not frame callbacks or swap pacing; normal
+hide/minimize handling and the two-second exact-format gate remain. The
+native-child design still avoids Qt's RGB8 decoration framebuffer. New tests
+exercise sustained rendering, fullscreen/windowed changes and hide/restore.
+Compilation/package gates and the compiled hardware rerun are pending; the
+successful diagnostic A/B is not yet full live-session or audio-soak acceptance.
+
+Diagnostic source: parent `c959156c86f525da4e49c3303ce7a11754d35599`,
+Client `6530fb778d57143a5a394fd70ba2b918e196e198`; successful hosted tests-only
+run 39380402684. Evidence:
+`artifacts/qualification/ubuntu-qt-startup-20261019/diagnostics-c959156/`.
+Next: build .050 through `linux-client-qt`, verify the downloaded package,
+rerun its standalone hardware probe, then ask the operator to install/test.
+No merge or release.
 
 ### Candidate ready — direct PipeWire playback in Qt only
 
@@ -80,8 +94,8 @@ The downloaded archive and binary hashes match the builder. Read-only `ar`/`tar`
 inspection on the Rocky coordinator independently confirms no payload-file
 overlap with the retained ordinary 1.1.039 DEB; Ubuntu's full dpkg namespace and
 disposable-install/purge tests ran in CI. Do not install DEBs on the builder.
-Next: the operator installs .049, restarts PLANK Client Qt and reconnects to the
-unchanged Host. Verify brief crackles, A/V sync over a long real-output soak,
+The operator installed .049 but encountered the startup issue described above.
+After .050 fixes startup, verify brief crackles, A/V sync over a long real-output soak,
 OS-selected output routing and interruption recovery. Log `PLANK PipeWire
 playback` provides actual shortages, missing frames, headroom and correction.
 No merge, release, remote installation or real-output listening acceptance.

@@ -326,6 +326,18 @@ shared private SDL dependency for the remaining non-playback uses. Neither
 daemon tests nor simulated clock drift qualify audible playback/A/V sync:
 require the operator's real-output listening test and long soak afterward.
 
+Qt candidate .050 disables Qt Wayland's missing-parent-frame-callback exposure
+heuristic within that process. A fully covered raster shell can receive no
+callbacks while its visible native video child still does; Qt 6.10.2 otherwise
+marks both inexposed. Failure signature: decoded test frame delivered, no
+synchronization/draw/swap, and `delivery_exposed=0`. The hosted standalone
+presenter lifecycle probe reproduces this on Intel hardware independently of
+audio or Host connectivity. Preserve normal hide/minimize behavior and the
+two-second exact-format gate; never mask this by increasing the deadline or
+accepting an RGB8 intermediate. An explicit
+`QT_WAYLAND_FRAME_CALLBACK_TIMEOUT` environment value is diagnostic-only and
+overrides the Qt Client's default zero.
+
 The Host/Client base version is packaging/VERSION. Increment it for new package
 bytes. Starting with **1.1.001**, retain a three-digit, zero-padded patch component
 (1.1.002, 1.1.003, and so on) in the product version and package filenames.

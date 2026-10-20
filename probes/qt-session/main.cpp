@@ -25,10 +25,8 @@ int main(int argc, char** argv)
     qputenv("QT_QUICK_CONTROLS_MATERIAL_VARIANT", "Dense");
     qputenv("QT_QUICK_CONTROLS_MATERIAL_ACCENT", "#5A9CE6");
     QQuickStyle::setStyle(QStringLiteral("Material"));
-    for (int index = 1; index < argc; ++index) {
-        if (QByteArray(argv[index]) == "--presenter-lifecycle-check")
-            qputenv("QSG_RENDER_LOOP", "basic"); // match the actual Client
-    }
+    qputenv("QSG_RENDER_LOOP", "basic"); // match the actual Client
+    QtSessionShell::configureWaylandExposure();
     QGuiApplication app(argc, argv);
     QCoreApplication::setApplicationName(QStringLiteral("PLANK Qt session probe"));
     QCommandLineParser parser;

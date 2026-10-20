@@ -108,6 +108,9 @@ void runQtPresenterLifecycleCheck(QtSessionWindow& window, bool audio)
                 }
                 qInfo("Presenter lifecycle iteration %d passed (audio=%d)", iteration, audio);
                 delivery.discard();
+                // Do not finish before the covered parent's callback timeout
+                // could fire. There is no such sleep in the product renderer.
+                QThread::msleep(100);
             }
             *outcome = 0;
         });

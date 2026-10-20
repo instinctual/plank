@@ -1,5 +1,39 @@
 # Ubuntu Qt-owned session
 
+## Covered-parent exposure correction
+
+Candidate .049 exposed a Wayland lifecycle issue independent of audio.
+On the authorized Intel Client, the opaque video subsurface fully covers the
+raster shell. The compositor supplies child frame callbacks but omits those
+for the covered parent, as permitted by the protocol. Qt 6.10.2's callback
+timeout marks the parent inexposed and propagates this to the otherwise
+visible child. Hardware decoding succeeds, but no further scene synchronization,
+draw or swap occurs; exact-profile qualification correctly fails after 2s.
+
+Repeated standalone presenter qualification reproduces this without any
+network session and with audio disabled. A top-level scene without the parent
+passes all 12 generations, with and without silent PipeWire. Keeping the parent
+and setting `QT_WAYLAND_FRAME_CALLBACK_TIMEOUT=0` also passes all 12. Threaded
+rendering and requesting an alpha channel did not resolve the native-child
+failure; do not layer either into the implementation.
+
+The .050 correction applies that process-local policy before QGuiApplication
+creates surfaces, only in the experimental Qt Client and its test harness.
+It disables Qt's missing-callback exposure heuristic, not compositor pacing
+or actual hide/minimize notifications. Explicit environment overrides remain
+for A/B diagnostics. The native child is still necessary to avoid the RGB8
+decoration intermediate; exact-format validation and its deadline stay intact.
+Regression gates include continued swaps after the old timeout, repeated
+fullscreen/windowed and hide/minimize/restore cycles, plus repeated actual
+HEVC VA-API qualification with silent audio setup/teardown on hardware.
+Real-session and acoustic acceptance remain separate.
+
+Primary references:
+
+- https://raw.githubusercontent.com/qt/qtbase/v6.10.2/src/plugins/platforms/wayland/qwaylandwindow.cpp
+- https://cgit.freedesktop.org/wayland/wayland/tree/protocol/wayland.xml
+- https://raw.githubusercontent.com/qt/qtbase/v6.10.2/src/plugins/platforms/wayland/plugins/hardwareintegration/wayland-egl/qwaylandeglwindow.cpp
+
 ## Native PipeWire audio follow-up
 
 The operator authorizes replacing SDL playback in the Qt experiment only.
