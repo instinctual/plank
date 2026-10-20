@@ -30,6 +30,12 @@ exposed, otherwise wait for its expose. Keep both tests intact. Evidence is
 retained under `artifacts/qualification/ubuntu-qt-session-1.1.052/attempt-1/`.
 The corrected hosted build/compositor/sanitizer/package gates are pending;
 no installer is ready yet.
+Run39483520109 confirms minimize/restore passes, then exposes two test timing
+assumptions: hidden native fullscreen geometry need not still equal the normal
+restore size, and changed icon source/state need not mean the new glyph has
+finished drawing. Keep the post-fullscreen restore-size assertion and wait for
+actual rendered icon pixels. Second-run evidence is retained in `attempt-2/`;
+the product implementation is unchanged by this test correction.
 See the Qt plan for scope. No remote installation, merge or release authorized.
 
 ### .051 accepted — compact toolbar
