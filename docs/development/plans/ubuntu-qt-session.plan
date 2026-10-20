@@ -48,8 +48,10 @@ transition, reconnect generation changes and precision rejection. Hosted run
 and 40 window/input cases, sanitizers, and 72 compositor conceal/reveal pixel
 checks across 100%/125% and window modes. The separate .048 DEB and reports are
 downloaded with verified hashes/provenance. Neither Host nor ordinary Client is
-changed. Repeated live connection/reconnection acceptance remains the next
-operator check; hosted software rendering is not Intel hardware qualification.
+changed. The operator reports the startup transition is better and accepts this
+checkpoint for commit/push. Full interruption, profile and audio/video/device
+qualification remains separate; hosted software rendering is not Intel hardware
+qualification.
 
 The longstanding frozen top-left arrow also reproduces with PLANK closed:
 local pen movement clears it, and opening a standard GNOME dialog restores it.

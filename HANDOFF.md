@@ -6,7 +6,7 @@ notes, never in Git.
 
 ## Current work — Ubuntu Qt session experiment
 
-### Current follow-up — hide startup decoder test images
+### Accepted follow-up — hide startup decoder test images
 
 The operator accepts .047's icons, then reports a momentary light-blue screen
 during connection. Source inspection finds that decoder qualification fills
@@ -49,11 +49,12 @@ Exact **1.1.048-ubuntu-qt-session** package sources and evidence:
 - Packaged executable SHA-256: `6563b41c087926c15db0c73a86726710c8e7f4ccebb3b2764193ef424c4ef205`.
 - Retained reports: `artifacts/qualification/ubuntu-qt-session-1.1.048/`.
 
-The next operator check is repeated connection/reconnection: no blue test image,
-Connecting remains visible until real Host video, and playback/input start
-normally. Existing interruption, profile, audio and camera/microphone gates
-remain separate. Both source commits are pushed on `ubuntu-qt-session`; no
-remote installation, Host update, merge or release was performed.
+The operator tested .048, reports the startup transition is better, and
+authorized committing/pushing this checkpoint. This accepts the startup
+improvement, not the remaining full interruption, profile, audio and
+camera/microphone qualification gates. Both source commits are pushed on
+`ubuntu-qt-session`; no remote installation, Host update, merge or release
+was performed.
 
 ### Current follow-up — borderless, consistently sized toolbar icons
 
