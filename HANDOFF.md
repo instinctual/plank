@@ -11,10 +11,16 @@ notes, never in Git.
 The operator accepted the 1.1.044 video repair and reports working mouse and
 tablet input. They also report a longstanding duplicate arrow at the physical
 screen's top-left, outside the now-windowed session. Do not treat that as a
-Host-video or coordinate-mapping defect without evidence. The Qt tablet cursor
-is scene-local; the shared evdev grab and compositor cursor lifecycle remain
-investigation candidates, not proven causes. Test-Client connectivity recovered;
-live inspection is underway with permission to interrupt the test session.
+Host-video or coordinate-mapping defect without evidence. Controlled tests now
+reproduce it **without PLANK running**: closing the app leaves the arrow; local
+pen movement clears it; launching a standard native GNOME dialog brings it
+back. Merely launching PLANK also reproduces it before any stream/tablet grab.
+Temporarily disabling Qt's Wayland tablet interface did not help and is not a
+product change. The launch-only process had no input/hidraw devices open.
+Investigate the local GNOME/Wayland cursor lifecycle, not remote input mapping.
+The precise compositor/driver defect remains unproven. No OS update, reboot,
+Host change or permanent runtime setting was applied. Private machine evidence
+and unsuccessful screenshot captures remain outside Git.
 
 The operator refined the windowed solution: **no additional Show Toolbar
 button**. Use a wider, twelve-logical-pixel activation strip below the native
@@ -31,8 +37,13 @@ shell/whitespace checks pass. The package fixture passes its four portable
 cases; ten Ubuntu-only cases are explicitly skipped locally. The initial
 button-based run compiled and passed offscreen tests but stopped on an
 unexpected motion assertion in the GNOME button test; it produced no package.
-The revised hover-only solution must pass all hosted compilation,
-compositor/sanitizer tests and packaging before it is recommended.
+The hover-only integration fixture now waits for each actual compositor resize
+and a rendered frame before injecting hover. The subsequent run confirmed the
+headless compositor does not activate the shell for keyboard input; hover must
+work independently of keyboard focus, so the fixture checks exposure and
+current presentation geometry instead. It retains the same reveal, waiting,
+Pin, transition and input-leak assertions. The revised solution must pass all
+hosted compilation, compositor/sanitizer tests and packaging before it is recommended.
 No new artifact, hardware acceptance, deployment, merge or release is claimed.
 
 ### Retained hardware presentation repair
@@ -159,9 +170,10 @@ use the same layout resolver. All these hosted gates passed. The earlier .041
 run was superseded before packaging; it is not the delivered candidate.
 
 **Next action: qualify and build the windowed-toolbar candidate on GitHub.**
-Then test Show Toolbar after leaving fullscreen with Pin off, returning to
-fullscreen, and repeated hide/reveal with no remote click leakage. Investigate
-the existing desktop ghost arrow when the authorized test Client is reachable.
+Then test the wider hover strip after leaving fullscreen with Pin off, returning
+to fullscreen, and repeated hide/reveal with no remote click leakage. The
+desktop ghost is independently reproducible without PLANK; do not add input
+workarounds merely to hide it.
 Keep the ordinary Client closed during Qt testing. Still confirm exact-profile H.264
 High 10 software and HEVC Rext 10-bit hardware paths, toolbar/letterbox and
 window controls, keyboard/mouse, Wacom pressure/Tablet Margins and recovery,
