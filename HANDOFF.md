@@ -6,7 +6,26 @@ notes, never in Git.
 
 ## Current work — Ubuntu Qt session experiment
 
-### Current follow-up — windowed toolbar access and ghost cursor
+### Current follow-up — toolbar labels and icons
+
+The operator accepts .045's windowed toolbar interaction. They request the
+regular Client's two-row stats layout and recognizable pin/fullscreen icons.
+Candidate **1.1.046-ubuntu-qt-session** stacks labels above FPS, Video Mbps,
+Loss and RTT values, reserves text widths to avoid control movement, and keeps
+the 39-pixel toolbar height. Encoder Target remains above its slider. Loss
+colors and three-decimal precision are unchanged.
+
+Bundled SVG resources replace the repaint-dependent Canvas pin and literal
+square fullscreen character. Pin changes between upright/slashed; fullscreen
+corners point outward or inward based on the top-level shell's actual state.
+Qt SVG support is already a package dependency. No hover, input forwarding,
+video, Wacom or Host policy changes are added. New tests check actual rendered
+icon pixels, resource/state changes, hide/reveal, native window transitions,
+stacked label geometry, stable control positions and no remote click leakage.
+Hosted build/package qualification is pending; no new artifact or deployment
+is claimed yet. Continue on the existing `ubuntu-qt-session` branches.
+
+### Accepted windowed toolbar access and separate ghost-cursor investigation
 
 The operator accepted the 1.1.044 video repair and reports working mouse and
 tablet input. They also report a longstanding duplicate arrow at the physical
@@ -41,7 +60,7 @@ Earlier attempts stopped in new test fixtures and produced no packages. The
 final fixture waits for actual compositor geometry, exposure and rendering;
 it does not incorrectly require keyboard activation in a headless input seat.
 The original behavioral assertions remain. Synthetic screenshots were inspected
-at both scales. User confirmation of this windowed-toolbar repair is pending.
+at both scales. The operator subsequently confirmed the windowed toolbar works.
 
 ### Retained hardware presentation repair
 
@@ -96,7 +115,7 @@ contact stale hardware addresses. The **PLANK Client Qt** /
 `plank-client-qt` DEB must co-install without sharing production configuration,
 bookmarks, trust, logs, libraries or executable/application identity.
 
-### Current candidate — windowed toolbar access
+### Previous candidate — accepted windowed toolbar access
 
 **1.1.045-ubuntu-qt-session** is built, downloaded and checksum/provenance
 verified. Exact package sources:
@@ -190,9 +209,10 @@ key leakage and non-Latin layout fallback. Both local and streaming shortcuts
 use the same layout resolver. All these hosted gates passed. The earlier .041
 run was superseded before packaging; it is not the delivered candidate.
 
-**Next action: operator installs the .045 Qt candidate and tests windowed reveal.**
-Test the wider hover strip after leaving fullscreen with Pin off, returning
-to fullscreen, and repeated hide/reveal with no remote click leakage. The
+**Next action: qualify and collect the .046 toolbar-presentation candidate.**
+Then the operator checks stacked stats, both pin states and fullscreen/restore
+icons, including hide/reveal and repeated mode changes. Preserve the accepted
+windowed hover strip and ensure no remote click leakage. The
 desktop ghost is independently reproducible without PLANK; do not add input
 workarounds merely to hide it.
 Keep the ordinary Client closed during Qt testing. Still confirm exact-profile H.264

@@ -8,13 +8,15 @@ compile, component, compositor, sanitizer, launcher and package gates.
 Complete profile, input-recovery and audio/video soak qualification remains
 separate from that acceptance.
 
-The current 1.1.045 follow-up improves unpinned toolbar access after switching
+The accepted 1.1.045 follow-up improves unpinned toolbar access after switching
 to a window. It uses a twelve-logical-pixel hover strip below the native title
 bar, with the existing one-second dwell and Pin behavior. Fullscreen retains
 its three-pixel trigger. No extra reveal button or custom title bar is added.
 Hosted compilation, compositor tests at 100%/125%, sanitizers and packaging
-passed. The separate Qt DEB is downloaded; operator testing of windowed reveal
-is next. See HANDOFF for exact source and artifact status.
+passed. The separate Qt DEB is downloaded and the operator confirmed windowed
+reveal works. Current candidate 1.1.046 restores stacked stats and stateful
+pin/fullscreen vector icons without changing that interaction. Its hosted
+qualification/package run is pending. See HANDOFF for exact artifact status.
 
 The longstanding frozen top-left arrow also reproduces with PLANK closed:
 local pen movement clears it, and opening a standard GNOME dialog restores it.
