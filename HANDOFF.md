@@ -20,8 +20,16 @@ policy remain. No Host resolution request, new persistent setting or render
 scaling change. The ordinary Client and both Hosts are unchanged.
 
 Focused tests added for initial aspect/size, fractional logical coordinates,
-first-fullscreen show geometry and repeated manual resize/restore. Hosted build,
-compositor/sanitizer and package gates are pending; no installer is ready yet.
+first-fullscreen show geometry and repeated manual resize/restore. First hosted
+run39482562087 stops on two lifecycle checks before packaging: the offscreen
+backend has no normal restore geometry if created initially fullscreen, and
+it retains parent exposure while minimized without another expose on restore.
+Create native resources while hidden in normal state to seed Qt's own restore
+geometry; show the child on restore immediately if the parent is already
+exposed, otherwise wait for its expose. Keep both tests intact. Evidence is
+retained under `artifacts/qualification/ubuntu-qt-session-1.1.052/attempt-1/`.
+The corrected hosted build/compositor/sanitizer/package gates are pending;
+no installer is ready yet.
 See the Qt plan for scope. No remote installation, merge or release authorized.
 
 ### .051 accepted — compact toolbar

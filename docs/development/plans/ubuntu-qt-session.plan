@@ -13,10 +13,13 @@ per-resize aspect constraint, persistent preference or Host mode request.
 Existing presentation/input geometry keeps the image proportional and uses
 letterboxing when the freely resized window has a different aspect ratio.
 
-Request the initial fullscreen state before showing either native surface.
+Create native resources while hidden in normal state to record the intended
+restore size, then request fullscreen before showing either native surface.
 The child becomes visible only after the shell's configured exposure, with
 its actual size, not during the earlier visibilityChanged notification.
 Explicit hide/minimize still unmaps it; merely covering the parent does not.
+On restore, an already-exposed parent can show its child immediately (not all
+platform backends generate a new expose when leaving minimized state).
 Keep the .050 exposure policy and exact ten-bit surface checks unchanged.
 Tests cover aspect/size defaults, fractional-scale logical units, first-show
 geometry, free-form manual resizing, repeated fullscreen restore, hide/restore
