@@ -43,9 +43,12 @@ wrappers=(udev_new udev_unref udev_enumerate_new udev_enumerate_unref
   udev_device_new_from_syspath udev_device_unref
   udev_device_get_parent_with_subsystem_devtype udev_device_get_syspath
   udev_device_get_devnode udev_device_get_devtype udev_device_get_sysattr_value
-  open close fcntl ioctl poll read)
+  open close fcntl ioctl poll read __poll_chk __read_chk)
 wrap_flags=()
 for wrapper in "${wrappers[@]}"; do wrap_flags+=("-Wl,--wrap=$wrapper"); done
+# Retain which libc entry points this compiler actually selected, including
+# fortified alternatives, so a fault-injection failure is diagnosable.
+nm -u "$build_dir/linuxrawwacom.o" | grep -E ' (read|poll|__read_chk|__poll_chk)$'
 "${CXX:-c++}" "${flags[@]}" "${client_cflags[@]}" \
   -I"$source_dir/moonlight-common-c/moonlight-common-c/src" \
   "$source_dir/tests/linuxrawwacom/test_usb_recovery.cpp" "$build_dir/linuxrawwacom.o" \
