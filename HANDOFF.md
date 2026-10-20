@@ -22,8 +22,9 @@ scaling change. The ordinary Client and both Hosts are unchanged.
 Focused tests cover initial aspect/size, fractional logical coordinates,
 first-fullscreen geometry and repeated manual resize/restore. Native resources
 are created while hidden in normal state to seed Qt's own restore geometry.
-Child showing is queued until the native configure event finishes, rechecking
-visible/exposed/minimized state. Visibility changes also cover backends that
+Initial fullscreen drawing additionally waits for the selected screen's actual
+logical fullscreen dimensions. Child showing is queued after native event
+delivery, rechecking geometry/visible/exposed/minimized state. Visibility changes also cover backends that
 remain exposed while minimized. No arbitrary timing delay or resize loop.
 
 Three hosted failures caught missing initial restore geometry, minimize/restore
@@ -36,9 +37,14 @@ Evidence for runs39482562087,39483520109,39484372569 is retained under
 The corrected hosted build/compositor/sanitizer/package gates are pending;
 no failed run produced an installer.
 Run39485642618 passes 53 GNOME window/UI cases but still exposes the smaller
-initial child before fullscreen geometry. Merely queueing the show is not
-sufficient. Retained `attempt-4/` evidence and a focused native configure trace
-are the next diagnostic; do not weaken the first-show assertion.
+initial child. Diagnostic run39486876615 establishes the actual sequence:
+GNOME first sends a normal configure, then a separate fullscreen configure;
+the child maps between them. Queueing alone cannot solve that. The shell now
+defers initial raster painting and child showing until fullscreen dimensions
+arrive; subsequent resize/restore remains Qt-owned. Preserve the exact first-show
+assertion. Retain `attempt-4/` and `attempt-5/` evidence; temporary verbose
+test logging is removed. No hardcoded size, timer, native Wayland manipulation,
+Host change or relaxed package gate.
 See the Qt plan for scope. No remote installation, merge or release authorized.
 
 ### .051 accepted — compact toolbar

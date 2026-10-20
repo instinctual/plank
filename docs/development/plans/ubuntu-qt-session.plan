@@ -15,10 +15,13 @@ letterboxing when the freely resized window has a different aspect ratio.
 
 Create native resources while hidden in normal state to record the intended
 restore size, then request fullscreen before showing either native surface.
-The child becomes visible only after the shell's configured exposure, with
-its actual size. Qt can report exposure from inside a native configure before
-applying its final geometry, so queue the show to finish that GUI event first
-and recheck visibility/exposure. This is not a guessed delay or resize loop.
+GNOME can send an initial normal configure before the fullscreen configure.
+Exposure alone is therefore insufficient. Initial raster drawing and child
+showing wait for the selected screen's actual logical fullscreen dimensions;
+native resize delivery then triggers the queued child show. Recheck geometry
+and visibility/exposure when it runs. The gate retires after that first show,
+so manual sizing and subsequent fullscreen restore remain Qt-owned. This is
+not a guessed delay, hardcoded resolution, private API or resize loop.
 Explicit hide/minimize still unmaps it; merely covering the parent does not.
 Visibility changes also queue the show for an already-exposed parent (not all
 platform backends generate a new expose when leaving minimized state).
