@@ -11,6 +11,12 @@ positions as telemetry changes or leave slots for unsupported capture controls.
 Existing Material, rendered-glyph, hit-target, hide/fullscreen and scale gates
 remain; new tests cover RTT boundaries and microphone/camera visibility.
 
+Candidate .051 passes hosted run39475946222, including 43 compositor cases
+at both scales, sanitizer/component checks, both full builds and package
+isolation. Final screenshots are inspected and the exact DEB is collected.
+See HANDOFF for source/hash provenance; live-session acceptance remains with
+the operator. No Host, ordinary Client or audio behavior changes.
+
 ## Covered-parent exposure correction
 
 Candidate .049 exposed a Wayland lifecycle issue independent of audio.

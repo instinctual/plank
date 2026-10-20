@@ -6,7 +6,7 @@ notes, never in Git.
 
 ## Current work — Ubuntu Qt session experiment
 
-### .051 — compact toolbar candidate in preparation
+### .051 ready for manual testing — compact toolbar
 
 The operator approved reducing gaps between microphone, camera, fullscreen,
 minimize and disconnect from 8 to 4 logical pixels. The controls retain their
@@ -16,17 +16,36 @@ The RTT reserve is narrowed to three-digit whole milliseconds, including a
 fixed `>999 ms` over-range indication. Unknown/unavailable RTT remains a dash.
 Changing telemetry must not move the slider or control hit regions.
 
-Regression coverage adds integer/boundary/invalid RTT checks and all four
-microphone/camera visibility combinations, alongside existing real Material
-glyph, hit-target and fullscreen/hide/restore checks at 100%/125% scaling.
-The first hosted run passed spacing, visibility, icon and hit-target tests,
-but the RTT fixture incorrectly changed from UINT_MAX to signed -1, which
-QVariant compares equal under integer promotion. Use -1.0 for that distinct
-negative test value; production telemetry stays unsigned and no product code
-or assertion is weakened. No installer was produced. The corrected hosted
-candidate build is pending. Both Hosts,
-ordinary Client and native PipeWire behavior are unchanged. No remote install,
-merge or release is authorized by this task.
+Hosted run39475946222 passes both complete Client builds, 43 window/input
+cases on GNOME at 100%/125%, offscreen and ASan/UBSan/leak coverage, isolated
+PipeWire tests, three full-launcher cycles, 14 package fixtures and finished-DEB
+checks. The Wayland-only case is skipped offscreen and run on the compositor;
+the PipeWire daemon cases run separately, not silently skipped. Software-only
+GPU qualification does not replace real hardware or audible A/V acceptance.
+Final compositor screenshots visually confirm unclipped icons/readouts.
+New coverage checks RTT boundaries, stable hit regions and all four
+microphone/camera visibility combinations. The first run failed only a fixture:
+QVariant compares UINT_MAX and signed -1 equal; the distinct negative case now
+uses -1.0. No assertion or product validation was weakened.
+
+Exact **1.1.051-ubuntu-qt-session** package:
+
+- Parent `51f9afd14da244d38602d1ff230e3f01332127ec`.
+- Client `396ef6dc0678cfd8488c197c0a34d3050013e312`.
+- Client common-C `437be9a0a4d164efdf9ed20dc6dd5a2b7b9edc90`; qmdnsengine `920c097ffa742e2968290f15d4dde6693aec02e5`.
+- Unchanged Linux Host `65dc0f1be60fe78d0457364f83813118c70bc8a8`; kymux `3f7a9d8618978287186e5d6ce0eaa067743cb06c`.
+- [Successful hosted run39475946222](https://github.com/instinctual/plank/actions/runs/39475946222).
+- Package: `artifacts/packages/candidates/1.1.051-ubuntu-qt-session/linux/plank-client-qt_1.1.051-ubuntu-qt-session_amd64.deb`.
+- Size: 17,154,440 bytes; SHA-256 `2bfd6f48c358c67b6f327ad4b5fa73d50ab0804f80c4ebe87268040a5b658533`.
+- Packaged executable SHA-256 `766e9b0fc4aac11cbecdbbec1c4c89c4347722ba8cfb7f6bc88938f92c66ffda`.
+- Reports: `artifacts/qualification/ubuntu-qt-session-1.1.051/final/`; first-run fixture evidence in `attempt-1/`.
+
+Downloaded package/provenance/checksums are verified. Read-only archive
+inspection independently confirms no payload-file overlap with ordinary1.1.039.
+Both Hosts, ordinary Client and native PipeWire behavior are unchanged.
+Next: operator installs .051 and checks the compact toolbar in a live session;
+resume the separate real-output audio/A/V-sync soak afterward. No remote
+installation, merge or release was performed.
 
 ### .050 ready for manual testing — covered-parent presentation repair
 
@@ -89,10 +108,11 @@ Exact **1.1.050-ubuntu-qt-session** package:
 - Reports: `artifacts/qualification/ubuntu-qt-session-1.1.050/final/`; earlier failed gates in `attempt-1/` and `attempt-2/`.
 - Final standalone probe SHA-256 `94270f0a54293e9a80f1f74f2f10ebe563d17271cbcd32e84b4444825eec9cf0`.
 
-Next: operator installs .050, restarts PLANK Client Qt and reconnects to the
-unchanged Host. Verify startup/reconnect, fullscreen/windowed/minimize/restore,
-then resume real-output crackle and long A/V-sync testing. Native PipeWire is
-retained; ordinary Client and both Hosts are unchanged. No merge or release.
+The operator has installed .050; the subsequent authorized toolbar screenshot
+shows a live session. The .051 toolbar candidate above supersedes the installer
+handoff, not the remaining real-output crackle and long A/V-sync gates. Native
+PipeWire is retained; ordinary Client and both Hosts are unchanged. No merge or
+release.
 
 ### Candidate ready — direct PipeWire playback in Qt only
 
