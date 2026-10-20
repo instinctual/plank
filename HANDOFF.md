@@ -32,10 +32,31 @@ on GNOME at 100%/125% and under ASan, but LeakSanitizer stops afterward on a
 320-byte Fontconfig configuration allocation reached through Material startup.
 The standalone test/probe now finalize Fontconfig after Qt teardown; leak
 detection remains enabled, without suppressions or a production cleanup change.
-The actual Material screenshots show correctly sized, borderless icons at both
-scales. Full compilation/packaging remains pending; no package was produced.
-Build only through the explicit GitHub-hosted `linux-client-qt` job. Do not
-install on an end-user machine, merge, publish or claim hardware acceptance.
+The final Material screenshots show correctly sized, borderless icons at both
+scales. Hosted rerun 39355378111 passed: all 40 window/input cases offscreen,
+on GNOME/Wayland at 100%/125% and under ASan/UBSan with leak detection; both
+complete Client builds, ordinary Client preflight, three Qt launcher cycles,
+14 package fixtures and the finished-package gates also passed. The downloaded
+DEB has no file overlap with the retained ordinary 1.1.039 Client. Hosted Mesa's
+Vulkan/GL semaphore handoff remains an explicit skip, not hardware acceptance.
+
+Exact **1.1.047-ubuntu-qt-session** package sources and evidence:
+
+- Parent `f9ad67b704e7e9900c7304a49f6a8c86c91dc811`.
+- Client `ba0d2227288eb055c17bf144518b5a4c42c295c7`.
+- Successful [GitHub-hosted run 39355378111](https://github.com/instinctual/plank/actions/runs/39355378111).
+- Package: `artifacts/packages/candidates/1.1.047-ubuntu-qt-session/linux/plank-client-qt_1.1.047-ubuntu-qt-session_amd64.deb`.
+- SHA-256: `0445aeab306697628d489ef776cb0c484ff8016209ff0c35cc35643bcde46522`.
+- Packaged executable SHA-256: `b3e9eac0ff9fe8a32576225c3e84d7c13d17ce4dd48a3eea4c77f17c25010f9c`.
+- Retained reports: `artifacts/qualification/ubuntu-qt-session-1.1.047/`.
+
+The successful job took about 18 minutes: 5m17 dependency bootstrap, 10m39
+component/full-build validation, and the remainder setup/packaging. The first
+test-harness cleanup failure required a separate attempt. No build-speed change
+or reduced test policy was made. Build only through the explicit GitHub-hosted
+`linux-client-qt` job. No end-user installation, merge or release was performed.
+Next: operator checks the toolbar appearance and automatic recovery after a
+cable interruption; full live-profile/audio/camera/microphone gates remain.
 
 ### Retained toolbar labels, icons and automatic recovery
 

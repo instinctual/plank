@@ -28,8 +28,12 @@ Current candidate 1.1.047 removes that style dependency from the toolbar buttons
 centered 24-pixel vectors, 32-pixel invisible hit targets, and hover/press-only
 backgrounds. Minimize/close now match the other vectors. The test/probe style
 matches production Material Dark/Dense, with explicit geometry, rendering and
-hit-target regressions. Hosted qualification/packaging is pending. Subsequent
-operator gates remain toolbar and cable-interruption testing: restore the network without
+hit-target regressions. Hosted run39355378111 passes all40 window/input cases
+offscreen, under sanitizers and on GNOME100/125, both complete app builds and
+package gates. The .047 DEB is downloaded with verified provenance/hashes.
+The test/probe explicitly finalize Fontconfig after Qt teardown; leak detection
+remains enabled without suppressions. Subsequent operator gates remain toolbar
+and cable-interruption testing: restore the network without
 pressing a dialog button and confirm automatic video/input recovery. See
 HANDOFF for exact source, package hashes and remaining hardware gates.
 
