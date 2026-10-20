@@ -63,7 +63,6 @@ int main(int argc, char** argv)
     };
     QObject::connect(&window, &QtSessionWindow::surfaceSizeChanged, &window, updateGeometry);
     QObject::connect(&window, &QtSessionWindow::disconnectRequested, &app, &QGuiApplication::quit);
-    QObject::connect(&window, &QtSessionWindow::keepWaitingRequested, &window, [&window] { window.setWaiting(false); });
     // Probe shortcuts only, not a proposed set of production hotkeys. Do not
     // enable remote-key interception, which would correctly suppress shortcuts.
     QShortcut quit(QKeySequence(Qt::Key_Escape), &window);
