@@ -1,5 +1,16 @@
 # Ubuntu Qt-owned session
 
+## Compact toolbar follow-up
+
+Keep the accepted borderless vector icons, 32x32 click targets and 39px toolbar
+height. Group the five microphone/camera/window controls with 4px gaps instead
+of 8px, preserving the 8px separation from Encoder Target. Narrow RTT to whole
+milliseconds with a stable three-digit-plus-over-range field; values over 999ms
+display `>999 ms`, not a falsely capped measurement. Do not move slider/control
+positions as telemetry changes or leave slots for unsupported capture controls.
+Existing Material, rendered-glyph, hit-target, hide/fullscreen and scale gates
+remain; new tests cover RTT boundaries and microphone/camera visibility.
+
 ## Covered-parent exposure correction
 
 Candidate .049 exposed a Wayland lifecycle issue independent of audio.

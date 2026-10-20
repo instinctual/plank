@@ -6,6 +6,23 @@ notes, never in Git.
 
 ## Current work — Ubuntu Qt session experiment
 
+### .051 — compact toolbar candidate in preparation
+
+The operator approved reducing gaps between microphone, camera, fullscreen,
+minimize and disconnect from 8 to 4 logical pixels. The controls retain their
+32x32 click targets and 24x24 artwork. A nested controls row leaves all other
+column spacing, the slider, toolbar height, reveal and input handling unchanged.
+The RTT reserve is narrowed to three-digit whole milliseconds, including a
+fixed `>999 ms` over-range indication. Unknown/unavailable RTT remains a dash.
+Changing telemetry must not move the slider or control hit regions.
+
+Regression coverage adds integer/boundary/invalid RTT checks and all four
+microphone/camera visibility combinations, alongside existing real Material
+glyph, hit-target and fullscreen/hide/restore checks at 100%/125% scaling.
+Validation and the GitHub-hosted candidate build are pending. Both Hosts,
+ordinary Client and native PipeWire behavior are unchanged. No remote install,
+merge or release is authorized by this task.
+
 ### .050 ready for manual testing — covered-parent presentation repair
 
 The .049 failure is reproduced on the authorized Intel Client without a Host
