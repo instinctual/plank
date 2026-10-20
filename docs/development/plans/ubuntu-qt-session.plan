@@ -15,6 +15,9 @@ letterboxing when the freely resized window has a different aspect ratio.
 
 Create native resources while hidden in normal state to record the intended
 restore size, then request fullscreen before showing either native surface.
+Reapply the selected screen after native creation, which can otherwise select
+a virtual sibling containing the default position. Verify that choice with a
+separate two-monitor GNOME fixture, including different monitor dimensions.
 GNOME can send an initial normal configure before the fullscreen configure.
 Exposure alone is therefore insufficient. Initial raster drawing and child
 showing wait for the selected screen's actual logical fullscreen dimensions;

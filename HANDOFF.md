@@ -45,6 +45,10 @@ arrive; subsequent resize/restore remains Qt-owned. Preserve the exact first-sho
 assertion. Retain `attempt-4/` and `attempt-5/` evidence; temporary verbose
 test logging is removed. No hardcoded size, timer, native Wayland manipulation,
 Host change or relaxed package gate.
+Hidden creation can also reselect a virtual sibling based on the default
+position. Restore the explicitly selected screen before requesting fullscreen;
+add a separate two-output GNOME gate covering different monitor dimensions.
+Run39488101113 was superseded before packaging to include that regression check.
 See the Qt plan for scope. No remote installation, merge or release authorized.
 
 ### .051 accepted — compact toolbar

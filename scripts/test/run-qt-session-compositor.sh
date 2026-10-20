@@ -19,8 +19,12 @@ export GSETTINGS_BACKEND=memory
 unset DISPLAY WAYLAND_DISPLAY
 
 dbus-run-session -- bash -eu -c '
+    second_output=()
+    if test "${PLANK_QT_CHECK_SCREEN_SELECTION:-0}" = 1; then
+        second_output+=(--virtual-monitor 2560x1440)
+    fi
     gnome-shell --headless --wayland --no-x11 --wayland-display plank-qt-test \
-        --virtual-monitor 1920x1080 >"$XDG_RUNTIME_DIR/compositor.log" 2>&1 &
+        --virtual-monitor 1920x1080 "${second_output[@]}" >"$XDG_RUNTIME_DIR/compositor.log" 2>&1 &
     compositor_pid=$!
     trap '\''kill "$compositor_pid" 2>/dev/null || true; wait "$compositor_pid" 2>/dev/null || true'\'' EXIT
     for attempt in $(seq 1 100); do
@@ -33,6 +37,10 @@ dbus-run-session -- bash -eu -c '
     export QT_QPA_PLATFORM=wayland
     export QSG_RHI_BACKEND=opengl
     unset QT_QUICK_BACKEND
+    if test "${PLANK_QT_CHECK_SCREEN_SELECTION:-0}" = 1; then
+        "$PLANK_QT_SESSION_TEST_BUILD/tests/qtsession" selectedScreenSurvivesHiddenCreation
+        exit
+    fi
     if test -n "${PLANK_QT_CLIENT_BINARY:-}"; then
         python3 "$PLANK_SOURCE_ROOT/scripts/test/smoke-qt-client.py" \
             --binary "$PLANK_QT_CLIENT_BINARY" --reports "$PLANK_QT_LAUNCHER_REPORTS"

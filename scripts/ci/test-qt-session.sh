@@ -35,6 +35,8 @@ PLANK_QT_COMPOSITOR_REPORT="$reports/gnome.log" PLANK_QT_CHECK_PRECISION=1 PLANK
 QT_SCALE_FACTOR=1.25 PLANK_QT_CHECK_PRECISION=1 PLANK_QT_UI_REPORT_DIR="$reports" \
     PLANK_QT_COMPOSITOR_REPORT="$reports/gnome-125.log" \
     bash scripts/test/run-qt-session-compositor.sh 2>&1 | tee "$reports/compositor-125.log"
+PLANK_QT_CHECK_SCREEN_SELECTION=1 PLANK_QT_COMPOSITOR_REPORT="$reports/gnome-two-screens.log" \
+    bash scripts/test/run-qt-session-compositor.sh 2>&1 | tee "$reports/screen-selection.log"
 PLANK_QT_SESSION_TEST_BUILD="$PLANK_WORK_ROOT/qt-session-tests-asan" \
     PLANK_QT_SESSION_SANITIZERS=1 ASAN_OPTIONS=detect_leaks=1:halt_on_error=1 \
     UBSAN_OPTIONS=halt_on_error=1 \
