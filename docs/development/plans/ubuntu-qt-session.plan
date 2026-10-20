@@ -20,7 +20,7 @@ its actual size. Qt can report exposure from inside a native configure before
 applying its final geometry, so queue the show to finish that GUI event first
 and recheck visibility/exposure. This is not a guessed delay or resize loop.
 Explicit hide/minimize still unmaps it; merely covering the parent does not.
-On restore, an already-exposed parent can show its child immediately (not all
+Visibility changes also queue the show for an already-exposed parent (not all
 platform backends generate a new expose when leaving minimized state).
 Keep the .050 exposure policy and exact ten-bit surface checks unchanged.
 Tests cover aspect/size defaults, fractional-scale logical units, first-show

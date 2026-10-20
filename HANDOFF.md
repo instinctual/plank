@@ -19,30 +19,26 @@ exposure before showing; explicit hide/minimize cleanup and .050's covered-paren
 policy remain. No Host resolution request, new persistent setting or render
 scaling change. The ordinary Client and both Hosts are unchanged.
 
-Focused tests added for initial aspect/size, fractional logical coordinates,
-first-fullscreen show geometry and repeated manual resize/restore. First hosted
-run39482562087 stops on two lifecycle checks before packaging: the offscreen
-backend has no normal restore geometry if created initially fullscreen, and
-it retains parent exposure while minimized without another expose on restore.
-Create native resources while hidden in normal state to seed Qt's own restore
-geometry; show the child on restore immediately if the parent is already
-exposed, otherwise wait for its expose. Keep both tests intact. Evidence is
-retained under `artifacts/qualification/ubuntu-qt-session-1.1.052/attempt-1/`.
+Focused tests cover initial aspect/size, fractional logical coordinates,
+first-fullscreen geometry and repeated manual resize/restore. Native resources
+are created while hidden in normal state to seed Qt's own restore geometry.
+Child showing is queued until the native configure event finishes, rechecking
+visible/exposed/minimized state. Visibility changes also cover backends that
+remain exposed while minimized. No arbitrary timing delay or resize loop.
+
+Three hosted failures caught missing initial restore geometry, minimize/restore
+visibility and real GNOME's expose-before-final-size ordering. Tests also had
+to await actual glyph rendering and input-release delivery rather than assume
+that geometry/source property changes meant those events had completed. Keep
+the first-show, restored-size, rendered-glyph and input-release assertions.
+Evidence for runs39482562087,39483520109,39484372569 is retained under
+`artifacts/qualification/ubuntu-qt-session-1.1.052/attempt-{1,2,3}/`.
 The corrected hosted build/compositor/sanitizer/package gates are pending;
-no installer is ready yet.
-Run39483520109 confirms minimize/restore passes, then exposes two test timing
-assumptions: hidden native fullscreen geometry need not still equal the normal
-restore size, and changed icon source/state need not mean the new glyph has
-finished drawing. Keep the post-fullscreen restore-size assertion and wait for
-actual rendered icon pixels. Second-run evidence is retained in `attempt-2/`;
-the product implementation is unchanged by this test correction.
-Run39484372569 passes offscreen, then reproduces the small first-show geometry
-on real GNOME: Qt can deliver exposure from within a native configure before
-applying its final size. Queue the child show until that GUI event completes,
-rechecking visible/exposed/minimized state; do not add a timing delay or size
-guess. The input resize test also waits for actual release-event delivery,
-not only the already-updated geometry property. Preserve both assertions.
-Evidence is retained in `attempt-3/`; no failed run produced an installer.
+no failed run produced an installer.
+Run39485642618 passes 53 GNOME window/UI cases but still exposes the smaller
+initial child before fullscreen geometry. Merely queueing the show is not
+sufficient. Retained `attempt-4/` evidence and a focused native configure trace
+are the next diagnostic; do not weaken the first-show assertion.
 See the Qt plan for scope. No remote installation, merge or release authorized.
 
 ### .051 accepted — compact toolbar
@@ -82,8 +78,8 @@ Exact **1.1.051-ubuntu-qt-session** package:
 Downloaded package/provenance/checksums are verified. Read-only archive
 inspection independently confirms no payload-file overlap with ordinary1.1.039.
 Both Hosts, ordinary Client and native PipeWire behavior are unchanged.
-Next: operator installs .051 and checks the compact toolbar in a live session;
-resume the separate real-output audio/A/V-sync soak afterward. No remote
+The operator accepts the compact toolbar in a live session. The separate
+real-output audio/A/V-sync soak remains pending. No remote
 installation, merge or release was performed.
 
 ### .050 ready for manual testing — covered-parent presentation repair
