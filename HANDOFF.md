@@ -29,6 +29,11 @@ It disables the timeout heuristic, not frame callbacks or swap pacing; normal
 hide/minimize handling and the two-second exact-format gate remain. The
 native-child design still avoids Qt's RGB8 decoration framebuffer. New tests
 exercise sustained rendering, fullscreen/windowed changes and hide/restore.
+The first .050 hosted run39383795276 compiled and passed existing component
+tests, but its new compositor regression caught a stale child exposed flag
+after hiding the parent. The shell now explicitly mirrors hide/minimize and
+restore to the child, matching its existing explicit show ownership. Do not
+weaken the test or rely on the disabled timeout to retire hidden surfaces.
 Compilation/package gates and the compiled hardware rerun are pending; the
 successful diagnostic A/B is not yet full live-session or audio-soak acceptance.
 

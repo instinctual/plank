@@ -21,7 +21,11 @@ The .050 correction applies that process-local policy before QGuiApplication
 creates surfaces, only in the experimental Qt Client and its test harness.
 It disables Qt's missing-callback exposure heuristic, not compositor pacing
 or actual hide/minimize notifications. Explicit environment overrides remain
-for A/B diagnostics. The native child is still necessary to avoid the RGB8
+for A/B diagnostics. The shell explicitly hides its child on hide/minimize,
+and shows it on restore, symmetrically with its existing show ownership.
+Wayland unmapping the parent alone can leave Qt's child exposed flag stale;
+the new compositor test caught this and requires both to retire correctly.
+The native child is still necessary to avoid the RGB8
 decoration intermediate; exact-format validation and its deadline stay intact.
 Regression gates include continued swaps after the old timeout, repeated
 fullscreen/windowed and hide/minimize/restore cycles, plus repeated actual
