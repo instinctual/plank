@@ -34,6 +34,11 @@ tests, but its new compositor regression caught a stale child exposed flag
 after hiding the parent. The shell now explicitly mirrors hide/minimize and
 restore to the child, matching its existing explicit show ownership. Do not
 weaken the test or rely on the disabled timeout to retire hidden surfaces.
+The next run39384596337 passed the hide/fullscreen portions but caught that
+programmatic minimization does not deliver the assumed WindowStateChange event.
+The final implementation uses QWindow's public visibilityChanged signal for
+show/hide/minimize/restore, with the child as connection-lifetime context.
+The ordinary offscreen lifecycle test now also asserts child visibility.
 Compilation/package gates and the compiled hardware rerun are pending; the
 successful diagnostic A/B is not yet full live-session or audio-soak acceptance.
 
