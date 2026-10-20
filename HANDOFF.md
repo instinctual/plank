@@ -37,7 +37,11 @@ QCoreApplication test now keeps libdbus loaded and calls its documented
 `dbus_shutdown()` after every renderer/thread is destroyed; unlike the real
 GUI, this isolated test previously had no long-lived D-Bus owner. This is
 test-only library-cache cleanup, not a leak suppression or a production
-`dbus_shutdown()` call. Hosted confirmation remains pending.
+`dbus_shutdown()` call. Hosted confirmation remains pending. The next run also
+checks actual 1024- and 4096-frame graph requests; producer backpressure must
+allow one graph request plus reserve rather than deadlocking a large-quantum
+device behind a fixed 50ms limit. The prior in-flight run is superseded before
+packaging; no .049 artifact has been accepted or installed.
 
 ### Accepted follow-up — hide startup decoder test images
 

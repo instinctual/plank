@@ -26,7 +26,11 @@ dbus-run-session -- bash -eu -c '
     manager_pid=$!
     sleep 1
     kill -0 "$manager_pid"
-    timeout 30 "$1" realPipeWirePlayback unavailableServerFailsPromptly
+    for quantum in 1024 4096; do
+        pw-metadata -n settings 0 clock.force-quantum "$quantum"
+        PLANK_PIPEWIRE_TEST_QUANTUM="$quantum" \
+            timeout 30 "$1" realPipeWirePlayback unavailableServerFailsPromptly
+    done
 ' qt-audio "$1" || {
     # Only the disposable test daemon logs, never the users desktop.
     tail -n 100 "$runtime/pipewire.log" "$runtime/wireplumber.log"

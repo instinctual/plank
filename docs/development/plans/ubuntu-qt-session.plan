@@ -23,8 +23,10 @@ Startup/recovery primes one actual graph request plus 12ms of reserve, covering
 the 512-frame/48k capture batch. The minimum post-pull reserve over one second
 limits acceleration and gently restores headroom using the same resampler.
 This is a small bounded latency tradeoff, not a guarantee against arbitrary WAN
-stalls. PCM capacity is 200ms, normal producer backpressure begins at 50ms and
-fails/reinitializes after a bounded 100ms stall. No oldest/newest item eviction.
+stalls. PCM capacity is 200ms plus one source block. Producer backpressure begins
+at the larger of 50ms or one graph quantum plus reserve, and fails/reinitializes
+after a bounded 100ms stall. This lets large graph requests prime without a
+fixed high-water limit deadlocking startup. No oldest/newest item eviction.
 Actual shortages are counted; 2.5ms fades only at startup/interruption edges
 avoid hard sample discontinuities and do not conceal the counters.
 
