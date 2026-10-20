@@ -5,6 +5,7 @@
 
 #include <QCommandLineParser>
 #include <QGuiApplication>
+#include <QQuickStyle>
 #include <QScreen>
 #include <QShortcut>
 #include <QTimer>
@@ -13,6 +14,11 @@
 
 int main(int argc, char** argv)
 {
+    // Use the same style as the real Client, including its geometry defaults.
+    qputenv("QT_QUICK_CONTROLS_MATERIAL_THEME", "Dark");
+    qputenv("QT_QUICK_CONTROLS_MATERIAL_VARIANT", "Dense");
+    qputenv("QT_QUICK_CONTROLS_MATERIAL_ACCENT", "#5A9CE6");
+    QQuickStyle::setStyle(QStringLiteral("Material"));
     QGuiApplication app(argc, argv);
     QCoreApplication::setApplicationName(QStringLiteral("PLANK Qt session probe"));
     QCommandLineParser parser;

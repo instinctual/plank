@@ -14,7 +14,7 @@ bar, with the existing one-second dwell and Pin behavior. Fullscreen retains
 its three-pixel trigger. No extra reveal button or custom title bar is added.
 Hosted compilation, compositor tests at 100%/125%, sanitizers and packaging
 passed. The separate Qt DEB is downloaded and the operator confirmed windowed
-reveal works. Current candidate 1.1.046 restores stacked stats and stateful
+reveal works. Candidate 1.1.046 restores stacked stats and stateful
 pin/fullscreen vector icons without changing that interaction. The operator
 also approved continuous automatic recovery with a Disconnect-only status
 dialog, retaining explicit auto-disconnect and terminal security failures.
@@ -22,8 +22,14 @@ The Qt timeout now reveals a notice rather than pausing retry requests.
 Hosted qualification and packaging passed, and the separate .046 DEB is
 downloaded. All 38 window/input cases pass offscreen, with sanitizers and on
 GNOME/Wayland at 100%/125%; both complete Client builds and package isolation
-also pass. Actual test-render screenshots were inspected. The next gate is
-operator toolbar and cable-interruption testing: restore the network without
+also pass. Those UI renders used the default style, missing the production
+Material theme's edge padding/insets. The operator reported squeezed icons.
+Current candidate 1.1.047 removes that style dependency from the toolbar buttons:
+centered 24-pixel vectors, 32-pixel invisible hit targets, and hover/press-only
+backgrounds. Minimize/close now match the other vectors. The test/probe style
+matches production Material Dark/Dense, with explicit geometry, rendering and
+hit-target regressions. Hosted qualification/packaging is pending. Subsequent
+operator gates remain toolbar and cable-interruption testing: restore the network without
 pressing a dialog button and confirm automatic video/input recovery. See
 HANDOFF for exact source, package hashes and remaining hardware gates.
 

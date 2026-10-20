@@ -6,7 +6,32 @@ notes, never in Git.
 
 ## Current work — Ubuntu Qt session experiment
 
-### Current follow-up — toolbar labels, icons and automatic recovery
+### Current follow-up — borderless, consistently sized toolbar icons
+
+The operator reports that .046's icons, including minimize/close, look squeezed
+inside small boxes. Read-only inspection found that the real app's Material
+style supplies edge-specific padding/insets despite the custom button's generic
+`padding: 0`. The earlier isolated UI tests used the default style, so their
+successful SVG renders did not exercise this production layout. This is not
+evidence of another video-import or cursor defect.
+
+Candidate **1.1.047-ubuntu-qt-session** uses Qt's unstyled Button template for
+the existing toolbar controls: 32-pixel invisible click targets, centered
+24-pixel SVGs, no idle box, and subtle hover/press feedback. Minimize and close
+now use the same vector dimensions, color and line weight as the other icons.
+The microphone/camera also use centered vector artwork; supported/active states
+still come from existing telemetry. Toolbar height remains 39 logical pixels.
+No window, input, video, audio, transport, Host or ordinary Client policy changes.
+
+The isolated probe and Client tests now use the production Material Dark/Dense
+style. Added regressions require actual 24-pixel content geometry, zero style
+insets, wide rendered glyphs, transparent idle backgrounds, hover/press feedback
+and all six controls activating from outside their artwork without remote click
+leakage. Hosted compilation, compositor/sanitizer tests and packaging are pending.
+Build only through the explicit GitHub-hosted `linux-client-qt` job. Do not
+install on an end-user machine, merge, publish or claim hardware acceptance.
+
+### Retained toolbar labels, icons and automatic recovery
 
 The operator accepts .045's windowed toolbar interaction. They request the
 regular Client's two-row stats layout and recognizable pin/fullscreen icons.
@@ -66,7 +91,8 @@ that hardware-sensitive gate is skipped, not accepted. Microphone and camera
 reuse the existing capture/transport and are wired into the Qt toolbar for
 compatible macOS Hosts, but real-device Qt acceptance remains pending.
 No Host update, remote installation, merge or release was performed. The
-operator reports no Client is currently running; no SSH or trace is active.
+later production-style sizing issue above supersedes the earlier visual
+acceptance of these default-style test images. No SSH or trace is active.
 
 ### Accepted windowed toolbar access and separate ghost-cursor investigation
 

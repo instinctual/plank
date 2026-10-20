@@ -80,6 +80,18 @@ class QtSessionWorkflowTests(unittest.TestCase):
                     (source / 'app/cli/start.cpp').write_text(token + '\n')
                     self.assertEqual(check().returncode, 1)
 
+    def test_probe_uses_production_style(self):
+        # This policy job has no submodules. The Client's runtime tests assert
+        # their Material style separately after product bootstrap.
+        source = (ROOT / 'probes/qt-session/main.cpp').read_text()
+        for required in ('QQuickStyle::setStyle(QStringLiteral("Material"))',
+                         '"QT_QUICK_CONTROLS_MATERIAL_THEME", "Dark"',
+                         '"QT_QUICK_CONTROLS_MATERIAL_VARIANT", "Dense"',
+                         '"QT_QUICK_CONTROLS_MATERIAL_ACCENT", "#5A9CE6"'):
+            self.assertIn(required, source)
+        self.assertLess(source.index('QQuickStyle::setStyle'),
+                        source.index('QGuiApplication app('))
+
 
 if __name__ == '__main__':
     unittest.main()

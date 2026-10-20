@@ -61,6 +61,10 @@ For `ubuntu-qt-session`, use
 Ubuntu 26.04 job shares the verified Client dependency caches/bootstrap, builds
 the isolated Qt components, and runs co-installation fixtures, normal/sanitized
 tests and a private headless GNOME compositor at 100% and forced 125% scale.
+Toolbar tests and the standalone probe must select the real launcher's Material
+Dark/Dense style. Default-style screenshots missed inherited edge padding that
+squeezed the production toolbar icons; keep explicit content-size, rendered
+glyph, idle/hover/press and invisible-hit-target checks at both scales.
 It also compiles/links the ordinary Client and runs its existing preflight
 checks to protect shared code such as the extracted software-frame allocator.
 It also builds the complete Qt Client and checks three real launcher/shutdown
