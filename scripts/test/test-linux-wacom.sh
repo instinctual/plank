@@ -37,4 +37,18 @@ timeout 30 "$build_dir/wayland-cursor"
   "$source_dir/app/streaming/input/linuxwacom.cpp" "$build_dir/linuxrawwacom.o" \
   -Wl,--wrap=udev_new "${client_libs[@]}" -o "$build_dir/lifecycle"
 timeout 30 "$build_dir/lifecycle"
+wrappers=(udev_new udev_unref udev_enumerate_new udev_enumerate_unref
+  udev_enumerate_add_match_subsystem udev_enumerate_scan_devices
+  udev_enumerate_get_list_entry udev_list_entry_get_next udev_list_entry_get_name
+  udev_device_new_from_syspath udev_device_unref
+  udev_device_get_parent_with_subsystem_devtype udev_device_get_syspath
+  udev_device_get_devnode udev_device_get_devtype udev_device_get_sysattr_value
+  open close fcntl ioctl poll read)
+wrap_flags=()
+for wrapper in "${wrappers[@]}"; do wrap_flags+=("-Wl,--wrap=$wrapper"); done
+"${CXX:-c++}" "${flags[@]}" "${client_cflags[@]}" \
+  -I"$source_dir/moonlight-common-c/moonlight-common-c/src" \
+  "$source_dir/tests/linuxrawwacom/test_usb_recovery.cpp" "$build_dir/linuxrawwacom.o" \
+  "${wrap_flags[@]}" "${client_libs[@]}" -o "$build_dir/usb-recovery"
+timeout 60 "$build_dir/usb-recovery"
 echo 'linux_wacom_components=pass hardware_acceptance=not-performed'

@@ -13,6 +13,8 @@ test "${#vulkan_test_drivers[@]}" -eq 1
 export VK_DRIVER_FILES="${vulkan_test_drivers[0]}" LIBGL_ALWAYS_SOFTWARE=1
 export PLANK_CLIENT_FFMPEG_WORK="$PLANK_DEP_ROOT/client-ffmpeg"
 export PLANK_CLIENT_SDL_WORK="$PLANK_DEP_ROOT/client-sdl"
+export PKG_CONFIG_PATH="$PLANK_CLIENT_FFMPEG_WORK/install/lib/pkgconfig:$PLANK_CLIENT_SDL_WORK/install/lib/pkgconfig"
+export LD_LIBRARY_PATH="$PLANK_CLIENT_FFMPEG_WORK/install/lib:$PLANK_CLIENT_SDL_WORK/install/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
 export PLANK_QT_SESSION_TEST_BUILD="$PLANK_WORK_ROOT/qt-session-tests"
 reports="$PLANK_WORK_ROOT/qt-session-reports"
 mkdir -p "$reports"
@@ -23,6 +25,14 @@ cd "$PLANK_SOURCE_ROOT"
     qmake6 -query QT_VERSION
     echo 'software_gpu_only=true hardware_acceptance=not-performed live_session=not-qualified'
 } > "$reports/source.txt"
+# Run production-adapter USB recovery before the longer compositor/full-build
+# gates. Fake udev/I/O exercises the actual worker without physical devices.
+bash scripts/test/test-linux-wacom.sh "$PLANK_SOURCE_ROOT/apps/client" \
+    "$PLANK_WORK_ROOT/wacom-tests" 2>&1 | tee "$reports/wacom.log"
+PLANK_WACOM_SANITIZERS=1 ASAN_OPTIONS=detect_leaks=1:halt_on_error=1 \
+    UBSAN_OPTIONS=halt_on_error=1 \
+    bash scripts/test/test-linux-wacom.sh "$PLANK_SOURCE_ROOT/apps/client" \
+    "$PLANK_WORK_ROOT/wacom-tests-asan" 2>&1 | tee "$reports/wacom-asan.log"
 python3 tests/packaging/test-client-qt-package.py 2>&1 | tee "$reports/coinstall.log"
 mkdir -p "$reports/offscreen"
 PLANK_QT_UI_REPORT_DIR="$reports/offscreen" \
@@ -60,8 +70,6 @@ plank_load_package_version "$PLANK_SOURCE_ROOT"
 source scripts/build/build-paths.sh
 plank_build_path_flags "$PLANK_SOURCE_ROOT" "$PLANK_WORK_ROOT/qt-runtime-build"
 plank_native_dependency_flags
-export PKG_CONFIG_PATH="$PLANK_CLIENT_FFMPEG_WORK/install/lib/pkgconfig:$PLANK_CLIENT_SDL_WORK/install/lib/pkgconfig"
-export LD_LIBRARY_PATH="$PLANK_CLIENT_FFMPEG_WORK/install/lib:$PLANK_CLIENT_SDL_WORK/install/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
 mkdir -p "$PLANK_WORK_ROOT/qt-runtime-build"
 (
     cd "$PLANK_WORK_ROOT/qt-runtime-build"

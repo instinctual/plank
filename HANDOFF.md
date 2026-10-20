@@ -4,7 +4,38 @@ Read `AGENTS.md` and the relevant build runbook first. Machine-specific access,
 credentials, captures and operational evidence belong in the external private
 notes, never in Git.
 
-## Current work — Ubuntu Qt session experiment
+## Current work — Wacom USB recovery on the Qt baseline
+
+Branch `wacom-usb-recovery` starts from the complete .052 Qt work:
+parent `a08666b8b8fd820a92d3296ac88a5f7ebae9e3be`, Client
+`ab38aa1fe9264d7440f3f4bad515f98c2c1a4c44`. The canonical checkout's
+unrelated dirty work is preserved. No Host, macOS or wire-protocol change.
+
+Read-only live inspection found a client-side USB interface re-enumeration
+followed by Host virtual-tablet destruction/recreation while the application
+was running. A coordinated pen-only sample subsequently confirmed tip presses
+and full pressure reaching the Host virtual device; the application no longer
+selected its current extended-input device IDs. This supports the retention
+fix, not a claim that all similar application failures share this cause.
+No live application, device, service, configuration or package was changed.
+The bounded sampler is stopped; operational evidence remains outside Git.
+
+The shared Linux raw-HID adapter now uses the existing SUSPEND path for USB
+I/O loss, preserving Host endpoints and releasing held contacts. Wire interface
+ordering uses USB interface numbers, not hidraw names. Descriptor-driven
+completeness checks reject a temporarily partial tablet during driver rebind.
+Genuinely different device metadata/descriptors still reach the Host's existing
+replacement policy. First-generation normalized fallback is unchanged.
+
+New link-wrapped production-adapter tests cover renumbering, partial/malformed
+interface inventory, polling/read failures, transient I/O interruptions, stale
+generation controls, reconnect barriers and handle cleanup. They run early in
+the hosted Qt job normally and with ASan/UBSan/leak checks. Candidate version
+is **1.1.053-wacom-usb-recovery**; build/tests/package and live acceptance are
+pending. Do not present it as ready or install it automatically. An application
+whose device registration was already lost may need one restart before testing.
+
+## Previous Qt baseline
 
 ### .052 ready for manual testing — windowed size and fullscreen restore
 
