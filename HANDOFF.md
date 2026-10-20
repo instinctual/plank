@@ -23,7 +23,11 @@ video, Wacom or Host policy changes are added. New tests check actual rendered
 icon pixels, resource/state changes, hide/reveal, native window transitions,
 stacked label geometry, stable control positions and no remote click leakage.
 Hosted build/package qualification is pending; no new artifact or deployment
-is claimed yet. Continue on the existing `ubuntu-qt-session` branches.
+is claimed yet. The first .046 run stopped before compilation because the
+new Image component assigned its read-only implicit size. A fixed-size Item
+now owns the vector image, and the new tests guard QML loading before accessing
+the scene. Requalify the same candidate; no package came from that failed run.
+Continue on the existing `ubuntu-qt-session` branches.
 
 ### Accepted windowed toolbar access and separate ghost-cursor investigation
 
