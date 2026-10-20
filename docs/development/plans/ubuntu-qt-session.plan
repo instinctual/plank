@@ -7,8 +7,8 @@ size instead of the fixed 960x600 restore size. Prepare an aspect-matched size
 within 80% of the target screen's available logical area, using the authenticated
 desktop topology. Unknown topology falls back to that available-area ratio.
 Use resize(), leaving top-level placement to Wayland, rather than pretending
-that setGeometry() can force GNOME to center the window. Qt retains subsequent
-user resizes across fullscreen toggles; do not add a competing restore loop,
+that setGeometry() can force GNOME to center the window. Retain subsequent
+user content sizes across fullscreen toggles; do not add a competing resize loop,
 per-resize aspect constraint, persistent preference or Host mode request.
 Existing presentation/input geometry keeps the image proportional and uses
 letterboxing when the freely resized window has a different aspect ratio.
@@ -23,12 +23,18 @@ Exposure alone is therefore insufficient. Initial raster drawing and child
 showing wait for the selected screen's actual logical fullscreen dimensions;
 native resize delivery then triggers the queued child show. Recheck geometry
 and visibility/exposure when it runs. The gate retires after that first show,
-so manual sizing and subsequent fullscreen restore remain Qt-owned. This is
+so manual sizing remains free-form. This is
 not a guessed delay, hardcoded resolution, private API or resize loop.
 Explicit hide/minimize still unmaps it; merely covering the parent does not.
 Visibility changes also queue the show for an already-exposed parent (not all
 platform backends generate a new expose when leaving minimized state).
 Keep the .050 exposure policy and exact ten-bit surface checks unchanged.
+Qt Wayland's decoration transition can shrink its normal restore dimensions.
+Save the content size before requesting fullscreen; on exit, restore it once
+after the native normal-state event, when Qt has recreated decorations. Do not
+guess border dimensions, resize continuously or overwrite the saved size with
+the fullscreen/maximized size. Startup and runtime toggles use the same shell
+API; reconnect re-showing an ordinary window preserves its current state.
 Tests cover aspect/size defaults, fractional-scale logical units, first-show
 geometry, free-form manual resizing, repeated fullscreen restore, hide/restore
 and existing covered-parent/minimize/input/precision behavior. Qualify on the

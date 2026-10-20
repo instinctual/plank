@@ -13,8 +13,9 @@ restore of manual resizing across fullscreen toggles and removal of the small
 window preview before fullscreen. The accepted policy keeps the image
 proportional, not a hard window-shape constraint during native Wayland dragging.
 The Qt shell now prepares an aspect-matched normal size within 80% of available
-logical screen space and leaves placement to GNOME. Qt's own normal-size
-restoration retains manual changes. The child waits for the shell's configured
+logical screen space and leaves placement to GNOME. The shell retains normal
+content size and restores it once after a fullscreen exit is acknowledged.
+The child waits for the shell's configured
 exposure before showing; explicit hide/minimize cleanup and .050's covered-parent
 policy remain. No Host resolution request, new persistent setting or render
 scaling change. The ordinary Client and both Hosts are unchanged.
@@ -41,7 +42,7 @@ initial child. Diagnostic run39486876615 establishes the actual sequence:
 GNOME first sends a normal configure, then a separate fullscreen configure;
 the child maps between them. Queueing alone cannot solve that. The shell now
 defers initial raster painting and child showing until fullscreen dimensions
-arrive; subsequent resize/restore remains Qt-owned. Preserve the exact first-show
+arrive; subsequent manual resizing remains free-form. Preserve the exact first-show
 assertion. Retain `attempt-4/` and `attempt-5/` evidence; temporary verbose
 test logging is removed. No hardcoded size, timer, native Wayland manipulation,
 Host change or relaxed package gate.
@@ -49,6 +50,12 @@ Hidden creation can also reselect a virtual sibling based on the default
 position. Restore the explicitly selected screen before requesting fullscreen;
 add a separate two-output GNOME gate covering different monitor dimensions.
 Run39488101113 was superseded before packaging to include that regression check.
+Run39488450218 passes first-fullscreen exposure but catches Qt Wayland restoring
+1530x615 rather than the requested 1536x648 content area: the difference is its
+window decoration margins. Retain `attempt-6/`. The shell now saves normal content
+size before fullscreen and restores it once on the native normal-state event,
+after decorations have returned. Do not replace this with hardcoded margins or
+relax the repeated manual-size assertion. The corrected hosted gates are pending.
 See the Qt plan for scope. No remote installation, merge or release authorized.
 
 ### .051 accepted — compact toolbar
