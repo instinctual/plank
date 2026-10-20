@@ -18,6 +18,12 @@ the original descriptor for every interface. Descriptor size is limited to
 The serial value is sensitive and must remain inside the authenticated,
 encrypted session.
 
+On Linux, interface indices follow the physical USB `bInterfaceNumber`, not
+the changing `/dev/hidrawN` names. Discovery requires every HID interface
+advertised by that USB device and a pen-capable input node. A temporarily
+visible touch-only subset during driver rebind must not replace the retained
+Host group. This is descriptor/capability-driven, not a model-specific list.
+
 The host creates every interface with the same physical group ID. It accepts
 the group only when all descriptors validate and every UHID endpoint reaches
 `UHID_START`; otherwise it destroys the entire group and selects the normalized
@@ -126,8 +132,12 @@ cleanup is retried before reuse. If it still cannot be verified, only that
 endpoint group is recreated and must complete `UHID_START` again. Ordinary
 healthy focus/disconnect cycles do not replace devices or alter coordinates.
 
-A physical hot-unplug or HID I/O error sends `tablet-detach`; changed USB
-identity or descriptors also require a new endpoint group. Normal stream
+On Linux, physical hot-unplug, HID I/O failure and attachment timeout use
+`tablet-suspend`, not destructive `tablet-detach`. The Client closes its local
+handles and rediscovers the complete physical device; the Host keeps the
+virtual group and performs the same held-contact cleanup as other suspends.
+The Client does not create a second local virtual tablet. Changed USB identity
+or descriptors still require a new Host endpoint group. Normal stream
 disconnect, reconnect, Client restart, orphan-reservation cleanup and authorized
 takeover retain healthy matching endpoints. The stream reservation does not own
 the devices: the Linux desktop worker's input subsystem does. This preserves
@@ -187,6 +197,12 @@ shared transport's Rust unit tests. The Ubuntu checks also support
 settings; actual configuration defaults are checked by the full Host CI suite.
 These tests do not replace physical tablet qualification below.
 
+The Ubuntu production-adapter fixture wraps only udev and device I/O. It
+verifies stable attachment metadata/descriptors after hidraw renumbering,
+rejection of partial interfaces and missing pen input, permanent versus
+transient I/O errors, stale control generations, and handle cleanup. The
+hosted Qt candidate job runs it normally and under ASan/UBSan before packaging.
+
 The Host fixture also compiles the real Desktop reservation implementation,
 using the pinned `libdisplaydevice` headers and a no-op display-restore boundary.
 `PLANK_LIBDISPLAYDEVICE_SOURCE`, `PLANK_LIBVIRTUALHID_SOURCE` and
@@ -204,6 +220,15 @@ pad controls, and touch geometry. Exercise feature/output reports, pen and
 eraser proximity, ExpressKeys, ring, multitouch, hot-unplug, reconnect, and
 abrupt network loss. Flame Tablet Margins and edge gestures must work without
 pre-scaling coordinates, preference watchers, or Xorg changes.
+
+With Flame already running, test a same-port USB unplug/replug or authorized
+driver rebind, including a period when only one interface is visible. Record
+the Host's virtual input IDs before and after: unchanged identity/descriptors
+must reuse them, and normal-tip clicks, pressure, eraser and Tablet Margins
+must continue without restarting Flame. Repeat across network interruption and
+focus loss. An application whose input registration was already invalidated
+before installing the candidate may need one restart to establish a valid
+starting point; that restart is not evidence that recovery passed.
 
 Include tip/barrel-button transitions during induced transport backpressure,
 focus loss with a feature query in flight, and touch-down followed by lifting

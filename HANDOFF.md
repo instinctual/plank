@@ -30,12 +30,47 @@ Genuinely different device metadata/descriptors still reach the Host's existing
 replacement policy. First-generation normalized fallback is unchanged.
 
 New link-wrapped production-adapter tests cover renumbering, partial/malformed
-interface inventory, polling/read failures, transient I/O interruptions, stale
-generation controls, reconnect barriers and handle cleanup. They run early in
-the hosted Qt job normally and with ASan/UBSan/leak checks. Candidate version
-is **1.1.053-wacom-usb-recovery**; build/tests/package and live acceptance are
-pending. Do not present it as ready or install it automatically. An application
-whose device registration was already lost may need one restart before testing.
+interface inventory, missing pen evdev readiness, polling/read failures,
+transient I/O interruptions, stale generation controls, reconnect barriers and
+handle cleanup. Normal and ASan/UBSan/leak runs pass. The unchanged Host's
+retained lifecycle fixture also passes 25 shuffled repetitions normally and
+under sanitizers (eight cases per repetition), using its retained component
+build, not a fresh Host package or real-kernel qualification.
+
+**1.1.053-wacom-usb-recovery is ready for manual testing.** Hosted run39508923505
+passes both full Client builds, 55 window/UI cases at 100% and 125%, offscreen
+and sanitizer coverage, two-monitor selection, synthetic precision gates,
+isolated PipeWire tests, three launcher/shutdown cycles, 14 package fixtures
+and finished-DEB checks. Live GPU handoff remains explicitly skipped on the
+software-only runner. These checks are not hardware or live Flame acceptance.
+
+Exact candidate provenance:
+
+- Parent `bc204f6de2509d2557394084e209750bb095f7e3`.
+- Client `3b92fb419a1ea9c83f974a681efe57c0dc68e538`.
+- Client common-C `437be9a0a4d164efdf9ed20dc6dd5a2b7b9edc90`; qmdnsengine `920c097ffa742e2968290f15d4dde6693aec02e5`.
+- Unchanged Linux Host `65dc0f1be60fe78d0457364f83813118c70bc8a8`; kymux `3f7a9d8618978287186e5d6ce0eaa067743cb06c`.
+- [Successful hosted run39508923505](https://github.com/instinctual/plank/actions/runs/39508923505).
+- Package: `artifacts/packages/candidates/1.1.053-wacom-usb-recovery/linux/plank-client-qt_1.1.053-wacom-usb-recovery_amd64.deb`.
+- Size: 17,165,256 bytes; SHA-256 `acc8c9eaa2609fc3ece94b1b18567ca0d1a10c246016af69f0ae741cd1ea363f`.
+- Packaged executable SHA-256 `b4e3b31b938d8571da6ba13c1c8f005709bf7031a8af56c5497913add1fd0097`.
+- Reports: `artifacts/qualification/wacom-usb-recovery-1.1.053/final/`.
+
+The downloaded package checksum, metadata, source provenance and executable
+hash are independently verified. Earlier run evidence is retained in attempt-1
+and attempt-2: the first caught fortified libc entry points bypassing fixture
+I/O injection; the second passed those tests and caught a stale packaging
+function-name check. Both are corrected with coverage, not suppressed. Neither
+failed run produced an installer. Privacy and clipboard checks also pass.
+
+Next: manually install the separate Qt package, reconnect and restart Flame
+once if its device registration was already lost. Establish working normal-tip
+clicks, pressure, eraser and Tablet Margins, then test same-port USB and network
+recovery with Flame left open. Host input IDs must remain unchanged for the
+same metadata/descriptors. See `protocol/wacom-hid.md` for the acceptance
+sequence. No Host update is required. The shared adapter also compiles for
+the ordinary Linux Client, but only the separate Qt package was produced.
+No remote installation, live application restart, merge or release was performed.
 
 ## Previous Qt baseline
 

@@ -240,7 +240,10 @@ Validate:
 - simultaneous presence of a physical Host tablet without duplicate local and
   remote input; and
 - suspend/reattach without changing application-visible XInput identity when
-  device identity and descriptors are unchanged.
+  device identity and descriptors are unchanged, including Client USB
+  re-enumeration with different hidraw numbers and temporarily missing pen
+  interfaces. An already-running Flame instance must retain working tip,
+  pressure and Tablet Margins after recovery, without an application restart.
 
 Tip/button transitions must use the reliable ordered path. Hover motion may be
 coalesced but must remain smooth under changing video load. Disconnect and
