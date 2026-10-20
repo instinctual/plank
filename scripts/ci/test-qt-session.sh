@@ -64,6 +64,9 @@ mkdir -p "$PLANK_WORK_ROOT/qt-runtime-build"
         "PLANK_TRANSPORT_DIR=$PLANK_SOURCE_ROOT/protocol/plank-transport" "PLANK_VERSION=$PLANK_PACKAGE_VERSION" \
         "QMAKE_CFLAGS+=$PLANK_C_FILE_FLAGS" "QMAKE_CXXFLAGS+=$PLANK_C_FILE_FLAGS"
     make -j"$(nproc)"
+    # Qt playback must not quietly fall back to the legacy SDL renderer.
+    test -f app/pipewire.o
+    test ! -f app/sdlaud.o
     QT_QPA_PLATFORM=offscreen timeout 20 app/plank-client-qt --version
 ) 2>&1 | tee "$reports/qt-runtime-build.log"
 PLANK_QT_CLIENT_BINARY="$PLANK_WORK_ROOT/qt-runtime-build/app/plank-client-qt" \

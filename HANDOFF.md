@@ -6,6 +6,24 @@ notes, never in Git.
 
 ## Current work — Ubuntu Qt session experiment
 
+### In progress — direct PipeWire playback in Qt only
+
+The operator authorized direct PipeWire integration after read-only inspection
+confirmed actual short output reads in Qt .048: 11 shortages over 45 seconds,
+4289 missing stereo output frames, 8999 audio transport callbacks and zero
+concealed samples. This identifies output starvation; it does not prove that
+Host batching/arrival jitter is irrelevant. Machine access and raw evidence
+remain outside Git. The trace and SSH session are closed.
+
+Candidate .049 replaces Qt's SDL audio stream with native PipeWire playback,
+measured graph/device timing, a bounded SPSC PCM queue and producer-side smooth
+FFmpeg compensation. A rolling post-pull headroom guard prevents repeated phase
+catch-up from draining the reserve. Startup/recovery primes one graph quantum
+plus 12ms; this is a bounded continuity/latency tradeoff, not free buffering.
+No ordinary Client, Host, microphone, transport or video policy change. See
+the Qt plan for design and tests. Implementation and hosted validation are in
+progress; no candidate, hardware/audio-soak acceptance or deployment is claimed.
+
 ### Accepted follow-up — hide startup decoder test images
 
 The operator accepts .047's icons, then reports a momentary light-blue screen

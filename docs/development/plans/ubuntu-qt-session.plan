@@ -1,5 +1,43 @@
 # Ubuntu Qt-owned session
 
+## Native PipeWire audio follow-up
+
+The operator authorizes replacing SDL playback in the Qt experiment only.
+A finite read-only trace of .048 confirmed eleven short output reads in 45s,
+with continuous source timestamps and no packet-concealment samples in that
+interval. This proves output starvation, not the exclusive cause of arrival
+jitter. The common-epoch phase loop repeatedly accelerated while its queue
+reserve depleted. A backend substitution alone is insufficient.
+
+Candidate .049 uses a native PipeWire stream, following the OS-selected output
+and volume policy. Its realtime callback only fills mapped output buffers from
+a preallocated single-producer/single-consumer ring and publishes atomic timing
+and shortage counters. No decoding, resampling, allocation, logging, blocking,
+Qt/video-clock mutex, or SDL audio device/stream runs in that callback.
+Producer-side FFmpeg resampling retains source-phase sync for common-epoch
+Hosts and relative-rate sync for independent epochs. PipeWire's graph/hardware
+delay, queued frames and resampler delay replace the fixed device-buffer guess.
+A captured read cursor keeps ring/device accounting consistent across callbacks.
+
+Startup/recovery primes one actual graph request plus 12ms of reserve, covering
+the 512-frame/48k capture batch. The minimum post-pull reserve over one second
+limits acceleration and gently restores headroom using the same resampler.
+This is a small bounded latency tradeoff, not a guarantee against arbitrary WAN
+stalls. PCM capacity is 200ms, normal producer backpressure begins at 50ms and
+fails/reinitializes after a bounded 100ms stall. No oldest/newest item eviction.
+Actual shortages are counted; 2.5ms fades only at startup/interruption edges
+avoid hard sample discontinuities and do not conceal the counters.
+
+Gates: ring order/overflow/concurrency, atomic clock snapshots, latency units,
+stale clocks, bounded stall/recovery, real FFmpeg compensation under 512-frame
+batching/jitter with three device quanta and +/-400ppm drift, real isolated
+PipeWire playback and repeated teardown, ASan/UBSan, both complete Client builds,
+package isolation. Real HDMI/USB routing, cable recovery and a long listening/
+A/V-sync soak remain hardware gates; a simulated clock or null sink is not
+acoustic acceptance. Both Hosts and the regular Linux/macOS Client are unchanged.
+
+## Previous accepted checkpoint
+
 Status: the live Qt runtime is integrated. The operator accepted the
 1.1.044-ubuntu-qt-session playback repair and reports working mouse/tablet
 input. That candidate retains the cursor-texture ownership repair, uses
@@ -82,8 +120,9 @@ handler for the production URL scheme. Package-file overlap, installation and
 removal independence are explicit gates before distributing the experiment.
 This is a testing identity, not a rename of the production product.
 
-Ubuntu 26.04 only. Leave the macOS Client, both Hosts, protocol, decoder policy,
-audio synchronization and raw-HID Wacom implementation unchanged. Qt owns the
+Ubuntu 26.04 only. Leave the macOS Client, both Hosts, protocol, decoder policy
+and raw-HID Wacom implementation unchanged. The separately authorized native
+PipeWire follow-up above replaces Qt playback/sync measurement only. Qt owns the
 session window and input on its GUI thread. Workers must not create, destroy or
 dispatch events on that window. Do not wrap a Qt-owned native surface in an SDL
 window or retain two event dispatchers for the same surface.

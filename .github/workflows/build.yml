@@ -156,7 +156,7 @@ jobs:
       - run: bash scripts/ci/install-linux-deps.sh client
       - name: Install isolated compositor and software GPU test drivers
         run: |
-          sudo apt-get install -y --no-install-recommends gnome-shell dbus-x11 \
+          sudo apt-get install -y --no-install-recommends gnome-shell dbus-x11 pipewire wireplumber \
             mesa-vulkan-drivers libvulkan-dev libgl1-mesa-dri \
             qml6-module-qtquick qml6-module-qtquick-window qml6-module-qtquick-controls \
             qml6-module-qtquick-layouts qml6-module-qtquick-templates qml6-module-qtqml-workerscript

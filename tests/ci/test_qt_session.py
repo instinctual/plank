@@ -41,6 +41,8 @@ class QtSessionWorkflowTests(unittest.TestCase):
         self.assertNotIn('build-client-deb.sh', script)
         runner = (ROOT / 'scripts/test/run-qt-session-tests.sh').read_text()
         self.assertIn('qtsoftwarevideo.pro', runner)
+        self.assertIn('pipewireaudio.pro', runner)
+        self.assertIn('run-qt-pipewire-test.sh', runner)
         self.assertIn('timeout 120 ./qtsoftwarevideo', runner)
         self.assertIn('qtsystemproperties.pro', runner)
         self.assertIn('QT_SCALE_FACTOR=1.25 ./qtsystemproperties', runner)
@@ -48,6 +50,18 @@ class QtSessionWorkflowTests(unittest.TestCase):
         self.assertIn("environment['SDL_VIDEO_DRIVER'] = 'plank-disabled-for-qt-test'", smoke)
         self.assertIn('process.terminate()', smoke)
         self.assertIn('process.wait(timeout=20)', smoke)
+
+    def test_audio_daemon_is_isolated(self):
+        runner = (ROOT / 'scripts/test/run-qt-pipewire-test.sh').read_text()
+        for required in ('GITHUB_ACTIONS', 'mktemp -d', 'XDG_RUNTIME_DIR',
+                         'XDG_CONFIG_HOME', 'XDG_STATE_HOME', 'dbus-run-session',
+                         'server_pid', 'manager_pid', 'timeout 30', 'realPipeWirePlayback'):
+            self.assertIn(required, runner)
+        for forbidden in ('systemctl', 'sudo', '/home/', 'ssh '):
+            self.assertNotIn(forbidden, runner)
+        config = (ROOT / 'tests/audio/qt-pipewire.conf').read_text()
+        self.assertIn('support.null-audio-sink', config)
+        self.assertIn('default.clock.quantum = 1024', config)
 
     def test_bitrate_gate_distinguishes_session_ui_from_global_preferences(self):
         script = (ROOT / 'scripts/build/build-client-package-binaries.sh').read_text()

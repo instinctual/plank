@@ -36,6 +36,14 @@ for variant in production qt; do
         ./clientidentity
     )
 done
+mkdir -p "$build_root/audio-tests"
+(
+    cd "$build_root/audio-tests"
+    "$qmake" "$source_root/apps/client/tests/pipewireaudio/pipewireaudio.pro" "${qmake_flags[@]}"
+    make -j"${PLANK_BUILD_JOBS:-4}"
+    timeout 120 ./pipewireaudio
+)
+bash "$source_root/scripts/test/run-qt-pipewire-test.sh" "$build_root/audio-tests/pipewireaudio"
 mkdir -p "$build_root/system-properties-tests"
 (
     cd "$build_root/system-properties-tests"
