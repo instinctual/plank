@@ -4,6 +4,7 @@
 #include "../../apps/client/app/streaming/audio/renderers/pipewire.h"
 
 #include <QCoreApplication>
+#include <QDebug>
 #include <QScopeGuard>
 #include <QThread>
 #include <QTimer>
