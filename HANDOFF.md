@@ -31,7 +31,13 @@ context-loaded modules at process exit. Stream teardown is being corrected to
 destroy under the live loop lock and balance PipeWire initialization. Keep leak
 detection enabled; no suppression or acceptance of that result. Normal teardown
 must also not log a false disconnection warning. The failure-log printer uses
-portable `tail -n 100` for Ubuntu's current utilities.
+portable `tail -n 100` for Ubuntu's current utilities. Run 39372849293 confirmed
+that behavior passes but the same 20,540-byte report remains. The standalone
+QCoreApplication test now keeps libdbus loaded and calls its documented
+`dbus_shutdown()` after every renderer/thread is destroyed; unlike the real
+GUI, this isolated test previously had no long-lived D-Bus owner. This is
+test-only library-cache cleanup, not a leak suppression or a production
+`dbus_shutdown()` call. Hosted confirmation remains pending.
 
 ### Accepted follow-up — hide startup decoder test images
 
