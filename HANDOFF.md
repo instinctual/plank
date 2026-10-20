@@ -6,7 +6,25 @@ notes, never in Git.
 
 ## Current work — Ubuntu Qt session experiment
 
-### .051 ready for manual testing — compact toolbar
+### .052 in progress — useful windowed size and configured first exposure
+
+The operator accepts .051's spacing, then requests a larger normal window,
+restore of manual resizing across fullscreen toggles and removal of the small
+window preview before fullscreen. The accepted policy keeps the image
+proportional, not a hard window-shape constraint during native Wayland dragging.
+The Qt shell now prepares an aspect-matched normal size within 80% of available
+logical screen space and leaves placement to GNOME. Qt's own normal-size
+restoration retains manual changes. The child waits for the shell's configured
+exposure before showing; explicit hide/minimize cleanup and .050's covered-parent
+policy remain. No Host resolution request, new persistent setting or render
+scaling change. The ordinary Client and both Hosts are unchanged.
+
+Focused tests added for initial aspect/size, fractional logical coordinates,
+first-fullscreen show geometry and repeated manual resize/restore. Hosted build,
+compositor/sanitizer and package gates are pending; no installer is ready yet.
+See the Qt plan for scope. No remote installation, merge or release authorized.
+
+### .051 accepted — compact toolbar
 
 The operator approved reducing gaps between microphone, camera, fullscreen,
 minimize and disconnect from 8 to 4 logical pixels. The controls retain their

@@ -1,5 +1,30 @@
 # Ubuntu Qt-owned session
 
+## Windowed sizing and first exposure
+
+The operator accepts .051's toolbar spacing and requests a useful windowed
+size instead of the fixed 960x600 restore size. Prepare an aspect-matched size
+within 80% of the target screen's available logical area, using the authenticated
+desktop topology. Unknown topology falls back to that available-area ratio.
+Use resize(), leaving top-level placement to Wayland, rather than pretending
+that setGeometry() can force GNOME to center the window. Qt retains subsequent
+user resizes across fullscreen toggles; do not add a competing restore loop,
+per-resize aspect constraint, persistent preference or Host mode request.
+Existing presentation/input geometry keeps the image proportional and uses
+letterboxing when the freely resized window has a different aspect ratio.
+
+Request the initial fullscreen state before showing either native surface.
+The child becomes visible only after the shell's configured exposure, with
+its actual size, not during the earlier visibilityChanged notification.
+Explicit hide/minimize still unmaps it; merely covering the parent does not.
+Keep the .050 exposure policy and exact ten-bit surface checks unchanged.
+Tests cover aspect/size defaults, fractional-scale logical units, first-show
+geometry, free-form manual resizing, repeated fullscreen restore, hide/restore
+and existing covered-parent/minimize/input/precision behavior. Qualify on the
+hosted GNOME compositor at 100%/125% and with sanitizers, then hand the candidate
+to the operator for visual startup/windowed acceptance. Both Hosts, ordinary
+Client, native PipeWire and transport behavior are unchanged.
+
 ## Compact toolbar follow-up
 
 Keep the accepted borderless vector icons, 32x32 click targets and 39px toolbar
@@ -14,8 +39,8 @@ remain; new tests cover RTT boundaries and microphone/camera visibility.
 Candidate .051 passes hosted run39475946222, including 43 compositor cases
 at both scales, sanitizer/component checks, both full builds and package
 isolation. Final screenshots are inspected and the exact DEB is collected.
-See HANDOFF for source/hash provenance; live-session acceptance remains with
-the operator. No Host, ordinary Client or audio behavior changes.
+See HANDOFF for source/hash provenance; the operator accepts the compact
+spacing in a live session. No Host, ordinary Client or audio behavior changes.
 
 ## Covered-parent exposure correction
 
