@@ -29,7 +29,7 @@ dbus-run-session -- bash -eu -c '
     timeout 30 "$1" realPipeWirePlayback unavailableServerFailsPromptly
 ' qt-audio "$1" || {
     # Only the disposable test daemon logs, never the users desktop.
-    tail -100 "$runtime/pipewire.log" "$runtime/wireplumber.log"
+    tail -n 100 "$runtime/pipewire.log" "$runtime/wireplumber.log"
     exit 1
 }
 printf 'Isolated PipeWire logs retained at %s\n' "$runtime"

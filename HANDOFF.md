@@ -23,6 +23,15 @@ plus 12ms; this is a bounded continuity/latency tradeoff, not free buffering.
 No ordinary Client, Host, microphone, transport or video policy change. See
 the Qt plan for design and tests. Implementation and hosted validation are in
 progress; no candidate, hardware/audio-soak acceptance or deployment is claimed.
+First hosted run 39372097145 passed all 18 audio component cases (including all
+nine real-resampler drift/batching combinations), normal and sanitized; real
+PipeWire playback/failure behavior also passed in both runs with zero reported
+playback underruns. LeakSanitizer then found 20,540 bytes retained through
+context-loaded modules at process exit. Stream teardown is being corrected to
+destroy under the live loop lock and balance PipeWire initialization. Keep leak
+detection enabled; no suppression or acceptance of that result. Normal teardown
+must also not log a false disconnection warning. The failure-log printer uses
+portable `tail -n 100` for Ubuntu's current utilities.
 
 ### Accepted follow-up — hide startup decoder test images
 
