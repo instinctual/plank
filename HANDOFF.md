@@ -20,6 +20,13 @@ on their own branch. Recovery copies of loose edits stay outside Git. Packages,
 dependency caches and the shipping Kymux pin are unchanged. Historical paths in
 candidate records below identify past evidence, not active resume locations.
 
+Cleanup is complete: the only root worktrees are the canonical `main` checkout
+and `build/worktrees/native-builds`. Client and Linux Host main checkouts now
+live under the canonical `apps/` paths, not retired recovery folders. Merged
+root/Client/Host feature branches were deleted locally and remotely; the native
+Apple coordination branches remain preserved. Local dependency URLs no longer
+refer to removed worktrees. This changes no product source or package pins.
+
 Ubuntu's Qt frontend is to replace the SDL session frontend under the ordinary
 `plank-client` package, launcher, settings, administrator configuration and log
 identity. It is no longer a separately installable product. macOS retains its
@@ -1285,6 +1292,11 @@ fixture was not run locally. Local evidence is under
 `build/reviews/pr24-camera-transport`.
 
 ## Native Apple Client coordination — agreed and kept separate
+
+Current native development and TestFlight automation are on `native-builds`;
+read that worktree's HANDOFF for the accepted imports and current testing gate.
+The original coordination checkpoint below is historical. Its branch is
+retained, but the duplicate `apple-native-integration` worktree is retired.
 
 The published `apple-native-integration` branches were refreshed from the
 consolidated mainline. Parent `b26b84e377522fddacb21617a23c82def66040da`
