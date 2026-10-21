@@ -27,6 +27,14 @@ root/Client/Host feature branches were deleted locally and remotely; the native
 Apple coordination branches remain preserved. Local dependency URLs no longer
 refer to removed worktrees. This changes no product source or package pins.
 
+The additional build-folder cleanup removed 44 obsolete download, test and
+review directories, reducing `build/` from about 12 GiB to 29 MiB. Only the
+active native-builds source worktree remains there before new build staging.
+Prepared dependencies, package catalogs and qualification reports are untouched;
+old loose review edits and source metadata have a checksum-verified private
+recovery archive outside Git. Canonical and initialized dependency Git
+connectivity checks and documentation-link checks pass after removal.
+
 Ubuntu's Qt frontend is to replace the SDL session frontend under the ordinary
 `plank-client` package, launcher, settings, administrator configuration and log
 identity. It is no longer a separately installable product. macOS retains its
@@ -65,13 +73,96 @@ The operator requested a full rebuild from cleaned-up main: fresh application,
 transport and package outputs for all four products on GitHub Actions, reusing
 only verified dependency caches. macOS packages must be signed/notarized.
 No installation or release publication is authorized by this rebuild request.
-No 1.2.00 artifact has yet been downloaded or qualified for distribution.
+Rebuild source is `dfc2984662e3f144e630759fee0dee142edea5e8`, with the same
+Client/Host/Kymux pins as the promotion. Explicit hosted runs:
 
-Next: complete and inspect the full hosted rebuild before handing out packages.
-The retained candidate sections below are historical
-evidence, not instructions to resume an old branch or proof of new mainline
-packages. Hardware/session acceptance remains separate.
-No package installation or GitHub release is part of this cleanup.
+- Linux Host: [39691129894](https://github.com/instinctual/plank/actions/runs/39691129894).
+- Ubuntu Client: [39691129968](https://github.com/instinctual/plank/actions/runs/39691129968).
+- Signed macOS Host: [39691129867](https://github.com/instinctual/plank/actions/runs/39691129867).
+- Signed macOS Client: [39691129794](https://github.com/instinctual/plank/actions/runs/39691129794).
+
+**All four 1.2.00 builds passed.** Their original packages are downloaded and
+checksum-verified in `artifacts/packages/releases/1.2.00/`, with a combined
+manifest and SHA256SUMS. This directory denotes mainline artifacts, not a
+published GitHub release. Both macOS installers passed signing, notarization,
+stapling and Gatekeeper; Client remains macOS15+, Host macOS27+. Detailed
+hosted logs and the Qt test reports are retained under
+`artifacts/qualification/main-1.2.00/`. Ubuntu's synthetic/component, sanitizer,
+55-case compositor suites at 100%/125%, launcher, audio and package gates pass;
+real GPU handoff is explicitly skipped on the software-only runner. The Mac
+Client's updated uninstaller check and executable Qt path test both pass.
+
+Linux Host passes its pinned CUDA 13.2 Update2/NVCC13.2.86, patched dependency,
+transport, RPM and repeated input-lifecycle gates. The production RPM still
+uses BUILD_TESTS=OFF; the separate test build and mocked UHID fixture are not
+packaged. Real-kernel UHID cases remain explicit skips on the hosted builder.
+The RPM owns `/var/log/plank` as root:root0700, independently checked after
+download. Linux dependency caches were restored and verified; the macOS jobs
+had cache misses and successfully bootstrapped their pinned dependencies.
+
+Next: manual installation and hardware/session qualification when requested.
+No release was published and no package was installed by this rebuild. The
+temporary download staging directory is removed after verified collection.
+The retained candidate sections below are historical evidence, not instructions
+to resume an old branch or proof of new mainline hardware acceptance.
+
+<details>
+<summary>Exact recursive source provenance for the 1.2.00 rebuild</summary>
+
+Root: `dfc2984662e3f144e630759fee0dee142edea5e8`. Paths below are relative to
+the root.
+Initialization records include inherited platform/documentation submodules;
+their presence is not a claim that they are Linux runtime dependencies.
+
+```text
+apps/client 67a94f94d711e81f470b985001ca3eae37f5abad
+apps/client/moonlight-common-c/moonlight-common-c 437be9a0a4d164efdf9ed20dc6dd5a2b7b9edc90
+apps/client/qmdnsengine/qmdnsengine 920c097ffa742e2968290f15d4dde6693aec02e5
+third_party/kyber-kymux 3f7a9d8618978287186e5d6ce0eaa067743cb06c
+apps/host/linux 65dc0f1be60fe78d0457364f83813118c70bc8a8
+apps/host/linux/packaging/linux/flatpak/deps/flatpak-builder-tools ac5a296ac6111aa2319daf532f609a067b88d8a9
+apps/host/linux/third-party/Simple-Web-Server 546895a93a29062bb178367b46c7afb72da9881e
+apps/host/linux/third-party/TPCircularBuffer cc520397504bb72bc6df79ff03eb72988a6dc50d
+apps/host/linux/third-party/ViGEmClient 8d71f6740ffff4671cdadbca255ce528e3cd3fef
+apps/host/linux/third-party/doxyconfig e552f7c9f00cd0cf24764a37d0905935b3d2c188
+apps/host/linux/third-party/doxyconfig/doxygen-awesome-css d52eafe3e9303399fda15661f3d7bb8fe3d7eabc
+apps/host/linux/third-party/glad 73db193f853e2ee079bf3ca8a64aa2eaf6459043
+apps/host/linux/third-party/googletest 52eb8108c5bdec04579160ae17225d66034bd723
+apps/host/linux/third-party/libdisplaydevice 6e9722f89103320c948dc1199066c9e17a69e88a
+apps/host/linux/third-party/libdisplaydevice/third-party/doxyconfig e552f7c9f00cd0cf24764a37d0905935b3d2c188
+apps/host/linux/third-party/libdisplaydevice/third-party/doxyconfig/doxygen-awesome-css d52eafe3e9303399fda15661f3d7bb8fe3d7eabc
+apps/host/linux/third-party/libdisplaydevice/third-party/lizardbyte-common 06cd442b808f02f1674f3192a84d25b9a503c482
+apps/host/linux/third-party/libdisplaydevice/third-party/lizardbyte-common/third-party/doxyconfig e552f7c9f00cd0cf24764a37d0905935b3d2c188
+apps/host/linux/third-party/libdisplaydevice/third-party/lizardbyte-common/third-party/doxyconfig/doxygen-awesome-css d52eafe3e9303399fda15661f3d7bb8fe3d7eabc
+apps/host/linux/third-party/libdisplaydevice/third-party/lizardbyte-common/third-party/googletest 52eb8108c5bdec04579160ae17225d66034bd723
+apps/host/linux/third-party/libvirtualhid b793fa2f5369218c43e09c58d5b96a0cc638bf05
+apps/host/linux/third-party/libvirtualhid/third-party/doxyconfig 419127bad87f49b2d45fa957ea7302abbb49c01f
+apps/host/linux/third-party/libvirtualhid/third-party/doxyconfig/doxygen-awesome-css 46483f1e5a70ffb9ecd3b82d0a1cd1b24edf13da
+apps/host/linux/third-party/libvirtualhid/third-party/lizardbyte-common f9d91e1d29b7473f58e43acde4579da4e56c4abe
+apps/host/linux/third-party/libvirtualhid/third-party/lizardbyte-common/third-party/doxyconfig b87f7e4e1dcd8a31c9a550cd7702b7420d89efac
+apps/host/linux/third-party/libvirtualhid/third-party/lizardbyte-common/third-party/doxyconfig/doxygen-awesome-css 24c4f966e375ed92e9805e075177d34a9849a43e
+apps/host/linux/third-party/libvirtualhid/third-party/lizardbyte-common/third-party/googletest f8d7d77c06936315286eb55f8de22cd23c188571
+apps/host/linux/third-party/lizardbyte-common f9d91e1d29b7473f58e43acde4579da4e56c4abe
+apps/host/linux/third-party/lizardbyte-common/third-party/doxyconfig b87f7e4e1dcd8a31c9a550cd7702b7420d89efac
+apps/host/linux/third-party/lizardbyte-common/third-party/doxyconfig/doxygen-awesome-css 24c4f966e375ed92e9805e075177d34a9849a43e
+apps/host/linux/third-party/lizardbyte-common/third-party/googletest f8d7d77c06936315286eb55f8de22cd23c188571
+apps/host/linux/third-party/moonlight-common-c 3a97a58f215323753cfd1180af760ec7e3253538
+apps/host/linux/third-party/nvapi cd6918f60b3c9a0476fdfe7e89bb32330602049d
+apps/host/linux/third-party/plasma-wayland-protocols 382dfabda886d3f2f5c067b22e5a22376685ba78
+apps/host/linux/third-party/wayland-protocols 819004adb3ab7e46f3fa3caef05b96e20434b244
+apps/host/linux/third-party/wlr-protocols bf4fc79abc359eea5a0edec0ac6d4a2b2955f82a
+apps/host/linux/third-party/build-deps c29c4822cb96f5bfeb8640e72601c5cf4e3c3137
+apps/host/linux/third-party/build-deps/third-party/FFmpeg/AMF eadd00804d5f7e5cd8c85d540073198312870776
+apps/host/linux/third-party/build-deps/third-party/FFmpeg/FFmpeg 38b88335f99e76ed89ff3c93f877fdefce736c13
+apps/host/linux/third-party/build-deps/third-party/FFmpeg/SVT-AV1 9292ec8e32bce26f781f277ec8739b53426c4300
+apps/host/linux/third-party/build-deps/third-party/FFmpeg/Vulkan-Headers ee2ec5fd83dafce291024683b50dc89219333076
+apps/host/linux/third-party/build-deps/third-party/FFmpeg/Vulkan-Loader b8b96a2862bff1eed468e602d43f706beae89cf1
+apps/host/linux/third-party/build-deps/third-party/FFmpeg/nv-codec-headers e844e5b26f46bb77479f063029595293aa8f812d
+apps/host/linux/third-party/build-deps/third-party/FFmpeg/x264 0480cb05fa188d37ae87e8f4fd8f1aea3711f7ee
+apps/host/linux/third-party/build-deps/third-party/FFmpeg/x265_git 1d117bed4747758b51bd2c124d738527e30392cb
+```
+
+</details>
 
 ## Retained candidate — Wacom USB recovery on the Qt baseline
 

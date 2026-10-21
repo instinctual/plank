@@ -54,6 +54,22 @@ These jobs do not install products or perform live display, audio, input,
 network-loss or hardware-decoder qualification. Existing hardware gates and
 local builders remain available until hosted builds are qualified.
 
+## Local downloads and cleanup
+
+Use one task-specific staging directory under `build/` when downloading hosted
+artifacts. Verify the original manifest and SHA-256, then collect packages with
+`scripts/package/collect-package.py` into the versioned catalog and retain test
+reports under `artifacts/qualification/`. Once verified, remove that exact
+staging directory; do not leave duplicate installers or extracted payloads in
+multiple download folders.
+
+`build/worktrees/` is for active source worktrees, not a permanent archive of
+reviews. Before retiring one, check its root and nested repositories for loose
+edits and unpublished commits. Preserve unfinished native Apple work. Keep
+private recovery copies outside Git, and never delete canonical Git metadata,
+prepared dependencies, accepted package catalogs or qualification reports as
+part of scratch cleanup.
+
 ## Ubuntu Qt Client qualification
 
 Qt is the ordinary Ubuntu Client from 1.2.00. The `linux-client` job runs on
