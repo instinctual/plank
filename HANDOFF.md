@@ -6,6 +6,14 @@ notes, never in Git.
 
 ## Current work — native Apple Client integration
 
+Resume in `build/worktrees/native-builds`, with its linked Client worktree at
+`apps/client`. Automation checkpoint `94c8fcd61cf74d4ca426cb6f3366238550ff175b`
+and Client `693a14a68e60e5434251b86fa158b88a2f410a6c` are committed and pushed
+on `native-builds`. The canonical checkout is the shipping `main` workspace;
+its former PKG-only edits are already incorporated there. Keep native Apple
+development in this separate worktree. Neither native branch is merged to
+shipping main.
+
 Native build automation is being qualified on `native-builds`, based on the
 accepted integration below. `.github/workflows/apple-native.yml` builds native
 Mac, Vision device and Vision simulator on GitHub-hosted `xcode-27` workers.
@@ -42,9 +50,16 @@ Future protected uploads reuse the explicitly configured export policy, reject
 conflicting metadata and require readback before assigning testers. There is no
 app-wide or fork-default exemption; see the native build runbook. The new helper
 also passed an idempotent live readback against build 5.1. Earlier cloud-signing
-authority failures are
-resolved using operator-provided credentials in the protected environment; no
-secret material, account identities or local signing Keychain were added to Git.
+authority failures are resolved using operator-provided credentials in the
+protected environment; no secret material, account identities or local signing
+Keychain were added to Git.
+
+Stopping point: no build, upload or monitor is left running. Do not rebuild
+build 5.1 because the older Actions run still shows its compliance checkpoint
+failure. First collect the operator's headset result: app launch, workstation
+connection, video/audio, pointer/keyboard and tablet interaction. Keep any
+deployment details and captured logs outside Git. Further production integration,
+native Mac packaging and hardware acceptance remain separate work.
 
 [Client PR #10](https://github.com/instinctual/plank-client/pull/10) imported the
 Vision foundation at `1953cc11a4b281f24286c11301d10fc76601a972`.
