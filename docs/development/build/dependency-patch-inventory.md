@@ -14,6 +14,14 @@ repairs cursor retirement in SDL 3.4.2's Wayland backend. When a tablet tool
 uses the retiring cursor, detach that tool's surface, not the independent
 mouse surface, which may be null or belong to another cursor.
 
+Upstream status (2026-10-10): locally verified with a controlled function-level
+fixture, not acknowledged or accepted by SDL maintainers. This does not prove
+the caller of the reported field crash. No upstream issue, PR or fork was
+created. SDL's [contribution policy](https://github.com/libsdl-org/SDL/blob/ea3042350d3aac4b83ae83047185ba703d8f0a5c/AGENTS.md)
+excludes AI-generated code and bug-report comments; the operator chose not to
+pursue submission. Keep the local repair explicit and reproducible, and revisit
+it if a qualified distribution SDL provides an equivalent correction.
+
 - `scripts/build/build-client-sdl.sh` uses the checksum-pinned official SDL
   archive and applies the exact patch, or proves it is already applied.
 - `scripts/build/client-sdl.sh` compares the entire prepared source against a

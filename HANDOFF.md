@@ -7,9 +7,18 @@ notes, never in Git.
 ## Current integration — Ubuntu Qt Client, Wacom recovery and CUDA
 
 The operator authorized merging `wacom-usb-recovery` (including
-`ubuntu-qt-session`) and `cuda-13-2` into main. Continue in
-`build/worktrees/wacom-persistent`; the canonical checkout's unrelated edits
-remain preserved. Native Apple Client branches are outside this integration.
+`ubuntu-qt-session`) and `cuda-13-2` into main. Continue in the canonical
+checkout on `main`, with Client and Linux Host at its exact submodule pins.
+Native Apple Client development remains separate in
+`build/worktrees/native-builds`; do not merge it as part of workspace cleanup.
+
+The operator authorized retiring redundant local checkouts. PKG-only edits
+already exist in main, the SDL upstream-status clarification is retained in
+the dependency patch inventory, and the old Kymux review regression is already
+committed in the native transport dependency. Native-build notes are preserved
+on their own branch. Recovery copies of loose edits stay outside Git. Packages,
+dependency caches and the shipping Kymux pin are unchanged. Historical paths in
+candidate records below identify past evidence, not active resume locations.
 
 Ubuntu's Qt frontend is to replace the SDL session frontend under the ordinary
 `plank-client` package, launcher, settings, administrator configuration and log
@@ -46,16 +55,16 @@ Next: inspect the hosted results and resolve any integration failure before
 handing out packages. The retained candidate sections below are historical
 evidence, not instructions to resume an old branch or proof of new mainline
 packages. Hardware/session acceptance remains separate.
-No package installation, branch deletion or GitHub release is part of this task.
+No package installation or GitHub release is part of this cleanup.
 
 ## Retained candidate — Wacom USB recovery on the Qt baseline
 
 Branch `wacom-usb-recovery` starts from the complete .052 Qt work:
 parent `a08666b8b8fd820a92d3296ac88a5f7ebae9e3be`, Client
-`ab38aa1fe9264d7440f3f4bad515f98c2c1a4c44`. The canonical checkout's
-unrelated dirty work is preserved. No Host, macOS or wire-protocol change.
+`ab38aa1fe9264d7440f3f4bad515f98c2c1a4c44`. No Host, macOS or wire-protocol
+change was made in this candidate.
 
-Resume in `build/worktrees/wacom-usb-recovery`, not the canonical checkout.
+The candidate was built on `wacom-usb-recovery`; current development uses main.
 Root and Client implementation commits are pushed. The post-build documentation
 checkpoint is `44fadb7ac49a6ab7999eb69c3c7ed3727460291c`; the installer remains
 the exact `bc204f6` source recorded below, not a relabelled notes build.
