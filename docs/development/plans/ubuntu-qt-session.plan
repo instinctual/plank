@@ -1,5 +1,21 @@
 # Ubuntu Qt-owned session
 
+## Mainline promotion — 1.2.00
+
+The operator approved merging this frontend, subsequent USB Wacom recovery,
+and the independent CUDA Host candidate. Qt now replaces the ordinary Ubuntu
+Client; it is not a separate product. Preserve the existing PLANK application
+and desktop identity, bookmarks, trust, administrator policy and log locations.
+macOS keeps its current SDL/Metal implementation.
+
+Use the ordinary hosted `linux-client` build. It runs the Qt/PipeWire/Wacom,
+sanitizer, compositor, launcher and package-upgrade gates, builds the full
+Client once and packages that exact binary. Source and binary checks require
+the Qt runtime, and the package gate rejects a second experimental namespace.
+The earlier candidate and coexistence details below are historical evidence,
+not current build instructions. Hardware/session qualification remains separate.
+Do not overwrite existing normal settings with the retired test app's profile.
+
 ## Windowed sizing and first exposure
 
 The operator accepts .051's toolbar spacing and requests a useful windowed

@@ -7,24 +7,24 @@ ROOT = Path(__file__).resolve().parents[2]
 
 
 class QtSessionWorkflowTests(unittest.TestCase):
-    def test_hosted_explicit_credentials_free_job(self):
+    def test_ordinary_client_runs_qt_qualification_without_credentials(self):
         workflow = (ROOT / '.github/workflows/build.yml').read_text()
-        job = workflow.split('  linux-client-qt-tests:\n')[1].split('  macos:\n')[0]
-        self.assertIn("github.event_name == 'workflow_dispatch'", job)
-        self.assertIn("inputs.product == 'linux-client-qt-tests' || inputs.product == 'linux-client-qt'", job)
-        self.assertIn('&& !inputs.signed', job)
+        job = workflow.split('  linux-client:\n')[1].split('  macos:\n')[0]
+        self.assertIn("inputs.product == 'all' || inputs.product == 'linux-client'", job)
+        self.assertNotIn('linux-client-qt', workflow)
         self.assertIn('runs-on: ubuntu-26.04', job)
         self.assertIn('needs: policy', job)
         self.assertIn('product: linux-client', job)
         self.assertIn('scripts/ci/bootstrap.sh linux-client', job)
-        self.assertIn('scripts/ci/test-qt-session.sh', job)
+        self.assertIn('scripts/ci/build.sh linux-client', job)
+        self.assertIn('gnome-shell dbus-x11 pipewire wireplumber', job)
         self.assertIn('qt-session-reports/', job)
         for forbidden in ('self-hosted', 'secrets.', 'environment:'):
             self.assertNotIn(forbidden, job)
-        package = job.split('- name: Package the independently installable Qt candidate')[1]
-        self.assertIn("if: ${{ inputs.product == 'linux-client-qt' }}", package)
-        self.assertIn('PLANK_CLIENT_VARIANT: qt', package)
-        self.assertIn('qt-runtime-build/app/plank-client-qt', package)
+        package = (ROOT / 'scripts/ci/build.sh').read_text().split('  linux-client)')[1].split('  macos-host)')[0]
+        self.assertIn('scripts/ci/test-qt-session.sh', package)
+        self.assertNotIn('build-client-package-binaries.sh', package)
+        self.assertIn('client-build/app/$client_package', package)
         self.assertIn('scripts/package/build-client-deb.sh', package)
 
     def test_keeps_qualification_and_runtime_gates(self):
@@ -35,12 +35,15 @@ class QtSessionWorkflowTests(unittest.TestCase):
                      'PLANK_QT_SESSION_SANITIZERS=1', 'detect_leaks=1', 'halt_on_error=1',
                      'PLANK_WACOM_SANITIZERS=1', 'scripts/test/test-linux-wacom.sh',
                      'wacom-asan.log',
-                     'PLANK_CLIENT_VARIANT=production', 'build-client-package-binaries.sh',
+                     'build-client-package-binaries.sh', 'package-upgrade.log',
                      'VK_DRIVER_FILES', 'LIBGL_ALWAYS_SOFTWARE=1',
                      'PLANK_QT_CLIENT_BINARY', 'PLANK_QT_LAUNCHER_REPORTS',
                      'hardware_acceptance=not-performed'):
             self.assertIn(gate, script)
         self.assertNotIn('build-client-deb.sh', script)
+        self.assertEqual(script.count('bash scripts/build/build-client-package-binaries.sh'), 1)
+        self.assertNotIn('baseline-client-build', script)
+        self.assertNotIn('qt-runtime-build', script)
         self.assertIn('test -f app/release/pipewire.o', script)
         self.assertIn('test ! -f app/release/sdlaud.o', script)
         runner = (ROOT / 'scripts/test/run-qt-session-tests.sh').read_text()

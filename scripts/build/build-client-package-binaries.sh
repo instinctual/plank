@@ -1641,8 +1641,8 @@ for required_log_token in \
 done
 echo "client_persistent_log_source_gate=pass"
 
-# Both identities are executable contracts, including settings/trust/log
-# isolation. Never substitute a source-only naming check for this test.
+# Frontend selection must preserve the existing settings/trust/log namespace.
+# Test shared identity with and without the Linux Qt session define.
 for variant in production qt; do
   identity_test_build="$build_dir/tests/identity-$variant"
   mkdir -p "$identity_test_build"
@@ -1812,7 +1812,7 @@ bash "$repo_dir/scripts/test/test-client-camera-session.sh" "$repo_dir" "$source
 mkdir -p "$build_dir"
 (
   cd "$build_dir"
-  qmake6 "$source_dir" CONFIG+=release CONFIG+=plank-transport "${frame_flow_qmake[@]}" "${client_qmake_config[@]}" \
+  qmake6 "$source_dir" CONFIG+=release CONFIG+=plank-transport "${frame_flow_qmake[@]}" \
     "PLANK_TRANSPORT_DIR=${plank_transport_dir}" \
     "PLANK_VERSION=${package_version}" \
     "QMAKE_CFLAGS+=$PLANK_C_FILE_FLAGS" \

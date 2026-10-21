@@ -14,12 +14,30 @@ remain preserved. Native Apple Client branches are outside this integration.
 Ubuntu's Qt frontend is to replace the SDL session frontend under the ordinary
 `plank-client` package, launcher, settings, administrator configuration and log
 identity. It is no longer a separately installable product. macOS retains its
-existing Client implementation. Version advances to **1.1.054** for this
+existing Client implementation. Version advances to **1.2.00** for this
 combined integration; previous candidate artifacts are not relabelled.
 
-Integration validation is pending. The sections below retain exact candidate
-evidence, not proof of a newly built mainline package or full hardware acceptance.
-No package installation or GitHub release is part of this merge request.
+Client main is `67a94f94d711e81f470b985001ca3eae37f5abad`; the root ancestry
+merge is `88778d4`. The promotion commit containing this handoff pins that
+Client, sets 1.2.00 and consolidates Ubuntu CI into the ordinary `linux-client`
+job. Qt/PipeWire, sanitizer, compositor and launcher checks remain mandatory;
+one full Client build replaces the previous two-build experimental job.
+The package-upgrade fixture preserves administrator configuration and user
+state. Do not copy the retired test app's profile over existing normal PLANK
+settings or trust. Remove that optional old test package manually if installed.
+
+Local validation passes 81 CI-policy tests, package collection/version checks,
+runtime/identity source checks, reconnect/MTU and Mac frontend/permission wiring
+checks, shell syntax, documentation links and new-content privacy checks.
+Ten DEB fixtures require the hosted Ubuntu toolchain; one Mach-O test requires
+macOS. They are local skips, not acceptance passes. The Mac fullscreen source
+guard was updated for the external-renderer initialization signature and still
+requires the unchanged null-presenter SDL initialization on macOS.
+
+Hosted builds are the next verification step. The retained candidate sections
+below are historical evidence, not instructions to resume an old branch or proof
+of new mainline packages. Hardware/session acceptance remains separate.
+No package installation, branch deletion or GitHub release is part of this task.
 
 ## Retained candidate — Wacom USB recovery on the Qt baseline
 

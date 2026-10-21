@@ -20,8 +20,8 @@ case $role in
     source "$PLANK_SOURCE_ROOT/scripts/package/client-package-identity.sh"
     plank_client_package_identity
     export PLANK_CLIENT_SDL_WORK="$PLANK_DEP_ROOT/client-sdl"
-    bash "$PLANK_SOURCE_ROOT/scripts/build/build-client-package-binaries.sh" \
-      "$PLANK_SOURCE_ROOT/apps/client" "$PLANK_DEP_ROOT/client-ffmpeg" "$PLANK_WORK_ROOT/client-build"
+    # Qualify and build the exact ordinary Client once, then package that binary.
+    bash "$PLANK_SOURCE_ROOT/scripts/ci/test-qt-session.sh"
     bash "$PLANK_SOURCE_ROOT/scripts/package/build-client-deb.sh" \
       "$PLANK_WORK_ROOT/client-build/app/$client_package" "$PLANK_DEP_ROOT/client-ffmpeg" \
       "$PLANK_WORK_ROOT/client-package" "$PLANK_SOURCE_ROOT/apps/client"

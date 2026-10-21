@@ -65,21 +65,16 @@ class CollectionTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             MODULE.collect(args)
 
-    def test_qt_client_is_candidate_only(self):
-        args = self.arguments('ubuntu-qt-session')
-        args.package = args.package.rename(args.package.with_name('plank-client-qt_1.2.3-ubuntu-qt-session_amd64.deb'))
-        args.product = 'client-qt'
+    def test_ubuntu_client_uses_normal_product(self):
+        args = self.arguments()
+        args.package = args.package.rename(args.package.with_name('plank-client_1.2.3_amd64.deb'))
         args.platform = 'linux'
         args.architecture = 'amd64'
         args.target_os = 'ubuntu-26.04'
         MODULE.collect(args)
-        self.assertTrue((self.root / 'artifacts/packages/candidates/1.2.3-ubuntu-qt-session/linux' / args.package.name).is_file())
-        args.branch = 'main'
-        with self.assertRaisesRegex(ValueError, 'candidate DEB'):
-            MODULE.collect(args)
-        args.branch = 'ubuntu-qt-session'
-        args.platform = 'macos'
-        with self.assertRaisesRegex(ValueError, 'candidate DEB'):
+        self.assertTrue((self.root / 'artifacts/packages/releases/1.2.3/linux' / args.package.name).is_file())
+        args.product = 'client-qt'
+        with self.assertRaisesRegex(ValueError, 'product'):
             MODULE.collect(args)
 
     def test_wrong_branch_filename(self):
@@ -96,17 +91,17 @@ class CollectionTests(unittest.TestCase):
             MODULE.collect(args)
 
     def test_zero_padded_product_version(self):
-        (self.root / 'packaging/VERSION').write_text('1.1.001\n')
+        (self.root / 'packaging/VERSION').write_text('1.2.00\n')
         subprocess.run(['git', '-C', str(self.root), '-c', 'user.name=Fixture',
                         '-c', 'user.email=fixture@example.invalid', 'commit', '-am', 'padded version'],
                        check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         for branch in ('main', 'feature-one'):
-            version = '1.1.001' + ('' if branch == 'main' else '-' + branch)
+            version = '1.2.00' + ('' if branch == 'main' else '-' + branch)
             values = subprocess.check_output(['bash', '-c',
                 'source "$1"; PLANK_BUILD_BRANCH="$2"; plank_load_package_version "$3"; '
                 'printf "%s\\n" "$PLANK_PACKAGE_VERSION" "$PLANK_RPM_VERSION"',
                 'version-test', str(ROOT / 'scripts/package/package-version.sh'), branch, str(self.root)], text=True)
-            self.assertEqual(values.splitlines(), [version, '1.1.001'])
+            self.assertEqual(values.splitlines(), [version, '1.2.00'])
             args = self.arguments(branch)
             args.package = args.package.rename(args.package.with_name('plank-client_' + version + '_arm64.pkg'))
             MODULE.collect(args)

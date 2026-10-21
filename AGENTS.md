@@ -104,13 +104,15 @@ permission to compile Linux packages on the Mac or restore inherited prebuilts.
 
 Builder and hardware-test roles are deliberately separate:
 
-The Ubuntu Qt Client experiment is built and tested on GitHub-hosted Actions,
-not the retained Ubuntu VM. Use `linux-client-qt` to run the qualification
-gates and package the real, independently installable Qt Client; use
-`linux-client-qt-tests` for the same gates without an installer. Dispatch from
-the clean, pushed feature branch identified in `HANDOFF.md`, not an assumed
-original experiment branch. Do not ask the operator to repair VM prerequisites
-or distribute a renamed SDL Client or standalone probe as the Qt experiment.
+The Ubuntu Client uses the Qt session frontend and direct PipeWire playback
+under the ordinary `plank-client` identity. Build and test it on GitHub-hosted
+Actions, not the retained Ubuntu VM. Use `linux-client` for the component,
+sanitizer, compositor, launcher and package-upgrade gates and the resulting DEB.
+There is no separate Qt product or experimental configuration namespace.
+Preserve existing bookmarks, Host trust, administrator policy and log paths.
+macOS retains its existing SDL/Metal frontend; Linux selection must not change it.
+Do not ask the operator to repair VM prerequisites or distribute a standalone
+probe as the Client.
 Hosted tests do not replace exact-candidate hardware/session acceptance. Read
 HANDOFF and the private notes for current test-target availability and results.
 

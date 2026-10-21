@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Load the public PLANK product version and package-manager-specific metadata.
-# The operator-facing patch component is zero-padded from 1.1.001 onward.
+# Preserve the operator-facing zero padding (1.2.00, previously 1.1.001).
 # Callers must pass the repository root containing packaging/VERSION.
 plank_load_package_version() {
   if (($# != 1)); then

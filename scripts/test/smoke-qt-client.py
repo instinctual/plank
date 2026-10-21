@@ -23,7 +23,8 @@ def main():
                 path.mkdir(mode=0o700)
                 environment[f'XDG_{kind}_HOME'] = str(path)
             # An SDL video probe must fail this test instead of silently opening
-            # a second native connection. SDL audio/timers remain available.
+            # a second native connection. Non-video SDL services remain available;
+            # ordinary Ubuntu playback uses PipeWire.
             environment['SDL_VIDEO_DRIVER'] = 'plank-disabled-for-qt-test'
             report = args.reports / f'launcher-{attempt}.log'
             with report.open('w') as output:

@@ -306,18 +306,18 @@ assumed the bundle advertises `HEAD`; use the exact ref printed by
 
 ## Client DEB — linux-client-builder only
 
-For the Ubuntu Qt experiment, the operator requires GitHub-hosted builders,
-not the retained VM. From the clean, pushed feature branch named in `HANDOFF.md` run
-`bash scripts/ci/dispatch.sh linux-client-qt false`. This performs both full
-Client builds, component/sanitizer/compositor/launcher gates and then packages
-the real `plank-client-qt` binary. See `github-builds.md` for the test-only
-dispatch. No production package is installed on a builder; the co-installation
-test uses a disposable dpkg root. Validate the delivered Qt candidate against
-the production DEB with `scripts/test/check-client-qt-package.py` before
-hardware testing. Never relabel the ordinary binary or use the probe as a Client.
+From 1.2.00, Qt is the ordinary Ubuntu Client. The operator requires GitHub-hosted
+builders, not the retained VM. From the clean, pushed source named in
+`HANDOFF.md`, run `bash scripts/ci/dispatch.sh linux-client false`.
+The ordinary job runs component/sanitizer/compositor/launcher gates, compiles
+one complete Client, and packages that exact `plank-client` binary.
+No production package is installed on a builder; the upgrade fixture uses
+synthetic payloads in a disposable dpkg root. The finished-package identity
+gate rejects the retired separate Qt namespace. Existing ordinary Client
+settings, trust and policy are retained. Do not copy the experimental profile
+over them; quit/remove the old `plank-client-qt` test package separately.
 
-The job is named `linux-client-qt-tests` even when the selected target also
-packages a DEB. Inspect the failed step and its evidence before describing a
+The job is named `linux-client`. Inspect the failed step and its evidence before describing a
 failure as a live Qt runtime defect. Two .053 failures established these checks:
 
 - `wacom.log` and `wacom-asan.log` cover the real Linux raw-HID adapter with
@@ -336,11 +336,11 @@ complete descriptor inventory, pen evdev readiness, I/O loss and reconnects.
 These tests do not prove that Flame retains its tablet registration after an
 actual USB rebind; that remains a separate hardware acceptance step.
 
-Qt candidates from .049 use direct PipeWire playback. The hosted Qt job installs
+The Ubuntu Client uses direct PipeWire playback. Its hosted job installs
 PipeWire/WirePlumber for a private null-sink test daemon, not on the retained VM
 or any user's desktop. It runs PCM/clock/drift tests and real stream lifecycle
-tests normally and under sanitizers. The ordinary Client still compiles SDL
-audio; the Qt release build must contain `app/release/pipewire.o`, not
+tests normally and under sanitizers. The Ubuntu build must contain
+`app/release/pipewire.o`, not
 `app/release/sdlaud.o`. Preserve the
 shared private SDL dependency for the remaining non-playback uses. Neither
 daemon tests nor simulated clock drift qualify audible playback/A/V sync:
@@ -359,8 +359,9 @@ accepting an RGB8 intermediate. An explicit
 overrides the Qt Client's default zero.
 
 The Host/Client base version is packaging/VERSION. Increment it for new package
-bytes. Starting with **1.1.001**, retain a three-digit, zero-padded patch component
-(1.1.002, 1.1.003, and so on) in the product version and package filenames.
+bytes. Starting with **1.2.00**, retain a two-digit, zero-padded patch component
+(1.2.01, 1.2.02, and so on) in the product version and package filenames.
+Earlier 1.1.x packages used three digits; their artifacts remain unchanged.
 This is the operator-facing product numbering convention, not strict SemVer;
 do not parse the padded component as octal or strip its leading zeroes.
 Internal dependency/crate versions and protocol negotiation are separate.
@@ -429,28 +430,15 @@ CARGO_TARGET_DIR="$cargo_preflight" \
     --manifest-path "$root_worktree/protocol/plank-transport/Cargo.toml"
 ```
 
-The SDL3 candidate uses the prepared, patched private SDL3 and the system's
-SDL3_ttf. It links directly to `libSDL3.so.0` and `libSDL3_ttf.so.0`; do not
-introduce `sdl2-compat`. Audio uses SDL3's PipeWire driver and device-stream
-API rather than libsoundio or a PulseAudio compatibility renderer. Set
-`PKG_CONFIG_PATH="$PLANK_CLIENT_SDL_WORK/install/lib/pkgconfig"` for standalone
-builder probes; on an installed target, load `/usr/lib/plank/libSDL3.so.0` rather
-than accidentally qualifying the unpatched system SDL.
+Ubuntu session playback is direct PipeWire, not SDL's audio renderer or a
+PulseAudio compatibility path. The hosted `linux-client` job exercises the
+real PipeWire renderer against an isolated null sink, along with clock/drift
+and sanitizer fixtures. Live validation must still use the actual output
+device, audible playback and an extended A/V synchronization soak.
 
-After installing an SDL3 candidate on the Client hardware-test target, validate
-the same native output API without requiring a Host session:
-
-```bash
-root_worktree=${PLANK_ROOT_WORKTREE:?set the exact installed-candidate root worktree}
-g++ -std=c++17 -O2 -o /tmp/plank-sdl3-audio-probe \
-  "$root_worktree/probes/client-sdl3-audio-probe.cpp" \
-  $(pkg-config --cflags --libs sdl3)
-LD_LIBRARY_PATH=/usr/lib/plank /tmp/plank-sdl3-audio-probe
-```
-
-The probe must print `audio_driver=pipewire` and a real output device. This is
-a focused transport gate; the real session still needs audible output and A/V
-synchronization validation.
+Retain the prepared, patched SDL3 dependency for remaining non-playback
+consumers and SDL3_ttf. Do not restore libsoundio, `sdl2-compat`, or qualify
+the Ubuntu playback path with the retired SDL audio probe.
 
 For a non-interactive diagnostic screenshot of the Client hardware-test target
 under GNOME Wayland, do not retry `gnome-screenshot` over SSH: GNOME rejects

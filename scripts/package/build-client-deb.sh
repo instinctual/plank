@@ -42,16 +42,8 @@ done
 source "${repo_dir}/scripts/package/package-version.sh"
 plank_load_package_version "$repo_dir"
 package_version=$PLANK_PACKAGE_VERSION
-if [[ $client_product == client-qt && $PLANK_BUILD_BRANCH_RESOLVED == main ]]; then
-  echo 'The Qt experimental Client must be built as a candidate, not main' >&2
-  exit 1
-fi
 desktop_source="$repo_dir/packaging/client/linux/desktop/la.instinctual.Plank.Client.desktop"
 appstream_source="$moonlight_source_dir/app/deploy/linux/la.instinctual.Plank.Client.appdata.xml"
-if [[ $client_product == client-qt ]]; then
-  desktop_source="$repo_dir/packaging/client/linux/qt/$client_desktop_id.desktop"
-  appstream_source="$repo_dir/packaging/client/linux/qt/$client_desktop_id.appdata.xml"
-fi
 
 for command_name in cmp dpkg-deb dpkg-shlibdeps du git install md5sum realpath rg sha256sum strip tar; do
   command -v "$command_name" >/dev/null || {
@@ -428,7 +420,5 @@ if dpkg-deb --field "$deb_file" Depends | rg -q 'libdecor-0-plugin-1-gtk'; then
 fi
 echo "client_deb=${deb_file}"
 echo "client_deb_manifest_gate=pass"
-if [[ $client_product == client-qt ]]; then
-  python3 "$repo_dir/scripts/test/check-client-qt-package.py" "$deb_file"
-fi
+python3 "$repo_dir/scripts/test/check-client-qt-package.py" "$deb_file"
 plank_collect_package "$repo_dir" "$client_product" linux amd64 ubuntu-26.04 "$deb_file"

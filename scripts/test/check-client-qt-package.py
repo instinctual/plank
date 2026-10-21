@@ -1,21 +1,22 @@
 #!/usr/bin/env python3
-"""Reject experimental Client packages that can replace production state/files."""
+"""Require the Qt Client to retain the ordinary Ubuntu package identity."""
 import argparse
 from pathlib import Path, PurePosixPath
+import re
 import subprocess
 import tarfile
 
 ROOT = Path(__file__).resolve().parents[2]
-PACKAGE = 'plank-client-qt'
-DESKTOP = 'la.instinctual.Plank.Client.Qt'
+PACKAGE = 'plank-client'
+DESKTOP = 'la.instinctual.Plank.Client'
 EXACT = {
-    'usr/bin/plank-client-qt', 'etc/plank/client-qt.conf',
+    'usr/bin/plank-client', 'etc/plank/client.conf',
     f'usr/share/applications/{DESKTOP}.desktop',
     f'usr/share/metainfo/{DESKTOP}.appdata.xml',
-    'usr/share/icons/hicolor/512x512/apps/plank-client-qt.png',
-    'usr/lib/udev/rules.d/70-plank-client-qt-wacom.rules',
+    'usr/share/icons/hicolor/512x512/apps/plank-client.png',
+    'usr/lib/udev/rules.d/70-plank-client-wacom.rules',
 }
-PREFIXES = ('usr/lib/plank-client-qt/', 'usr/share/doc/plank-client-qt/')
+PREFIXES = ('usr/lib/plank/', 'usr/share/doc/plank-client/')
 
 
 def field(package, name):
@@ -55,53 +56,46 @@ def read_tar(package, kind, wanted, restrict_directories=False):
     return names, contents
 
 
-def validate(package, production=None):
+def validate(package):
     if field(package, 'Package') != PACKAGE:
-        raise ValueError('not a separate plank-client-qt package')
-    if field(package, 'Architecture') != 'amd64' or '-' not in field(package, 'Version'):
-        raise ValueError('experimental package must be a branch-labelled Ubuntu candidate')
+        raise ValueError('not the ordinary plank-client package')
+    if field(package, 'Architecture') != 'amd64' or not re.fullmatch(
+            r'[0-9]+\.[0-9]+\.[0-9]+(?:-[a-z0-9]+(?:-[a-z0-9]+)*)?', field(package, 'Version')):
+        raise ValueError('invalid Ubuntu Client architecture/version')
     for key in ('Conflicts', 'Replaces', 'Breaks', 'Provides'):
         if field(package, key):
-            raise ValueError('experimental package must not declare ' + key)
-    if any(part.strip().split()[0] == 'plank-client' for part in field(package, 'Depends').split(',') if part.strip()):
-        raise ValueError('experimental package must not depend on the production Client')
+            raise ValueError('Client package must not declare ' + key)
     names, metadata = read_tar(package, '--fsys-tarfile',
                                {f'usr/share/applications/{DESKTOP}.desktop'}, True)
     if not EXACT.issubset(names):
-        raise ValueError('experimental package is missing required private files')
+        raise ValueError('Client package is missing required files')
     for name in names:
         if name not in EXACT and not name.startswith(PREFIXES):
-            raise ValueError('file outside experimental namespace: ' + name)
+            raise ValueError('file outside Client namespace: ' + name)
     desktop = metadata[f'usr/share/applications/{DESKTOP}.desktop'].splitlines()
-    for expected in ('Name=PLANK Client Qt', 'Exec=plank-client-qt', 'Icon=plank-client-qt',
+    for expected in ('Name=PLANK Client', 'Exec=plank-client', 'Icon=plank-client',
                      'StartupWMClass=' + DESKTOP):
         if expected not in desktop:
-            raise ValueError('incorrect experimental desktop identity')
+            raise ValueError('incorrect Client desktop identity')
     if any(line.startswith(('MimeType=', 'DBusActivatable=')) for line in desktop):
-        raise ValueError('experimental Client must not claim production activation/URL handlers')
+        raise ValueError('Client must not introduce activation/URL handlers')
     control_names, control = read_tar(package, '--ctrl-tarfile', {'conffiles', 'postinst', 'postrm'})
-    if control.get('conffiles', '').strip() != '/etc/plank/client-qt.conf':
-        raise ValueError('incorrect experimental conffile ownership')
+    if control.get('conffiles', '').strip() != '/etc/plank/client.conf':
+        raise ValueError('incorrect Client conffile ownership')
     if control_names - {'control', 'conffiles', 'md5sums', 'postinst', 'postrm'}:
         raise ValueError('unexpected package lifecycle hook')
     for script in ('postinst', 'postrm'):
         if control.get(script) != (ROOT / 'packaging/client/linux/deb' / script).read_text():
-            raise ValueError('unreviewed experimental package lifecycle script')
-    if production:
-        production_names, _ = read_tar(production, '--fsys-tarfile', set())
-        overlap = names & production_names
-        if overlap:
-            raise ValueError('package overlaps production files: ' + ', '.join(sorted(overlap)))
+            raise ValueError('unreviewed Client package lifecycle script')
     return names
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('package', type=Path)
-    parser.add_argument('--production-package', type=Path)
     args = parser.parse_args()
     try:
-        validate(args.package, args.production_package)
+        validate(args.package)
     except (OSError, ValueError, tarfile.TarError, subprocess.SubprocessError) as error:
         parser.exit(1, str(error) + '\n')
-    print('client_qt_coinstallation_namespace_gate=pass installation_test=not-performed')
+    print('client_qt_package_identity_gate=pass installation_test=not-performed')

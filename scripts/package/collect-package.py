@@ -49,8 +49,8 @@ def collect(args):
     if not source.is_file():
         raise ValueError('package must be a regular file')
     extension = source.suffix
-    if args.product == 'client-qt' and (args.platform != 'linux' or extension != '.deb' or args.branch == 'main'):
-        raise ValueError('Qt experimental Client must be a Linux candidate DEB')
+    if args.product not in ('host', 'client'):
+        raise ValueError('unsupported product; Linux Qt uses the client identity')
     allowed = {'linux': ('.deb', '.rpm'), 'macos': ('.pkg', '.dmg')}
     if extension not in allowed[args.platform]:
         raise ValueError('package extension does not match platform')
@@ -128,7 +128,7 @@ def main():
     parser.add_argument('--source-root', required=True, type=Path)
     parser.add_argument('--source-commit', default='HEAD')
     parser.add_argument('--package', required=True, type=Path)
-    parser.add_argument('--product', required=True, choices=['host', 'client', 'client-qt'])
+    parser.add_argument('--product', required=True, choices=['host', 'client'])
     parser.add_argument('--platform', required=True, choices=['linux', 'macos'])
     parser.add_argument('--architecture', required=True, choices=['x86_64', 'amd64', 'arm64', 'all'])
     parser.add_argument('--target-os', required=True, help='qualified OS baseline, e.g. ubuntu-26.04')

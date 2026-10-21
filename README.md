@@ -27,6 +27,10 @@ Client uses one package for macOS 15 and newer, built with SDK 27 or newer;
 the Host has a separate macOS 27 minimum. Windows and other platforms are not
 currently qualified PLANK products.
 
+From 1.2.00, the Ubuntu Client uses Qt-owned streaming windows and direct
+PipeWire playback. It replaces the ordinary `plank-client` package, retaining
+bookmarks, settings and trusted Hosts. The macOS Client implementation is unchanged.
+
 PLANK is in late integration and production hardening. Use the
 [release notes](https://github.com/instinctual/plank/releases) for the version
 you install. Supported targets do not imply that every GPU, tablet, display

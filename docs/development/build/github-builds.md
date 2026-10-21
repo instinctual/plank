@@ -54,40 +54,38 @@ These jobs do not install products or perform live display, audio, input,
 network-loss or hardware-decoder qualification. Existing hardware gates and
 local builders remain available until hosted builds are qualified.
 
-## Ubuntu Qt experiment qualification
+## Ubuntu Qt Client qualification
 
-From the clean, pushed Qt feature branch identified in `HANDOFF.md`, use
-`bash scripts/ci/dispatch.sh linux-client-qt-tests false`. This explicit hosted
-Ubuntu 26.04 job shares the verified Client dependency caches/bootstrap, builds
-the isolated Qt components, and runs co-installation fixtures, normal/sanitized
+Qt is the ordinary Ubuntu Client from 1.2.00. The `linux-client` job runs on
+push/PR and through `bash scripts/ci/dispatch.sh linux-client false` from a
+clean, pushed main or feature branch. It uses the verified Client dependency
+caches/bootstrap, then runs package-upgrade fixtures, normal/sanitized component
 tests and a private headless GNOME compositor at 100% and forced 125% scale.
 It also checks selected-output retention on two differently sized virtual
 monitors. Fullscreen startup and normal content-size restoration must pass
 without treating a requested window state as proof of completed native sizing.
-Toolbar tests and the standalone probe must select the real launcher's Material
-Dark/Dense style. Default-style screenshots missed inherited edge padding that
-squeezed the production toolbar icons; keep explicit content-size, rendered
-glyph, idle/hover/press and invisible-hit-target checks at both scales.
-It also compiles/links the ordinary Client and runs its existing preflight
-checks to protect shared code such as the extracted software-frame allocator.
-The shared Linux raw-HID Wacom adapter runs with wrapped device I/O normally
-and under ASan/UBSan/leak checks. Evidence is in `wacom.log` and
-`wacom-asan.log`; coverage includes USB renumbering, partial enumeration, pen
-evdev readiness, read/poll failures and reconnects. The ordinary Client build
-also protects compilation of these shared input changes. See the release
-runbook's fortified-I/O and stale-preflight failure signatures before retrying
-a failed job; do not skip those gates.
-It also builds the complete Qt Client and checks three real launcher/shutdown
-cycles on the isolated compositor, with SDL video deliberately unavailable.
-The test-only target uploads evidence, not a DEB. To build the independently
-installable candidate after these same gates, use
-`bash scripts/ci/dispatch.sh linux-client-qt false`. It packages the exact Qt
-binary just tested, validates source and linked runtime ownership, and collects
-`plank-client-qt` in the branch-qualified candidate catalog. This target cannot
-produce a mainline release or overwrite the ordinary Client identity.
-Software Vulkan/GL results do not qualify Intel VA-API decoding, physical input,
-live audio or playback performance. Do not use the retained Ubuntu VM as a
-fallback builder for this experiment.
+
+Toolbar tests and the standalone probe select the real launcher's Material
+Dark/Dense style. Keep explicit content-size, rendered-glyph, idle/hover/press
+and invisible-hit-target checks at both scales. The Linux raw-HID Wacom adapter
+runs with wrapped device I/O normally and under ASan/UBSan/leak checks.
+Evidence is in `wacom.log` and `wacom-asan.log`; coverage includes USB
+renumbering, partial enumeration, pen evdev readiness, I/O loss and reconnects.
+See the release runbook's fortified-I/O and stale-preflight failure signatures
+before retrying a failed job; do not skip those gates.
+
+The job builds one complete Client with all ordinary preflight checks, requires
+native PipeWire playback rather than SDL audio, and checks three real
+launcher/shutdown cycles with SDL video deliberately unavailable. It packages
+that exact binary under `plank-client`, validates source/linkage and package
+identity, and collects it in the normal mainline or candidate catalog.
+Existing bookmarks, trust, policy and logs keep their ordinary PLANK locations.
+The old independently installable `plank-client-qt` test app is retired.
+
+Software Vulkan/GL and private PipeWire null-sink tests do not qualify Intel
+VA-API decoding, physical input, audible playback, A/V sync or live performance.
+Do not use the retained Ubuntu VM as a fallback builder. No product is installed
+on the hosted builder; package-upgrade fixtures use disposable synthetic roots.
 
 ## macOS distribution credentials
 
@@ -337,7 +335,7 @@ as equivalent workloads: the second job additionally signed and notarized.
 ## Diagnosing a hosted build
 
 Manual dispatch accepts `product=all`, `linux-host`, `linux-client`,
-`linux-client-qt-tests`, `linux-client-qt`, `macos-host` or `macos-client`.
+`macos-host` or `macos-client`.
 A selected-product run has an independent
 concurrency group, so retrying it does not cancel other platforms. Inspect the
 failed job's first error, not the final nonzero-exit summary.

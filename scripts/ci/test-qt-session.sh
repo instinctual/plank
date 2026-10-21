@@ -33,7 +33,7 @@ PLANK_WACOM_SANITIZERS=1 ASAN_OPTIONS=detect_leaks=1:halt_on_error=1 \
     UBSAN_OPTIONS=halt_on_error=1 \
     bash scripts/test/test-linux-wacom.sh "$PLANK_SOURCE_ROOT/apps/client" \
     "$PLANK_WORK_ROOT/wacom-tests-asan" 2>&1 | tee "$reports/wacom-asan.log"
-python3 tests/packaging/test-client-qt-package.py 2>&1 | tee "$reports/coinstall.log"
+python3 tests/packaging/test-client-qt-package.py 2>&1 | tee "$reports/package-upgrade.log"
 mkdir -p "$reports/offscreen"
 PLANK_QT_UI_REPORT_DIR="$reports/offscreen" \
     bash scripts/test/run-qt-session-tests.sh 2>&1 | tee "$reports/components.log"
@@ -51,32 +51,16 @@ PLANK_QT_SESSION_TEST_BUILD="$PLANK_WORK_ROOT/qt-session-tests-asan" \
     PLANK_QT_SESSION_SANITIZERS=1 ASAN_OPTIONS=detect_leaks=1:halt_on_error=1 \
     UBSAN_OPTIONS=halt_on_error=1 \
     bash scripts/test/run-qt-session-tests.sh 2>&1 | tee "$reports/sanitizers.log"
-# The extracted allocator is also used by the existing SDL renderer. Compile
-# and link that complete Client, with all its ordinary preflight tests, to
-# guard against regressions outside the isolated experiment. Do not package or
-# upload it as a Qt Client: only the separately compiled runtime may be packaged.
+# Build the ordinary Ubuntu Client once, with all product preflight checks.
+# macOS retains its existing frontend and is compiled in its own hosted job.
 export CARGO_HOME="$PLANK_CARGO_ROOT" RUSTUP_HOME="$PLANK_RUSTUP_ROOT"
 export PATH="$CARGO_HOME/bin:$PATH" CARGO_NET_OFFLINE=true
 export PLANK_CLIENT_SDL_WORK="$PLANK_DEP_ROOT/client-sdl"
-PLANK_CLIENT_VARIANT=production \
-    bash scripts/build/build-client-package-binaries.sh "$PLANK_SOURCE_ROOT/apps/client" \
-    "$PLANK_CLIENT_FFMPEG_WORK" "$PLANK_WORK_ROOT/baseline-client-build" \
-    2>&1 | tee "$reports/baseline-client-build.log"
-# Compile the real opt-in runtime as well, before the optional package step.
-# This must not remain a collection of unlinked
-# component prototypes. Both builds use the same verified dependency inputs.
-source scripts/package/package-version.sh
-plank_load_package_version "$PLANK_SOURCE_ROOT"
-source scripts/build/build-paths.sh
-plank_build_path_flags "$PLANK_SOURCE_ROOT" "$PLANK_WORK_ROOT/qt-runtime-build"
-plank_native_dependency_flags
-mkdir -p "$PLANK_WORK_ROOT/qt-runtime-build"
+bash scripts/build/build-client-package-binaries.sh "$PLANK_SOURCE_ROOT/apps/client" \
+    "$PLANK_CLIENT_FFMPEG_WORK" "$PLANK_WORK_ROOT/client-build" \
+    2>&1 | tee "$reports/client-build.log"
 (
-    cd "$PLANK_WORK_ROOT/qt-runtime-build"
-    qmake6 "$PLANK_SOURCE_ROOT/apps/client" CONFIG+=release CONFIG+=plank-transport CONFIG+=plank-qt-session \
-        "PLANK_TRANSPORT_DIR=$PLANK_SOURCE_ROOT/protocol/plank-transport" "PLANK_VERSION=$PLANK_PACKAGE_VERSION" \
-        "QMAKE_CFLAGS+=$PLANK_C_FILE_FLAGS" "QMAKE_CXXFLAGS+=$PLANK_C_FILE_FLAGS"
-    make -j"$(nproc)"
+    cd "$PLANK_WORK_ROOT/client-build"
     # Qt playback must not quietly fall back to the legacy SDL renderer.
     test -f app/release/pipewire.o || {
         echo 'Missing native playback object: app/release/pipewire.o' >&2
@@ -86,11 +70,11 @@ mkdir -p "$PLANK_WORK_ROOT/qt-runtime-build"
         echo 'Unexpected legacy playback object: app/release/sdlaud.o' >&2
         exit 1
     }
-    QT_QPA_PLATFORM=offscreen timeout 20 app/plank-client-qt --version
-) 2>&1 | tee "$reports/qt-runtime-build.log"
-PLANK_QT_CLIENT_BINARY="$PLANK_WORK_ROOT/qt-runtime-build/app/plank-client-qt" \
+    QT_QPA_PLATFORM=offscreen timeout 20 app/plank-client --version
+) 2>&1 | tee "$reports/client-runtime.log"
+PLANK_QT_CLIENT_BINARY="$PLANK_WORK_ROOT/client-build/app/plank-client" \
     PLANK_QT_LAUNCHER_REPORTS="$reports" \
     PLANK_QT_COMPOSITOR_REPORT="$reports/gnome-launcher.log" \
     bash scripts/test/run-qt-session-compositor.sh 2>&1 | tee "$reports/launcher-smoke.log"
 test -z "$(git status --porcelain)"
-echo 'Qt component/launcher gates and both Client compiles passed; live-stream and hardware acceptance remain pending.' >> "$GITHUB_STEP_SUMMARY"
+echo 'Qt/PipeWire, Wacom, package-upgrade and launcher gates passed for the ordinary Ubuntu Client; hardware acceptance remains separate.' >> "$GITHUB_STEP_SUMMARY"

@@ -41,7 +41,16 @@ class NativeFullscreenTests(unittest.TestCase):
 
     def test_native_spaces_without_sdl_override(self):
         self.assertIn('MacDisplayGeometry::useNativeFullscreen(macDisplayCount) ? \"1\" : \"0\"', session)
-        self.assertLess(session.index('SDL_SetHint(SDL_HINT_VIDEO_MAC_FULLSCREEN_SPACES'), session.index('if (!SDL_InitSubSystem(SDL_INIT_VIDEO))'))
+        self.assertLess(session.index('SDL_SetHint(SDL_HINT_VIDEO_MAC_FULLSCREEN_SPACES'),
+                        session.index('if (!presenter && !SDL_InitSubSystem(SDL_INIT_VIDEO))'))
+        header = (client / 'app/streaming/session.h').read_text()
+        self.assertIn('bool initialize(IFFmpegRendererFactory* presenter = nullptr);', header)
+        # macOS still uses the ordinary null-presenter SDL initialization;
+        # only the Linux Qt runtime supplies an external renderer factory.
+        self.assertIn('const bool initialized = initialize();', session)
+        project = (client / 'app/app.pro').read_text()
+        self.assertIn('linux: CONFIG += plank-qt-session', project)
+        self.assertIn('!linux: error("The Qt session frontend is Linux-only")', project)
         self.assertIn('MacWindow::activeDisplayCount()', session)
         self.assertIn('m_ClientDisplays.size() != macDisplayCount', session)
         self.assertNotIn('PLANK_MAC_FULLSCREEN_FULL_DISPLAY', session)
