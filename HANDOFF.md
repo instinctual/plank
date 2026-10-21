@@ -34,9 +34,18 @@ macOS. They are local skips, not acceptance passes. The Mac fullscreen source
 guard was updated for the external-renderer initialization signature and still
 requires the unchanged null-presenter SDL initialization on macOS.
 
-Hosted builds are the next verification step. The retained candidate sections
-below are historical evidence, not instructions to resume an old branch or proof
-of new mainline packages. Hardware/session acceptance remains separate.
+Root main promotion `3bff6b4fcde9b5b1f665d1b3c8e3c2950c5e57dd` and Client main
+are pushed. Both requested Client branches and all three requested root branches
+are ancestors of main. [Hosted run39685022784](https://github.com/instinctual/plank/actions/runs/39685022784)
+is compiling all four products at that exact promotion source. Policy, privacy
+and clipboard workflows pass; package/runtime results are still pending.
+Ordinary Mac CI is unsigned compile validation, not signed end-user installers.
+No 1.2.00 artifact has yet been downloaded or qualified for distribution.
+
+Next: inspect the hosted results and resolve any integration failure before
+handing out packages. The retained candidate sections below are historical
+evidence, not instructions to resume an old branch or proof of new mainline
+packages. Hardware/session acceptance remains separate.
 No package installation, branch deletion or GitHub release is part of this task.
 
 ## Retained candidate — Wacom USB recovery on the Qt baseline
