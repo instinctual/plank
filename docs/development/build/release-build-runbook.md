@@ -307,7 +307,7 @@ assumed the bundle advertises `HEAD`; use the exact ref printed by
 ## Client DEB — linux-client-builder only
 
 For the Ubuntu Qt experiment, the operator requires GitHub-hosted builders,
-not the retained VM. From the clean pushed `ubuntu-qt-session` branch run
+not the retained VM. From the clean, pushed feature branch named in `HANDOFF.md` run
 `bash scripts/ci/dispatch.sh linux-client-qt false`. This performs both full
 Client builds, component/sanitizer/compositor/launcher gates and then packages
 the real `plank-client-qt` binary. See `github-builds.md` for the test-only
@@ -315,6 +315,26 @@ dispatch. No production package is installed on a builder; the co-installation
 test uses a disposable dpkg root. Validate the delivered Qt candidate against
 the production DEB with `scripts/test/check-client-qt-package.py` before
 hardware testing. Never relabel the ordinary binary or use the probe as a Client.
+
+The job is named `linux-client-qt-tests` even when the selected target also
+packages a DEB. Inspect the failed step and its evidence before describing a
+failure as a live Qt runtime defect. Two .053 failures established these checks:
+
+- `wacom.log` and `wacom-asan.log` cover the real Linux raw-HID adapter with
+  link-wrapped device I/O. Fortified builds may call `__read_chk`/`__poll_chk`
+  instead of `read`/`poll`; preserve both wrapper paths and their bounds checks.
+  The runner prints the object's unresolved I/O symbols for diagnosis. Do not
+  disable fortification, sanitizers or assertions to bypass a fixture failure.
+- Renaming a production input function also requires updating the package
+  preflight and its positive/negative fixtures in `tests/ci/test_qt_session.py`.
+  Run `python3 -m unittest discover -s tests/ci -v` before dispatch. A stale
+  function-name guard is a packaging failure, not evidence that the preceding
+  Wacom tests failed; correct the guard rather than removing it.
+
+Normal and sanitized Wacom coverage includes stable USB interface ordering,
+complete descriptor inventory, pen evdev readiness, I/O loss and reconnects.
+These tests do not prove that Flame retains its tablet registration after an
+actual USB rebind; that remains a separate hardware acceptance step.
 
 Qt candidates from .049 use direct PipeWire playback. The hosted Qt job installs
 PipeWire/WirePlumber for a private null-sink test daemon, not on the retained VM

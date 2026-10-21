@@ -105,11 +105,14 @@ permission to compile Linux packages on the Mac or restore inherited prebuilts.
 Builder and hardware-test roles are deliberately separate:
 
 The Ubuntu Qt Client experiment is built and tested on GitHub-hosted Actions,
-not the retained Ubuntu VM. Use the explicit `linux-client-qt-tests` workflow
-target for isolated qualification until the live Qt runtime is ready. Do not
-ask the operator to repair VM prerequisites for this task or distribute a
-renamed SDL Client as the Qt experiment. No NUC is currently available; actual
-hardware/session acceptance remains pending.
+not the retained Ubuntu VM. Use `linux-client-qt` to run the qualification
+gates and package the real, independently installable Qt Client; use
+`linux-client-qt-tests` for the same gates without an installer. Dispatch from
+the clean, pushed feature branch identified in `HANDOFF.md`, not an assumed
+original experiment branch. Do not ask the operator to repair VM prerequisites
+or distribute a renamed SDL Client or standalone probe as the Qt experiment.
+Hosted tests do not replace exact-candidate hardware/session acceptance. Read
+HANDOFF and the private notes for current test-target availability and results.
 
 The workflows in `.github/workflows/build.yml` also authorize disposable
 GitHub-hosted builders for the same target OS/toolchain contracts: Rocky 9.7

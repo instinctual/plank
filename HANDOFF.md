@@ -11,6 +11,18 @@ parent `a08666b8b8fd820a92d3296ac88a5f7ebae9e3be`, Client
 `ab38aa1fe9264d7440f3f4bad515f98c2c1a4c44`. The canonical checkout's
 unrelated dirty work is preserved. No Host, macOS or wire-protocol change.
 
+Resume in `build/worktrees/wacom-usb-recovery`, not the canonical checkout.
+Root and Client implementation commits are pushed. The post-build documentation
+checkpoint is `44fadb7ac49a6ab7999eb69c3c7ed3727460291c`; the installer remains
+the exact `bc204f6` source recorded below, not a relabelled notes build.
+No build, sampler or debugger remains active for this task. The redundant
+all-products run39510884633 is cancelled; the explicit Qt candidate run passed.
+The operator now reports a successful live USB-recovery test: restart Flame
+once, unplug the tablet for a few seconds, then reconnect it. The tablet worked
+in the still-running Flame after a few seconds, without another restart.
+Confirmation of the installed Client version is pending; do not yet attribute
+this result to the exact .053 package or claim unchanged device IDs were measured.
+
 Read-only live inspection found a client-side USB interface re-enumeration
 followed by Host virtual-tablet destruction/recreation while the application
 was running. A coordinated pen-only sample subsequently confirmed tip presses
@@ -42,7 +54,8 @@ passes both full Client builds, 55 window/UI cases at 100% and 125%, offscreen
 and sanitizer coverage, two-monitor selection, synthetic precision gates,
 isolated PipeWire tests, three launcher/shutdown cycles, 14 package fixtures
 and finished-DEB checks. Live GPU handoff remains explicitly skipped on the
-software-only runner. These checks are not hardware or live Flame acceptance.
+software-only runner. These hosted checks are not hardware acceptance; the
+operator's separate live USB result and its provenance limit are recorded above.
 
 Exact candidate provenance:
 
@@ -63,12 +76,13 @@ I/O injection; the second passed those tests and caught a stale packaging
 function-name check. Both are corrected with coverage, not suppressed. Neither
 failed run produced an installer. Privacy and clipboard checks also pass.
 
-Next: manually install the separate Qt package, reconnect and restart Flame
-once if its device registration was already lost. Establish working normal-tip
-clicks, pressure, eraser and Tablet Margins, then test same-port USB and network
-recovery with Flame left open. Host input IDs must remain unchanged for the
-same metadata/descriptors. See `protocol/wacom-hid.md` for the acceptance
-sequence. No Host update is required. The shared adapter also compiles for
+Next: confirm the installed version for that live result. Continue from the
+working Flame session rather than restarting it again: qualify normal-tip
+clicks, pressure, eraser and Tablet Margins, repeated same-port USB recovery
+and network recovery. Host input IDs must remain unchanged for the same
+metadata/descriptors; the operator's successful recovery alone does not measure
+that invariant. See `protocol/wacom-hid.md` for the acceptance sequence.
+No Host update is required. The shared adapter also compiles for
 the ordinary Linux Client, but only the separate Qt package was produced.
 No remote installation, live application restart, merge or release was performed.
 
@@ -343,7 +357,7 @@ camera/microphone qualification gates. Both source commits are pushed on
 `ubuntu-qt-session`; no remote installation, Host update, merge or release
 was performed.
 
-### Current follow-up — borderless, consistently sized toolbar icons
+### Retained follow-up — borderless, consistently sized toolbar icons
 
 The operator reports that .046's icons, including minimize/close, look squeezed
 inside small boxes. Read-only inspection found that the real app's Material
@@ -623,10 +637,12 @@ performance, audio/video soak and physical Wacom remain pending hardware gates.
 
 The current Client additionally connects toolbar bitrate acknowledgement,
 shared rate/loss/RTT statistics, microphone/camera controls, overlay, Qt physical
-keyboard/mouse input, unchanged raw-HID/normalized tablet workers, Host cursor
+keyboard/mouse input, shared raw-HID and normalized tablet workers, Host cursor
 shapes/positions and Wayland shortcut/pointer policy. The ordinary Client now
 shares its bounded cursor-message parser with the Qt frontend. New input tests
 cover key identities, malformed cursor chunks and reconnect sequence epochs.
+The raw-HID worker includes the .053 USB-retention changes described above;
+the normalized fallback is unchanged.
 The successful hosted checkpoint also exercises retained tablet-reader
 lifecycle, cross-output drag geometry, P010 two-plane GPU conversion, idle
 inhibition, visible-output precision qualification, and stale-generation
@@ -643,15 +659,14 @@ key leakage and non-Latin layout fallback. Both local and streaming shortcuts
 use the same layout resolver. All these hosted gates passed. The earlier .041
 run was superseded before packaging; it is not the delivered candidate.
 
-**Next action: operator installation and .046 toolbar/recovery acceptance.**
-Check stacked stats, both pin states and fullscreen/restore icons, including
-hide/reveal and repeated mode changes. With Keep waiting selected, unplug the
-test Client network beyond the notice timeout, restore it, and verify the
-session and input recover without clicking anything. Test Disconnect and the
-explicit auto-disconnect option separately. Preserve the accepted
-windowed hover strip and ensure no remote click leakage. The
-desktop ghost is independently reproducible without PLANK; do not add input
-workarounds merely to hide it.
+**Next action: .053 live Flame USB/network recovery acceptance**, using the
+sequence at the top of this file and in `protocol/wacom-hid.md`. Earlier .046
+toolbar/recovery instructions are not a request to reinstall that candidate.
+Preserve the accepted toolbar appearance, spacing and windowed reveal behavior.
+During network recovery, the status dialog must recover automatically without
+a Keep Waiting click; separately verify Disconnect and the configured
+automatic-disconnect policy. The desktop ghost is independently reproducible
+without PLANK; do not add input workarounds merely to hide it.
 Keep the ordinary Client closed during Qt testing. Still confirm exact-profile H.264
 High 10 software and HEVC Rext 10-bit hardware paths, toolbar/letterbox and
 window controls, keyboard/mouse, Wacom pressure/Tablet Margins and recovery,
@@ -1241,8 +1256,9 @@ X11/x264 conversion and Linux Client sizing are unchanged.
 ## Last published release and rollback
 
 [PLANK 1.1.039](https://github.com/instinctual/plank/releases/tag/v1.1.039)
-is the latest published release. Exact source, package hashes and build evidence
-are recorded at the top of this file. [Release notes](docs/releases/1.1.039.md)
+is the recorded published baseline. Exact source, package hashes and build
+evidence are in the **Inherited main baseline** section above, not the current
+Qt candidate section. [Release notes](docs/releases/1.1.039.md)
 compare against 1.1.030 and explicitly preserve the remaining hardware gates;
 publication does not claim that unperformed tests passed. No machines were
 automatically upgraded.
@@ -1284,13 +1300,16 @@ Merging does not close hardware acceptance. See
 - Deferred Mac Wallpaper/Screen Saver pointer lag, Linux physical-display
   provenance mismatch and immediate-paste clipboard stress.
 
-Current audio policy uses Host common-clock phase for macOS and separate
+The ordinary Client's audio policy uses Host common-clock phase for macOS and separate
 relative-rate handling for Linux. Smooth resampling is bounded to one percent,
 with SDL output-demand/headroom guards. No extra audio-frame dropping or video
 delay was added; recovering playback reserve can retain a few milliseconds.
 A shortage-request counter is not a measured speaker underrun. See the
 [audio plan](docs/development/plans/audio-sync.plan) and
 [real-world procedure](docs/development/audio-sync-baseline.md).
+The Qt candidate instead uses native PipeWire playback from .049 onward;
+its isolated daemon/clock tests do not replace the pending real-output listening
+and A/V-sync soak. Do not diagnose Qt playback as the ordinary SDL audio path.
 No old sampler is still running merely because a prior note described a soak.
 
 Keep machine identities and private evidence outside Git. Read the private notes

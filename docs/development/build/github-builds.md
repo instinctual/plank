@@ -56,7 +56,7 @@ local builders remain available until hosted builds are qualified.
 
 ## Ubuntu Qt experiment qualification
 
-For `ubuntu-qt-session`, use
+From the clean, pushed Qt feature branch identified in `HANDOFF.md`, use
 `bash scripts/ci/dispatch.sh linux-client-qt-tests false`. This explicit hosted
 Ubuntu 26.04 job shares the verified Client dependency caches/bootstrap, builds
 the isolated Qt components, and runs co-installation fixtures, normal/sanitized
@@ -70,6 +70,13 @@ squeezed the production toolbar icons; keep explicit content-size, rendered
 glyph, idle/hover/press and invisible-hit-target checks at both scales.
 It also compiles/links the ordinary Client and runs its existing preflight
 checks to protect shared code such as the extracted software-frame allocator.
+The shared Linux raw-HID Wacom adapter runs with wrapped device I/O normally
+and under ASan/UBSan/leak checks. Evidence is in `wacom.log` and
+`wacom-asan.log`; coverage includes USB renumbering, partial enumeration, pen
+evdev readiness, read/poll failures and reconnects. The ordinary Client build
+also protects compilation of these shared input changes. See the release
+runbook's fortified-I/O and stale-preflight failure signatures before retrying
+a failed job; do not skip those gates.
 It also builds the complete Qt Client and checks three real launcher/shutdown
 cycles on the isolated compositor, with SDL video deliberately unavailable.
 The test-only target uploads evidence, not a DEB. To build the independently
