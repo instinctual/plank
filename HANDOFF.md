@@ -112,8 +112,10 @@ above use Python 3.12+ as required by the native recipe; the local 3.9 runtime i
 not a supported substitute. No package was installed, and no hardware acceptance
 is implied.
 
-The coordination worktree is `build/worktrees/apple-native-integration`, with a
-linked Client worktree at `apps/client`; other submodules remain uninitialized.
+The `apple-native-integration` branch remains a coordination checkpoint already
+included in `native-builds`; its duplicate local worktree was retired. Continue
+in this `native-builds` worktree and its linked Client at `apps/client`.
+Other submodules remain uninitialized.
 [Client issue #9](https://github.com/instinctual/plank-client/issues/9) remains
 open. Next reconcile persistent pre-credential Host trust, exact-format decoder
 fallback, audio clock/input contracts and current parent transport/CI before
