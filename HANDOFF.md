@@ -53,13 +53,22 @@ requires the unchanged null-presenter SDL initialization on macOS.
 Root main promotion `3bff6b4fcde9b5b1f665d1b3c8e3c2950c5e57dd` and Client main
 are pushed. Both requested Client branches and all three requested root branches
 are ancestors of main. [Hosted run39685022784](https://github.com/instinctual/plank/actions/runs/39685022784)
-is compiling all four products at that exact promotion source. Policy, privacy
-and clipboard workflows pass; package/runtime results are still pending.
-Ordinary Mac CI is unsigned compile validation, not signed end-user installers.
+passed Linux Host, Ubuntu Qt Client and unsigned macOS Host. The macOS Client
+stopped at an outdated uninstaller source assertion: it expected an inline
+application-name literal instead of the shared, unchanged identity constant.
+The check now verifies that constant, and the executable Qt path fixture uses
+the actual application constant rather than duplicating it. Local uninstall,
+install, fullscreen, quit, Metal-overlay, keyboard/permission checks and all
+81 CI-policy tests pass. This is a test correction, not a runtime change.
+
+The operator requested a full rebuild from cleaned-up main: fresh application,
+transport and package outputs for all four products on GitHub Actions, reusing
+only verified dependency caches. macOS packages must be signed/notarized.
+No installation or release publication is authorized by this rebuild request.
 No 1.2.00 artifact has yet been downloaded or qualified for distribution.
 
-Next: inspect the hosted results and resolve any integration failure before
-handing out packages. The retained candidate sections below are historical
+Next: complete and inspect the full hosted rebuild before handing out packages.
+The retained candidate sections below are historical
 evidence, not instructions to resume an old branch or proof of new mainline
 packages. Hardware/session acceptance remains separate.
 No package installation or GitHub release is part of this cleanup.

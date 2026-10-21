@@ -35,7 +35,7 @@ bash "$source_root/tests/packaging/macos-client-install.sh"
 python3 "$source_root/tests/packaging/test-macos-fullscreen.py" "$source_root"
 mkdir -p "$build/tests"
 xcrun clang++ -std=c++17 -include arm_acle.h -mmacosx-version-min="$MACOSX_DEPLOYMENT_TARGET" -Wall -Wextra -Werror \
-    -F"$PLANK_QT_ROOT/lib" "$source_root/tests/packaging/macos-client-paths.cpp" \
+    -F"$PLANK_QT_ROOT/lib" -I"$client/app" "$source_root/tests/packaging/macos-client-paths.cpp" \
     -framework QtCore -Wl,-rpath,"$PLANK_QT_ROOT/lib" -o "$build/tests/client-paths-test"
 "$build/tests/client-paths-test"
 bash "$source_root/scripts/test/build-macos-client-permissions.sh" "$source_root" "$build/tests/permissions"

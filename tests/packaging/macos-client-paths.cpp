@@ -5,13 +5,14 @@
 #include <QtCore/QSettings>
 #include <QtCore/QStandardPaths>
 #include <cstdio>
+#include "clientidentity.h"
 
 int main(int argc, char **argv)
 {
     QCoreApplication app(argc, argv);
     QCoreApplication::setOrganizationName("Instinctual");
     QCoreApplication::setOrganizationDomain("instinctual.la");
-    QCoreApplication::setApplicationName("PLANK");
+    QCoreApplication::setApplicationName(PlankClientIdentity::applicationName);
     const QString home = QDir::homePath();
     if (QSettings().fileName() != home + "/Library/Preferences/la.instinctual.PLANK.plist" ||
         QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation) !=

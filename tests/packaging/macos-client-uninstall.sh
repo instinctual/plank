@@ -18,9 +18,15 @@ assert 'tests/packaging/macos-client-paths.cpp' in build
 client = root / 'apps/client/app/main.cpp'
 if client.is_file():
     main = client.read_text()
-    for setter, value in [('OrganizationName', 'Instinctual'), ('OrganizationDomain', 'instinctual.la'),
-                          ('ApplicationName', 'PLANK')]:
-        assert f'QCoreApplication::set{setter}("{value}")' in main
+    for setter, value in [('OrganizationName', 'Instinctual'), ('OrganizationDomain', 'instinctual.la')]:
+        assert f'QCoreApplication::set{setter}("{value}")' in main, setter
+    # The runtime now shares this identity across frontends. Require that the
+    # application and the executable path fixture both use the same constant.
+    identity = (client.parent / 'clientidentity.h').read_text()
+    paths_test = (root / 'tests/packaging/macos-client-paths.cpp').read_text()
+    assert 'inline constexpr char applicationName[] = "PLANK";' in identity
+    for source in (main, paths_test):
+        assert 'QCoreApplication::setApplicationName(PlankClientIdentity::applicationName)' in source
 PY
 # Load definitions, never the product entry point. Only the platform/process
 # boundaries are replaced; normal execution has no test/root-path overrides.
