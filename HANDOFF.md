@@ -4,7 +4,24 @@ Read `AGENTS.md` and the relevant build runbook first. Machine-specific access,
 credentials, captures and operational evidence belong in the external private
 notes, never in Git.
 
-## Current work — Wacom USB recovery on the Qt baseline
+## Current integration — Ubuntu Qt Client, Wacom recovery and CUDA
+
+The operator authorized merging `wacom-usb-recovery` (including
+`ubuntu-qt-session`) and `cuda-13-2` into main. Continue in
+`build/worktrees/wacom-persistent`; the canonical checkout's unrelated edits
+remain preserved. Native Apple Client branches are outside this integration.
+
+Ubuntu's Qt frontend is to replace the SDL session frontend under the ordinary
+`plank-client` package, launcher, settings, administrator configuration and log
+identity. It is no longer a separately installable product. macOS retains its
+existing Client implementation. Version advances to **1.1.054** for this
+combined integration; previous candidate artifacts are not relabelled.
+
+Integration validation is pending. The sections below retain exact candidate
+evidence, not proof of a newly built mainline package or full hardware acceptance.
+No package installation or GitHub release is part of this merge request.
+
+## Retained candidate — Wacom USB recovery on the Qt baseline
 
 Branch `wacom-usb-recovery` starts from the complete .052 Qt work:
 parent `a08666b8b8fd820a92d3296ac88a5f7ebae9e3be`, Client
@@ -695,14 +712,63 @@ Kymux `3f7a9d8618978287186e5d6ce0eaa067743cb06c`,
 build-deps `c29c4822cb96f5bfeb8640e72601c5cf4e3c3137`.
 No Host, macOS-specific session or wire-protocol changes are part of this work.
 
+## Retained candidate — CUDA 13.2 Update 2
+
+Continue in `build/worktrees/cuda-13-2` on `cuda-13-2`, based on main
+`38e00a557670df063926af1ef3466156145302ae`. The operator reports the released
+1.1.039 working without observed issues on NVIDIA 595.104.02 and authorized a
+separate Linux Host toolchain candidate. Version is **1.1.040-cuda-13-2**.
+Do not merge, publish a release, install a package or interrupt a live session
+as part of this build request. The independent Qt Ubuntu prototype stays paused.
+
+Only the Linux Host CUDA build components move to Toolkit 13.2 Update 2
+(NVCC/runtime 13.2.86). Exact RPM pins and a fail-closed component/compiler
+check are shared by hosted installation and package preflight. The existing
+cache fingerprints already include NVCC and installed RPMs; the compiled Host
+dependency tree rebuilds with the new toolchain without weakening cache checks.
+Keep the full GPU architecture set. Host/Client/Kymux and recursive source pins,
+NVENC SDK 13.0.19 headers, encoding settings, transport and macOS are unchanged.
+No new Client package is needed.
+
+The Linux Host-only hosted build passed at exact source
+`c018fb26048cf723d3ba5fc4315dbee562472755`:
+[39186329545](https://github.com/instinctual/plank/actions/runs/39186329545).
+The RPM is downloaded and collected under
+`artifacts/packages/candidates/1.1.040-cuda-13-2/linux/`:
+`plank-host-1.1.040-0.cuda_13_2.1.el9.x86_64.rpm` (8,749,513 bytes), SHA-256
+`5f5ebb2b8e4fa672e8a9df2ce91573512d128f01c66296f07a3cec756ed5ec72`.
+The transferred manifest exactly matches the hosted manifest. The package
+contains visible version `1.1.040-cuda-13-2`, CUDA fatbins, the production
+`BUILD_TESTS=OFF` payload and its owned root:root `0700` log directory. RPM
+runtime requirements match 1.1.039 apart from the self-versioned config entry.
+
+Validation passed: 75 CI-policy tests, 17 local packaging/path/collection
+checks plus the release-version contract, dependency-patch verification,
+Rust/protocol/C ABI gates, and three 900-frame controlled-loss matrices at
+150 Mbps/60 fps over 0/0.5/1/3/5% loss (zero unrecovered source symbols).
+The input lifecycle suites ran 25 shuffled repetitions each: 45 production
+passes with three kernel-dependent skips, and 56 wrapped-UHID fixture passes.
+Both CUDA installation and package preflight verified NVCC 13.2.86. Compilation
+retained architectures `75;80;86;87;89;90;100;103;110;120;121` and NVENC headers
+`e844e5b26f46bb77479f063029595293aa8f812d` (SDK 13.0.19).
+Rust, Cargo and Boost caches were reused; the Host FFmpeg/dependency cache was
+rebuilt, patch-verified and saved for the new compiler. All root and recursive
+source pins remain those of the baseline below.
+
+No build remains running. No merge, release publication or installation was
+performed. Next is manual Host installation with the existing 1.1.039 Client,
+then real capture, identity/color, scaling, NVENC and live performance checks
+on 595.104.02. These hardware gates remain pending; hosted results do not prove
+a performance gain or replace live qualification.
+
 ## Inherited main baseline — persistent tablet and Client recovery integrated
 
 The operator authorized merging `wacom-persistent` into main. The parent,
 Linux Host and Client now use `main`; the two changed dependencies use their
 established product branches. All integration is fast-forward, preserving the
-candidate commits and their authorship. The main baseline lives in
-`build/worktrees/wacom-persistent`; the active Qt experiment remains in the
-separate worktree named above.
+candidate commits and their authorship. Main remains in
+`build/worktrees/wacom-persistent`, not the canonical checkout's
+separate, dirty `client-pkg-only` branch.
 
 | Component | Integrated source / branch |
 | --- | --- |

@@ -87,7 +87,13 @@ and passed with the repair; the repaired candidate passed 713 Loader tests.
 Retain/reproduce those negative controls when upgrading the changed allocation
 code. The [qualification record](reviews/vulkan-loader-qualification.md) records
 the clean Host build and hardware checks without implying new Vulkan encoding
-support or complete interactive acceptance. NVIDIA remains capped at 595.91.07.
+support or complete interactive acceptance. The operator's current NVIDIA
+baseline is 595.104.02; historical qualification records retain their actual
+tested driver. CUDA 13.2 Update 2 (NVCC 13.2.86) is the separate Host toolchain
+candidate. The current NVENC headers remain SDK 13.0.19: the proposed 13.1
+headers still require driver 610 or newer and remain on hold. See the
+[CUDA compatibility table](https://docs.nvidia.com/cuda/archive/13.2.2/cuda-toolkit-release-notes/index.html)
+and [SDK 13.1 requirements](https://docs.nvidia.com/video-technologies/video-codec-sdk/13.1/read-me/index.html).
 
 ## Upgrade sequence and acceptance
 
