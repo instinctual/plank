@@ -1,9 +1,10 @@
 # PLANK Release Build Runbook
 
 For disposable GitHub-hosted workers, see [GitHub-hosted builds](github-builds.md).
-Hosted jobs reuse exact-input dependencies, never application objects
-or signing state. Use the dispatch helper's `--clean-bootstrap` third argument
-to bypass both cache restore and save when qualifying a fresh bootstrap.
+Hosted jobs reuse exact-input dependencies; Ubuntu also uses a separately
+validated compiler-output cache. Never reuse build trees, packages or signing
+state. Use the dispatch helper's `--clean-bootstrap` third argument to bypass
+all cache restore and save when qualifying a fresh bootstrap.
 Those workflows establish the same OS, dependency, clean-source and package
 contracts through `scripts/ci/`; they do not deploy or replace hardware gates.
 
@@ -14,8 +15,9 @@ have exact-input dependency caches. Linux Host retains prepared FFmpeg and
 Boost sources, Ubuntu Client retains patched FFmpeg and SDL, and macOS Client retains
 prepared libraries and Qt. The other three products also retain the pinned
 Rust toolchain and downloaded Cargo inputs; macOS Host uses native Apple media
-frameworks, so has no separate FFmpeg/Qt dependency build to cache. Application
-and transport objects, tests, packaging and signing always run fresh. See
+frameworks, so has no separate FFmpeg/Qt dependency build to cache. Ubuntu may
+reuse compiler results, but tests, linking and packaging always run afresh.
+The other products still compile their application/transport objects fresh. See
 `github-builds.md` for cache boundaries and cold/warm qualification status.
 
 This is the canonical, repeatable procedure for producing PLANK host
@@ -316,6 +318,13 @@ synthetic payloads in a disposable dpkg root. The finished-package identity
 gate rejects the retired separate Qt namespace. Existing ordinary Client
 settings, trust and policy are retained. Do not copy the experimental profile
 over them; quit/remove the old `plank-client-qt` test package separately.
+
+Ordinary hosted builds reuse exact prepared dependencies and a separate bounded
+sccache store for C/C++/Rust results. They still configure clean build trees,
+run every qualification gate, link and package afresh. The compiler-cache report
+is in `qt-session-reports/compiler-cache.{txt,json}`. Use `--clean-bootstrap`
+only when deliberately qualifying an uncached build; it bypasses both caches.
+See `github-builds.md` for invalidation inputs and trusted-save boundaries.
 
 The job is named `linux-client`. Inspect the failed step and its evidence before describing a
 failure as a live Qt runtime defect. Two .053 failures established these checks:

@@ -4,6 +4,27 @@ Read `AGENTS.md` and the relevant build runbook first. Machine-specific access,
 credentials, captures and operational evidence belong in the external private
 notes, never in Git.
 
+## Current work — Ubuntu CI cache reuse
+
+Work is on root branch `ci-cache-reuse`, based on main `5871829`; product
+submodules remain at their accepted mainline pins. The operator requested this
+repair after the 1.2.01 build below. There are no application, Host or macOS
+behavior changes, and no installation or release is authorized.
+
+Ubuntu dependency fingerprints now ignore runner image dates and unrelated OS
+packages, retaining compiler/tools, all installed development headers and ABI
+inputs because FFmpeg/SDL auto-detect optional libraries. Existing exact cache
+receipts and patch/runtime checks remain mandatory. Linux Host and Mac toolchain
+policies are unchanged. A separate Ubuntu sccache store covers C/C++ and Rust
+compilation; clean checkouts, linking, every test and package validation still
+run. Only successful trusted builds save compiler data; PRs cannot write it.
+
+Local CI policy/regression tests pass. Hosted cold population and an identical
+warm run are required before claiming the repair is qualified. Check actual
+dependency hits, C/C++/Rust reuse statistics, full test/package results and stage
+timings. Preserve both logs in qualification artifacts. Do not merge this
+follow-up automatically or relabel its package as main.
+
 ## Current mainline — Qt wheel scrolling
 
 The operator accepted `1.2.01-qt-wheel-scroll` and authorized merging it into

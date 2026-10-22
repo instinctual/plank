@@ -238,9 +238,14 @@ the build-deps Git pin, tracked files and source gitlinks. Both Client library
 groups retain all FFmpeg patch inputs and build-path/sanitization helpers.
 
 Rust toolchain changes invalidate Rust and Cargo downloads; transport and
-vendor-test manifests/locks invalidate only their Cargo group. Native library
-keys still include exact installed Linux packages or Mac SDK/compiler/build
-tools. Downloads/source-only groups do not depend on those C/C++ build tools.
+vendor-test manifests/locks invalidate only their Cargo group. Linux Host
+library keys retain the exact installed package inventory; Mac keys retain
+SDK/compiler/build tools. Ubuntu keys use the qualified OS/architecture, actual
+compiler/build-tool versions, development packages and relevant ABI/protocol
+packages, not the runner image date or unrelated desktop/runtime packages.
+All installed development packages remain conservative inputs because FFmpeg
+and SDL auto-detect optional libraries. Downloads/source-only groups do not
+depend on those C/C++ build tools.
 All keys remain product/platform/path-specific; Mac Client native/Qt keys
 retain the explicit deployment-target policy. Changes to the shared cache
 implementation itself invalidate all groups conservatively. Application-only
@@ -252,7 +257,9 @@ The composite action `.github/actions/dependency-cache` handles the same
 restore/verify and seal/save sequence for all four products. Each group can hit
 or miss independently. Save skips exact hits, and job-local hit bookkeeping is
 not cached. The narrow Rust/Cargo allowlist excludes credentials/configuration
-and compiled target objects. There are no application, package or signing caches.
+and compiled target objects. Dependency caches never contain application,
+package or signing state. Ubuntu's separate per-object compiler cache is
+described below; the other product jobs still compile application sources fresh.
 
 Mac Host's cache avoids Rust installation/downloads, not application or
 transport compilation. Do not promise the same improvement as caching FFmpeg.
@@ -276,6 +283,33 @@ seconds and passed application/package checks and artifact upload. This proves
 Ubuntu warm reuse, not partial-hit or all-platform warm qualification. Linux
 Host passed packaging and all six strengthened loss matrices on its first
 hosted attempt; Mac results are unsigned, not distribution installers.
+
+### Ubuntu compiler-output reuse
+
+The Ubuntu job additionally uses the distro `sccache` tool for C/C++ and Rust.
+Job-local compiler-name wrappers point to the real `/usr/bin/` compilers through
+sccache; no system compiler, user machine or shipped runtime is replaced.
+Rust uses `RUSTC_WRAPPER` with incremental compilation disabled. Cache entries
+are compiler results, not reused build trees, complete executables or installers.
+Every run creates clean sources/build directories, runs the existing tests,
+links and packages the selected version, and verifies the finished DEB.
+
+Only the bounded job-local `compiler-cache` directory is archived. The wrapper,
+server socket, reports, Cargo configuration/credentials and signing material are
+not included. Caches restore within GitHub's existing branch/default-branch
+boundaries; public pull requests cannot save them. Save occurs only after a
+successful build and tests. A unique run key permits updating immutable cache
+snapshots. Prefix restores are permitted **only for this compiler cache**:
+sccache independently checks each compiler/source/header/flag input. Prepared
+dependency caches still require an exact receipt and source/patch verification.
+
+`clean_bootstrap=true` bypasses both kinds of cache. Compiler hit/miss statistics
+are retained in the Qt qualification artifact and job summary, including failed
+builds when setup succeeded. A second identical hosted run must demonstrate
+actual C/C++ and Rust hits and unchanged qualification gates; a successful cache
+upload alone does not qualify reuse. A first build after this policy change is
+expected to populate new keys once. Do not bypass branch isolation to import
+feature-branch artifacts into main.
 
 #### Historical v1 four-product qualification
 
