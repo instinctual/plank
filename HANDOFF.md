@@ -10,9 +10,35 @@ The operator accepted `1.2.01-qt-wheel-scroll` and authorized merging it into
 root and Client `main`, then rebuilding the Ubuntu Client on GitHub Actions.
 Continue on canonical `main`; Client is
 `c0fdc2deaa7b67a487c3317678db617078948eed`. Version is **1.2.01**, under the
-ordinary `plank-client` identity, without a branch suffix. Build a fresh mainline
-package rather than relabelling the accepted candidate. No release publication
-or further installation is authorized. Native Apple work remains separate.
+ordinary `plank-client` identity, without a branch suffix. The fresh mainline
+package is complete; the accepted candidate was not relabelled. No release
+publication or further installation is authorized. Native Apple work remains
+separate.
+
+Mainline [run39822530300](https://github.com/instinctual/plank/actions/runs/39822530300)
+passed from root `7082a967ccaac8e80c18bdce46cf0404b4c6d6b7`, with the Client pin
+above and unchanged Host/Kymux pins below. The verified DEB is
+`artifacts/packages/releases/1.2.01/linux/plank-client_1.2.01_amd64.deb`
+(17,162,820 bytes), SHA-256
+`25f0268b2c277fb80f1d8b1ea492ee6b86a1e805a8ebe51529131e0d75c22657`.
+Executable SHA-256 is
+`e3c65a5ed98881d9b81e4f94974d41b51ba7f253b524da9cb4c17088cb5bb583`.
+Exact recursive sources, Qt6.10.2/toolchain evidence and all reports are in
+`artifacts/qualification/main-1.2.01/`. Normal/sanitized input, Wacom and
+PipeWire tests, both 55-case GNOME scale suites, launcher and package gates
+pass. Software-runner GPU skips remain explicit. The new mainline package has
+not been installed; live wheel acceptance applies to the source-equivalent
+candidate below. Root privacy and clipboard checks also pass.
+
+The operator next authorized a CI-cache repair after this build. This run
+missed all four dependency caches: runner image `20261021.171.10` differs
+from the prior images even though dependency recipes did not change. Bootstrap
+took about8m25s, followed by about15m of application/tests/package work.
+Current fingerprints include the runner image and whole installed-package
+inventory, and application objects are not cached. Narrow fingerprints to
+actual dependency inputs and add compiler caching in a separate branch;
+preserve patch verification, trust boundaries and all qualification gates.
+Verify real cache hits in a second unchanged hosted build, not just unit tests.
 
 Read-only diagnosis found that physical wheel deltas reach the Linux Host's
 virtual mouse and XInput, while Qt injects an unchanged absolute position before
@@ -65,8 +91,7 @@ hardware regression matrix. Focus/tablet/reconnect transitions and macOS-Host
 scrolling remain useful follow-up checks. Private capture/deployment evidence
 remains outside Git; all SSH/capture tasks are closed and temporary package
 transfer staging is removed. Both accepted feature branches are merged into
-main. The next step is the fresh `linux-client` build and package collection;
-no release has been published.
+main. No release has been published.
 
 ## Main baseline — Ubuntu Qt Client, Wacom recovery and CUDA
 
