@@ -13,7 +13,7 @@ Ubuntu Qt or macOS SDL/Metal application.
 
 The operator authorized reviewing and integrating the contributor's dependent
 native slices in order, preserving our hosted CI corrections. Client integration
-is `e2882b825e319c610eda85eb1b63d9aa6a3e66cb`, pushed before the parent gitlink.
+is `88089801fc7e107d5254a93de2feab5071ff775d`, pushed before the parent gitlink.
 
 | Contributor PR | Exact imported head | Scope |
 | --- | --- | --- |
@@ -57,7 +57,7 @@ added.
 Before hosted execution:
 
 - 22 root native CI/delivery regression tests passed locally (mocked Apple APIs).
-- Two Client build-integration tests and shell syntax/whitespace checks passed.
+- Three Client build-integration tests and shell syntax/whitespace checks passed.
 - Gitleaks scanned 186 newly reachable commits with no detected secrets.
 - The public new-content privacy gate passed. This is not a complete
   certification of arbitrary historical assets or upstream dependencies.
@@ -69,8 +69,11 @@ at parent `ac9b82a204745a3769a1fa9042b6320ff071103d` exposed an unexpected
 reference-image socket close in the newly required Mac checks. Mac policy,
 tablet-sharing and image crypto/wire checks passed before that failure. The
 socket assertion now reports the existing bounded close reason and receiving
-state; its assertions, rate limits and deadlines are unchanged. Follow the next
-native run to diagnose that failure and record every target result before
+state; its assertions, rate limits and deadlines are unchanged. Vision device,
+Vision simulator and iPad simulator passed. The iPad device compiled, but its
+archive omitted the app; explicit application install and dSYM settings now
+match the existing Vision archive contract, with a regression check. Follow the
+next native run to diagnose the Mac failure and verify the device archive before
 claiming acceptance. No new signing, TestFlight upload, installation, release or
 physical device acceptance is authorized by this import.
 
