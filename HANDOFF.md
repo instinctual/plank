@@ -10,7 +10,8 @@ Work is on `qt-wheel-scroll` in the root and Client repositories, based on
 root main `4446df9f24cb24b6900022b6f1c67978f0cbc055` and Client main
 `67a94f94d711e81f470b985001ca3eae37f5abad`. Candidate version is
 `1.2.01-qt-wheel-scroll`, under the ordinary `plank-client` package identity.
-Do not merge, publish a release or install it on an end-user machine yet.
+No merge or release publication is authorized. The operator authorized installing
+this candidate on the designated test Client after its hosted gates pass.
 
 Read-only diagnosis found that physical wheel deltas reach the Linux Host's
 virtual mouse and XInput, while Qt injects an unchanged absolute position before
@@ -32,14 +33,37 @@ reconnect invalidation, raw/normalized tablet handoff and local toolbar isolatio
 Client implementation is `c0fdc2deaa7b67a487c3317678db617078948eed`.
 All 81 local CI-policy checks, package collection/version tests and available
 Qt package checks pass; ten DEB fixtures require the Ubuntu runner and are
-explicit local skips. Run the ordinary hosted `linux-client` workflow, including
-Qt runtime, sanitizer, compositor and package gates. The accepted mainline
-packages below are not evidence for this new candidate.
+explicit local skips. Hosted [run39806775871](https://github.com/instinctual/plank/actions/runs/39806775871)
+passed from root `c870ea92a9cbac02d1a4f9fdb398f7a97f3bc4ec`. All 16 input-runtime
+cases pass normally and under sanitizers, including the new wheel regression
+cases. The 55-case session suite passes in GNOME at 100% and 125%; Wacom,
+PipeWire, three launcher cycles, all 14 package fixtures and final DEB gates pass.
+Software-only runner GPU handoff skips remain explicit; this is not hardware
+or live-session acceptance. Recursive dependency pins match the 1.2.00 baseline
+below; only the Client pin changes.
 
-Next: build/download the exact candidate, then have the operator test sustained
-scrolling in Linux desktop applications and Flame, pointer placement after
-focus/tablet/reconnect changes, and unchanged scrolling to a macOS Host. Private
-capture evidence and machine state remain outside Git; no capture is running.
+The verified package is
+`artifacts/packages/candidates/1.2.01-qt-wheel-scroll/linux/plank-client_1.2.01-qt-wheel-scroll_amd64.deb`
+(17,163,484 bytes), SHA-256
+`9f382cb61d9a00f2975ec2810d72d10c9ff413c3b6e95e65925d97d7076cd7d2`.
+Installed/extracted executable SHA-256 is
+`26f64a7547dc36462b33f7d9391219d1650848bc48917b136020cd51c92a6ef0`.
+Reports and exact source/toolchain evidence are retained in
+`artifacts/qualification/qt-wheel-scroll-1.2.01/`. Dependency caches missed and
+were rebuilt and saved; application, sanitizer and package checks were not skipped.
+
+The operator-authorized installation on the designated test Client is complete.
+No Client was running, no stream was interrupted, and no Host was modified.
+Package version, binary checksum and offscreen runtime version match; the
+administrator configuration checksum is unchanged. The older optional Qt test
+package was left alone. Launch the ordinary Client for testing.
+
+The operator confirms scrolling works after this exact Client update. This
+accepts the reported wheel failure, not a separately measured soak or complete
+hardware regression matrix. Focus/tablet/reconnect transitions and macOS-Host
+scrolling remain useful follow-up checks. Private capture/deployment evidence
+remains outside Git; all SSH/capture tasks are closed and temporary package
+transfer staging is removed. No merge or release was performed.
 
 ## Main baseline — Ubuntu Qt Client, Wacom recovery and CUDA
 
