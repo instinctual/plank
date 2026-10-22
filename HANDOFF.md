@@ -4,21 +4,22 @@ Read `AGENTS.md` and the relevant build runbook first. Machine-specific access,
 credentials, captures and operational evidence belong in the external private
 notes, never in Git.
 
-## Current candidate — Qt wheel scrolling
+## Current mainline — Qt wheel scrolling
 
-Work is on `qt-wheel-scroll` in the root and Client repositories, based on
-root main `4446df9f24cb24b6900022b6f1c67978f0cbc055` and Client main
-`67a94f94d711e81f470b985001ca3eae37f5abad`. Candidate version is
-`1.2.01-qt-wheel-scroll`, under the ordinary `plank-client` package identity.
-No merge or release publication is authorized. The operator authorized installing
-this candidate on the designated test Client after its hosted gates pass.
+The operator accepted `1.2.01-qt-wheel-scroll` and authorized merging it into
+root and Client `main`, then rebuilding the Ubuntu Client on GitHub Actions.
+Continue on canonical `main`; Client is
+`c0fdc2deaa7b67a487c3317678db617078948eed`. Version is **1.2.01**, under the
+ordinary `plank-client` identity, without a branch suffix. Build a fresh mainline
+package rather than relabelling the accepted candidate. No release publication
+or further installation is authorized. Native Apple work remains separate.
 
 Read-only diagnosis found that physical wheel deltas reach the Linux Host's
 virtual mouse and XInput, while Qt injects an unchanged absolute position before
 every wheel event. Linux uses XTEST for that position and uinput for the wheel;
 GTK resets smooth-scroll baselines when the source device changes. The macOS
-Host does not use that mixed Xorg input path. This explains the observed pattern,
-but the candidate still requires hardware acceptance.
+Host does not use that mixed Xorg input path. The operator confirmed that the
+candidate fixes the reported scrolling failure on the affected hardware.
 
 The window now sends the mapped position with the wheel event instead of
 unconditionally emitting another motion event. The Qt input owner positions
@@ -63,7 +64,9 @@ accepts the reported wheel failure, not a separately measured soak or complete
 hardware regression matrix. Focus/tablet/reconnect transitions and macOS-Host
 scrolling remain useful follow-up checks. Private capture/deployment evidence
 remains outside Git; all SSH/capture tasks are closed and temporary package
-transfer staging is removed. No merge or release was performed.
+transfer staging is removed. Both accepted feature branches are merged into
+main. The next step is the fresh `linux-client` build and package collection;
+no release has been published.
 
 ## Main baseline — Ubuntu Qt Client, Wacom recovery and CUDA
 
