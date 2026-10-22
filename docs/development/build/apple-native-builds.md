@@ -1,6 +1,6 @@
 # Native Apple Client automation
 
-The native Mac pilot and PLANK Vision are integration candidates, not replacements
+The native Mac pilot, PLANK Vision and iPad pilot are integration candidates, not replacements
 for the shipping Qt/SDL Client. Use the `Native Apple clients` GitHub Actions
 workflow on `apple-native-integration`. The temporary `native-builds` branch is
 also permitted while qualifying this automation. Do not merge the pilots into
@@ -15,10 +15,19 @@ its distinct transport parent must not be replaced with the shipping parent.
 ## Ordinary builds
 
 Pushes to the integration branch and PRs targeting it compile Release builds for
-native macOS, visionOS device and visionOS simulator. They run native policy
+native macOS, visionOS device/simulator and iPadOS device/simulator. They run native policy
 tests, retain source/hash provenance and upload seven-day artifacts. Mac stays
 Apple Silicon/macOS15+ with SDK27+; Vision uses the recipe's visionOS deployment
-target. Compile/test success is not streaming, audio, color or Wacom acceptance.
+target; iPadOS uses the recipe's 26.0 minimum with SDK27 or newer. Compile/test
+success is not streaming, audio, color or Wacom acceptance.
+
+The Mac job also runs the imported tablet-sharing, Pencil crypto/wire/loopback,
+reference-image sanitizer/codec, input/contact/zoom, diagnostic and Settings
+lifetime checks. Socket fixtures bind only to loopback and use injected approval
+stores; no physical input device, Host or system Keychain is used. Extracted-body
+fixtures exercise production policies with modeled UIKit boundaries, not actual
+OS gesture delivery. Every failing check stops that job; no automatic retries
+or weakened assertions substitute for a pass.
 
 CI caches checksum-verified archives, the pinned Rust toolchain and locked Cargo
 downloads. Prepared dependency libraries and all application/transport objects
@@ -36,7 +45,10 @@ UUIDs to match the archived executable before upload.
 
 The Mac artifact is an ad-hoc-signed, self-contained pilot ZIP for inspection,
 not a notarized install package. The Vision device artifact contains an unsigned
-Release `.xcarchive` with dSYMs. Neither is a TestFlight installation. Simulator
+Release `.xcarchive` with dSYMs. The iPad device build produces its own unsigned
+`PlankIPad.xcarchive`, preserving the separate `com.instinctual.plank.ipadpilot`
+identity. iPad signing and TestFlight delivery are not configured by this import.
+None of these archives is a TestFlight installation. Simulator
 compilation does not claim a simulator runtime or headset was exercised.
 
 ## TestFlight
@@ -46,6 +58,11 @@ its exact `source_sha`, numeric marketing `version` and `testflight=true`.
 The build number is `run_number.run_attempt`, so reruns do not reuse an uploaded
 build number. The pilot's Settings shows version/build/source branch. Keep the
 workflow name/file stable; counter resets require a deliberate version change.
+
+All five compile targets must pass before the existing Vision-only delivery job
+can run. Ordinary pushes never invoke Apple signing or upload; explicitly request
+a new protected Vision build only after review. iPad adoption does not authorize
+new app records, distribution credentials, or changing the existing Vision ID.
 
 After all unsigned builds pass, the protected `vision-testflight` environment
 allows the signing job. It downloads only the device artifact from this run,

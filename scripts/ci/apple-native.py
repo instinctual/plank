@@ -14,6 +14,18 @@ import tarfile
 ROOT = Path(__file__).resolve().parents[2]
 CLIENT = ROOT / "apps/client"
 RECIPE = CLIENT / "scripts/apple-native/build.py"
+TARGETS = {
+    "macos": ("macosx", "aarch64-apple-darwin"),
+    "device": ("xros", "aarch64-apple-visionos"),
+    "simulator": ("xrsimulator", "aarch64-apple-visionos-sim"),
+    "ios-device": ("iphoneos", "aarch64-apple-ios"),
+    "ios-simulator": ("iphonesimulator", "aarch64-apple-ios-sim"),
+}
+
+
+def bundle_id(target):
+    return os.environ["PLANK_NATIVE_IPAD_BUNDLE_ID" if target.startswith("ios-")
+                      else "PLANK_NATIVE_BUNDLE_ID"]
 
 
 def require(ok, message):
@@ -69,7 +81,7 @@ def context(target):
     inputs = settings()
     scratch = Path(os.environ["RUNNER_TEMP"]).resolve()
     require(scratch.is_dir(), "Missing runner scratch directory")
-    sdk = {"device": "xros", "simulator": "xrsimulator", "macos": "macosx"}[target]
+    sdk = TARGETS[target][0]
     require(int(output(["xcrun", "--sdk", sdk, "--show-sdk-version"]).split(".")[0]) >= 27,
             "SDK 27+ is required")
     env = {
@@ -95,15 +107,14 @@ def recipe(stage, target):
          "--cache", os.environ["PLANK_NATIVE_DOWNLOADS"], "--jobs", "3",
          "--configuration", "Release", "--version", os.environ["PLANK_NATIVE_VERSION"],
          "--build-number", build_number(os.environ["PLANK_NATIVE_BUILD"]),
-         "--bundle-id", os.environ["PLANK_NATIVE_BUNDLE_ID"],
+         "--bundle-id", bundle_id(target),
          "--branch", os.environ["PLANK_BUILD_BRANCH"]])
 
 
 def prepare(target):
     inputs = settings()
     rust = inputs["toolchain"]["rust"]
-    triple = {"device": "aarch64-apple-visionos", "simulator": "aarch64-apple-visionos-sim",
-              "macos": "aarch64-apple-darwin"}[target]
+    triple = TARGETS[target][1]
     run(["rustup", "toolchain", "install", rust, "--profile", "minimal", "--target", triple])
     recipe("prepare", target)
 
@@ -114,11 +125,25 @@ def dependencies(target):
     run(["bash", CLIENT / "scripts/apple-native/test.sh", work / "policy-tests"])
     if target == "macos":
         run(["bash", CLIENT / "scripts/test-macos-native.sh", work / "mac-tests"])
+        env = dict(os.environ, PLANK_RELAY_SOURCE_DIR=str(work / "git/raw"),
+                   PLANK_MANAGED_RELAY_SOURCE_DIR=str(work / "git/managed"),
+                   PLANK_RELAY_SODIUM_PREFIX=str(work / "install"))
+        run(["bash", CLIENT / "scripts/test-macos-relay.sh", work / "relay-tests"], env=env)
+        run(["bash", CLIENT / "apple-native/Tests/run-pencil-image-checks.sh",
+             work, work / "image-tests"])
+        run(["bash", CLIENT / "scripts/test-apple-pencil.sh", work, work / "pencil-tests"])
+        for directory, name in (
+            ("ios-native", "zoom-policy"), ("ios-native", "zoom-input-integration"),
+            ("ios-native", "finger-input"), ("ios-native", "automatic-image"),
+            ("visionos-native", "pencil-flow-diagnostics"),
+        ):
+            run([sys.executable, CLIENT / directory / "Tests" / f"run-{name}-checks.py",
+                 "--output", work / f"{name}-tests"])
 
 
-def collect_symbols(archive, generated):
-    executable = archive / "Products/Applications/PLANK.app/PLANK"
-    symbols = archive / "dSYMs/PLANK.app.dSYM"
+def collect_symbols(archive, generated, name="PLANK"):
+    executable = archive / "Products/Applications" / f"{name}.app" / name
+    symbols = archive / "dSYMs" / f"{name}.app.dSYM"
     # CMake overrides DWARF_DSYM_FOLDER_PATH to its configuration directory.
     # Xcode therefore generates symbols but does not copy them into .xcarchive.
     if not symbols.exists():
@@ -139,23 +164,27 @@ def build(target):
     recipe("build", target)
     receipt = json.loads((work / "application.json").read_text())
     receipt.update(parent_commit=os.environ["EXPECTED_SOURCE_SHA"], inputs=inputs,
-                   version=os.environ["PLANK_NATIVE_VERSION"], bundle_id=os.environ["PLANK_NATIVE_BUNDLE_ID"])
-    if target == "device":
-        archive = work / "PlankVision.xcarchive"
+                   version=os.environ["PLANK_NATIVE_VERSION"], bundle_id=bundle_id(target))
+    if target in ("device", "ios-device"):
+        ipad = target == "ios-device"
+        project = "PlankIPad" if ipad else "PlankVision"
+        name = "PLANK iPad Pilot" if ipad else "PLANK"
+        archive = work / f"{project}.xcarchive"
         env = dict(os.environ, CARGO_HOME=str(work / "cargo"), CARGO_NET_OFFLINE="true",
                    RUSTUP_TOOLCHAIN=inputs["toolchain"]["rust"], CARGO_PROFILE_RELEASE_STRIP="none")
-        run(["xcodebuild", "-project", work / "app-build/PlankVision.xcodeproj", "-scheme", "PlankVision",
-             "-configuration", "Release", "-destination", "generic/platform=visionOS", "-archivePath", archive,
+        run(["xcodebuild", "-project", work / "app-build" / f"{project}.xcodeproj", "-scheme", project,
+             "-configuration", "Release", "-destination", "generic/platform=" + ("iOS" if ipad else "visionOS"), "-archivePath", archive,
              "archive", "CODE_SIGNING_ALLOWED=NO", "CODE_SIGN_IDENTITY=", "DEVELOPMENT_TEAM="], env=env)
-        require((archive / "Products/Applications/PLANK.app/PLANK").is_file(), "Archive application is absent")
-        collect_symbols(archive, work / "app-build/Release-xros/PLANK.app.dSYM")
-        artifact = destination / "PlankVision.xcarchive.tar.gz"
+        require((archive / "Products/Applications" / f"{name}.app" / name).is_file(), "Archive application is absent")
+        collect_symbols(archive, work / "app-build" / f"Release-{TARGETS[target][0]}" / f"{name}.app.dSYM", name)
+        artifact = destination / f"{project}.xcarchive.tar.gz"
         with tarfile.open(artifact, "w:gz") as stream:
             stream.add(archive, arcname=archive.name)
     else:
-        sdk = "macosx" if target == "macos" else "xrsimulator"
+        sdk = TARGETS[target][0]
         app = work / "app-build" / ("Release" if target == "macos" else "Release-" + sdk) / (
-            "PLANK Native Pilot.app" if target == "macos" else "PLANK.app")
+            "PLANK Native Pilot.app" if target == "macos" else
+            "PLANK iPad Pilot.app" if target.startswith("ios-") else "PLANK.app")
         if target == "macos":
             staged = work / "staged/PLANK Native Pilot.app"
             run([sys.executable, CLIENT / "scripts/stage-macos-native.py", "--app", app, "--output", staged,
@@ -178,7 +207,7 @@ if __name__ == "__main__":
     try:
         runner()
         target = os.environ["PLANK_NATIVE_PLATFORM"]
-        require(target in ("macos", "device", "simulator"), "Invalid target")
+        require(target in TARGETS, "Invalid target")
         {"context": context, "prepare": prepare, "dependencies": dependencies, "build": build}[sys.argv[1]](target)
     except (RuntimeError, subprocess.CalledProcessError, KeyError) as error:
         raise SystemExit(f"Native build stopped: {error}")

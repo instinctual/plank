@@ -29,7 +29,7 @@ class NativePolicyTests(unittest.TestCase):
         workflow = (ROOT / ".github/workflows/apple-native.yml").read_text()
         self.assertNotIn("self-hosted", workflow)
         self.assertNotIn("pull_request_target", workflow)
-        self.assertIn("platform: [macos, device, simulator]", workflow)
+        self.assertIn("platform: [macos, device, simulator, ios-device, ios-simulator]", workflow)
         self.assertIn("environment: vision-testflight", workflow)
         self.assertIn("github.event_name == 'workflow_dispatch' && inputs.testflight", workflow)
         self.assertIn("needs: build", workflow)
@@ -46,6 +46,52 @@ class NativePolicyTests(unittest.TestCase):
         self.assertNotIn("restore-keys:", text)
         self.assertNotIn("/cargo/target", text)
         self.assertNotIn("path: ${{ runner.temp }}/", text.split("  testflight:\n")[0])
+
+    def test_ipad_targets_keep_sdk_runtime_and_identity_separate(self):
+        self.assertEqual(native.TARGETS["ios-device"], ("iphoneos", "aarch64-apple-ios"))
+        self.assertEqual(native.TARGETS["ios-simulator"], ("iphonesimulator", "aarch64-apple-ios-sim"))
+        self.assertEqual(native.TARGETS["macos"], ("macosx", "aarch64-apple-darwin"))
+        env = {"PLANK_NATIVE_IPAD_BUNDLE_ID": "example.ipad", "PLANK_NATIVE_BUNDLE_ID": "example.vision",
+               "PLANK_NATIVE_WORK": "/tmp/native-fixture", "PLANK_NATIVE_DOWNLOADS": "/tmp/archives-fixture",
+               "PLANK_NATIVE_VERSION": "0.1.0", "PLANK_NATIVE_BUILD": "42.1", "PLANK_BUILD_BRANCH": "native-builds"}
+        with patch.dict(os.environ, env, clear=True), patch.object(native, "run") as run:
+            for target in native.TARGETS:
+                native.recipe("build", target)
+                args = run.call_args.args[0]
+                self.assertEqual(args[args.index("--platform") + 1], target)
+                self.assertEqual(args[args.index("--bundle-id") + 1],
+                                 "example.ipad" if target.startswith("ios-") else "example.vision")
+                self.assertEqual(args[args.index("--configuration") + 1], "Release")
+                self.assertEqual(args[args.index("--branch") + 1], "native-builds")
+
+    def test_imported_component_tests_are_mandatory_and_fail_closed(self):
+        with patch.dict(os.environ, {"PLANK_NATIVE_WORK": "/tmp/native-fixture"}), \
+                patch.object(native, "recipe"), patch.object(native, "run") as run:
+            native.dependencies("macos")
+            commands = [list(map(str, call.args[0])) for call in run.call_args_list]
+            for name in ("test-macos-native.sh", "test-macos-relay.sh", "run-pencil-image-checks.sh",
+                         "test-apple-pencil.sh", "run-zoom-policy-checks.py", "run-zoom-input-integration-checks.py",
+                         "run-finger-input-checks.py", "run-automatic-image-checks.py", "run-pencil-flow-diagnostics-checks.py"):
+                self.assertTrue(any(any(part.endswith(name) for part in cmd) for cmd in commands), name)
+            run.reset_mock()
+            run.side_effect = native.subprocess.CalledProcessError(1, "fixture")
+            with self.assertRaises(native.subprocess.CalledProcessError):
+                native.dependencies("macos")
+            self.assertEqual(run.call_count, 1)
+
+    def test_ipad_symbols_use_actual_app_name(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            archive = root / "PlankIPad.xcarchive"
+            archive.mkdir()
+            generated = root / "PLANK iPad Pilot.app.dSYM"
+            generated.mkdir()
+            uuid = "UUID: AAAAAAAA-BBBB-CCCC-DDDD-EEEEEEEEEEEE (arm64) fixture"
+            with patch.object(native, "output", return_value=uuid) as output:
+                native.collect_symbols(archive, generated, "PLANK iPad Pilot")
+                self.assertEqual(output.call_args_list[0].args[0][-1],
+                                 archive / "Products/Applications/PLANK iPad Pilot.app/PLANK iPad Pilot")
+            self.assertTrue((archive / "dSYMs/PLANK iPad Pilot.app.dSYM").is_dir())
 
     def test_branch_label_and_build_identity(self):
         self.assertEqual(native.branch_name("codex/Vision-UI"), "codex-vision-ui")
