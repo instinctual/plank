@@ -4,7 +4,44 @@ Read `AGENTS.md` and the relevant build runbook first. Machine-specific access,
 credentials, captures and operational evidence belong in the external private
 notes, never in Git.
 
-## Current integration — Ubuntu Qt Client, Wacom recovery and CUDA
+## Current candidate — Qt wheel scrolling
+
+Work is on `qt-wheel-scroll` in the root and Client repositories, based on
+root main `4446df9f24cb24b6900022b6f1c67978f0cbc055` and Client main
+`67a94f94d711e81f470b985001ca3eae37f5abad`. Candidate version is
+`1.2.01-qt-wheel-scroll`, under the ordinary `plank-client` package identity.
+Do not merge, publish a release or install it on an end-user machine yet.
+
+Read-only diagnosis found that physical wheel deltas reach the Linux Host's
+virtual mouse and XInput, while Qt injects an unchanged absolute position before
+every wheel event. Linux uses XTEST for that position and uinput for the wheel;
+GTK resets smooth-scroll baselines when the source device changes. The macOS
+Host does not use that mixed Xorg input path. This explains the observed pattern,
+but the candidate still requires hardware acceptance.
+
+The window now sends the mapped position with the wheel event instead of
+unconditionally emitting another motion event. The Qt input owner positions
+only when needed, remembering successful wire-pixel coordinates and stream
+dimensions. Focus/input release, reconnect and tablet-to-mouse handoff invalidate
+that position. Real motion and button ordering are unchanged. No Host, transport,
+Wacom forwarding or macOS Client source changes are included.
+
+New regression coverage checks stationary and high-resolution wheel sequences,
+horizontal scrolling, failed positioning, viewport/stream changes, focus and
+reconnect invalidation, raw/normalized tablet handoff and local toolbar isolation.
+Client implementation is `c0fdc2deaa7b67a487c3317678db617078948eed`.
+All 81 local CI-policy checks, package collection/version tests and available
+Qt package checks pass; ten DEB fixtures require the Ubuntu runner and are
+explicit local skips. Run the ordinary hosted `linux-client` workflow, including
+Qt runtime, sanitizer, compositor and package gates. The accepted mainline
+packages below are not evidence for this new candidate.
+
+Next: build/download the exact candidate, then have the operator test sustained
+scrolling in Linux desktop applications and Flame, pointer placement after
+focus/tablet/reconnect changes, and unchanged scrolling to a macOS Host. Private
+capture evidence and machine state remain outside Git; no capture is running.
+
+## Main baseline — Ubuntu Qt Client, Wacom recovery and CUDA
 
 The operator authorized merging `wacom-usb-recovery` (including
 `ubuntu-qt-session`) and `cuda-13-2` into main. Continue in the canonical
