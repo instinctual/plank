@@ -4,12 +4,14 @@ Read `AGENTS.md` and the relevant build runbook first. Machine-specific access,
 credentials, captures and operational evidence belong in the external private
 notes, never in Git.
 
-## Current work — Ubuntu CI cache reuse
+## Current mainline — Ubuntu CI cache reuse
 
-Work is on root branch `ci-cache-reuse`, based on main `5871829`; product
-submodules remain at their accepted mainline pins. The operator requested this
-repair after the 1.2.01 build below. There are no application, Host or macOS
-behavior changes, and no installation or release is authorized.
+The operator authorized merging `ci-cache-reuse` through `8c3fa63` into
+`main`. Merge commit is `74609b8b71c4ccb58a45a6df9d35edc5f5264198`; resume in
+the canonical checkout on `main`. Product submodules remain at their accepted
+mainline pins. There are no application, Host or macOS behavior changes.
+Native Apple work remains separate and untouched. No installation, new package
+build or release accompanies this merge.
 
 Ubuntu dependency fingerprints now ignore runner image dates and unrelated OS
 packages, retaining compiler/tools, native development headers and ABI
@@ -58,9 +60,12 @@ Executable SHA-256 is
 `e082bb23cc363c8b60577d16aaa924c2a7f4bc73e157e748b7f350004bb3c243`.
 It records the exact d8c355f source, not the later policy/documentation commit.
 Cold and warm output hashes differ; byte-reproducible packaging is not claimed.
-No installation or release was performed. The cache branch is not merged;
-no further build is needed for this task. GitHub cache branch scoping means
-main must populate its own new caches after a merge before warm reuse there.
+The cache branch is merged, and all 92 CI policy tests pass on the merged tree.
+No installation or release was performed; existing packages retain their exact
+source provenance. The merge and documentation commits use `[skip ci]` to avoid
+repeating the completed package qualification. No further build is running or
+needed for this task. GitHub cache branch scoping means the next requested
+mainline build must populate its own new caches before warm reuse there.
 
 ## Current mainline — Qt wheel scrolling
 
