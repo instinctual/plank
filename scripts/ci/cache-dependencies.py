@@ -228,9 +228,9 @@ def toolchain_inputs(product):
 def ubuntu_build_packages(packages):
     """Retain headers, toolchain and ABI inputs, not the whole runner desktop.
 
-    FFmpeg/SDL auto-detect optional libraries. Conservatively include *all*
-    installed development packages so a newly available optional header also
-    invalidates the cache; a hand-picked list would miss that transition.
+    FFmpeg/SDL auto-detect optional libraries. Conservatively include native
+    development packages so a newly available optional header also invalidates
+    the cache. PHP SDKs are unrelated and neither project probes their headers.
     """
     result = []
     for entry in packages:
@@ -238,6 +238,8 @@ def ubuntu_build_packages(packages):
         if not separator or not version:
             raise ValueError('Invalid installed-package identity')
         name = name.split(':', 1)[0]
+        if re.fullmatch(r'php(?:[0-9]+(?:\.[0-9]+)*)?-dev', name):
+            continue
         if (re.search(r'-dev(?:-|$)', name)
                 or re.match(r'^(?:gcc|g\+\+|cpp|binutils)(?:-|$)', name)
                 or name in ('libc6', 'libgcc-s1', 'libstdc++6', 'libwayland-bin',

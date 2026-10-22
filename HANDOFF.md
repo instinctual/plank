@@ -12,31 +12,61 @@ repair after the 1.2.01 build below. There are no application, Host or macOS
 behavior changes, and no installation or release is authorized.
 
 Ubuntu dependency fingerprints now ignore runner image dates and unrelated OS
-packages, retaining compiler/tools, all installed development headers and ABI
+packages, retaining compiler/tools, native development headers and ABI
 inputs because FFmpeg/SDL auto-detect optional libraries. Existing exact cache
 receipts and patch/runtime checks remain mandatory. Linux Host and Mac toolchain
 policies are unchanged. A separate Ubuntu sccache store covers C/C++ and Rust
 compilation; clean checkouts, linking, every test and package validation still
 run. Only successful trusted builds save compiler data; PRs cannot write it.
 
-Local CI policy/regression tests pass. Hosted cold population and an identical
-warm run are required before claiming the repair is qualified. Check actual
-dependency hits, C/C++/Rust reuse statistics, full test/package results and stage
-timings. Preserve both logs in qualification artifacts. Do not merge this
-follow-up automatically or relabel its package as main.
+Hosted qualification is complete at root
+`d8c355f8ca8d3b6847edb2215755f4bb20802ad5`. The successful
+[cold run39831624229](https://github.com/instinctual/plank/actions/runs/39831624229)
+and unchanged
+[warm run39835534954](https://github.com/instinctual/plank/actions/runs/39835534954)
+provide the measured comparison:
 
-The first hosted run39827984138 passed the Qt component/compositor suites but
-exposed double compiler wrapping in Cargo's ring/cc-rs build. cc-rs recognizes
-`RUSTC_WRAPPER` itself; give its `HOST_CC`/`HOST_CXX` the real compilers. An
-early compile check covers both PATH and cc-rs invocation forms. Failed-run
-compiler outputs were not cached. The dependency caches were populated and
-remain valid; repeat the full build and then an identical warm run.
+| Ubuntu job stage | Cold | Warm |
+| --- | --- | --- |
+| Dependency bootstrap | 7m55s | 2s |
+| Application, tests and package | 16m06s | 8m38s |
+| Complete job | 25m25s | 10m35s |
+
+The warm run restored all four dependency groups and reused 424 of 455
+cacheable compilations (93%): 344 C/C++, 66 Rust and 14 assembler hits.
+All cacheable Rust compilations hit. Normal/sanitized input, Wacom and PipeWire
+tests, both 55-case GNOME scale suites, launcher checks, 14 package fixtures
+and finished-package gates passed. Software-runner GPU skips remain explicit;
+this is build qualification, not physical GPU or live-session acceptance.
+Logs, timing records, manifests and cache statistics are retained under
+`artifacts/qualification/ci-cache-reuse/{cold-fixed,warm}/`.
+
+The first attempt exposed double compiler wrapping in Cargo's ring/cc-rs build.
+cc-rs recognizes `RUSTC_WRAPPER` itself, so its `HOST_CC`/`HOST_CXX` now name
+the real compilers. Early smoke checks cover both invocation forms. No
+failed-run compiler outputs were saved. Actual runner inventories also exposed
+an unrelated PHP SDK update invalidating native library keys. The final
+cache-policy refinement excludes those unused PHP headers; 92 local policy
+tests pass, including its regression. This refinement does not change compiler
+commands or product sources and was not followed by another package build.
+
+The verified warm candidate is
+`artifacts/packages/candidates/1.2.01-ci-cache-reuse/linux/plank-client_1.2.01-ci-cache-reuse_amd64.deb`
+(17,163,452 bytes), SHA-256
+`110221cbe2cfc8586482f3575ca6a39aaa50555d59c7d03752cbb069234d5474`.
+Executable SHA-256 is
+`e082bb23cc363c8b60577d16aaa924c2a7f4bc73e157e748b7f350004bb3c243`.
+It records the exact d8c355f source, not the later policy/documentation commit.
+Cold and warm output hashes differ; byte-reproducible packaging is not claimed.
+No installation or release was performed. The cache branch is not merged;
+no further build is needed for this task. GitHub cache branch scoping means
+main must populate its own new caches after a merge before warm reuse there.
 
 ## Current mainline — Qt wheel scrolling
 
 The operator accepted `1.2.01-qt-wheel-scroll` and authorized merging it into
 root and Client `main`, then rebuilding the Ubuntu Client on GitHub Actions.
-Continue on canonical `main`; Client is
+The mainline Client is
 `c0fdc2deaa7b67a487c3317678db617078948eed`. Version is **1.2.01**, under the
 ordinary `plank-client` identity, without a branch suffix. The fresh mainline
 package is complete; the accepted candidate was not relabelled. No release
@@ -58,15 +88,11 @@ pass. Software-runner GPU skips remain explicit. The new mainline package has
 not been installed; live wheel acceptance applies to the source-equivalent
 candidate below. Root privacy and clipboard checks also pass.
 
-The operator next authorized a CI-cache repair after this build. This run
-missed all four dependency caches: runner image `20261021.171.10` differs
-from the prior images even though dependency recipes did not change. Bootstrap
-took about8m25s, followed by about15m of application/tests/package work.
-Current fingerprints include the runner image and whole installed-package
-inventory, and application objects are not cached. Narrow fingerprints to
-actual dependency inputs and add compiler caching in a separate branch;
-preserve patch verification, trust boundaries and all qualification gates.
-Verify real cache hits in a second unchanged hosted build, not just unit tests.
+This mainline run missed all four dependency caches despite unchanged recipes:
+the former fingerprints included the runner image and whole installed-package
+inventory, and application objects were not cached. Bootstrap took about8m25s,
+followed by about15m of application/tests/package work. The subsequent repair
+and measured warm-run results are documented above.
 
 Read-only diagnosis found that physical wheel deltas reach the Linux Host's
 virtual mouse and XInput, while Qt injects an unchanged absolute position before

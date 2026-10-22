@@ -179,6 +179,15 @@ class ProductDependencyCacheTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 cache.ubuntu_build_packages([bad])
 
+    def test_unrelated_php_sdk_update_does_not_rebuild_native_libraries(self):
+        common = ['libva-dev:amd64=1', 'libc6=2', 'qt6-base-dev=3']
+        before = self.ubuntu_tools(common + ['php-dev=1', 'php8.5-dev=8.5.4-0ubuntu1.3'])
+        after = self.ubuntu_tools(common + ['php-dev=2', 'php8.5-dev=8.5.4-0ubuntu1.5'])
+        self.assertEqual(before, after)
+        for component in cache.COMPONENTS['linux-client']:
+            self.assertEqual(self.key('linux-client', component, before),
+                             self.key('linux-client', component, after))
+
     def test_ubuntu_cache_rejects_wrong_distro(self):
         with patch.object(cache.platform, 'system', return_value='Linux'), \
              patch.object(cache.platform, 'machine', return_value='x86_64'), \

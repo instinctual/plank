@@ -243,9 +243,10 @@ library keys retain the exact installed package inventory; Mac keys retain
 SDK/compiler/build tools. Ubuntu keys use the qualified OS/architecture, actual
 compiler/build-tool versions, development packages and relevant ABI/protocol
 packages, not the runner image date or unrelated desktop/runtime packages.
-All installed development packages remain conservative inputs because FFmpeg
-and SDL auto-detect optional libraries. Downloads/source-only groups do not
-depend on those C/C++ build tools.
+Native development packages remain conservative inputs because FFmpeg and SDL
+auto-detect optional libraries. Unrelated PHP SDK packages are excluded: neither
+library uses them, and GitHub image updates can change PHP independently.
+Downloads/source-only groups do not depend on those C/C++ build tools.
 All keys remain product/platform/path-specific; Mac Client native/Qt keys
 retain the explicit deployment-target policy. Changes to the shared cache
 implementation itself invalidate all groups conservatively. Application-only
