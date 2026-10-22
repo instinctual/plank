@@ -291,6 +291,9 @@ Job-local compiler-name wrappers point to the real `/usr/bin/` compilers through
 sccache; no system compiler, user machine or shipped runtime is replaced.
 Rust uses `RUSTC_WRAPPER` with incremental compilation disabled. Cache entries
 are compiler results, not reused build trees, complete executables or installers.
+Cargo's cc-rs also recognizes that wrapper, so `HOST_CC`/`HOST_CXX` name the
+real `/usr/bin/` compilers rather than wrapping the PATH wrappers a second time.
+A small hosted compile check validates both invocation forms before the suite.
 Every run creates clean sources/build directories, runs the existing tests,
 links and packages the selected version, and verifies the finished DEB.
 

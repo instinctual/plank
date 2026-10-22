@@ -148,6 +148,9 @@ jobs:
         if: ${{ !inputs.clean_bootstrap }}
         id: compiler-setup
         run: python3 scripts/ci/compiler-cache.py enable
+      - name: Verify Ubuntu compiler cache wiring
+        if: ${{ !inputs.clean_bootstrap }}
+        run: python3 scripts/ci/compiler-cache.py verify
       - run: bash scripts/ci/build.sh linux-client
       - name: Report Ubuntu compiler reuse
         if: ${{ always() && steps.compiler-setup.outcome == 'success' }}

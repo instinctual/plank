@@ -9,6 +9,7 @@ import platform
 import re
 import shlex
 import subprocess
+import tempfile
 
 
 def output(command):
@@ -63,14 +64,30 @@ def enable(root, work, env_file, path_file):
         'SCCACHE_IDLE_TIMEOUT': '0',
         'RUSTC_WRAPPER': '/usr/bin/sccache',
         'CARGO_INCREMENTAL': '0',
+        # cc-rs recognizes RUSTC_WRAPPER and adds sccache itself. Give it
+        # real compilers, not the PATH wrappers used by qmake/shell tests.
+        'HOST_CC': '/usr/bin/gcc',
+        'HOST_CXX': '/usr/bin/g++',
     })
     with path_file.open('a') as stream:
         stream.write(str(wrappers) + '\n')
 
 
+def verify(work):
+    with tempfile.TemporaryDirectory(prefix='compiler-cache-check-', dir=work) as temporary:
+        source = Path(temporary) / 'probe.c'
+        source.write_text('int plank_compiler_cache_probe(void) { return 42; }\n')
+        commands = [['cc'], ['/usr/bin/sccache', os.environ['HOST_CC']],
+                    ['/usr/bin/sccache', os.environ['HOST_CXX']]]
+        for index, command in enumerate(commands):
+            subprocess.run(command + ['-c', str(source), '-o',
+                                      str(Path(temporary) / f'probe-{index}.o')], check=True)
+    print('Compiler cache PATH and cc-rs wrapper wiring passed')
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('operation', choices=('prepare', 'enable', 'report'))
+    parser.add_argument('operation', choices=('prepare', 'enable', 'verify', 'report'))
     args = parser.parse_args()
     require_runner()
     root = Path(os.environ['PLANK_SOURCE_ROOT']).resolve()
@@ -86,6 +103,8 @@ def main():
         append_values(Path(os.environ['GITHUB_OUTPUT']), plan)
     elif args.operation == 'enable':
         enable(root, work, Path(os.environ['GITHUB_ENV']), Path(os.environ['GITHUB_PATH']))
+    elif args.operation == 'verify':
+        verify(work)
     else:
         reports = work / 'qt-session-reports'
         reports.mkdir(parents=True, exist_ok=True)

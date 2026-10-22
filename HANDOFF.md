@@ -25,6 +25,13 @@ dependency hits, C/C++/Rust reuse statistics, full test/package results and stag
 timings. Preserve both logs in qualification artifacts. Do not merge this
 follow-up automatically or relabel its package as main.
 
+The first hosted run39827984138 passed the Qt component/compositor suites but
+exposed double compiler wrapping in Cargo's ring/cc-rs build. cc-rs recognizes
+`RUSTC_WRAPPER` itself; give its `HOST_CC`/`HOST_CXX` the real compilers. An
+early compile check covers both PATH and cc-rs invocation forms. Failed-run
+compiler outputs were not cached. The dependency caches were populated and
+remain valid; repeat the full build and then an identical warm run.
+
 ## Current mainline — Qt wheel scrolling
 
 The operator accepted `1.2.01-qt-wheel-scroll` and authorized merging it into

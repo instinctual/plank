@@ -57,6 +57,11 @@ class CompilerCacheTests(unittest.TestCase):
         env = dict(line.split('=', 1) for line in env_file.read_text().splitlines())
         self.assertEqual(env['RUSTC_WRAPPER'], '/usr/bin/sccache')
         self.assertEqual(env['CARGO_INCREMENTAL'], '0')
+        # cc-rs adds the RUSTC_WRAPPER itself, so it must bypass PATH wrappers.
+        self.assertEqual(env['HOST_CC'], '/usr/bin/gcc')
+        self.assertEqual(env['HOST_CXX'], '/usr/bin/g++')
+        self.assertNotIn('CC', env)
+        self.assertNotIn('CXX', env)
         self.assertEqual(env['SCCACHE_DIR'], str(self.work / 'compiler-cache'))
         self.assertEqual(env['SCCACHE_SERVER_UDS'], str(self.work / 'sccache.sock'))
         self.assertEqual(path_file.read_text(), str(wrappers) + '\n')
@@ -68,12 +73,23 @@ class CompilerCacheTests(unittest.TestCase):
         subprocess.run(['bash', '-n', str(wrapper)], check=True)
         self.assertEqual(subprocess.run(['bash', str(wrapper)], capture_output=True).returncode, 2)
 
+    def test_smoke_check_exercises_path_and_cc_rs_command_forms(self):
+        with patch.dict(cache.os.environ, {'HOST_CC': '/usr/bin/gcc', 'HOST_CXX': '/usr/bin/g++'}), \
+             patch.object(cache.subprocess, 'run') as run:
+            cache.verify(self.work)
+        commands = [call.args[0] for call in run.call_args_list]
+        self.assertEqual([command[:command.index('-c')] for command in commands], [
+            ['cc'], ['/usr/bin/sccache', '/usr/bin/gcc'], ['/usr/bin/sccache', '/usr/bin/g++']])
+        self.assertTrue(all(call.kwargs['check'] for call in run.call_args_list))
+        self.assertEqual(list(self.work.iterdir()), [])
+
     def test_workflow_restores_only_compiler_data_and_never_saves_untrusted_or_failed_builds(self):
         workflow = (ROOT / '.github/workflows/build.yml').read_text()
         block = workflow.split('  linux-client:\n')[1].split('\n  macos:\n')[0]
         self.assertIn('sccache', (ROOT / 'scripts/ci/install-linux-deps.sh').read_text())
         for label in ('Select Ubuntu compiler cache', 'Restore Ubuntu compiler outputs',
-                      'Enable Ubuntu compiler cache', 'Save verified Ubuntu compiler outputs'):
+                      'Enable Ubuntu compiler cache', 'Verify Ubuntu compiler cache wiring',
+                      'Save verified Ubuntu compiler outputs'):
             step = block.split('- name: ' + label)[1].split('\n      - ')[0]
             self.assertIn('!inputs.clean_bootstrap', step)
         save = block.split('- name: Save verified Ubuntu compiler outputs')[1].split('\n      - ')[0]
@@ -82,6 +98,8 @@ class CompilerCacheTests(unittest.TestCase):
         self.assertNotIn('failure()', save)
         self.assertIn('path: ${{ steps.compiler-cache.outputs.path }}', save)
         self.assertLess(block.index('Enable Ubuntu compiler cache'), block.index('bash scripts/ci/build.sh'))
+        self.assertLess(block.index('Enable Ubuntu compiler cache'), block.index('Verify Ubuntu compiler cache wiring'))
+        self.assertLess(block.index('Verify Ubuntu compiler cache wiring'), block.index('bash scripts/ci/build.sh'))
         self.assertLess(block.index('bash scripts/ci/build.sh'), block.index('Report Ubuntu compiler reuse'))
         self.assertLess(block.index('Report Ubuntu compiler reuse'), block.index('Save verified Ubuntu compiler outputs'))
         for section in workflow.split('  linux-client:\n'):
