@@ -7,6 +7,7 @@ import os
 from pathlib import Path
 import platform
 import re
+import shlex
 import subprocess
 
 # Keep jointly-built trees together. In particular the Mac native libraries
@@ -193,6 +194,15 @@ def toolchain_inputs(product):
     identity = {'architecture': architecture, 'runner_image': os.environ.get('ImageVersion', ''),
                 'os': Path('/etc/os-release').read_text() if system == 'Linux'
                 else output(['sw_vers', '-productVersion']) + '/' + output(['sw_vers', '-buildVersion'])}
+    if product == 'linux-client':
+        # A runner image rollout is not a dependency ABI change. Keep the
+        # qualified OS/architecture and actual build inputs, not image dates
+        # or descriptive /etc/os-release fields maintained by base-files.
+        release = dict(entry.split('=', 1) for entry in shlex.split(identity['os'], comments=True)
+                       if '=' in entry)
+        if (release.get('ID'), release.get('VERSION_ID')) != ('ubuntu', '26.04'):
+            raise ValueError('Client cache requires Ubuntu 26.04')
+        identity = {'architecture': architecture, 'os': 'ubuntu-26.04'}
     commands = [['cmake', '--version'], ['ninja', '--version'], ['python3', '--version']]
     packages = []
     if product == 'macos-host':
@@ -207,10 +217,35 @@ def toolchain_inputs(product):
                          ['/usr/local/cuda/bin/nvcc', '--version']]
             packages = output(['rpm', '-qa']).splitlines()
         else:
-            commands += [['gcc', '--version'], ['qmake6', '-query', 'QT_VERSION']]
-            packages = output(['dpkg-query', '-W', '-f=${Package}=${Version}\n']).splitlines()
+            commands += [['gcc', '--version'], ['g++', '--version'], ['ld', '--version'],
+                         ['pkg-config', '--version']]
+            packages = ubuntu_build_packages(output(
+                ['dpkg-query', '-W', '-f=${binary:Package}=${Version}\n']).splitlines())
     return {'platform': identity, 'compiled': {
         'packages': sorted(packages), 'tools': [output(command) for command in commands]}}
+
+
+def ubuntu_build_packages(packages):
+    """Retain headers, toolchain and ABI inputs, not the whole runner desktop.
+
+    FFmpeg/SDL auto-detect optional libraries. Conservatively include native
+    development packages so a newly available optional header also invalidates
+    the cache. PHP SDKs are unrelated and neither project probes their headers.
+    """
+    result = []
+    for entry in packages:
+        name, separator, version = entry.partition('=')
+        if not separator or not version:
+            raise ValueError('Invalid installed-package identity')
+        name = name.split(':', 1)[0]
+        if re.fullmatch(r'php(?:[0-9]+(?:\.[0-9]+)*)?-dev', name):
+            continue
+        if (re.search(r'-dev(?:-|$)', name)
+                or re.match(r'^(?:gcc|g\+\+|cpp|binutils)(?:-|$)', name)
+                or name in ('libc6', 'libgcc-s1', 'libstdc++6', 'libwayland-bin',
+                            'wayland-protocols')):
+            result.append(entry)
+    return sorted(result)
 
 
 def prepare_sources(root, product):

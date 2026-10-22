@@ -133,7 +133,34 @@ jobs:
         with:
           operation: save
           product: linux-client
+      - name: Select Ubuntu compiler cache
+        if: ${{ !inputs.clean_bootstrap }}
+        id: compiler-cache
+        run: python3 scripts/ci/compiler-cache.py prepare
+      - name: Restore Ubuntu compiler outputs
+        if: ${{ !inputs.clean_bootstrap }}
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0, Node24
+        with:
+          key: ${{ steps.compiler-cache.outputs.key }}
+          restore-keys: ${{ steps.compiler-cache.outputs.prefix }}
+          path: ${{ steps.compiler-cache.outputs.path }}
+      - name: Enable Ubuntu compiler cache
+        if: ${{ !inputs.clean_bootstrap }}
+        id: compiler-setup
+        run: python3 scripts/ci/compiler-cache.py enable
+      - name: Verify Ubuntu compiler cache wiring
+        if: ${{ !inputs.clean_bootstrap }}
+        run: python3 scripts/ci/compiler-cache.py verify
       - run: bash scripts/ci/build.sh linux-client
+      - name: Report Ubuntu compiler reuse
+        if: ${{ always() && steps.compiler-setup.outcome == 'success' }}
+        run: python3 scripts/ci/compiler-cache.py report
+      - name: Save verified Ubuntu compiler outputs
+        if: ${{ !inputs.clean_bootstrap && github.event_name != 'pull_request' }}
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0, Node24
+        with:
+          key: ${{ steps.compiler-cache.outputs.key }}
+          path: ${{ steps.compiler-cache.outputs.path }}
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: linux-client-${{ github.run_id }}-${{ github.run_attempt }}

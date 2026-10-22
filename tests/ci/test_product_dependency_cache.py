@@ -134,6 +134,67 @@ class ProductDependencyCacheTests(unittest.TestCase):
                          {('linux-host', 'ffmpeg'), ('linux-client', 'ffmpeg'),
                           ('macos-client', 'native'), ('linux-client', 'native')})
 
+    def ubuntu_tools(self, packages, image='first', description='Ubuntu'):
+        def command(args):
+            return '\n'.join(packages) if args[0] == 'dpkg-query' else 'fixture tool version'
+        with patch.object(cache.platform, 'system', return_value='Linux'), \
+             patch.object(cache.platform, 'machine', return_value='x86_64'), \
+             patch.object(cache.Path, 'read_text', return_value=(
+                 f'ID=ubuntu\nVERSION_ID="26.04"\nPRETTY_NAME="{description}"\n')), \
+             patch.dict(cache.os.environ, {'ImageVersion': image}), \
+             patch.object(cache, 'output', side_effect=command):
+            return cache.toolchain_inputs('linux-client')
+
+    def test_ubuntu_image_and_unrelated_runtime_updates_do_not_invalidate(self):
+        tools = self.ubuntu_tools(['libva-dev:amd64=1', 'libc6=2', 'gnome-shell=1', 'base-files=1'])
+        newer = self.ubuntu_tools(['libva-dev:amd64=1', 'libc6=2', 'gnome-shell=2', 'base-files=2'],
+                                  image='second', description='Ubuntu new description')
+        self.assertEqual(tools, newer)
+        self.assertNotIn('runner_image', tools['platform'])
+        for component in cache.COMPONENTS['linux-client']:
+            self.assertEqual(self.key('linux-client', component, tools),
+                             self.key('linux-client', component, newer))
+
+    def test_ubuntu_header_and_abi_updates_still_invalidate_libraries(self):
+        packages = ['libva-dev:amd64=1', 'libc6=2', 'wayland-protocols=3', 'libwayland-bin=4']
+        tools = self.ubuntu_tools(packages)
+        for changed in ('libva-dev:amd64=2', 'libc6=3', 'wayland-protocols=4',
+                        'libwayland-bin=5', 'new-optional-codec-dev=1'):
+            name = changed.split('=', 1)[0]
+            newer = self.ubuntu_tools([p for p in packages if not p.startswith(name + '=')] + [changed])
+            for component in ('ffmpeg', 'native'):
+                self.assertNotEqual(self.key('linux-client', component, tools),
+                                    self.key('linux-client', component, newer))
+            for component in ('rust', 'cargo'):
+                self.assertEqual(self.key('linux-client', component, tools),
+                                 self.key('linux-client', component, newer))
+
+    def test_ubuntu_build_package_inventory_is_conservative_and_validated(self):
+        retained = ['gcc-15=1', 'g++-15=1', 'binutils-x86-64-linux-gnu=1', 'cpp-15=1',
+                    'libc6=1', 'libstdc++6=1', 'libgcc-s1=1', 'wayland-protocols=1',
+                    'libwayland-bin=1', 'qt6-base-dev-tools=1', 'libva-dev:amd64=1']
+        self.assertEqual(cache.ubuntu_build_packages(retained + ['gnome-shell=1', 'sccache=1']),
+                         sorted(retained))
+        for bad in ('missing-version', 'empty='):
+            with self.assertRaises(ValueError):
+                cache.ubuntu_build_packages([bad])
+
+    def test_unrelated_php_sdk_update_does_not_rebuild_native_libraries(self):
+        common = ['libva-dev:amd64=1', 'libc6=2', 'qt6-base-dev=3']
+        before = self.ubuntu_tools(common + ['php-dev=1', 'php8.5-dev=8.5.4-0ubuntu1.3'])
+        after = self.ubuntu_tools(common + ['php-dev=2', 'php8.5-dev=8.5.4-0ubuntu1.5'])
+        self.assertEqual(before, after)
+        for component in cache.COMPONENTS['linux-client']:
+            self.assertEqual(self.key('linux-client', component, before),
+                             self.key('linux-client', component, after))
+
+    def test_ubuntu_cache_rejects_wrong_distro(self):
+        with patch.object(cache.platform, 'system', return_value='Linux'), \
+             patch.object(cache.platform, 'machine', return_value='x86_64'), \
+             patch.object(cache.Path, 'read_text', return_value='ID=ubuntu\nVERSION_ID=24.04\n'):
+            with self.assertRaises(ValueError):
+                cache.toolchain_inputs('linux-client')
+
     def test_product_platform_and_absolute_paths_are_exact(self):
         keys = self.keys()
         self.assertEqual(len(set(keys.values())), len(keys))
