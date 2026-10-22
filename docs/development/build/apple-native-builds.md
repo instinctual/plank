@@ -42,6 +42,10 @@ presentation timestamps, so its build excludes only that diagnostic callback;
 real-device and Mac presentation measurements remain enabled. CMake writes
 dSYMs outside Xcode's archive folder; collect them explicitly and require their
 UUIDs to match the archived executable before upload.
+Each device application must explicitly use `SKIP_INSTALL=NO` and the
+`/Applications` install path. A successful Xcode compile/archive command alone
+does not prove that its `.xcarchive` contains the app; retain the application
+presence and matching-symbol gates for both Vision and iPad.
 
 The Mac artifact is an ad-hoc-signed, self-contained pilot ZIP for inspection,
 not a notarized install package. The Vision device artifact contains an unsigned

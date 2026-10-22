@@ -13,7 +13,7 @@ Ubuntu Qt or macOS SDL/Metal application.
 
 The operator authorized reviewing and integrating the contributor's dependent
 native slices in order, preserving our hosted CI corrections. Client integration
-is `faf2aaad9e3e1a78ff79172da50a46a5905f0d6e`, pushed before the parent gitlink.
+is `73d1f74a8c67037bd5e35c849e543e1440b9a7fd`, pushed before the parent gitlink.
 
 | Contributor PR | Exact imported head | Scope |
 | --- | --- | --- |
@@ -54,7 +54,7 @@ added.
 
 ## Validation state and next action
 
-Before hosted execution:
+Local and source checks:
 
 - 22 root native CI/delivery regression tests passed locally (mocked Apple APIs).
 - Three Client build-integration tests and shell syntax/whitespace checks passed.
@@ -64,23 +64,45 @@ Before hosted execution:
 - The existing seven recipe source-verification tests require Python 3.12+
   and are run on Actions, not the local Python 3.9 interpreter.
 
-The initial five-target [hosted run](https://github.com/instinctual/plank/actions/runs/39723325107)
-at parent `ac9b82a204745a3769a1fa9042b6320ff071103d` exposed an unexpected
-reference-image socket close in the newly required Mac checks. Mac policy,
-tablet-sharing and image crypto/wire checks passed before that failure. The
-socket assertion now reports the existing bounded close reason and receiving
-state; its assertions, rate limits and deadlines are unchanged. Vision device,
-Vision simulator and iPad simulator passed. The iPad device compiled, but its
-archive omitted the app; explicit application install and dSYM settings now
-match the existing Vision archive contract, with a regression check. Follow the
-next native run to verify the device archive before claiming acceptance. The
-[diagnostic run](https://github.com/instinctual/plank/actions/runs/39724301095)
-reproduced the image failure specifically as the receiver's three-second frame
-assembly timeout. The current candidate disables TCP Nagle aggregation only on
-this separately paced image lane. The same maximum-frame loopback test, rate
-limit and deadline remain mandatory; this change is not yet a verified fix.
+[Hosted run 39724301095](https://github.com/instinctual/plank/actions/runs/39724301095)
+built parent `63d55e7e6dc35e006e0946a7d5bf3f5ff47b607b` with Client
+`88089801fc7e107d5254a93de2feab5071ff775d`:
+
+| Target | Result |
+| --- | --- |
+| Vision device | Passed; unsigned archive and matching symbols |
+| Vision simulator | Passed; unsigned simulator app |
+| iPad device | Passed; unsigned archive and matching symbols |
+| iPad simulator | Passed; unsigned simulator app |
+| Native Mac | Failed in the mandatory reference-image loopback check, before application compilation |
+
+The first run exposed missing iPad archive installation settings. Explicit
+application install and dSYM settings now match the Vision contract; the
+device archive presence and UUID gates passed on the second run.
+
+The unresolved Mac failure is a maximum-size 2 MiB reference image exceeding
+the receiver's three-second assembly deadline on loopback. Mac policy, tablet
+sharing and image crypto/wire checks passed first. Later image codec, Pencil
+and iPad component checks did not run because the socket check stops the job.
+The assertion now includes the existing bounded close reason and receiving
+state. Its deadlines, size limits and acceptance criteria are unchanged.
+
+[TCP comparison run 39725191900](https://github.com/instinctual/plank/actions/runs/39725191900)
+at parent `02f5dde8743c0e832d6ce2ac463f2810d8aef9d2` reproduced the same
+timeout with TCP_NODELAY enabled. That unproven change was withdrawn rather
+than retained as a supposed fix. Current Client `73d1f74a` has the exact same
+Git tree as tested Client `88089801`; no new complete passing build is claimed.
+The extra full shipping-product workflows triggered by these branch pushes
+were deliberately canceled; they are not hardware or ordinary Mac-worker gates.
+
+Next: measure the image sender's chunk scheduling/completion and receiver's
+assembly progress on the hosted runner, then fix the demonstrated bottleneck.
+Do not assume TCP aggregation caused it, lengthen the deadline, reduce the
+maximum-frame test or bypass the failed check to claim readiness. Once fixed,
+run the remaining Mac checks and all five applications at the same exact source.
+This is a committed review/integration checkpoint, not a TestFlight-ready build.
 No new signing, TestFlight upload, installation, release or physical device
-acceptance is authorized by this import.
+acceptance was performed.
 
 Hosted build/test success still does not prove streaming, latency, visual
 fidelity, pressure, OS gesture arbitration or final Host receipt of releases.
