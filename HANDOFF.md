@@ -13,7 +13,7 @@ Ubuntu Qt or macOS SDL/Metal application.
 
 The operator authorized reviewing and integrating the contributor's dependent
 native slices in order, preserving our hosted CI corrections. Client integration
-is `727c8eeaadc185a382bb175ba8d1bc0cc60dd56d`, pushed before the parent gitlink.
+is `e2882b825e319c610eda85eb1b63d9aa6a3e66cb`, pushed before the parent gitlink.
 
 | Contributor PR | Exact imported head | Scope |
 | --- | --- | --- |
@@ -64,11 +64,15 @@ Before hosted execution:
 - The existing seven recipe source-verification tests require Python 3.12+
   and are run on Actions, not the local Python 3.9 interpreter.
 
-The next parent push runs five unsigned hosted targets: native Mac, Vision
-device/simulator and iPad device/simulator. Follow that exact run to completion,
-fix genuine compilation/test failures without weakening tests, and record the
-result here. No new signing, TestFlight upload, installation, release or physical
-device acceptance is authorized by this import.
+The initial five-target [hosted run](https://github.com/instinctual/plank/actions/runs/39723325107)
+at parent `ac9b82a204745a3769a1fa9042b6320ff071103d` exposed an unexpected
+reference-image socket close in the newly required Mac checks. Mac policy,
+tablet-sharing and image crypto/wire checks passed before that failure. The
+socket assertion now reports the existing bounded close reason and receiving
+state; its assertions, rate limits and deadlines are unchanged. Follow the next
+native run to diagnose that failure and record every target result before
+claiming acceptance. No new signing, TestFlight upload, installation, release or
+physical device acceptance is authorized by this import.
 
 Hosted build/test success still does not prove streaming, latency, visual
 fidelity, pressure, OS gesture arbitration or final Host receipt of releases.
