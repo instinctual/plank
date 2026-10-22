@@ -13,7 +13,7 @@ Ubuntu Qt or macOS SDL/Metal application.
 
 The operator authorized reviewing and integrating the contributor's dependent
 native slices in order, preserving our hosted CI corrections. Client integration
-is `88089801fc7e107d5254a93de2feab5071ff775d`, pushed before the parent gitlink.
+is `faf2aaad9e3e1a78ff79172da50a46a5905f0d6e`, pushed before the parent gitlink.
 
 | Contributor PR | Exact imported head | Scope |
 | --- | --- | --- |
@@ -73,9 +73,14 @@ state; its assertions, rate limits and deadlines are unchanged. Vision device,
 Vision simulator and iPad simulator passed. The iPad device compiled, but its
 archive omitted the app; explicit application install and dSYM settings now
 match the existing Vision archive contract, with a regression check. Follow the
-next native run to diagnose the Mac failure and verify the device archive before
-claiming acceptance. No new signing, TestFlight upload, installation, release or
-physical device acceptance is authorized by this import.
+next native run to verify the device archive before claiming acceptance. The
+[diagnostic run](https://github.com/instinctual/plank/actions/runs/39724301095)
+reproduced the image failure specifically as the receiver's three-second frame
+assembly timeout. The current candidate disables TCP Nagle aggregation only on
+this separately paced image lane. The same maximum-frame loopback test, rate
+limit and deadline remain mandatory; this change is not yet a verified fix.
+No new signing, TestFlight upload, installation, release or physical device
+acceptance is authorized by this import.
 
 Hosted build/test success still does not prove streaming, latency, visual
 fidelity, pressure, OS gesture arbitration or final Host receipt of releases.
