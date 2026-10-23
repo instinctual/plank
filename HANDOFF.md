@@ -4,6 +4,36 @@ Read `AGENTS.md` and the relevant build runbook first. Machine-specific access,
 credentials, captures and operational evidence belong in the external private
 notes, never in Git.
 
+## Current candidate — idle desktop status
+
+Work is on `client-idle-health`, based on mainline `82207b2` and Client
+`c0fdc2de`. Candidate version is **1.2.02-client-idle-health**. Client change
+`4e98d8be6bd5cabdb083a06478b96f7d8a388ca0` is committed and pushed. Nothing
+is merged or released; native Apple work remains separate.
+
+Read-only session tracing captured the warning during video-only gaps of
+7–9 seconds while audio continued, RTT remained normal and loss counters did
+not increase. The operator observed that moving the mouse cleared it.
+ScreenCaptureKit may legitimately emit no new complete frame for an unchanged
+desktop. The Client's one-second video-silence indicator therefore did not
+establish that the workstation or connection was unavailable.
+
+Remove only that speculative indicator from the Qt and SDL session loops.
+Keep the existing credential-free, certificate-pinned worker-replacement
+probe during video silence, and enter recovery only after confirmed worker
+replacement or transport termination. Existing configured timeout, automatic
+reconnect, authentication failures and disconnect controls are unchanged.
+No Host, transport, capture, codec, input or audio change is required.
+
+The 15 reconnect presentation/source guards, Qt runtime wiring gate, version
+contract, eight package-collection tests and 92 CI policy tests pass locally.
+Hosted Ubuntu compilation, component/compositor/package gates and
+exact-candidate live acceptance are pending. Hardware acceptance should cover
+an idle desktop with and without audio, resumed desktop motion, a temporary
+network interruption, Host restart and login/logout recovery. Do not count
+source guards or a successful build as those live tests. No installation has
+been performed or authorized for this candidate.
+
 ## Current mainline — Ubuntu CI cache reuse
 
 The operator authorized merging `ci-cache-reuse` through `8c3fa63` into
