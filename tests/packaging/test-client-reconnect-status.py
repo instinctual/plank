@@ -91,7 +91,8 @@ class ReconnectPresentation(unittest.TestCase):
         self.assertIn("workerProbe->wait()", check)
         self.assertIn("videoSilent && workerProbe->instance() == m_PlankWorkerInstance && workerProbe->replacement()", check)
         self.assertIn("workerProbe == nullptr && now >= nextWorkerProbe", check)
-        self.assertIn('setPlankReconnectStatus("", false)', check)
+        # Video silence schedules this probe; presentation belongs to confirmed
+        # recovery, covered by test_initial_status_is_neutral below.
 
     def test_duplicate_reconnect_requests_do_not_quit(self):
         callback = between(session, "void Session::clConnectionTerminated", "void Session::clLogMessage")

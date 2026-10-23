@@ -4,7 +4,61 @@ Read `AGENTS.md` and the relevant build runbook first. Machine-specific access,
 credentials, captures and operational evidence belong in the external private
 notes, never in Git.
 
-## Current mainline — Ubuntu CI cache reuse
+## Current mainline — idle desktop status
+
+The operator authorized merging `client-idle-health` into root and Client
+`main`, rebuilding the Ubuntu Client and saving the notes. Client main is
+`4e98d8be6bd5cabdb083a06478b96f7d8a388ca0`. Version is **1.2.02**, without a
+branch suffix. The mainline GitHub Actions build is pending; rebuild from main
+rather than relabelling the qualified feature package. No installation or
+GitHub release publication is requested. Native Apple work remains separate.
+
+Read-only session tracing captured the warning during video-only gaps of
+7–9 seconds while audio continued, RTT remained normal and loss counters did
+not increase. The operator observed that moving the mouse cleared it.
+ScreenCaptureKit may legitimately emit no new complete frame for an unchanged
+desktop. The Client's one-second video-silence indicator therefore did not
+establish that the workstation or connection was unavailable.
+
+The speculative indicator is removed from the Qt and SDL session loops.
+The existing credential-free, certificate-pinned worker-replacement probe is
+retained during video silence. Recovery starts only after confirmed worker
+replacement or transport termination. Existing configured timeout, automatic
+reconnect, authentication failures and disconnect controls are unchanged.
+No Host, transport, capture, codec, input or audio change is required.
+
+The 15 reconnect presentation/source guards, Qt runtime wiring gate, version
+contract, eight package-collection tests and 92 CI policy tests pass locally.
+The pre-merge candidate's hosted
+[run39908046630](https://github.com/instinctual/plank/actions/runs/39908046630)
+passed from root `3f648571897345c83f178ff6278fe397984f2679`. Ubuntu compilation,
+reconnect/pinned-worker policy checks, normal and sanitized component/Wacom
+tests, both 55-case GNOME scale suites, three launcher cycles, 14 package-upgrade
+fixtures and finished-DEB gates passed. Software-runner GPU skips remain
+explicit. No macOS package was built in this run.
+
+The verified candidate is
+`artifacts/packages/candidates/1.2.02-client-idle-health/linux/plank-client_1.2.02-client-idle-health_amd64.deb`
+(17,162,812 bytes), SHA-256
+`e408f8e9da97b5baf26ece2139c9657bbd38e88a5be892d39d5704b1bc5b6963`.
+Packaged executable SHA-256 is
+`260b33159a2281ce6e691a7baea4f56c742d46ad972d52c0243404ee8c0575c0`.
+Reports, original source inventory, run timings, compiler-cache report and
+package verification are in `artifacts/qualification/client-idle-health-1.2.02/`.
+Client common-C remains `437be9a0a4d164efdf9ed20dc6dd5a2b7b9edc90` and mDNS
+`920c097ffa742e2968290f15d4dde6693aec02e5`; Host and Kymux pins are unchanged
+from main. The run missed all four dependency groups and the compiler cache:
+the new cache policy was merged without a mainline build to populate its
+default-branch cache. Bootstrap took 8m01s; application/tests/package 16m18s.
+Do not rerun this successful build just to measure cache warmth.
+
+Exact-package live acceptance remains unrecorded: idle desktop with and without
+audio, resumed desktop motion, temporary network interruption, Host restart
+and login/logout recovery. Source guards and hosted gates are not those live
+tests. Merge authorization does not establish that those tests were performed.
+No package installation or release publication has been performed.
+
+## Previous qualification — Ubuntu CI cache reuse
 
 The operator authorized merging `ci-cache-reuse` through `8c3fa63` into
 `main`. Merge commit is `74609b8b71c4ccb58a45a6df9d35edc5f5264198`; resume in
@@ -67,7 +121,7 @@ repeating the completed package qualification. No further build is running or
 needed for this task. GitHub cache branch scoping means the next requested
 mainline build must populate its own new caches before warm reuse there.
 
-## Current mainline — Qt wheel scrolling
+## Previous qualification — Qt wheel scrolling
 
 The operator accepted `1.2.01-qt-wheel-scroll` and authorized merging it into
 root and Client `main`, then rebuilding the Ubuntu Client on GitHub Actions.
