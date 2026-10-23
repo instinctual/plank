@@ -27,12 +27,32 @@ No Host, transport, capture, codec, input or audio change is required.
 
 The 15 reconnect presentation/source guards, Qt runtime wiring gate, version
 contract, eight package-collection tests and 92 CI policy tests pass locally.
-Hosted Ubuntu compilation, component/compositor/package gates and
-exact-candidate live acceptance are pending. Hardware acceptance should cover
-an idle desktop with and without audio, resumed desktop motion, a temporary
-network interruption, Host restart and login/logout recovery. Do not count
-source guards or a successful build as those live tests. No installation has
-been performed or authorized for this candidate.
+Hosted [run39908046630](https://github.com/instinctual/plank/actions/runs/39908046630)
+passed from root `3f648571897345c83f178ff6278fe397984f2679`. Ubuntu compilation,
+reconnect/pinned-worker policy checks, normal and sanitized component/Wacom
+tests, both 55-case GNOME scale suites, three launcher cycles, 14 package-upgrade
+fixtures and finished-DEB gates passed. Software-runner GPU skips remain
+explicit. No macOS package was built in this run.
+
+The verified candidate is
+`artifacts/packages/candidates/1.2.02-client-idle-health/linux/plank-client_1.2.02-client-idle-health_amd64.deb`
+(17,162,812 bytes), SHA-256
+`e408f8e9da97b5baf26ece2139c9657bbd38e88a5be892d39d5704b1bc5b6963`.
+Packaged executable SHA-256 is
+`260b33159a2281ce6e691a7baea4f56c742d46ad972d52c0243404ee8c0575c0`.
+Reports, original source inventory, run timings, compiler-cache report and
+package verification are in `artifacts/qualification/client-idle-health-1.2.02/`.
+Client common-C remains `437be9a0a4d164efdf9ed20dc6dd5a2b7b9edc90` and mDNS
+`920c097ffa742e2968290f15d4dde6693aec02e5`; Host and Kymux pins are unchanged
+from main. The run missed all four dependency groups and the compiler cache:
+the new cache policy was merged without a mainline build to populate its
+default-branch cache. Bootstrap took 8m01s; application/tests/package 16m18s.
+Do not rerun this successful build just to measure cache warmth.
+
+Exact-candidate live acceptance remains pending: idle desktop with and without
+audio, resumed desktop motion, temporary network interruption, Host restart
+and login/logout recovery. Source guards and hosted gates are not those live
+tests. No candidate installation, merge or release has been performed.
 
 ## Current mainline — Ubuntu CI cache reuse
 
