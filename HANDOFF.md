@@ -7,11 +7,14 @@ notes, never in Git.
 ## Current mainline — idle desktop status
 
 The operator authorized merging `client-idle-health` into root and Client
-`main`, rebuilding the Ubuntu Client and saving the notes. Client main is
+`main`, rebuilding the Ubuntu Client and saving the notes. Both repositories
+are merged and pushed. Client main is
 `4e98d8be6bd5cabdb083a06478b96f7d8a388ca0`. Version is **1.2.02**, without a
-branch suffix. The mainline GitHub Actions build is pending; rebuild from main
-rather than relabelling the qualified feature package. No installation or
-GitHub release publication is requested. Native Apple work remains separate.
+branch suffix. Fresh mainline
+[build39992802451](https://github.com/instinctual/plank/actions/runs/39992802451),
+attempt2, passed from root merge `5a96a20241a783470624ac605b47a7c68dcb2ac4`.
+Native Apple work remains separate. No installation or GitHub release
+publication was requested or performed.
 
 Read-only session tracing captured the warning during video-only gaps of
 7–9 seconds while audio continued, RTT remained normal and loss counters did
@@ -27,36 +30,44 @@ replacement or transport termination. Existing configured timeout, automatic
 reconnect, authentication failures and disconnect controls are unchanged.
 No Host, transport, capture, codec, input or audio change is required.
 
-The 15 reconnect presentation/source guards, Qt runtime wiring gate, version
-contract, eight package-collection tests and 92 CI policy tests pass locally.
-The pre-merge candidate's hosted
-[run39908046630](https://github.com/instinctual/plank/actions/runs/39908046630)
-passed from root `3f648571897345c83f178ff6278fe397984f2679`. Ubuntu compilation,
-reconnect/pinned-worker policy checks, normal and sanitized component/Wacom
-tests, both 55-case GNOME scale suites, three launcher cycles, 14 package-upgrade
-fixtures and finished-DEB gates passed. Software-runner GPU skips remain
-explicit. No macOS package was built in this run.
+Mainline Ubuntu compilation, reconnect/pinned-worker policy checks, normal and
+sanitized component/Wacom/PipeWire tests, both 55-case GNOME scale suites,
+three launcher cycles, 14 package-upgrade fixtures and finished-DEB gates passed.
+The compositor precision gates retained all 1024 RGB/gray levels. Software-runner
+GPU handoff skips remain explicit. No macOS package was built in this run.
+Local version, package-collection and runtime/source guards also pass; all
+92 CI policy tests passed on the hosted source.
 
-The verified candidate is
-`artifacts/packages/candidates/1.2.02-client-idle-health/linux/plank-client_1.2.02-client-idle-health_amd64.deb`
-(17,162,812 bytes), SHA-256
-`e408f8e9da97b5baf26ece2139c9657bbd38e88a5be892d39d5704b1bc5b6963`.
+The verified mainline package is
+`artifacts/packages/releases/1.2.02/linux/plank-client_1.2.02_amd64.deb`
+(17,162,304 bytes), SHA-256
+`9450b6531421966224fd3939e7fbad22d601e0a0a757e4748a43d971d42334b5`.
 Packaged executable SHA-256 is
-`260b33159a2281ce6e691a7baea4f56c742d46ad972d52c0243404ee8c0575c0`.
-Reports, original source inventory, run timings, compiler-cache report and
-package verification are in `artifacts/qualification/client-idle-health-1.2.02/`.
-Client common-C remains `437be9a0a4d164efdf9ed20dc6dd5a2b7b9edc90` and mDNS
-`920c097ffa742e2968290f15d4dde6693aec02e5`; Host and Kymux pins are unchanged
-from main. The run missed all four dependency groups and the compiler cache:
-the new cache policy was merged without a mainline build to populate its
-default-branch cache. Bootstrap took 8m01s; application/tests/package 16m18s.
-Do not rerun this successful build just to measure cache warmth.
+`34d22922382cfcb09690af9aca5738686a6cfcc02cd2ef58b925258890b480be`.
+Original manifests, exact recursive source inventory, test reports, compiler
+cache statistics and package verification are in
+`artifacts/qualification/main-1.2.02/`. The earlier qualified branch package
+and reports remain under `candidates/1.2.02-client-idle-health/` and
+`artifacts/qualification/client-idle-health-1.2.02/`; it was not relabelled.
+Client common-C remains `437be9a0a4d164efdf9ed20dc6dd5a2b7b9edc90`, mDNS
+`920c097ffa742e2968290f15d4dde6693aec02e5`, Host
+`65dc0f1be60fe78d0457364f83813118c70bc8a8` and Kymux
+`3f7a9d8618978287186e5d6ce0eaa067743cb06c`.
+
+Attempt1 was canceled during prerequisite installation: the runner's Ubuntu
+mirror downloads slowed to roughly 50 KB/s, with a retried download. No product
+compile ran. Attempt2 used identical source and passed that step in 57 seconds.
+The successful job took 25m27s: bootstrap 7m58s, application/tests/package
+15m39s. All four dependency groups and the compiler cache were initially cold
+on main; all were saved successfully. sccache recorded 2 hits and 453 misses.
+The default-branch caches are now populated. Do not rerun this successful build
+just to measure cache warmth. Both attempts' logs are retained with the reports.
 
 Exact-package live acceptance remains unrecorded: idle desktop with and without
 audio, resumed desktop motion, temporary network interruption, Host restart
 and login/logout recovery. Source guards and hosted gates are not those live
 tests. Merge authorization does not establish that those tests were performed.
-No package installation or release publication has been performed.
+No build, SSH session, capture or remote sampler remains active.
 
 ## Previous qualification — Ubuntu CI cache reuse
 
