@@ -4,6 +4,40 @@ Read `AGENTS.md` and the relevant build runbook first. Machine-specific access,
 credentials, captures and operational evidence belong in the external private
 notes, never in Git.
 
+## Paused investigation — Intel VA-API surface timeout
+
+Read-only inspection of an Ubuntu Client running **1.2.01** found repeated
+`VA-API surface was not ready within 100 ms (38)` errors during exact-format
+HEVC 10-bit 4:4:4 hardware decoding. Matching kernel records confirm i915 video
+engine hangs, decoder-context resets and fence timeouts. Hardware decoding
+initialized again after reconnect. The failure mechanism is established;
+the trigger is not. This does not establish a driver-only defect or a stream
+format mismatch. Version **1.2.02** below fixes idle-status warnings, not this
+GPU failure path.
+
+Status 38 is `VA_STATUS_ERROR_TIMEDOUT`. The Qt surface-retention path treats
+any unsuccessful synchronization as fatal, and session cleanup occurred about
+20 seconds after the reported error. The blocking call was not traced. Simply
+increasing the surface timeout or restoring an unbounded wait is not a fix.
+
+Packet loss remains a plausible trigger through frame gaps, IDR recovery or
+bursts of recovered frames. Shutdown before/after-FEC percentages are rolling
+ten-second peak snapshots, not whole-session totals or a precise record at the
+hang. One earlier connection reported unrecovered FEC symbols; the latest did
+not. Receive-queue drops may follow a stalled decoder. These counters do not
+establish causal order or prove an extreme-loss burst immediately before a hang.
+The native receiver delivers complete frames and requests IDR recovery after
+sequence gaps; loss does not itself turn QUIC payloads into corrupted bytes.
+
+The operator deferred further investigation. No product changes, deployments,
+GPU traces or loss-injection tests were performed for this incident. Private
+notes retain the machine inventory, bounded log snapshot and detailed timeline;
+no remote collector remains active. When the operator resumes this work, use
+an unoccupied test Client to correlate controlled Client-ingress burst loss,
+frame gaps/IDRs, surface ownership and GPU events. Preserve the selected codec,
+bit depth, chroma and range when evaluating bounded decoder recovery. Existing
+mainline package provenance and acceptance limits below remain unchanged.
+
 ## Current mainline — idle desktop status
 
 The operator authorized merging `client-idle-health` into root and Client
