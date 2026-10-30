@@ -4,36 +4,121 @@ Read `AGENTS.md` and the relevant build runbook first. Machine-specific access,
 credentials, captures and operational evidence belong in the external private
 notes, never in Git.
 
-## Native macOS 26.7 Host support
+## Current continuation — macOS Host click pairing
 
-The operator accepts macOS 26.7 as a supported Host target, with Chris
-(cnoellert) responsible for hardware and session validation. The operator does
-not need a 26.7 test machine. Select `PLANK_MACOS_HOST_MIN_OS=26.7` explicitly;
-the ordinary Host remains 27.0 by default with SDK27 and existing dependency
-pins. Runtime capture, encoding, audio, input, authentication, session code and
-wire protocols are unchanged.
+The active Host fix is on separate branch `macos-click-pairing`, in
+`build/worktrees/macos-click-pairing/`; read that branch's `HANDOFF.md` for the
+diagnosis, validation and package provenance. This canonical checkout remains
+on `client-displays`, preserving the Client feature below. Neither feature
+branch is merged. Native Apple work remains separate.
 
-[PR #32](https://github.com/instinctual/plank/pull/32) merged into main as
+Signed Host candidate **1.2.05-macos-click-pairing-macos27.0**, built from
+`ca4903bbfb38fa97cc603a34ea9670942f03b69a`, passed hosted tests and package gates
+in [run 41140938612](https://github.com/instinctual/plank/actions/runs/41140938612).
+It is downloaded under
+`artifacts/packages/candidates/1.2.05-macos-click-pairing-macos27.0/macos/`.
+The change is macOS Host mouse-event pairing only; no Client update is required.
+The operator reports installation on the affected macOS 27.2 Host and no
+recurrence during the first few minutes. Sustained acceptance of this
+intermittent issue remains pending. Continue normal use, app activation,
+dragging, tablet input and reconnect testing; do not treat the initial positive
+observation as conclusive resolution.
+No build or live diagnostic collector remains active. Private evidence stays
+outside Git.
+
+## Ready for hardware testing — Ubuntu Client displays
+
+Root and Client branch `client-displays` starts from mainline 1.2.02. Version
+1.2.04 adds per-bookmark current/named/both-monitor fullscreen selection for
+the Ubuntu Qt Client. Match Client uses that selection for Linux and Mac Host
+preparation. A local toolbar menu switches single/span presentation without
+changing the Host or persisted bookmark. Existing bookmarks retain spanning;
+new bookmarks default to the current monitor. macOS presentation, Host and
+transport implementations are unchanged. See
+[the plan](docs/development/plans/client-displays.plan) and
+[user guidance](docs/user/client-displays.md).
+
+Root package source is `a3601f5a728c167f4f3cb0f9c0ff457aa03c259c`; Client is
+`56f84eb6f11dc3a2bf1dd0ed44d14842f98daff2`. Both branches are pushed, with no
+merge or release. [Hosted build41116553672](https://github.com/instinctual/plank/actions/runs/41116553672)
+passed. Local version/catalog checks and 92 CI policy checks pass. The new
+13-case selector suite passes normally and under sanitizers at 100%/125%.
+Both GNOME scale runs report 56 passed, zero failed, one two-output-only skip;
+the dedicated two-output run passes all four cases, including simultaneous
+fullscreen windows on different monitors. Menu input isolation/complete labels,
+10-bit framebuffer precision, component/Wacom/PipeWire, launcher and finished
+DEB gates pass. These are synthetic tests, not live hardware acceptance.
+
+The verified package is
+`artifacts/packages/candidates/1.2.04-client-displays/linux/plank-client_1.2.04-client-displays_amd64.deb`
+(17,178,348 bytes), SHA-256
+`129de4b873bbce7ec5a3c9d2af40011e46470fe1f3b0324fbf9a520d93556184`.
+Packaged executable SHA-256 is
+`a4c6b60c52e12f5477cb28c96d723b174043ca8afbc27bd7f97e826ae888fbfd`.
+Original manifests, reports and screenshots are retained under
+`artifacts/qualification/client-displays-1.2.04/`; download staging is removed.
+The earlier 1.2.03 passed tests but visual review found a clipped menu label;
+its superseded installer was not installed or retained locally. Its evidence
+remains in `artifacts/qualification/client-displays-1.2.03/`.
+Client common-C remains `437be9a0a4d164efdf9ed20dc6dd5a2b7b9edc90`, mDNS
+`920c097ffa742e2968290f15d4dde6693aec02e5`, Host
+`65dc0f1be60fe78d0457364f83813118c70bc8a8` and Kymux
+`3f7a9d8618978287186e5d6ce0eaa067743cb06c`.
+
+The operator authorized installation on an Ubuntu hardware-test Client. Both
+previous Client processes closed cleanly before the upgrade. The installed
+version and executable hash match the candidate; existing preferences were
+preserved, the private-library RUNPATH is intact, and no Client user service or
+autostart was introduced. The Qt launcher starts successfully. Deployment
+details are retained privately.
+
+Follow-up root `0a2c77c3de635912edc29b00cc60785202a5c39b` and Client
+`9497bb0ccefe6830cfae21c7608d3f3a082a2bcc` are committed and pushed on
+`client-displays`: new bookmarks default to Native (1:1 pixels), including
+repeated Add Bookmark dialogs and discovered workstations. This shared default
+also applies to the macOS Client; explicit saved scaling choices are preserved.
+The automatic [build 41128113628](https://github.com/instinctual/plank/actions/runs/41128113628)
+passed policy, Linux Host/Client and unsigned macOS Host/Client jobs; signing
+was skipped. Privacy and clipboard workflows also passed. These later artifacts
+have not been downloaded, installed or accepted on hardware. The installed and
+locally cataloged 1.2.04 above predates the default change. Increment the version
+for the next distributed candidate; do not replace that catalog entry with
+different bytes under the same filename. No further rebuild is needed merely
+to reconfirm the successful automatic run.
+
+Next: assign one named Client display to each of two bookmarks, and test
+simultaneous fullscreen sessions, pixel fit, keyboard/tablet focus,
+single/span/windowed toolbar changes and reconnect. Live-session hardware
+acceptance, merge and release remain pending. The separate GPU investigation
+below remains paused.
+
+## Merged — macOS 26.7 Host support
+
+[PLANK PR #32](https://github.com/instinctual/plank/pull/32) merged as
 `19ebedb0eb33686669c9741687a2d20d65075a88`, from reviewed head
-`ef45730c4a231d7aa1b4e469688d5e05df36423a`, resolving the package-identity concern.
-Mac Host candidates include `-macos26.7` or `-macos27.0` in the displayed
-version, filename and catalog directory. Both can coexist; changed payloads or
-provenance still fail collection. Mainline 27.0, Client/Linux and historical
-package names are preserved. Independent review passed 98 CI-policy tests,
-15 package-collection tests and four portable Host-target checks; one
-Apple-compiler check was skipped locally. All four product builds and policy
-passed in [hosted run 41133563710](https://github.com/instinctual/plank/actions/runs/41133563710);
-privacy and clipboard workflows also passed. PR signing was intentionally
-skipped. The merge tree matches the tested head exactly.
+`ef45730c4a231d7aa1b4e469688d5e05df36423a`. The package-identity concern is
+resolved: candidate versions, filenames and catalogs distinguish the selected
+26.7/27.0 minimum while retaining overwrite protection. All seven active checks
+passed, including all four product builds in
+[run 41133563710](https://github.com/instinctual/plank/actions/runs/41133563710).
+PR signing was skipped as intended; the merge tree matches the tested head.
+The automatic mainline merge build
+[41136635392](https://github.com/instinctual/plank/actions/runs/41136635392)
+also passed all four product builds and policy; signing was skipped. Its privacy
+and clipboard checks passed. No packages from that run have been downloaded or
+installed.
 
-The follow-up support-status edits change documentation and diagnostic wording,
-not runtime or dispatch rules. Explicit 26.7 packaging still uses a reviewed
-candidate branch and the existing protected signing path. Chris owns installed
-26.7 qualification; neither support status nor compilation claims that an
-unperformed hardware test passed. Recorded component evidence and next checks
-are in the [backport plan](docs/development/plans/macos26-host-backport.md).
-No installation, signing dispatch, release or live-session changes were made
-as part of this review.
+Main follow-up `bd75c102d3487c6ee44b0d39a52f09b39b8756a4` removes the experimental
+designation and records Chris (cnoellert) as owner of 26.7 hardware/session
+validation. macOS 27 remains the default; runtime, dispatch and signing rules
+are unchanged by that wording update. Independent checks passed 98 policy,
+15 collector and four portable Host-target tests; one Apple-only check was
+skipped locally. No installation, signing dispatch or release was performed.
+See [the review](docs/development/reviews/macos26-host-pr32-review.md).
+
+Canonical root/Client remain on `client-displays`; that feature has not been
+merged or rebased onto the new main. `native-builds` is preserved. Temporary
+PR review worktrees/references were removed after the merge.
 
 ## Paused investigation — Intel VA-API surface timeout
 

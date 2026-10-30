@@ -1,6 +1,8 @@
 # Documentation
 
 - [User documentation](user/): bookmark behavior and product configuration.
+  [Ubuntu Client displays](user/client-displays.md) covers per-bookmark fullscreen
+  monitor selection and spanning.
   [macOS configuration](user/macos-configuration.md) covers Host/Client INI files,
   installation, upgrade preservation and identity separation.
   [Permissions](user/permissions.md) covers launch-time setup, denied access,
@@ -13,6 +15,8 @@
 - [Development](development/): platform matrix, acceptance, build runbooks and plans.
   [macOS 15 integration review](development/macos15-integration-review.md)
   covers the experimental fork, evidence, regression risks and linked PR plan.
+  [macOS 26.7 Host PR review](development/reviews/macos26-host-pr32-review.md)
+  records the candidate packaging concern and remaining qualification gates.
   [GitHub-hosted builds](development/build/github-builds.md) covers CI scope,
   artifacts and signing boundaries.
   [Dependency maintenance](development/dependency-maintenance.md) covers update
