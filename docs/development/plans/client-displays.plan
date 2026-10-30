@@ -36,3 +36,12 @@ Scope: Ubuntu Qt Client. Host protocol and macOS Client behavior stay unchanged.
   software-GPU results do not replace this acceptance.
 
 The deferred Intel GPU-hang/packet-loss investigation remains paused.
+
+## Candidate validation
+
+Version 1.2.04-client-displays passed hosted build41116553672, including normal
+and sanitized selection/QML/input tests, both compositor scales, simultaneous
+fullscreen windows on two outputs, precision and package checks. The toolbar
+menu screenshot was inspected after correcting its initial text truncation.
+See HANDOFF for exact source/package hashes. Live two-session hardware and
+keyboard/tablet focus acceptance remain pending; no deployment or merge yet.

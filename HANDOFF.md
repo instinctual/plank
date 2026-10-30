@@ -4,7 +4,7 @@ Read `AGENTS.md` and the relevant build runbook first. Machine-specific access,
 credentials, captures and operational evidence belong in the external private
 notes, never in Git.
 
-## Candidate in progress — Ubuntu Client displays
+## Ready for hardware testing — Ubuntu Client displays
 
 Root and Client branch `client-displays` starts from mainline 1.2.02. Version
 1.2.04 adds per-bookmark current/named/both-monitor fullscreen selection for
@@ -16,14 +16,39 @@ implementations are unchanged. See
 [the plan](docs/development/plans/client-displays.plan) and
 [user guidance](docs/user/client-displays.md).
 
-Local version/catalog checks and hosted build41113303188 pass. That first
-1.2.03 candidate passed selection/QML/menu, sanitizer and two-output compositor
-checks, but visual review found a truncated menu label. Version 1.2.04 sizes
-the menu to both labels and adds a rendered-width regression check. Its hosted
-build is pending. Retain its original provenance, then request hardware
-acceptance with two simultaneous sessions. No remote
-installation, session interruption, merge or release is authorized for this
-candidate. The separate GPU investigation below remains paused.
+Root package source is `a3601f5a728c167f4f3cb0f9c0ff457aa03c259c`; Client is
+`56f84eb6f11dc3a2bf1dd0ed44d14842f98daff2`. Both branches are pushed, with no
+merge or release. [Hosted build41116553672](https://github.com/instinctual/plank/actions/runs/41116553672)
+passed. Local version/catalog checks and 92 CI policy checks pass. The new
+13-case selector suite passes normally and under sanitizers at 100%/125%.
+Both GNOME scale runs report 56 passed, zero failed, one two-output-only skip;
+the dedicated two-output run passes all four cases, including simultaneous
+fullscreen windows on different monitors. Menu input isolation/complete labels,
+10-bit framebuffer precision, component/Wacom/PipeWire, launcher and finished
+DEB gates pass. These are synthetic tests, not live hardware acceptance.
+
+The verified package is
+`artifacts/packages/candidates/1.2.04-client-displays/linux/plank-client_1.2.04-client-displays_amd64.deb`
+(17,178,348 bytes), SHA-256
+`129de4b873bbce7ec5a3c9d2af40011e46470fe1f3b0324fbf9a520d93556184`.
+Packaged executable SHA-256 is
+`a4c6b60c52e12f5477cb28c96d723b174043ca8afbc27bd7f97e826ae888fbfd`.
+Original manifests, reports and screenshots are retained under
+`artifacts/qualification/client-displays-1.2.04/`; download staging is removed.
+The earlier 1.2.03 passed tests but visual review found a clipped menu label;
+its superseded installer was not installed or retained locally. Its evidence
+remains in `artifacts/qualification/client-displays-1.2.03/`.
+Client common-C remains `437be9a0a4d164efdf9ed20dc6dd5a2b7b9edc90`, mDNS
+`920c097ffa742e2968290f15d4dde6693aec02e5`, Host
+`65dc0f1be60fe78d0457364f83813118c70bc8a8` and Kymux
+`3f7a9d8618978287186e5d6ce0eaa067743cb06c`.
+
+Next: install the candidate manually, assign one named Client display to each
+of two bookmarks, and test simultaneous fullscreen sessions, pixel fit,
+keyboard/tablet focus, single/span/windowed toolbar changes and reconnect.
+No remote installation or session interruption was performed. Hardware
+acceptance, merge and release remain pending. The separate GPU investigation
+below remains paused.
 
 ## Paused investigation — Intel VA-API surface timeout
 
