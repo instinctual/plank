@@ -10,10 +10,14 @@ The operator authorized a native 26.7 investigation. The opt-in build policy
 is `PLANK_MACOS_HOST_MIN_OS=26.7`; the regular default remains 27.0, with SDK27
 and exact Rust/transport pins retained. No native Host capture/input/auth/media
 source or wire protocol is changed. The availability audit and passive exact
-virtual-class signature check pass; final uninstalled assembly and operational
-qualification are tracked in the [backport plan](docs/development/plans/macos26-host-backport.md).
-No Host has been installed or started, no client session changed, and no OS,
-TCC, network, encryption or service maintenance accompanies this work.
+virtual-class signature check pass. Clean source `2b2d2d5a` completes the full
+uninstalled native assembly/component sequence on 26.7; all four bundle minimum
+checks pass and the standalone Host executable returns its version. The
+ad-hoc entitled app is not install-ready. Proper Host provisioning/signing and
+physical session qualification remain separate in the
+[backport plan](docs/development/plans/macos26-host-backport.md).
+No Host has been installed or started operationally, no client session changed,
+and no OS, TCC, network, encryption or service maintenance accompanies this work.
 
 ## Paused investigation — Intel VA-API surface timeout
 

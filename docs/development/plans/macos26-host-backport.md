@@ -1,4 +1,4 @@
-# Native macOS26.7 Host backport
+# Native macOS 26.7 Host backport
 
 The operator authorized investigating a native Apple Silicon Host on 26.7.
 The regular Host remains 27.0 by default. This candidate explicitly selects
@@ -25,7 +25,7 @@ sidecars still fail; no executable permission exception is introduced.
 
 FileVault, exact identity/profile, private-state, permissions and service-drain
 checks remain mandatory. Development installation reads the candidate's
-validated minimum instead of assuming27.0.
+validated minimum instead of assuming 27.0.
 
 ## Evidence and acceptance
 
@@ -40,6 +40,25 @@ tests, including malformed input, trust failures, contact retirement, camera
 lifetime and audio-driver bounds. It uses the existing Rust transport and
 fingerprint/profile loopbacks. Synthetic sources and fake input remain test
 inputs; they do not replace physical acceptance.
+
+The clean committed candidate `1.2.02-macos26-host-backport` completes the full
+native Host assembly and component sequence on 26.7 with SDK27. All four
+bundle checks pass: Host, camera extension and both audio drivers. The Host
+links only Apple system libraries. The existing standalone build executable
+successfully returns its version on 26.7. Native Host runtime and transport
+sources remain byte exact to the upstream base.
+
+The transport passes 62 Rust tests (nine ignored), six dependency tests and
+both fingerprint/profile C loopbacks. The Host sequence includes synthetic
+authentication/ownership transitions, 24 media-session scenarios, input/contact
+retirement, camera payload/lifetime, audio and driver tests with their existing
+sanitizers. This is component qualification, not an installed stream.
+
+The ad-hoc app assembly has restricted test entitlements and no Host profile;
+its extra version-only launch attempt was terminated. The retained standalone
+executable loads successfully without those app entitlements. No entitlements
+were removed to make the app launch. A genuine Host profile, matching signing
+certificates and the protected signing path are the next packaging gate.
 
 Before installation, require a clean committed source, complete bundle and
 Mach-O minimum checks, matching certificate/profile/entitlements and a
@@ -59,6 +78,7 @@ Use the normal runbook's clean source and retained Cargo/Rustup paths, adding:
 
 ```sh
 export PLANK_MACOS_HOST_MIN_OS=26.7
+export PLANK_BUILD_BRANCH=macos26-host-backport
 ```
 
 Build a fresh transport archive with `build-macos-transport.sh`, then pass it
