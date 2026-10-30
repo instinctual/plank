@@ -189,8 +189,32 @@ designation and records Chris (cnoellert) as owner of 26.7 hardware/session
 validation. macOS 27 remains the default; runtime, dispatch and signing rules
 are unchanged by that wording update. Independent checks passed 98 policy,
 15 collector and four portable Host-target tests; one Apple-only check was
-skipped locally. No installation, signing dispatch or release was performed.
+skipped locally. No installation, signing dispatch or release was performed
+during that review.
 See [the review](docs/development/reviews/macos26-host-pr32-review.md).
+
+The operator subsequently authorized Chris's signed qualification build from
+that baseline on `codex/macos26-host-test`. The exact branch was added to the
+protected signing environment. Initial run `41144542527` stopped before
+compilation because a default-target test inherited the dispatch's 26.7 input.
+Candidate commit `a7aed9b98dbf76cb629141a22447aeae91eaceeb` removes that input
+from the default fixture; its only difference from `bd75c102` is two test lines.
+Host/transport sources, dependency pins, packaging and workflows are unchanged.
+This test correction remains on the candidate branch, outside main.
+
+Signed [build 41144764461](https://github.com/instinctual/plank/actions/runs/41144764461)
+passed all policy/component/package gates, Developer ID signing, notarization,
+stapling and Gatekeeper checks. The verified package is
+`artifacts/packages/candidates/1.2.02-codex-macos26-host-test-18e984bf-macos26.7/macos/plank-host_1.2.02-codex-macos26-host-test-18e984bf-macos26.7_arm64.pkg`
+(7,005,323 bytes), SHA-256
+`356a7ecc2e4fc994a27eed47ddd2fe22962735cd8a91b2ef2099589c3c24b69f`.
+Its original manifest, checksums and run logs are retained in
+`artifacts/qualification/macos26-host-test-1.2.02/`. The
+[download artifact](https://github.com/instinctual/plank/actions/runs/41144764461/artifacts/13019399643)
+expires November 6; the local catalog remains retained. This is the requested
+1.2.02 baseline, without the later click-pairing fix. Chris's installed macOS
+26.7 session qualification remains pending; no installation or release was
+performed. Remove the scoped signing permission when retiring this branch.
 
 Canonical root and Client are now on `main`, including the accepted display
 and click-pairing changes. `native-builds` remains separate and preserved.
