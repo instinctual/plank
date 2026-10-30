@@ -47,6 +47,8 @@ def check_records(records, app_only=False):
     for name, mode in records.items():
         if PurePosixPath(name).is_absolute() or ".." in PurePosixPath(name).parts:
             raise ValueError("unsafe package entry")
+        if PurePosixPath(name).name.startswith("._"):
+            raise ValueError("unexpected physical AppleDouble package entry")
         expected = expected_mode(name, mode.startswith("d"), app_only)
         if mode != expected:
             raise ValueError(f"{name}: permissions {mode}, expected {expected}")
@@ -60,7 +62,7 @@ def check_tree(root, app_only=False):
     check_records(records, app_only)
 
 
-def check_bom(text):
+def check_bom(text, payload=None):
     records = {}
     for line in text.splitlines():
         name, mode = line.rsplit("\t", 1)
@@ -69,6 +71,23 @@ def check_bom(text):
             raise ValueError("duplicate BOM entry")
         # lsbom's symbolic mode column includes a trailing space on macOS.
         records[name] = mode.strip()
+    # On 26.7 pkgbuild records xattrs as paired AppleDouble BOM entries with
+    # the source's mode, including directory/executable modes. expand-full
+    # restores these as xattrs, not files. Accept that representation only
+    # against the independently validated payload; never ignore real files,
+    # orphan entries or mismatched permissions.
+    metadata = {}
+    for name, mode in records.items():
+        path = PurePosixPath(name)
+        if not path.name.startswith("._"):
+            continue
+        paired = path.with_name(path.name[2:]).as_posix()
+        if (payload is None or paired not in records or records[paired] != mode or
+                (payload / name).exists() or (payload / name).is_symlink()):
+            raise ValueError("unverified AppleDouble BOM metadata")
+        metadata[name] = mode
+    for name in metadata:
+        del records[name]
     check_records(records)
 
 
@@ -79,8 +98,9 @@ def check_package(package):
         boms = list(expanded.rglob("Bom"))
         if len(boms) != 1:
             raise ValueError("expected exactly one Host component BOM")
-        check_bom(subprocess.check_output(["lsbom", "-p", "fM", str(boms[0])], text=True))
-        check_tree(boms[0].parent / "Payload")
+        payload = boms[0].parent / "Payload"
+        check_tree(payload)
+        check_bom(subprocess.check_output(["lsbom", "-p", "fM", str(boms[0])], text=True), payload)
 
 
 def main():

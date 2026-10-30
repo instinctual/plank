@@ -3,15 +3,17 @@
 # No installation, device access or extension activation.
 set -euo pipefail
 if [[ $# != 2 || $1 != /* || $2 != /* || $(uname -s) != Darwin ||
-      $(uname -m) != arm64 || $(sw_vers -productVersion | cut -d . -f 1) -lt 27 ||
+      $(uname -m) != arm64 ||
       $(xcrun --sdk macosx --show-sdk-version | cut -d . -f 1) -lt 27 ]]; then
-    echo 'Usage (macOS27/SDK27): build-macos-camera-device.sh SOURCE NEW_OUTPUT' >&2
+    echo 'Usage (macOS Host/SDK27): build-macos-camera-device.sh SOURCE NEW_OUTPUT' >&2
     exit 2
 fi
 source_root=$1; output=$2
+source "$source_root/scripts/build/macos-host-target.sh"
+plank_macos_host_target
 mkdir "$output"
 cd "$source_root"
-flags=(-std=gnu11 -g -O1 -mmacosx-version-min=27.0 -Wall -Wextra -Werror
+flags=(-std=gnu11 -g -O1 -mmacosx-version-min="$MACOSX_DEPLOYMENT_TARGET" -Wall -Wextra -Werror -Werror=unguarded-availability -Werror=unguarded-availability-new
     -fsanitize=address,undefined -fno-omit-frame-pointer
     -Iapps/host/macos/media -Iapps/host/macos/camera-device -Iprotocol/plank-transport/include)
 xcrun clang "${flags[@]}" tests/camera/macos-camera-link.c -o "$output/camera-link-test"

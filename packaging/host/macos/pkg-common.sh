@@ -26,6 +26,7 @@ desktop=la.instinctual.PLANK.Host.desktop
 signin=la.instinctual.PLANK.Host.sign-in
 team='@TEAM@'
 version='@VERSION@'
+minimum_macos='@MIN_MACOS@'
 
 fail() { echo "PLANK: $*" >&2; exit 1; }
 present() { [[ -e $1 || -L $1 ]]; }
@@ -208,9 +209,18 @@ check_configuration() {
         for name in cert.pem key.pem cert.der key.der; do safe_file "$state/SignIn/$name" 600; done
     fi
 }
+# The package seals this value at build time; no environment override.
+platform_compatible() {
+    local version=$1 architecture=$2 major minor required_major required_minor
+    [[ $architecture = arm64 && $version =~ ^[0-9]+\.[0-9]+(\.[0-9]+)?$ ]] || return 1
+    case $minimum_macos in 26.7|27.0) ;; *) return 1 ;; esac
+    major=${version%%.*}; minor=${version#*.}; minor=${minor%%.*}
+    required_major=${minimum_macos%%.*}; required_minor=${minimum_macos#*.}
+    [[ $major -gt $required_major || ( $major -eq $required_major && $minor -ge $required_minor ) ]]
+}
 preflight() {
     [[ $(/usr/bin/id -u) = 0 && ${1:-} = / ]] || fail 'Administrator privileges on the running system volume are required'
-    [[ $(/usr/bin/uname -m) = arm64 && $(/usr/bin/sw_vers -productVersion | /usr/bin/cut -d. -f1) -ge 27 ]] || fail 'Requires Apple Silicon and macOS 27 or newer'
+    platform_compatible "$(/usr/bin/sw_vers -productVersion)" "$(/usr/bin/uname -m)" || fail "Requires Apple Silicon and macOS $minimum_macos or newer"
     safe_directory /Applications
     safe_directory /Library/LaunchDaemons
     safe_directory /Library/LaunchAgents

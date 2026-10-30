@@ -9,6 +9,10 @@ The Host targets **macOS 27 or newer on Apple Silicon** and is distributed as a
 signed, notarized PKG. The separate Mac Client supports macOS 15 and newer;
 that does not change the Host requirement.
 
+The separately authorized native 26.7 backport is experimental and opt-in.
+Its compiler and component evidence does not establish installed streaming or
+login-screen support; see the [backport investigation](../../../docs/development/plans/macos26-host-backport.md).
+
 [Downloads](https://github.com/instinctual/plank/releases) ·
 [Project overview](../../../README.md) ·
 [macOS configuration](../../../docs/user/macos-configuration.md)

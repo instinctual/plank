@@ -5,7 +5,7 @@
   <conclusion file="@CONCLUSION@" mime-type="text/html"/>
   <options customize="never" require-scripts="false" hostArchitectures="arm64"/>
   <domains enable_anywhere="false" enable_currentUserHome="false" enable_localSystem="true"/>
-  <allowed-os-versions><os-version min="27.0"/></allowed-os-versions>
+  <allowed-os-versions><os-version min="@MIN_MACOS@"/></allowed-os-versions>
   <choices-outline><line choice="default"/></choices-outline>
   <choice id="default" visible="false"><pkg-ref id="@IDENTIFIER@"/></choice>
   <pkg-ref id="@IDENTIFIER@" version="@VERSION@" auth="Root" onConclusion="RecommendRestart">@COMPONENT@</pkg-ref>

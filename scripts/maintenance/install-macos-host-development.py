@@ -219,7 +219,6 @@ def main():
                         help="Retire an explicitly named prior development-install user job; no home scanning")
     args = parser.parse_args()
     assert os.getuid() == 0 and os.uname().sysname == "Darwin"
-    assert int(run("sw_vers", "-productVersion").stdout.split(".")[0]) >= 27
     console_uid = os.stat("/dev/console").st_uid
     active_domain = "loginwindow" if console_uid == 0 else f"gui/{console_uid}"
     # Installation may occur before first login. This proves that launchd has
@@ -229,6 +228,10 @@ def main():
     source = args.app.resolve(strict=True)
     info = plistlib.loads((source / "Contents/Info.plist").read_bytes())
     assert info["CFBundleIdentifier"] == "la.instinctual.PLANK.Host"
+    minimum = info["LSMinimumSystemVersion"]
+    assert minimum in ("26.7", "27.0"), "Unsupported Host deployment target"
+    current = tuple(map(int, run("sw_vers", "-productVersion").stdout.strip().split(".")))
+    assert current >= tuple(map(int, minimum.split("."))), "macOS is older than this Host candidate"
     assert re.fullmatch(r"[0-9]+\.[0-9]+\.[0-9]+(?:-[a-z][a-z0-9.-]*)?", info["PLANKVersion"])
     installed = Path("/Applications/PLANK Host.app")
     verify_upgrade_identity(source, installed)

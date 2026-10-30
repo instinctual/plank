@@ -6,11 +6,13 @@ if [[ ($# != 3 && $# != 4) || $1 != /* || $2 != /* || $3 != /* || (${4:-} != '' 
     exit 2
 fi
 source_root=$1
+source "$source_root/scripts/build/macos-host-target.sh"
+plank_macos_host_target
 preview_build=$2
 archive=$3
-if [[ $(uname -s) != Darwin || $(sw_vers -productVersion | cut -d . -f 1) -lt 27 ||
+if [[ $(uname -s) != Darwin ||
     $(xcrun --sdk macosx --show-sdk-version | cut -d . -f 1) -lt 27 ]]; then
-    echo "Requires dedicated macOS 27/SDK 27 development Mac." >&2; exit 2
+    echo "Requires an authorized Apple Silicon Mac with SDK27+." >&2; exit 2
 fi
 if [[ ${4:-} != --synthetic-only ]]; then
     : "${PLANK_MACOS_SIGNING_IDENTITY:?Set the existing Apple Development identity SHA-1}"
@@ -19,7 +21,7 @@ fi
 mkdir -p "$preview_build"
 [[ -z $(ls -A "$preview_build") ]]
 cd "$source_root"
-common=(-mmacosx-version-min=27.0 -fobjc-arc -Wall -Wextra -Werror
+common=(-mmacosx-version-min="$MACOSX_DEPLOYMENT_TARGET" -fobjc-arc -Wall -Wextra -Werror -Werror=unguarded-availability -Werror=unguarded-availability-new
     -Iapps/host/macos/auth -Iapps/host/macos/control -Iapps/host/macos/media -Iapps/host/macos/input -Iapps/host/macos/session -Itests/input -Iprotocol/plank-transport/include
     -framework Foundation -framework Security -framework SystemConfiguration -framework CoreFoundation
     -framework CoreGraphics -framework AppKit -framework Network -framework CoreMedia

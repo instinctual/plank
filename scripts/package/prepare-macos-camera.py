@@ -36,6 +36,7 @@ def main():
     parser.add_argument('--team', required=True)
     parser.add_argument('--identity', required=True)
     parser.add_argument('--profile', type=Path)
+    parser.add_argument('--minimum-macos', choices=('27.0', '26.7'), default='27.0')
     args = parser.parse_args()
     if not re.fullmatch(r'[A-Z0-9]{10}', args.team) or not re.fullmatch(r'\d+\.\d+\.\d+', args.version):
         parser.error('Invalid camera bundle team/version')
@@ -60,7 +61,7 @@ def main():
         'CFBundleIdentifier': EXTENSION_ID, 'CFBundleName': 'PLANK Camera',
         'CFBundleExecutable': 'plank-camera', 'CFBundlePackageType': 'SYSX',
         'CFBundleVersion': args.version, 'CFBundleShortVersionString': args.version,
-        'LSMinimumSystemVersion': '27.0',
+        'LSMinimumSystemVersion': args.minimum_macos,
         'NSSystemExtensionUsageDescription': 'Provide the camera forwarded by your connected PLANK Client.',
         'CMIOExtension': {'CMIOExtensionMachServiceName': group + '.Camera'},
     })

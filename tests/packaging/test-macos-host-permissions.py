@@ -74,6 +74,24 @@ class Permissions(unittest.TestCase):
         gate.check_bom(self.bom())
         self.assertEqual(stat.S_IMODE(Path(self.scratch.name).stat().st_mode), 0o700)
 
+    def test_bom_xattr_records_require_matching_payload_and_permissions(self):
+        metadata = gate.APP + "/Contents/MacOS/._plank-host"
+        bom = self.bom() + f"\n./{metadata}\t-rwxr-xr-x "
+        with self.assertRaises(ValueError):
+            gate.check_bom(bom)
+        gate.check_bom(bom, self.root)
+        for invalid in (bom.replace(f"./{metadata}\t-rwxr-xr-x", f"./{metadata}\t-rw-r--r--"),
+                        bom + "\n./._unpaired\t-rw-r--r-- "):
+            with self.assertRaises(ValueError):
+                gate.check_bom(invalid, self.root)
+        sidecar = self.root / metadata
+        sidecar.write_text("physical file must never be ignored")
+        sidecar.chmod(0o644)
+        with self.assertRaises(ValueError):
+            gate.check_bom(bom, self.root)
+        with self.assertRaises(ValueError):
+            gate.check_tree(self.root)
+
     def test_private_directory(self):
         for name in (".", gate.APP, gate.APP + "/Contents/_CodeSignature", "Library/LaunchAgents"):
             with self.subTest(name=name):
@@ -141,7 +159,8 @@ class Permissions(unittest.TestCase):
         distribution = (ROOT / "packaging/host/macos/distribution.xml.in").read_text()
         for key, value in {"TITLE": "PLANK Restart Fixture", "WELCOME": "welcome.html",
                            "CONCLUSION": "conclusion.html", "IDENTIFIER": identifier,
-                           "VERSION": "1.0", "COMPONENT": component.name}.items():
+                           "VERSION": "1.0", "COMPONENT": component.name,
+                           "MIN_MACOS": "27.0"}.items():
             distribution = distribution.replace("@" + key + "@", value)
         definition = scratch / "distribution.xml"
         definition.write_text(distribution)

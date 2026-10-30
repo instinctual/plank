@@ -4,11 +4,13 @@ set -euo pipefail
 if [[ $# != 4 || $1 != /* || $2 != /* || $3 != /* || $4 != /* ]]; then
     echo "Usage: $0 /source /empty-output /libplank_transport.a /synthetic-opus.pao" >&2; exit 2
 fi
-if [[ $(uname -s) != Darwin || $(sw_vers -productVersion | cut -d . -f 1) -lt 27 ||
+if [[ $(uname -s) != Darwin ||
       $(xcrun --sdk macosx --show-sdk-version | cut -d . -f 1) -lt 27 ]]; then
-    echo "Requires dedicated macOS 27/SDK 27 development Mac." >&2; exit 2
+    echo "Requires an authorized Apple Silicon Mac with SDK27+." >&2; exit 2
 fi
 source_root=$1
+source "$source_root/scripts/build/macos-host-target.sh"
+plank_macos_host_target
 output=$2
 archive=$3
 fixture=$4
@@ -19,12 +21,12 @@ fi
 mkdir "$output"
 cd "$source_root"
 shasum -a 256 apps/host/macos/media/opus-encoder.{h,m} tests/audio/macos-opus-encoder.m
-xcrun --sdk macosx clang -mmacosx-version-min=27.0 -fobjc-arc -Wall -Wextra -Werror \
+xcrun --sdk macosx clang -mmacosx-version-min="$MACOSX_DEPLOYMENT_TARGET" -fobjc-arc -Wall -Wextra -Werror -Werror=unguarded-availability -Werror=unguarded-availability-new \
     -Iapps/host/macos/media apps/host/macos/media/opus-encoder.m tests/audio/macos-opus-encoder.m \
     -framework Foundation -framework CoreMedia -framework AudioToolbox -o "$output/opus-encoder"
 "$output/opus-encoder" "$output/streaming.pao"
 shasum -a 256 apps/host/macos/media/native-audio.{h,m} tests/audio/macos-native-audio.m "$archive" "$fixture"
-xcrun --sdk macosx clang -mmacosx-version-min=27.0 -fobjc-arc -Wall -Wextra -Werror \
+xcrun --sdk macosx clang -mmacosx-version-min="$MACOSX_DEPLOYMENT_TARGET" -fobjc-arc -Wall -Wextra -Werror -Werror=unguarded-availability -Werror=unguarded-availability-new \
     -Iapps/host/macos/auth -Iapps/host/macos/media -Iprotocol/plank-transport/include \
     apps/host/macos/auth/authentication-session.m apps/host/macos/media/native-audio.m \
     tests/audio/macos-native-audio.m "$archive" \

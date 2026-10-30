@@ -5,6 +5,8 @@ if [[ $# != 3 || $1 != /* || $2 != /* || $3 != /* || $(uname -s) != Darwin ]]; t
   echo 'Usage: build-macos-host-pkg.sh CLEAN_SOURCE NEW_OUTPUT RETAINED_TRANSPORT_ARCHIVE' >&2; exit 2
 fi
 source_root=$1; output=$2; archive=$3
+source "$source_root/scripts/build/macos-host-target.sh"
+plank_macos_host_target
 : "${PLANK_MACOS_SIGNING_IDENTITY:?Developer ID Application SHA1 required}"
 : "${PLANK_MACOS_INSTALLER_IDENTITY:?Developer ID Installer SHA1 required}"
 : "${PLANK_MACOS_TEAM_ID:?Developer Team ID required}"
@@ -47,6 +49,7 @@ codesign -d --verbose=4 "$app" 2>&1 | grep 'flags=.*runtime'
 codesign -d --verbose=4 "$app" 2>&1 | grep '^Timestamp='
 otool -L "$app/Contents/MacOS/plank-host"
 sed -e "s/@TEAM@/$PLANK_MACOS_TEAM_ID/g" -e "s/@VERSION@/$PLANK_PACKAGE_VERSION/g" \
+  -e "s/@MIN_MACOS@/$MACOSX_DEPLOYMENT_TARGET/g" \
   "$source_root/packaging/host/macos/pkg-common.sh" > "$output/install-scripts/pkg-common.sh"
 chmod 0644 "$output/install-scripts/pkg-common.sh"
 install -m 0755 "$app/Contents/Resources/plank-configure" "$output/install-scripts/"
@@ -62,7 +65,8 @@ install -m 0755 "$source_root/packaging/host/macos/pkg-preinstall" "$output/inst
 install -m 0755 "$source_root/packaging/host/macos/pkg-postinstall" "$output/install-scripts/postinstall"
 test -x "$app/Contents/Resources/uninstall.sh"
 bash -n "$app/Contents/Resources/uninstall.sh"
-install -m 0644 "$source_root/packaging/host/macos/welcome.html" "$source_root/packaging/host/macos/conclusion.html" "$output/resources/"
+sed "s/@MIN_MACOS@/$MACOSX_DEPLOYMENT_TARGET/g" "$source_root/packaging/host/macos/welcome.html" > "$output/resources/welcome.html"
+install -m 0644 "$source_root/packaging/host/macos/conclusion.html" "$output/resources/"
 python3 "$source_root/scripts/test/check-package-build-paths.py" "$output/payload"
 python3 "$source_root/scripts/test/check-macos-host-permissions.py" --payload "$output/payload"
 pkgbuild --root "$output/payload" --component-plist "$source_root/packaging/host/macos/component.plist" \
@@ -72,7 +76,7 @@ name="plank-host_${PLANK_PACKAGE_VERSION}_arm64.pkg"
 sed -e "s/@TITLE@/PLANK Host $PLANK_PACKAGE_VERSION/g" \
   -e 's/@WELCOME@/welcome.html/g' -e 's/@CONCLUSION@/conclusion.html/g' \
   -e 's/@IDENTIFIER@/la.instinctual.PLANK.Host/g' -e "s/@VERSION@/$PLANK_BASE_VERSION/g" \
-  -e 's/@COMPONENT@/host-component.pkg/g' \
+  -e 's/@COMPONENT@/host-component.pkg/g' -e "s/@MIN_MACOS@/$MACOSX_DEPLOYMENT_TARGET/g" \
   "$source_root/packaging/host/macos/distribution.xml.in" > "$output/host-distribution.xml"
 productbuild --distribution "$output/host-distribution.xml" --resources "$output/resources" \
   --package-path "$output" --sign "$PLANK_MACOS_INSTALLER_IDENTITY" --timestamp "$output/$name"
@@ -93,4 +97,4 @@ xcrun stapler validate "$output/$name"
 spctl --assess --type install --verbose=2 "$output/$name"
 shasum -a 256 "$output/$name"
 echo 'macos_pkg_gate=pass install=not-performed'
-plank_collect_package "$source_root" host macos arm64 macos-27 "$output/$name"
+plank_collect_package "$source_root" host macos arm64 "macos-$MACOSX_DEPLOYMENT_TARGET" "$output/$name"
