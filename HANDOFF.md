@@ -18,9 +18,11 @@ in [run 41140938612](https://github.com/instinctual/plank/actions/runs/411409386
 It is downloaded under
 `artifacts/packages/candidates/1.2.05-macos-click-pairing-macos27.0/macos/`.
 The change is macOS Host mouse-event pairing only; no Client update is required.
-Next is operator testing of single-click app activation on macOS 27.2, dragging,
-tablet input and reconnect. Installation and live acceptance are not recorded;
-do not infer that the original activation failure is resolved from the tests.
+The operator reports installation on the affected macOS 27.2 Host and no
+recurrence during the first few minutes. Sustained acceptance of this
+intermittent issue remains pending. Continue normal use, app activation,
+dragging, tablet input and reconnect testing; do not treat the initial positive
+observation as conclusive resolution.
 No build or live diagnostic collector remains active. Private evidence stays
 outside Git.
 
