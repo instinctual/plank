@@ -3,6 +3,9 @@
 **Client Displays** in each bookmark chooses where the remote session appears
 when fullscreen. It is independent of **Host Display Layout** and **Scaling**.
 
+New bookmarks default to **Native (1:1 pixels)** scaling. Saved bookmarks keep
+their selected scaling mode; **Scaled-Span** remains available.
+
 - **Current monitor** uses the monitor containing the sign-in window. This is
   the default for new bookmarks.
 - A **named monitor** always selects that connected display. Connector names

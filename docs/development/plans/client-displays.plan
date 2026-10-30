@@ -1,7 +1,8 @@
 # Ubuntu Client display selection
 
 Branch: client-displays, based on main and the complete 1.2.02 Client.
-Scope: Ubuntu Qt Client. Host protocol and macOS Client behavior stay unchanged.
+Scope: Ubuntu Qt display selection; the follow-up Native scaling default applies
+to shared bookmark creation. Host protocol and macOS presentation stay unchanged.
 
 ## Behavior
 
@@ -13,6 +14,8 @@ Scope: Ubuntu Qt Client. Host protocol and macOS Client behavior stay unchanged.
   and the initial Qt presentation. Do not persist transient enumeration indices.
 - Keep Host layout and scaling independent. At 100% scale, a matching single
   stream fills its selected fullscreen display with no window decorations.
+- New bookmarks default to Native (1:1 pixels) scaling. Preserve explicit saved
+  scaling choices; retain Scaled-Span as a selectable option.
 - Add a small menu beside the existing fullscreen control: fullscreen on this
   monitor or span both. These are local, session-only presentation changes;
   they do not change the negotiated Host layout, stream or bookmark.
@@ -44,4 +47,6 @@ and sanitized selection/QML/input tests, both compositor scales, simultaneous
 fullscreen windows on two outputs, precision and package checks. The toolbar
 menu screenshot was inspected after correcting its initial text truncation.
 See HANDOFF for exact source/package hashes. Live two-session hardware and
-keyboard/tablet focus acceptance remain pending; no deployment or merge yet.
+keyboard/tablet focus acceptance remain pending. The operator authorized
+installation on an Ubuntu hardware-test Client; there is no merge or release.
+The subsequent Native (1:1 pixels) bookmark-default change is not yet built.

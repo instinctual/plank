@@ -50,6 +50,11 @@ preserved, the private-library RUNPATH is intact, and no Client user service or
 autostart was introduced. The Qt launcher starts successfully. Deployment
 details are retained privately.
 
+Follow-up Client commit `9497bb0c` is pushed: new bookmarks default to Native (1:1 pixels),
+including repeated Add Bookmark dialogs and discovered workstations. Explicit
+saved scaling choices are preserved. This default change is not in the
+installed 1.2.04 candidate; it needs the next Client build.
+
 Next: assign one named Client display to each of two bookmarks, and test
 simultaneous fullscreen sessions, pixel fit, keyboard/tablet focus,
 single/span/windowed toolbar changes and reconnect. Live-session hardware
