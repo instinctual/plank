@@ -4,6 +4,26 @@ Read `AGENTS.md` and the relevant build runbook first. Machine-specific access,
 credentials, captures and operational evidence belong in the external private
 notes, never in Git.
 
+## Current continuation — macOS Host click pairing
+
+The active Host fix is on separate branch `macos-click-pairing`, in
+`build/worktrees/macos-click-pairing/`; read that branch's `HANDOFF.md` for the
+diagnosis, validation and package provenance. This canonical checkout remains
+on `client-displays`, preserving the Client feature below. Neither feature
+branch is merged. Native Apple work remains separate.
+
+Signed Host candidate **1.2.05-macos-click-pairing-macos27.0**, built from
+`ca4903bbfb38fa97cc603a34ea9670942f03b69a`, passed hosted tests and package gates
+in [run 41140938612](https://github.com/instinctual/plank/actions/runs/41140938612).
+It is downloaded under
+`artifacts/packages/candidates/1.2.05-macos-click-pairing-macos27.0/macos/`.
+The change is macOS Host mouse-event pairing only; no Client update is required.
+Next is operator testing of single-click app activation on macOS 27.2, dragging,
+tablet input and reconnect. Installation and live acceptance are not recorded;
+do not infer that the original activation failure is resolved from the tests.
+No build or live diagnostic collector remains active. Private evidence stays
+outside Git.
+
 ## Ready for hardware testing — Ubuntu Client displays
 
 Root and Client branch `client-displays` starts from mainline 1.2.02. Version
@@ -82,8 +102,9 @@ passed, including all four product builds in
 PR signing was skipped as intended; the merge tree matches the tested head.
 The automatic mainline merge build
 [41136635392](https://github.com/instinctual/plank/actions/runs/41136635392)
-is still running at this checkpoint; its privacy and clipboard checks passed.
-No packages from that run have been downloaded or installed.
+also passed all four product builds and policy; signing was skipped. Its privacy
+and clipboard checks passed. No packages from that run have been downloaded or
+installed.
 
 Main follow-up `bd75c102d3487c6ee44b0d39a52f09b39b8756a4` removes the experimental
 designation and records Chris (cnoellert) as owner of 26.7 hardware/session
