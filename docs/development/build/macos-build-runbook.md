@@ -7,6 +7,16 @@ is authorized. Linux builder roles are unchanged.
 Require Apple Silicon, macOS 27, SDK 27 and explicit deployment target 27.0.
 Probe signing/installation remains documented in `probes/macos/README.md`.
 
+An explicit experimental Host backport is available with
+`PLANK_MACOS_HOST_MIN_OS=26.7` on the operator-authorized Apple Silicon Mac.
+SDK 27, Rust 1.89 and the exact transport/dependency pins remain required. The
+same setting must be used for the transport archive, Host, component tests and
+PKG. Application, camera extension, audio-driver and installer minimums follow
+that selected target. The default remains 27.0; see the
+[backport investigation](../plans/macos26-host-backport.md) for evidence and
+uncompleted installed-session gates. Do not reuse a transport built for 27.0
+in a 26.7 package or retarget a previously signed package.
+
 Before updating Mac sources, inspect the canonical clone's `origin`: the
 dedicated builder was seeded from a retained bootstrap Git bundle, not a live
 GitHub remote. `fetch origin` in that clone does not retrieve newly published
@@ -561,8 +571,8 @@ dedicated Mac, direct dlopen confirmed `mis-aligned LINKEDIT string pool` despit
 a valid code signature. This matches
 [Rust issue 157750](https://github.com/rust-lang/rust/issues/157750).
 The macOS runner sets `RUSTFLAGS=-C strip=none` (appended to any caller flags)
-to keep compiler-plugin metadata intact. Do not lower the 27.0 deployment target,
-disable signing/security, upgrade dependency versions or redownload caches to
+to keep compiler-plugin metadata intact. Do not change the selected deployment
+target to hide this failure, disable signing/security, upgrade dependency versions or redownload caches to
 hide this error. Revalidate whether this workaround is needed with a future
 qualified toolchain; it does not change the shared Linux build.
 

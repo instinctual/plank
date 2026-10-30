@@ -2,48 +2,50 @@
 # Uninstalled native Host executable; no synthetic verifier or probe main.
 set -euo pipefail
 if [[ $# != 3 || $1 != /* || $2 != /* || $3 != /* || $(uname -s) != Darwin ||
-      $(sw_vers -productVersion | cut -d . -f 1) -lt 27 ||
       $(xcrun --sdk macosx --show-sdk-version | cut -d . -f 1) -lt 27 ]]; then
     echo 'Usage (development Mac): build-macos-host.sh SOURCE EMPTY_OUTPUT TRANSPORT_ARCHIVE' >&2; exit 2
 fi
 : "${PLANK_MACOS_HOST_VERSION:?Explicit branch-qualified version required}"
 [[ $PLANK_MACOS_HOST_VERSION =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[a-z][a-z0-9.-]*)?$ ]]
 source_root=$1; output=$2; archive=$3
+source "$source_root/scripts/build/macos-host-target.sh"
+plank_macos_host_target
 source "$source_root/scripts/build/build-paths.sh"
 plank_build_path_flags "$source_root" "$output"
 mkdir "$output"
 cd "$source_root"
 python3 "$source_root/tests/packaging/test-macos-app-icons.py"
+python3 "$source_root/tests/packaging/test-macos-host-target.py"
 bash "$source_root/scripts/test/build-macos-configuration.sh" "$source_root" "$output/configuration-tests"
-xcrun clang -mmacosx-version-min=27.0 -fobjc-arc -Wall -Wextra -Werror \
+xcrun clang -mmacosx-version-min="$MACOSX_DEPLOYMENT_TARGET" -fobjc-arc -Wall -Wextra -Werror -Werror=unguarded-availability -Werror=unguarded-availability-new \
     -Iapps/host/macos/control apps/host/macos/control/server-information.m \
     tests/auth/macos-server-information.m -framework Foundation -o "$output/server-information-test"
 "$output/server-information-test" "$source_root/tests/protocol/macos-server-information.xml"
-xcrun clang -mmacosx-version-min=27.0 -fobjc-arc -Wall -Wextra -Werror \
+xcrun clang -mmacosx-version-min="$MACOSX_DEPLOYMENT_TARGET" -fobjc-arc -Wall -Wextra -Werror -Werror=unguarded-availability -Werror=unguarded-availability-new \
     tests/auth/macos-audio-consent.m -framework Foundation -framework CoreAudio \
     -o "$output/audio-consent-test"
 "$output/audio-consent-test"
-xcrun clang -mmacosx-version-min=27.0 -fobjc-arc -Wall -Wextra -Werror \
+xcrun clang -mmacosx-version-min="$MACOSX_DEPLOYMENT_TARGET" -fobjc-arc -Wall -Wextra -Werror -Werror=unguarded-availability -Werror=unguarded-availability-new \
     tests/auth/macos-permission-setup.m -framework Foundation -framework AppKit \
     -framework ApplicationServices -framework CoreAudio -o "$output/permission-setup-test"
 "$output/permission-setup-test"
 # Host-only checkouts deliberately do not initialize the Client submodule.
 python3 tests/packaging/test-startup-permissions.py HostPermissions
 for component in buffer driver queue; do
-    xcrun clang -std=c11 -O2 -mmacosx-version-min=27.0 -Wall -Wextra -Werror \
+    xcrun clang -std=c11 -O2 -mmacosx-version-min="$MACOSX_DEPLOYMENT_TARGET" -Wall -Wextra -Werror -Werror=unguarded-availability -Werror=unguarded-availability-new \
         -Iapps/host/macos/audio-device "tests/audio/macos-microphone-$component.c" \
         -framework CoreAudio -framework CoreFoundation -o "$output/microphone-$component-test"
     "$output/microphone-$component-test"
 done
-xcrun clang -std=c11 -O1 -g -mmacosx-version-min=27.0 -Wall -Wextra -Werror \
+xcrun clang -std=c11 -O1 -g -mmacosx-version-min="$MACOSX_DEPLOYMENT_TARGET" -Wall -Wextra -Werror -Werror=unguarded-availability -Werror=unguarded-availability-new \
     -fsanitize=address,undefined -Iapps/host/macos/media -Iapps/host/macos/audio-device \
     tests/audio/reverse-media-clock.c -o "$output/reverse-media-clock-test"
 "$output/reverse-media-clock-test"
-xcrun clang -std=c11 -O2 -mmacosx-version-min=27.0 -Wall -Wextra -Werror \
+xcrun clang -std=c11 -O2 -mmacosx-version-min="$MACOSX_DEPLOYMENT_TARGET" -Wall -Wextra -Werror -Werror=unguarded-availability -Werror=unguarded-availability-new \
     -Iapps/host/macos/media tests/audio/macos-microphone-decoder.c \
     -framework AudioToolbox -o "$output/microphone-decoder-test"
 "$output/microphone-decoder-test"
-xcrun clang -O2 -mmacosx-version-min=27.0 -fobjc-arc -Wall -Wextra -Werror \
+xcrun clang -O2 -mmacosx-version-min="$MACOSX_DEPLOYMENT_TARGET" -fobjc-arc -Wall -Wextra -Werror -Werror=unguarded-availability -Werror=unguarded-availability-new \
     tests/audio/macos-microphone-selection.m -framework Foundation -framework CoreAudio \
     -o "$output/microphone-selection-test"
 "$output/microphone-selection-test"
@@ -51,7 +53,7 @@ bash "$source_root/scripts/test/build-macos-output-device.sh" "$source_root" "$o
 bash "$source_root/scripts/test/build-macos-camera-device.sh" "$source_root" "$output/camera-device-tests"
 bash "$source_root/scripts/test/build-macos-native-camera-sample.sh" "$source_root" "$output/camera-sample-tests"
 bash "$source_root/scripts/test/build-macos-agent-registry.sh" "$source_root" "$output/agent-registry-tests"
-xcrun clang -mmacosx-version-min=27.0 -fobjc-arc -Wall -Wextra -Werror \
+xcrun clang -mmacosx-version-min="$MACOSX_DEPLOYMENT_TARGET" -fobjc-arc -Wall -Wextra -Werror -Werror=unguarded-availability -Werror=unguarded-availability-new \
     -Iapps/host/macos/session tests/auth/macos-machine-identity.m \
     -framework Foundation -framework Security -o "$output/machine-identity-test"
 "$output/machine-identity-test"
@@ -59,26 +61,26 @@ bash "$source_root/scripts/test/build-macos-display-recovery.sh" "$source_root" 
 bash "$source_root/scripts/test/build-macos-input.sh" "$source_root" "$output/input-tests" "$archive"
 bash "$source_root/scripts/test/build-macos-preview.sh" "$source_root" "$output/preview-tests" "$archive" --synthetic-only
 bash "$source_root/scripts/test/build-macos-native-video.sh" "$source_root" "$output/session-tests" "$archive" --session-only
-xcrun clang -mmacosx-version-min=27.0 -fobjc-arc -Wall -Wextra -Werror \
+xcrun clang -mmacosx-version-min="$MACOSX_DEPLOYMENT_TARGET" -fobjc-arc -Wall -Wextra -Werror -Werror=unguarded-availability -Werror=unguarded-availability-new \
     -Iapps/host/macos/auth apps/host/macos/auth/graphical-authority.m \
     apps/host/macos/auth/authentication-session.m tests/auth/macos-graphical-authority-lifecycle.m \
     -framework Foundation -framework AppKit -framework CoreGraphics -framework Security \
     -framework SystemConfiguration -o "$output/graphical-lifecycle-test"
 "$output/graphical-lifecycle-test"
-xcrun clang -std=c11 -mmacosx-version-min=27.0 -Wall -Wextra -Werror \
+xcrun clang -std=c11 -mmacosx-version-min="$MACOSX_DEPLOYMENT_TARGET" -Wall -Wextra -Werror -Werror=unguarded-availability -Werror=unguarded-availability-new \
     -Iapps/host/macos/media tests/auth/macos-stream-diagnostics.c -o "$output/stream-diagnostics-test"
 "$output/stream-diagnostics-test"
 python3 "$source_root/tests/packaging/test-macos-host-permissions.py"
 python3 "$source_root/tests/packaging/test-macos-camera-profile.py"
-xcrun clang -mmacosx-version-min=27.0 -fobjc-arc -Wall -Wextra -Werror \
+xcrun clang -mmacosx-version-min="$MACOSX_DEPLOYMENT_TARGET" -fobjc-arc -Wall -Wextra -Werror -Werror=unguarded-availability -Werror=unguarded-availability-new \
     -DPLANK_CLIPBOARD_TEST_PASTEBOARD -Iapps/host/macos/media -Iprotocol/plank-transport/include \
     apps/host/macos/media/clipboard-sync.m tests/input/macos-clipboard.m \
     -framework Foundation -framework AppKit -o "$output/clipboard-test"
 "$output/clipboard-test"
-xcrun clang -std=c11 -Wall -Wextra -Werror -Iprotocol/plank-transport/include \
+xcrun clang -std=c11 -Wall -Wextra -Werror -Werror=unguarded-availability -Werror=unguarded-availability-new -Iprotocol/plank-transport/include \
     tests/protocol/clipboard-wire.c -o "$output/clipboard-wire-test"
 "$output/clipboard-wire-test"
-xcrun clang -mmacosx-version-min=27.0 -fobjc-arc -Wall -Wextra -Werror \
+xcrun clang -mmacosx-version-min="$MACOSX_DEPLOYMENT_TARGET" -fobjc-arc -Wall -Wextra -Werror -Werror=unguarded-availability -Werror=unguarded-availability-new \
     -Iapps/host/macos/input -Iprotocol/plank-transport/include \
     apps/host/macos/input/input-events.m tests/input/macos-pen-events.m \
     -framework Foundation -framework CoreGraphics -framework Carbon -framework AppKit -o "$output/pen-events-test"
@@ -97,33 +99,33 @@ else
     echo "Checking non-posting pen fixture in console bootstrap UID $console_uid"
     sudo -n /bin/launchctl asuser "$console_uid" "$output/pen-events-test"
 fi
-xcrun clang -std=c11 -mmacosx-version-min=27.0 -Wall -Wextra -Werror \
+xcrun clang -std=c11 -mmacosx-version-min="$MACOSX_DEPLOYMENT_TARGET" -Wall -Wextra -Werror -Werror=unguarded-availability -Werror=unguarded-availability-new \
     -Iapps/host/macos/session tests/auth/macos-permission-status.c -o "$output/permission-status-test"
 "$output/permission-status-test"
-xcrun clang -mmacosx-version-min=27.0 -fobjc-arc -Wall -Wextra -Werror \
+xcrun clang -mmacosx-version-min="$MACOSX_DEPLOYMENT_TARGET" -fobjc-arc -Wall -Wextra -Werror -Werror=unguarded-availability -Werror=unguarded-availability-new \
     -Iapps/host/macos/session tests/auth/macos-desktop-provisioning.m apps/host/macos/session/{desktop-provisioning,host-configuration}.m \
     -framework Foundation -framework Security -o "$output/desktop-provisioning-test"
 "$output/desktop-provisioning-test"
-xcrun clang -mmacosx-version-min=27.0 -fobjc-arc -Wall -Wextra -Werror \
+xcrun clang -mmacosx-version-min="$MACOSX_DEPLOYMENT_TARGET" -fobjc-arc -Wall -Wextra -Werror -Werror=unguarded-availability -Werror=unguarded-availability-new \
     -Iapps/host/macos/session tests/auth/macos-desktop-start.m apps/host/macos/session/desktop-start.m \
     -framework Foundation -framework SystemConfiguration -o "$output/desktop-start-test"
 "$output/desktop-start-test"
-xcrun clang -mmacosx-version-min=27.0 -fobjc-arc -Wall -Wextra -Werror \
+xcrun clang -mmacosx-version-min="$MACOSX_DEPLOYMENT_TARGET" -fobjc-arc -Wall -Wextra -Werror -Werror=unguarded-availability -Werror=unguarded-availability-new \
     -Iapps/host/macos/session tests/auth/macos-desktop-start-scheduling.m \
     -framework Foundation -framework SystemConfiguration -o "$output/desktop-start-scheduling-test"
 "$output/desktop-start-scheduling-test"
-xcrun clang -std=c11 -mmacosx-version-min=27.0 -Wall -Wextra -Werror \
+xcrun clang -std=c11 -mmacosx-version-min="$MACOSX_DEPLOYMENT_TARGET" -Wall -Wextra -Werror -Werror=unguarded-availability -Werror=unguarded-availability-new \
     -Iapps/host/macos/media tests/audio/macos-audio-tap-buffer.c -o "$output/audio-tap-buffer-test"
 "$output/audio-tap-buffer-test"
-xcrun clang -mmacosx-version-min=27.0 -fobjc-arc -Wall -Wextra -Werror \
+xcrun clang -mmacosx-version-min="$MACOSX_DEPLOYMENT_TARGET" -fobjc-arc -Wall -Wextra -Werror -Werror=unguarded-availability -Werror=unguarded-availability-new \
     -Iapps/host/macos/media tests/audio/macos-audio-tap-lifecycle.m apps/host/macos/media/audio-tap.m \
     -framework Foundation -framework CoreMedia -framework CoreAudio -framework Security -o "$output/audio-tap-lifecycle-test"
 "$output/audio-tap-lifecycle-test"
-xcrun clang -mmacosx-version-min=27.0 -fobjc-arc -Wall -Wextra -Werror \
+xcrun clang -mmacosx-version-min="$MACOSX_DEPLOYMENT_TARGET" -fobjc-arc -Wall -Wextra -Werror -Werror=unguarded-availability -Werror=unguarded-availability-new \
     -Iapps/host/macos/media tests/audio/macos-output-volume.m \
     -framework Foundation -framework CoreAudio -o "$output/output-volume-test"
 "$output/output-volume-test"
-xcrun clang -mmacosx-version-min=27.0 -fobjc-arc -Wall -Wextra -Werror \
+xcrun clang -mmacosx-version-min="$MACOSX_DEPLOYMENT_TARGET" -fobjc-arc -Wall -Wextra -Werror -Werror=unguarded-availability -Werror=unguarded-availability-new \
     -Iapps/host/macos/media -Iapps/host/macos/auth -Iapps/host/macos/control -Iapps/host/macos/input -Iprotocol/plank-transport/include \
     tests/audio/macos-audio-recovery.m apps/host/macos/media/screen-capture.m apps/host/macos/audio-device/output-route.m \
     apps/host/macos/media/audio-tap.m apps/host/macos/media/opus-encoder.m apps/host/macos/control/fixed-capture.m \
@@ -131,24 +133,24 @@ xcrun clang -mmacosx-version-min=27.0 -fobjc-arc -Wall -Wextra -Werror \
     -framework CoreGraphics -framework CoreVideo -framework ScreenCaptureKit -framework VideoToolbox -framework AudioToolbox \
     -o "$output/audio-recovery-test"
 "$output/audio-recovery-test"
-xcrun clang -mmacosx-version-min=27.0 -fobjc-arc -Wall -Wextra -Werror \
+xcrun clang -mmacosx-version-min="$MACOSX_DEPLOYMENT_TARGET" -fobjc-arc -Wall -Wextra -Werror -Werror=unguarded-availability -Werror=unguarded-availability-new \
     -Iapps/host/macos/media tests/audio/macos-opus-encoder.m apps/host/macos/media/opus-encoder.m \
     -framework Foundation -framework CoreMedia -framework AudioToolbox -o "$output/opus-encoder-test"
 "$output/opus-encoder-test" "$output/opus-fixture.pao"
-xcrun clang -mmacosx-version-min=27.0 -Wall -Wextra -Werror \
+xcrun clang -mmacosx-version-min="$MACOSX_DEPLOYMENT_TARGET" -Wall -Wextra -Werror -Werror=unguarded-availability -Werror=unguarded-availability-new \
     -Iapps/host/macos/media tests/video/macos-frame-timing.c -o "$output/frame-timing-test"
 "$output/frame-timing-test"
-xcrun clang -mmacosx-version-min=27.0 -Wall -Wextra -Werror \
+xcrun clang -mmacosx-version-min="$MACOSX_DEPLOYMENT_TARGET" -Wall -Wextra -Werror -Werror=unguarded-availability -Werror=unguarded-availability-new \
     -Iapps/host/macos/media tests/video/macos-video-recovery.c -o "$output/video-recovery-test"
 "$output/video-recovery-test"
-common=("${PLANK_FILE_FLAGS[@]}" -mmacosx-version-min=27.0 -fobjc-arc -Wall -Wextra -Werror
+common=("${PLANK_FILE_FLAGS[@]}" -mmacosx-version-min="$MACOSX_DEPLOYMENT_TARGET" -fobjc-arc -Wall -Wextra -Werror -Werror=unguarded-availability -Werror=unguarded-availability-new
     -Iapps/host/macos/auth -Iapps/host/macos/control -Iapps/host/macos/media -Iapps/host/macos/input
     -Iapps/host/macos/session -Iprotocol/plank-transport/include
     -framework Foundation -framework Security -framework SystemConfiguration -framework CoreFoundation
     -framework CoreGraphics -framework AppKit -framework Network -framework CoreMedia
     -framework CoreVideo -framework ScreenCaptureKit -framework VideoToolbox -framework AudioToolbox -framework CoreAudio
     -framework Carbon -framework ApplicationServices -framework OpenDirectory -framework IOKit -framework SystemExtensions
-    -Wl,-sectcreate,__CGPreLoginApp,__cgpreloginapp,/dev/null)
+    -Wl,-fatal_warnings -Wl,-sectcreate,__CGPreLoginApp,__cgpreloginapp,/dev/null)
 sources=(apps/host/macos/auth/authentication-session.m apps/host/macos/auth/graphical-authority.m
     apps/host/macos/auth/account-verifier.m apps/host/macos/auth/account-channel.m
     apps/host/macos/control/http-request.m apps/host/macos/control/server-information.m
@@ -191,7 +193,7 @@ shasum -a 256 "$archive" "$output/plank-host"
     fi
     app="$output/PLANK Host.app"
     mkdir -p "$app/Contents/MacOS" "$app/Contents/Resources" "$output/plank.iconset"
-    xcrun clang -mmacosx-version-min=27.0 -fobjc-arc -Wall -Wextra -Werror \
+    xcrun clang -mmacosx-version-min="$MACOSX_DEPLOYMENT_TARGET" -fobjc-arc -Wall -Wextra -Werror -Werror=unguarded-availability -Werror=unguarded-availability-new \
         scripts/package/macos-app-icon.m -framework Foundation -framework CoreGraphics \
         -framework ImageIO -o "$output/macos-app-icon"
     "$output/macos-app-icon" "$source_root/branding/assets/plank-host-macos.png" "$output/plank.iconset"
@@ -199,7 +201,8 @@ shasum -a 256 "$archive" "$output/plank-host"
     test -s "$app/Contents/Resources/plank.icns"
     install -m 0755 "$output/plank-host" "$app/Contents/MacOS/plank-host"
     install -m 0644 packaging/host/macos/host-info.plist "$app/Contents/Info.plist"
-    xcrun clang "${PLANK_FILE_FLAGS[@]}" -O2 -mmacosx-version-min=27.0 -fobjc-arc -Wall -Wextra -Werror \
+    /usr/libexec/PlistBuddy -c "Set :LSMinimumSystemVersion $MACOSX_DEPLOYMENT_TARGET" "$app/Contents/Info.plist"
+    xcrun clang "${PLANK_FILE_FLAGS[@]}" -O2 -mmacosx-version-min="$MACOSX_DEPLOYMENT_TARGET" -fobjc-arc -Wall -Wextra -Werror -Werror=unguarded-availability -Werror=unguarded-availability-new \
         -Iapps/host/macos/session scripts/package/macos-configure.m apps/host/macos/session/host-configuration.m \
         -framework Foundation -o "$app/Contents/Resources/plank-configure"
     install -m 0644 packaging/host/macos/config/plank-host.conf "$app/Contents/Resources/host.conf.example"
@@ -211,6 +214,7 @@ shasum -a 256 "$archive" "$output/plank-host"
         : "${PLANK_MACOS_TEAM_ID:?Developer Team ID required}"
         [[ $PLANK_MACOS_TEAM_ID =~ ^[A-Z0-9]{10}$ ]]
         sed -e "s/@TEAM@/$PLANK_MACOS_TEAM_ID/g" -e "s/@VERSION@/$PLANK_MACOS_HOST_VERSION/g" \
+            -e "s/@MIN_MACOS@/$MACOSX_DEPLOYMENT_TARGET/g" \
             packaging/host/macos/pkg-common.sh > "$app/Contents/Resources/uninstall.sh"
         cat packaging/host/macos/uninstall.sh >> "$app/Contents/Resources/uninstall.sh"
         chmod 0755 "$app/Contents/Resources/uninstall.sh"
@@ -223,14 +227,15 @@ shasum -a 256 "$archive" "$output/plank-host"
     /usr/libexec/PlistBuddy -c "Set :CFBundleVersion ${PLANK_MACOS_HOST_VERSION%%-*}" "$app/Contents/Info.plist"
     /usr/libexec/PlistBuddy -c "Add :CFBundleShortVersionString string ${PLANK_MACOS_HOST_VERSION%%-*}" "$app/Contents/Info.plist"
     camera_metadata=(--app "$app" --output "$output" --version "${PLANK_MACOS_HOST_VERSION%%-*}"
-        --team "${PLANK_MACOS_TEAM_ID:-PLANKTEST0}" --identity "$signing_identity")
+        --team "${PLANK_MACOS_TEAM_ID:-PLANKTEST0}" --identity "$signing_identity"
+        --minimum-macos "$MACOSX_DEPLOYMENT_TARGET")
     if [[ $signing_identity != - ]]; then
         : "${PLANK_MACOS_APP_PROVISION_PROFILE:?Production Host system-extension installation profile required}"
         camera_metadata+=(--profile "$PLANK_MACOS_APP_PROVISION_PROFILE")
     fi
     python3 scripts/package/prepare-macos-camera.py "${camera_metadata[@]}"
     extension="$app/Contents/Library/SystemExtensions/la.instinctual.PLANK.Host.Camera.systemextension"
-    xcrun clang "${PLANK_FILE_FLAGS[@]}" -O2 -mmacosx-version-min=27.0 -fobjc-arc -Wall -Wextra -Werror \
+    xcrun clang "${PLANK_FILE_FLAGS[@]}" -O2 -mmacosx-version-min="$MACOSX_DEPLOYMENT_TARGET" -fobjc-arc -Wall -Wextra -Werror -Werror=unguarded-availability -Werror=unguarded-availability-new \
         -Iapps/host/macos/media -Iprotocol/plank-transport/include \
         apps/host/macos/camera-device/camera-{extension,consumer,signing}.m \
         apps/host/macos/media/native-camera-{sample,output}.m \
@@ -247,12 +252,13 @@ shasum -a 256 "$archive" "$output/plank-host"
     driver="$output/PLANK Microphone.driver"
     mkdir -p "$driver/Contents/MacOS"
     install -m 0644 packaging/host/macos/microphone-info.plist "$driver/Contents/Info.plist"
+    /usr/libexec/PlistBuddy -c "Set :LSMinimumSystemVersion $MACOSX_DEPLOYMENT_TARGET" "$driver/Contents/Info.plist"
     /usr/libexec/PlistBuddy -c "Set :CFBundleVersion ${PLANK_MACOS_HOST_VERSION%%-*}" "$driver/Contents/Info.plist"
     /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString ${PLANK_MACOS_HOST_VERSION%%-*}" "$driver/Contents/Info.plist"
     /usr/libexec/PlistBuddy -c 'Add :AudioServerPlugIn_MachServices array' "$driver/Contents/Info.plist"
     /usr/libexec/PlistBuddy -c 'Add :AudioServerPlugIn_MachServices:0 string la.instinctual.PLANK.Host.microphone-driver' "$driver/Contents/Info.plist"
-    xcrun clang "${PLANK_FILE_FLAGS[@]}" -std=c11 -O2 -mmacosx-version-min=27.0 \
-        -Wall -Wextra -Werror -fblocks -fvisibility=hidden -DPLANK_MICROPHONE_IPC -bundle \
+    xcrun clang "${PLANK_FILE_FLAGS[@]}" -std=c11 -O2 -mmacosx-version-min="$MACOSX_DEPLOYMENT_TARGET" \
+        -Wall -Wextra -Werror -Werror=unguarded-availability -Werror=unguarded-availability-new -fblocks -fvisibility=hidden -DPLANK_MICROPHONE_IPC -bundle \
         apps/host/macos/audio-device/microphone-driver.c -framework CoreAudio -framework CoreFoundation \
         -o "$driver/Contents/MacOS/plank-microphone"
     strip -S "$driver/Contents/MacOS/plank-microphone"
@@ -261,15 +267,19 @@ shasum -a 256 "$archive" "$output/plank-host"
     driver="$output/PLANK Output.driver"
     mkdir -p "$driver/Contents/MacOS"
     install -m 0644 packaging/host/macos/output-info.plist "$driver/Contents/Info.plist"
+    /usr/libexec/PlistBuddy -c "Set :LSMinimumSystemVersion $MACOSX_DEPLOYMENT_TARGET" "$driver/Contents/Info.plist"
     /usr/libexec/PlistBuddy -c "Set :CFBundleVersion ${PLANK_MACOS_HOST_VERSION%%-*}" "$driver/Contents/Info.plist"
     /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString ${PLANK_MACOS_HOST_VERSION%%-*}" "$driver/Contents/Info.plist"
-    xcrun clang "${PLANK_FILE_FLAGS[@]}" -std=c11 -O2 -mmacosx-version-min=27.0 \
-        -Wall -Wextra -Werror -fvisibility=hidden -bundle \
+    xcrun clang "${PLANK_FILE_FLAGS[@]}" -std=c11 -O2 -mmacosx-version-min="$MACOSX_DEPLOYMENT_TARGET" \
+        -Wall -Wextra -Werror -Werror=unguarded-availability -Werror=unguarded-availability-new -fvisibility=hidden -bundle \
         apps/host/macos/audio-device/output-driver.c -framework CoreAudio -framework CoreFoundation \
         -o "$driver/Contents/MacOS/plank-output"
     strip -S "$driver/Contents/MacOS/plank-output"
     codesign --force --sign "$signing_identity" "${signing_flags[@]}" "$driver"
     codesign --verify --strict "$driver"
     python3 "$source_root/scripts/test/check-macos-host-permissions.py" --app "$app"
+    for tree in "$app" "$extension" "$output/PLANK Microphone.driver" "$output/PLANK Output.driver"; do
+        python3 "$source_root/scripts/test/check-macos-client-target.py" "$tree" --target "$MACOSX_DEPLOYMENT_TARGET"
+    done
     shasum -a 256 "$app/Contents/MacOS/plank-host"
 )

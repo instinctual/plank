@@ -28,7 +28,7 @@ case $role in
     ;;
   macos-host)
     source "$PLANK_SOURCE_ROOT/scripts/package/package-version.sh"
-    plank_load_package_version "$PLANK_SOURCE_ROOT"
+    plank_load_macos_host_package_version "$PLANK_SOURCE_ROOT"
     # Isolated installer filesystem fixture only; never install the product or
     # start its services on a builder. This also checks administrator log access.
     sudo -n /bin/bash "$PLANK_SOURCE_ROOT/tests/packaging/macos-pkg-scripts.sh" --filesystem

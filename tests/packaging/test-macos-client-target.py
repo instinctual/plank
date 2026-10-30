@@ -60,12 +60,14 @@ echo "$MACOSX_DEPLOYMENT_TARGET"
             self.assertIn('\nplank_macos_client_target\n', script, entrypoint)
             self.assertNotIn('PLANK_MAC_CLIENT_MIN_MACOS:-27.0', script, entrypoint)
 
-    def test_host_target_is_not_lowered(self):
+    def test_host_default_is_independent_of_client_policy(self):
         host = (ROOT / 'scripts/build/build-macos-host.sh').read_text()
-        self.assertIn('-mmacosx-version-min=27.0', host)
+        self.assertIn('plank_macos_host_target', host)
         self.assertNotIn('macos-client-target.sh', host)
         transport = (ROOT / 'scripts/build/build-macos-transport.sh').read_text()
-        self.assertIn('MACOSX_DEPLOYMENT_TARGET=27.0', transport)
+        self.assertIn('plank_macos_host_target', transport)
+        policy = (ROOT / 'scripts/build/macos-host-target.sh').read_text()
+        self.assertIn('PLANK_MACOS_HOST_MIN_OS:-27.0', policy)
 
 
 @unittest.skipUnless(platform.system() == 'Darwin' and platform.machine() == 'arm64',

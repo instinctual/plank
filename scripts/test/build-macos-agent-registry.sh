@@ -5,19 +5,20 @@ if [[ $# != 2 || $1 != /* || $2 != /* ]]; then
     echo "Usage: $0 /absolute/source /absolute/empty-output" >&2; exit 2
 fi
 if [[ $(uname -s) != Darwin ||
-      $(sw_vers -productVersion | cut -d . -f 1) -lt 27 ||
       $(xcrun --sdk macosx --show-sdk-version | cut -d . -f 1) -lt 27 ]]; then
-    echo "Requires dedicated macOS 27/SDK 27 development Mac." >&2; exit 2
+    echo "Requires an authorized Apple Silicon Mac with SDK27+." >&2; exit 2
 fi
 source_root=$1
+source "$source_root/scripts/build/macos-host-target.sh"
+plank_macos_host_target
 output=$2
 mkdir "$output"
 cd "$source_root"
-xcrun --sdk macosx clang -mmacosx-version-min=27.0 -fobjc-arc -Wall -Wextra -Werror \
+xcrun --sdk macosx clang -mmacosx-version-min="$MACOSX_DEPLOYMENT_TARGET" -fobjc-arc -Wall -Wextra -Werror -Werror=unguarded-availability -Werror=unguarded-availability-new \
     -Iapps/host/macos/auth tests/auth/macos-boot-sign-in.m \
     -framework Foundation -framework SystemConfiguration -o "$output/boot-sign-in"
 "$output/boot-sign-in"
-xcrun --sdk macosx clang -mmacosx-version-min=27.0 -fobjc-arc -Wall -Wextra -Werror \
+xcrun --sdk macosx clang -mmacosx-version-min="$MACOSX_DEPLOYMENT_TARGET" -fobjc-arc -Wall -Wextra -Werror -Werror=unguarded-availability -Werror=unguarded-availability-new \
     -Iapps/host/macos/session apps/host/macos/session/agent-registry.m apps/host/macos/session/agent-connection.m \
     tests/auth/macos-agent-registry.m \
     -framework Foundation -framework Security -framework SystemConfiguration \
@@ -26,7 +27,7 @@ codesign --force --sign - --identifier la.instinctual.PLANK.AgentRegistryTest "$
 codesign --verify --strict "$output/agent-registry"
 "$output/agent-registry" --synthetic
 "$output/agent-registry" --identity-only
-xcrun --sdk macosx clang -mmacosx-version-min=27.0 -fobjc-arc -Wall -Wextra -Werror \
+xcrun --sdk macosx clang -mmacosx-version-min="$MACOSX_DEPLOYMENT_TARGET" -fobjc-arc -Wall -Wextra -Werror -Werror=unguarded-availability -Werror=unguarded-availability-new \
     -Iapps/host/macos/session -Iapps/host/macos/auth apps/host/macos/session/agent-registry.m \
     apps/host/macos/session/agent-connection.m apps/host/macos/auth/authentication-session.m \
     apps/host/macos/auth/graphical-authority.m tests/auth/macos-agent-service.m \

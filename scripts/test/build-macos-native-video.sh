@@ -7,12 +7,13 @@ if [[ $# -lt 3 || $# -gt 4 || $1 != /* || $2 != /* || $3 != /* ||
     exit 2
 fi
 source_root=$1
+source "$source_root/scripts/build/macos-host-target.sh"
+plank_macos_host_target
 video_build=$2
 transport_library=$3
 if [[ $(uname -s) != Darwin || $(uname -m) != arm64 ||
-      $(sw_vers -productVersion | cut -d . -f 1) -lt 27 ||
       $(xcrun --sdk macosx --show-sdk-version | cut -d . -f 1) -lt 27 ]]; then
-    echo "Requires the authorized Apple Silicon development Mac, macOS/SDK 27+." >&2
+    echo "Requires the authorized Apple Silicon development Mac and SDK27+." >&2
     exit 2
 fi
 mkdir -p "$video_build"
@@ -25,9 +26,8 @@ if lsof -nP -iUDP:47491 -iUDP:47492 >/dev/null 2>&1; then
     echo "Loopback qualification port 47491 or 47492 is already in use." >&2
     exit 2
 fi
-export MACOSX_DEPLOYMENT_TARGET=27.0
 cd "$source_root"
-xcrun clang -mmacosx-version-min=27.0 -fobjc-arc -Wall -Wextra -Werror \
+xcrun clang -mmacosx-version-min="$MACOSX_DEPLOYMENT_TARGET" -fobjc-arc -Wall -Wextra -Werror -Werror=unguarded-availability -Werror=unguarded-availability-new \
     -Iapps/host/macos/control tests/protocol/macos-media-features.m \
     apps/host/macos/control/fixed-capture.m -framework Foundation -framework CoreGraphics \
     -o "$video_build/media-features"
@@ -38,14 +38,14 @@ shasum -a 256 "$transport_library" apps/host/macos/media/native-video.{h,m} \
     apps/host/macos/media/native-audio.{h,m} apps/host/macos/media/opus-encoder.{h,m} \
     apps/host/macos/auth/authentication-session.{h,m} tests/auth/macos-native-video.m \
     tests/auth/macos-preview-session.m tests/protocol/macos-preview-launch-v6.json
-xcrun clang -mmacosx-version-min=27.0 -fobjc-arc -Wall -Wextra -Werror \
+xcrun clang -mmacosx-version-min="$MACOSX_DEPLOYMENT_TARGET" -fobjc-arc -Wall -Wextra -Werror -Werror=unguarded-availability -Werror=unguarded-availability-new \
     -Iapps/host/macos/auth -Iapps/host/macos/media -Iprotocol/plank-transport/include \
     apps/host/macos/auth/authentication-session.m apps/host/macos/media/native-video.m \
     tests/auth/macos-native-video.m "$transport_library" \
     -framework Foundation -framework Security -framework SystemConfiguration \
     -framework CoreFoundation -framework CoreMedia -framework CoreVideo \
     -framework VideoToolbox -lpthread -lm -o "$video_build/native-video"
-xcrun clang -mmacosx-version-min=27.0 -fobjc-arc -Wall -Wextra -Werror \
+xcrun clang -mmacosx-version-min="$MACOSX_DEPLOYMENT_TARGET" -fobjc-arc -Wall -Wextra -Werror -Werror=unguarded-availability -Werror=unguarded-availability-new \
     -Iapps/host/macos/auth -Iapps/host/macos/control -Iapps/host/macos/media -Iapps/host/macos/input -Iapps/host/macos/session -Itests/input -Iprotocol/plank-transport/include \
     apps/host/macos/session/agent-registry.m apps/host/macos/session/agent-connection.m \
     apps/host/macos/auth/authentication-session.m apps/host/macos/control/fixed-capture.m \

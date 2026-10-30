@@ -45,6 +45,15 @@ def collect(args):
     if not re.fullmatch(r'[a-z0-9][a-z0-9-]*', args.branch):
         raise ValueError('invalid branch qualifier')
     effective = version if args.branch == 'main' else version + '-' + args.branch
+    if args.product == 'host' and args.platform == 'macos':
+        # Match plank_load_macos_host_package_version. Historical macos-27
+        # artifacts retain their original identity when transferred/re-collected.
+        if args.target_os not in ('macos-27', 'macos-27.0', 'macos-26.7'):
+            raise ValueError('unsupported macOS Host package target')
+        if args.branch == 'main' and args.target_os == 'macos-26.7':
+            raise ValueError('macOS Host 26.7 requires a candidate branch')
+        if args.branch != 'main' and args.target_os != 'macos-27':
+            effective += '-' + args.target_os.replace('macos-', 'macos', 1)
     source = args.package.resolve(strict=True)
     if not source.is_file():
         raise ValueError('package must be a regular file')

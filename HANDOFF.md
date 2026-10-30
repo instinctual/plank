@@ -4,6 +4,33 @@ Read `AGENTS.md` and the relevant build runbook first. Machine-specific access,
 credentials, captures and operational evidence belong in the external private
 notes, never in Git.
 
+## Experimental native macOS 26.7 Host backport
+
+The operator authorized a native 26.7 investigation. The opt-in build policy
+is `PLANK_MACOS_HOST_MIN_OS=26.7`; the regular default remains 27.0, with SDK27
+and exact Rust/transport pins retained. No native Host capture/input/auth/media
+source or wire protocol is changed. The availability audit and passive exact
+virtual-class signature check pass. Clean source `2b2d2d5a` completes the full
+uninstalled native assembly/component sequence on 26.7; all four bundle minimum
+checks pass and the standalone Host executable returns its version. The
+ad-hoc entitled app is not install-ready. Proper Host provisioning/signing and
+physical session qualification remain separate in the
+[backport plan](docs/development/plans/macos26-host-backport.md).
+The review candidate now includes explicit hosted `macos_host_min_os=26.7`
+dispatch for a Mac Host feature branch; default/ordinary builds remain 27.0.
+Target selection, exact-source dispatch and signed/unsigned routing fixtures
+pass. Mac Host candidates now include `-macos26.7` or `-macos27.0` in the
+visible version, installer name and catalog directory. Fifteen production
+collector tests pass, including retention in both orders and unchanged
+byte/provenance conflict protection; routing fixtures verify the version passed
+to assembly. Mainline 27.0, Client/Linux and historical artifact names are
+preserved. This packaging-only follow-up does not rebuild or qualify a Host.
+An upstream maintainer must review/import the candidate and use the
+existing protected signing path before installation can be qualified. No
+signing policy was changed and no signed workflow was dispatched.
+No Host has been installed or started operationally, no client session changed,
+and no OS, TCC, network, encryption or service maintenance accompanies this work.
+
 ## Paused investigation — Intel VA-API surface timeout
 
 Read-only inspection of an Ubuntu Client running **1.2.01** found repeated
