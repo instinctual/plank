@@ -11,8 +11,8 @@ Root and Client branch `client-displays` starts from mainline 1.2.02. Version
 the Ubuntu Qt Client. Match Client uses that selection for Linux and Mac Host
 preparation. A local toolbar menu switches single/span presentation without
 changing the Host or persisted bookmark. Existing bookmarks retain spanning;
-new bookmarks default to the current monitor. macOS Client, Host and transport
-implementations are unchanged. See
+new bookmarks default to the current monitor. macOS presentation, Host and
+transport implementations are unchanged. See
 [the plan](docs/development/plans/client-displays.plan) and
 [user guidance](docs/user/client-displays.md).
 
@@ -50,16 +50,41 @@ preserved, the private-library RUNPATH is intact, and no Client user service or
 autostart was introduced. The Qt launcher starts successfully. Deployment
 details are retained privately.
 
-Follow-up Client commit `9497bb0c` is pushed: new bookmarks default to Native (1:1 pixels),
-including repeated Add Bookmark dialogs and discovered workstations. Explicit
-saved scaling choices are preserved. This default change is not in the
-installed 1.2.04 candidate; it needs the next Client build.
+Follow-up root `0a2c77c3de635912edc29b00cc60785202a5c39b` and Client
+`9497bb0ccefe6830cfae21c7608d3f3a082a2bcc` are committed and pushed on
+`client-displays`: new bookmarks default to Native (1:1 pixels), including
+repeated Add Bookmark dialogs and discovered workstations. This shared default
+also applies to the macOS Client; explicit saved scaling choices are preserved.
+The automatic [build 41128113628](https://github.com/instinctual/plank/actions/runs/41128113628)
+passed policy, Linux Host/Client and unsigned macOS Host/Client jobs; signing
+was skipped. Privacy and clipboard workflows also passed. These later artifacts
+have not been downloaded, installed or accepted on hardware. The installed and
+locally cataloged 1.2.04 above predates the default change. Increment the version
+for the next distributed candidate; do not replace that catalog entry with
+different bytes under the same filename. No further rebuild is needed merely
+to reconfirm the successful automatic run.
 
 Next: assign one named Client display to each of two bookmarks, and test
 simultaneous fullscreen sessions, pixel fit, keyboard/tablet focus,
 single/span/windowed toolbar changes and reconnect. Live-session hardware
 acceptance, merge and release remain pending. The separate GPU investigation
 below remains paused.
+
+## Open review — experimental macOS 26.7 Host
+
+[PLANK PR #32](https://github.com/instinctual/plank/pull/32) was reviewed at
+`a6367439ef762f6b9422c816e5e96830b048654a`. The approach retains the default
+macOS 27 Host, SDK 27, runtime code and signing safeguards. One medium packaging
+concern remains: different minimum-OS candidates from the same branch/version
+share a filename and displayed version; the actual catalog correctly rejects
+the second artifact as conflicting provenance. The operator authorized this
+[review comment](https://github.com/instinctual/plank/pull/32#issuecomment-6533892492).
+The PR remains open, with no formal approval, merge, signing dispatch or
+installation performed. A correction and signed 26.7 session qualification
+remain the recommended next steps. Exact evidence and validation limits are in
+[the review](docs/development/reviews/macos26-host-pr32-review.md).
+The temporary review worktree/reference were removed; `native-builds` is
+preserved and canonical root/Client stay on `client-displays`.
 
 ## Paused investigation — Intel VA-API surface timeout
 

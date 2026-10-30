@@ -49,4 +49,9 @@ menu screenshot was inspected after correcting its initial text truncation.
 See HANDOFF for exact source/package hashes. Live two-session hardware and
 keyboard/tablet focus acceptance remain pending. The operator authorized
 installation on an Ubuntu hardware-test Client; there is no merge or release.
-The subsequent Native (1:1 pixels) bookmark-default change is not yet built.
+The subsequent Native (1:1 pixels) bookmark-default change is committed in
+Client `9497bb0ccefe6830cfae21c7608d3f3a082a2bcc`, pinned by root
+`0a2c77c3de635912edc29b00cc60785202a5c39b`. Automatic hosted build 41128113628
+passed all four product jobs (macOS unsigned) and policy checks. Its artifacts
+have not been downloaded or installed. The installed/cataloged 1.2.04 package
+predates this change; increment the version before distributing a replacement.
