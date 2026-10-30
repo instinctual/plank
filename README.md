@@ -19,12 +19,12 @@ transport, packaging, documentation and qualification tests.
 | --- | --- | --- |
 | Linux Host | Rocky Linux 9.7 / RHEL 9 family, x86-64, NVIDIA graphics and X11 | RPM |
 | Linux Client | Ubuntu 26.04, x86-64; Wayland is the qualified desktop path | DEB |
-| macOS Host | macOS 27 or newer, Apple Silicon | Signed, notarized PKG |
+| macOS Host | Apple Silicon; macOS 27+ by default, explicit 26.7 build | Signed, notarized PKG |
 | macOS Client | macOS 15 or newer, Apple Silicon | Signed, notarized PKG |
 
 Rocky Linux 9.7 is the Linux Host build and qualification baseline. The Mac
 Client uses one package for macOS 15 and newer, built with SDK 27 or newer;
-the Host has a separate macOS 27 minimum. Windows and other platforms are not
+the Host uses its separately selected 27.0 or 26.7 minimum. Windows and other platforms are not
 currently qualified PLANK products.
 
 From 1.2.00, the Ubuntu Client uses Qt-owned streaming windows and direct

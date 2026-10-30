@@ -398,12 +398,14 @@ Use `bash scripts/ci/dispatch.sh linux-host` (or another product) after pushing.
 It requires a clean, fully pushed branch and passes its exact expected SHA.
 The policy job rejects a stale dispatch revision before costly bootstrap.
 
-### Experimental macOS 26.7 Host candidate
+### macOS 26.7 Host build
 
 Manual dispatch exposes `macos_host_min_os`, default **27.0**, with **26.7** as
-an explicit experimental choice. Select `product=macos-host` and a reviewed
+an explicit supported target. Chris (cnoellert) owns its hardware and session
+validation; macOS 27 remains the default and retains its build/regression gates.
+Select `product=macos-host` and a reviewed
 feature branch for 26.7. Other products, ordinary push/PR events, tags and
-`main` cannot select that experimental floor. Both unsigned and protected signed
+`main` cannot select that alternate floor. Both unsigned and protected signed
 jobs validate the selection before dependency bootstrap, then pass the same
 floor to the fresh transport build, Host assembly and sealed installer metadata.
 The builder still uses Apple Silicon macOS27 and SDK27; Client targets and

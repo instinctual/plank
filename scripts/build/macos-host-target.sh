@@ -4,7 +4,7 @@ plank_macos_host_target() {
     PLANK_MACOS_HOST_MIN_OS=${PLANK_MACOS_HOST_MIN_OS:-27.0}
     case $PLANK_MACOS_HOST_MIN_OS in
       26.7|27.0) ;;
-      *) echo 'Host deployment target must be 27.0 or the experimental 26.7 backport' >&2; return 2 ;;
+      *) echo 'Host deployment target must be 27.0 or 26.7' >&2; return 2 ;;
     esac
     [[ $(uname -s) = Darwin && $(uname -m) = arm64 ]] || {
         echo 'Host requires an authorized Apple Silicon development Mac' >&2; return 2;

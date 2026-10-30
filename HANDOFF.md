@@ -4,32 +4,36 @@ Read `AGENTS.md` and the relevant build runbook first. Machine-specific access,
 credentials, captures and operational evidence belong in the external private
 notes, never in Git.
 
-## Experimental native macOS 26.7 Host backport
+## Native macOS 26.7 Host support
 
-The operator authorized a native 26.7 investigation. The opt-in build policy
-is `PLANK_MACOS_HOST_MIN_OS=26.7`; the regular default remains 27.0, with SDK27
-and exact Rust/transport pins retained. No native Host capture/input/auth/media
-source or wire protocol is changed. The availability audit and passive exact
-virtual-class signature check pass. Clean source `2b2d2d5a` completes the full
-uninstalled native assembly/component sequence on 26.7; all four bundle minimum
-checks pass and the standalone Host executable returns its version. The
-ad-hoc entitled app is not install-ready. Proper Host provisioning/signing and
-physical session qualification remain separate in the
-[backport plan](docs/development/plans/macos26-host-backport.md).
-The review candidate now includes explicit hosted `macos_host_min_os=26.7`
-dispatch for a Mac Host feature branch; default/ordinary builds remain 27.0.
-Target selection, exact-source dispatch and signed/unsigned routing fixtures
-pass. Mac Host candidates now include `-macos26.7` or `-macos27.0` in the
-visible version, installer name and catalog directory. Fifteen production
-collector tests pass, including retention in both orders and unchanged
-byte/provenance conflict protection; routing fixtures verify the version passed
-to assembly. Mainline 27.0, Client/Linux and historical artifact names are
-preserved. This packaging-only follow-up does not rebuild or qualify a Host.
-An upstream maintainer must review/import the candidate and use the
-existing protected signing path before installation can be qualified. No
-signing policy was changed and no signed workflow was dispatched.
-No Host has been installed or started operationally, no client session changed,
-and no OS, TCC, network, encryption or service maintenance accompanies this work.
+The operator accepts macOS 26.7 as a supported Host target, with Chris
+(cnoellert) responsible for hardware and session validation. The operator does
+not need a 26.7 test machine. Select `PLANK_MACOS_HOST_MIN_OS=26.7` explicitly;
+the ordinary Host remains 27.0 by default with SDK27 and existing dependency
+pins. Runtime capture, encoding, audio, input, authentication, session code and
+wire protocols are unchanged.
+
+[PR #32](https://github.com/instinctual/plank/pull/32) merged into main as
+`19ebedb0eb33686669c9741687a2d20d65075a88`, from reviewed head
+`ef45730c4a231d7aa1b4e469688d5e05df36423a`, resolving the package-identity concern.
+Mac Host candidates include `-macos26.7` or `-macos27.0` in the displayed
+version, filename and catalog directory. Both can coexist; changed payloads or
+provenance still fail collection. Mainline 27.0, Client/Linux and historical
+package names are preserved. Independent review passed 98 CI-policy tests,
+15 package-collection tests and four portable Host-target checks; one
+Apple-compiler check was skipped locally. All four product builds and policy
+passed in [hosted run 41133563710](https://github.com/instinctual/plank/actions/runs/41133563710);
+privacy and clipboard workflows also passed. PR signing was intentionally
+skipped. The merge tree matches the tested head exactly.
+
+The follow-up support-status edits change documentation and diagnostic wording,
+not runtime or dispatch rules. Explicit 26.7 packaging still uses a reviewed
+candidate branch and the existing protected signing path. Chris owns installed
+26.7 qualification; neither support status nor compilation claims that an
+unperformed hardware test passed. Recorded component evidence and next checks
+are in the [backport plan](docs/development/plans/macos26-host-backport.md).
+No installation, signing dispatch, release or live-session changes were made
+as part of this review.
 
 ## Paused investigation — Intel VA-API surface timeout
 

@@ -5,13 +5,14 @@ It provides remote workstation access from PLANK Clients on Ubuntu and macOS.
 It is not the macOS backend of the Sunshine-derived
 [Linux Host](https://github.com/instinctual/plank-host-linux).
 
-The Host targets **macOS 27 or newer on Apple Silicon** and is distributed as a
-signed, notarized PKG. The separate Mac Client supports macOS 15 and newer;
-that does not change the Host requirement.
+The Host defaults to **macOS 27 or newer on Apple Silicon**, with a separately
+selected **macOS 26.7** build also supported. It is distributed as a signed,
+notarized PKG; a 27.0 package cannot be installed on 26.7. The separate Mac
+Client supports macOS 15 and newer, which does not lower the Host requirement.
 
-The separately authorized native 26.7 backport is experimental and opt-in.
-Its compiler and component evidence does not establish installed streaming or
-login-screen support; see the [backport investigation](../../../docs/development/plans/macos26-host-backport.md).
+Chris (cnoellert) owns macOS 26.7 hardware and session validation. Compiler and
+component checks are recorded separately from installed streaming and
+login-screen results; see the [26.7 build and validation plan](../../../docs/development/plans/macos26-host-backport.md).
 
 [Downloads](https://github.com/instinctual/plank/releases) ·
 [Project overview](../../../README.md) ·

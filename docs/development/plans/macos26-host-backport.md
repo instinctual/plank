@@ -1,7 +1,10 @@
 # Native macOS 26.7 Host backport
 
-The operator authorized investigating a native Apple Silicon Host on 26.7.
-The regular Host remains 27.0 by default. This candidate explicitly selects
+The operator accepts native Apple Silicon Host support on 26.7, with
+Chris (cnoellert) responsible for its hardware and session validation. This is
+a supported target, not an experimental designation; the operator does not
+need to provide a 26.7 test machine. macOS 27 build/regression checks remain
+merge gates. The regular Host remains 27.0 by default. The 26.7 build explicitly selects
 `PLANK_MACOS_HOST_MIN_OS=26.7`; SDK 27 and the existing dependency versions remain
 required. It is not a repack of a signed 27-only installer.
 
@@ -96,15 +99,16 @@ release version; 26.7 cannot be packaged or collected as mainline. Historical
 All nested bundles must declare 26.7
 and every linked arm64 Mach-O must require no newer runtime. The build reuses
 the existing minimum checker for the app, extension and both audio drivers.
-Retain build/source hashes and operational receipts privately; publication of
-a candidate does not promote 26.7 to a fully qualified supported platform.
+Retain build/source hashes and operational receipts privately. Record Chris's
+installed qualification separately from build results; support status does not
+imply that an unperformed hardware test has passed.
 
 ## Review and signed test build
 
 The hosted workflow exposes an explicit `macos_host_min_os=26.7` input for a
 manual `macos-host` dispatch on a candidate branch. Normal push/PR builds and
 the default target remain 27.0. The runner stays macOS27/SDK27; validation
-rejects unsupported floors, other products and an experimental dispatch from
+rejects unsupported floors, other products and a 26.7 dispatch from
 main or a tag before bootstrap/signing. The selected floor reaches both the
 fresh transport and the signed or unsigned Host assembly. Dispatch retains the
 exact-source check and accepts `--macos-host-min-os=26.7` alongside the existing
@@ -128,7 +132,7 @@ or qualify a signed installer. No signing job has been dispatched.
 An upstream maintainer can review/import the fork commits to a candidate branch,
 allow only that branch in the existing protected signing environment, and
 produce a signed/notarized test package with the normal Host identity. The
-[hosted-build runbook](../build/github-builds.md#experimental-macos-267-host-candidate)
+[hosted-build runbook](../build/github-builds.md#macos-267-host-build)
 gives the exact command and retained profile/signing gates. No signing access,
 environment secrets, branch policy or operational installation is changed by
 this PR.

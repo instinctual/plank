@@ -32,7 +32,7 @@ cd "$root"
 test -z "$(git status --porcelain)" || { echo 'Commit the candidate before dispatch.' >&2; exit 1; }
 branch=$(git symbolic-ref --quiet --short HEAD)
 [[ $macos_host_min_os != 26.7 || $branch != main ]] || {
-  echo 'Experimental Host 26.7 builds require a candidate branch.' >&2; exit 2;
+  echo 'Host 26.7 builds require a candidate branch.' >&2; exit 2;
 }
 revision=$(git rev-parse HEAD)
 remote=$(git ls-remote origin "refs/heads/$branch" | cut -f1)
