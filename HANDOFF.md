@@ -70,21 +70,28 @@ single/span/windowed toolbar changes and reconnect. Live-session hardware
 acceptance, merge and release remain pending. The separate GPU investigation
 below remains paused.
 
-## Open review — experimental macOS 26.7 Host
+## Merged — macOS 26.7 Host support
 
-[PLANK PR #32](https://github.com/instinctual/plank/pull/32) was reviewed at
-`a6367439ef762f6b9422c816e5e96830b048654a`. The approach retains the default
-macOS 27 Host, SDK 27, runtime code and signing safeguards. One medium packaging
-concern remains: different minimum-OS candidates from the same branch/version
-share a filename and displayed version; the actual catalog correctly rejects
-the second artifact as conflicting provenance. The operator authorized this
-[review comment](https://github.com/instinctual/plank/pull/32#issuecomment-6533892492).
-The PR remains open, with no formal approval, merge, signing dispatch or
-installation performed. A correction and signed 26.7 session qualification
-remain the recommended next steps. Exact evidence and validation limits are in
-[the review](docs/development/reviews/macos26-host-pr32-review.md).
-The temporary review worktree/reference were removed; `native-builds` is
-preserved and canonical root/Client stay on `client-displays`.
+[PLANK PR #32](https://github.com/instinctual/plank/pull/32) merged as
+`19ebedb0eb33686669c9741687a2d20d65075a88`, from reviewed head
+`ef45730c4a231d7aa1b4e469688d5e05df36423a`. The package-identity concern is
+resolved: candidate versions, filenames and catalogs distinguish the selected
+26.7/27.0 minimum while retaining overwrite protection. All seven active checks
+passed, including all four product builds in
+[run 41133563710](https://github.com/instinctual/plank/actions/runs/41133563710).
+PR signing was skipped as intended; the merge tree matches the tested head.
+
+Main follow-up `bd75c102d3487c6ee44b0d39a52f09b39b8756a4` removes the experimental
+designation and records Chris (cnoellert) as owner of 26.7 hardware/session
+validation. macOS 27 remains the default; runtime, dispatch and signing rules
+are unchanged by that wording update. Independent checks passed 98 policy,
+15 collector and four portable Host-target tests; one Apple-only check was
+skipped locally. No installation, signing dispatch or release was performed.
+See [the review](docs/development/reviews/macos26-host-pr32-review.md).
+
+Canonical root/Client remain on `client-displays`; that feature has not been
+merged or rebased onto the new main. `native-builds` is preserved. Temporary
+PR review worktrees/references are removed after the merge.
 
 ## Paused investigation — Intel VA-API surface timeout
 
