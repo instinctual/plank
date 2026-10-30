@@ -4,6 +4,7 @@
 #import <IOKit/hidsystem/IOLLEvent.h>
 #include "plank_transport_input.h"
 #include <math.h>
+#include <stdint.h>
 
 // The existing Client sends QWERTY-normalized Windows virtual key identities,
 // not macOS keycodes. Keep this boundary explicit; no Sunshine packet wrapper.
@@ -97,6 +98,9 @@ static CGEventType buttonType(unsigned index, BOOL down) {
     if (index == 2) return down ? kCGEventRightMouseDown : kCGEventRightMouseUp;
     return down ? kCGEventOtherMouseDown : kCGEventOtherMouseUp;
 }
+static int64_t nextMouseEventNumber(int64_t number) {
+    return number == INT64_MAX ? 1 : number + 1;
+}
 
 typedef struct {
     CGPoint position, clickPosition[5];
@@ -104,6 +108,10 @@ typedef struct {
     CGEventFlags flags;
     uint64_t lastTime, clickTime[5];
     unsigned clickCount[5];
+    // Quartz pairs a press with its drag/up by event number. Constructing each
+    // CGEvent independently does not establish that pairing. Keep a distinct
+    // number per held button, including separate mouse and tablet sequences.
+    int64_t nextMouseEventNumber, mouseEventNumber[5], penEventNumber[4];
     uint8_t repeatKey;
     uint64_t repeatDue, repeatInterval;
 } PLANKMacInputState;
@@ -124,6 +132,15 @@ static CGEventType penButtonKind(unsigned bit, BOOL down) {
         (down ? kCGEventOtherMouseDown : kCGEventOtherMouseUp);
 }
 static unsigned penButtonNumber(unsigned bit) { return bit == 1 ? 2 : bit == 2 ? 1 : 3; }
+static int penEventIndex(CGEventType kind, unsigned sideButtons) {
+    switch (kind) {
+        case kCGEventLeftMouseDown: case kCGEventLeftMouseDragged: case kCGEventLeftMouseUp: return 0;
+        case kCGEventRightMouseDown: case kCGEventRightMouseDragged: case kCGEventRightMouseUp: return 1;
+        case kCGEventOtherMouseDown: case kCGEventOtherMouseDragged: case kCGEventOtherMouseUp:
+            return sideButtons & 2 ? 2 : 3;
+        default: return -1; // Hover and proximity do not belong to a press.
+    }
+}
 
 @implementation PLANKMacInputEvents {
     CGEventSourceRef _source;
@@ -188,7 +205,13 @@ static unsigned penButtonNumber(unsigned bit) { return bit == 1 ? 2 : bit == 2 ?
                 break;
             }
             event = CGEventCreateMouseEvent(_source, kind, target, mouseButton(index));
-            if (event) _state.position = target;
+            if (event) {
+                if (_state.buttons[index]) {
+                    CGEventSetIntegerValueField(event, kCGMouseEventNumber, _state.mouseEventNumber[index]);
+                    CGEventSetIntegerValueField(event, kCGMouseEventClickState, _state.clickCount[index]);
+                }
+                _state.position = target;
+            }
             break;
         }
         case PLANK_TRANSPORT_INPUT_MOUSE_BUTTON: {
@@ -202,6 +225,11 @@ static unsigned penButtonNumber(unsigned bit) { return bit == 1 ? 2 : bit == 2 ?
                 ? MIN(clicks + 1, 3u) : 1;
             event = CGEventCreateMouseEvent(_source, buttonType(index, down), _state.position, mouseButton(index));
             if (event) {
+                if (down) {
+                    _state.nextMouseEventNumber = nextMouseEventNumber(_state.nextMouseEventNumber);
+                    _state.mouseEventNumber[index] = _state.nextMouseEventNumber;
+                }
+                CGEventSetIntegerValueField(event, kCGMouseEventNumber, _state.mouseEventNumber[index]);
                 CGEventSetIntegerValueField(event, kCGMouseEventClickState, clicks);
                 _state.buttons[index] = down;
                 if (down) { _state.clickTime[index] = time; _state.clickPosition[index] = _state.position; _state.clickCount[index] = clicks; }
@@ -341,11 +369,21 @@ static unsigned penButtonNumber(unsigned bit) { return bit == 1 ? 2 : bit == 2 ?
     CGEventSetTimestamp(event, time);
     unsigned changed = next.buttons ^ _pen.buttons;
     if (changed) CGEventSetIntegerValueField(event, kCGMouseEventButtonNumber, penButtonNumber(changed));
+    int index = penEventIndex(kind, changed ? changed : next.buttons);
+    BOOL down = kind == kCGEventLeftMouseDown || kind == kCGEventRightMouseDown || kind == kCGEventOtherMouseDown;
+    int64_t number = index < 0 ? 0 : down ? nextMouseEventNumber(_state.nextMouseEventNumber) : _state.penEventNumber[index];
+    if (index >= 0) CGEventSetIntegerValueField(event, kCGMouseEventNumber, number);
     BOOL delivered = accept(event);
     CFRelease(event);
     // Commit each accepted event. If authority disappears between proximity
     // and tip, retain only the state actually delivered, never a phantom down.
-    if (delivered) { _pen = next; _state.position = next.position; _state.lastTime = time; }
+    if (delivered) {
+        if (down) {
+            _state.nextMouseEventNumber = number;
+            _state.penEventNumber[index] = number;
+        }
+        _pen = next; _state.position = next.position; _state.lastTime = time;
+    }
     return delivered;
 }
 - (PLANKMacInputResult)consumePen:(NSData *)payload time:(uint64_t)time
@@ -461,13 +499,18 @@ static unsigned penButtonNumber(unsigned bit) { return bit == 1 ? 2 : bit == 2 ?
         CGEventRef event = [self penEvent:_pen kind:penButtonKind(bit, NO)];
         if (event) {
             CGEventSetIntegerValueField(event, kCGMouseEventButtonNumber, penButtonNumber(bit));
+            CGEventSetIntegerValueField(event, kCGMouseEventNumber,
+                _state.penEventNumber[penEventIndex(penButtonKind(bit, NO), bit)]);
             [events addObject:CFBridgingRelease(event)];
         }
     }
     if (_pen.down) {
         _pen.down = NO; _pen.pressure = 0; _pen.buttons = 0;
         CGEventRef event = [self penEvent:_pen kind:kCGEventLeftMouseUp];
-        if (event) [events addObject:CFBridgingRelease(event)];
+        if (event) {
+            CGEventSetIntegerValueField(event, kCGMouseEventNumber, _state.penEventNumber[0]);
+            [events addObject:CFBridgingRelease(event)];
+        }
     }
     if (_pen.near) {
         _pen.near = NO; _pen.buttons = 0;
@@ -493,7 +536,11 @@ static unsigned penButtonNumber(unsigned bit) { return bit == 1 ? 2 : bit == 2 ?
     for (unsigned i = 0; i < 5; ++i) if (_state.buttons[i]) {
         _state.buttons[i] = NO;
         CGEventRef event = CGEventCreateMouseEvent(_source, buttonType(i, NO), _state.position, mouseButton(i));
-        if (event) { CGEventSetFlags(event, _state.flags); [events addObject:CFBridgingRelease(event)]; }
+        if (event) {
+            CGEventSetIntegerValueField(event, kCGMouseEventNumber, _state.mouseEventNumber[i]);
+            CGEventSetIntegerValueField(event, kCGMouseEventClickState, _state.clickCount[i]);
+            CGEventSetFlags(event, _state.flags); [events addObject:CFBridgingRelease(event)];
+        }
     }
     return events;
 }

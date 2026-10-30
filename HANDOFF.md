@@ -4,6 +4,42 @@ Read `AGENTS.md` and the relevant build runbook first. Machine-specific access,
 credentials, captures and operational evidence belong in the external private
 notes, never in Git.
 
+## Candidate — macOS click pairing
+
+Branch `macos-click-pairing` starts from main
+`bd75c102d3487c6ee44b0d39a52f09b39b8756a4`; package version is **1.2.05**.
+The selected macOS 27 target will produce
+`1.2.05-macos-click-pairing-macos27.0`. This Host-only candidate does not include
+the separate, unmerged `client-displays` work. Client, Linux Host, protocol,
+dependency pins, input authorization and Quartz posting location are unchanged.
+
+Read-only investigation of macOS 27.2 captured first-click activation requests
+that reached WindowServer but remained pending until later clicks. The mapper
+constructed press, drag and release events independently without preserving
+`kCGMouseEventNumber`. It now assigns a number to each press and retains it for
+that button's drags, release and disconnect cleanup. Mouse and normalized-pen
+buttons have independent held identities. Rejected delivery cannot commit a
+new press or erase an accepted one. Double-click counts and modifier/pressure/
+tool information retain their existing behavior.
+
+Apple documents [matching press/release event numbers](https://developer.apple.com/documentation/coregraphics/cgeventfield/mouseeventnumber).
+Chromium's [related macOS drag repair](https://github.com/chromium/chromium/commit/4e33c976af4f92dc0e79b18a0b19dd7f17ed2ee7)
+supports this diagnosis, but does not prove the reported activation failure is
+resolved. The non-posting Quartz/AppKit fixtures now cover all five mouse
+buttons, overlapping presses, multi-clicks, denied releases, cleanup, pen tip/
+eraser/side buttons and mixed mouse/pen sequences. Local validation passed all
+98 CI-policy tests, 15 package-collection tests, release-version checks and
+whitespace checks. Hosted Quartz/AppKit execution and the signed candidate
+build are pending at this checkpoint.
+
+Next: build/sign through hosted Actions, retain exact source/package hashes,
+then qualify switching between inactive applications on macOS 27.2, title-bar
+and content dragging, double/triple and modifier clicks, right-click menus,
+tablet pressure and disconnect/reconnect. No live machine was changed, no input
+was injected, and no collector remains. Hardware acceptance, merge and release
+are pending; the production Host must not be reported fixed from compilation
+alone. Private notes contain the observed event timelines.
+
 ## Native macOS 26.7 Host support
 
 The operator accepts macOS 26.7 as a supported Host target, with Chris
