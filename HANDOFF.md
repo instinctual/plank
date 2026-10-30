@@ -8,7 +8,7 @@ notes, never in Git.
 
 Branch `macos-click-pairing` starts from main
 `bd75c102d3487c6ee44b0d39a52f09b39b8756a4`; package version is **1.2.05**.
-The selected macOS 27 target will produce
+The signed macOS 27 candidate is
 `1.2.05-macos-click-pairing-macos27.0`. This Host-only candidate does not include
 the separate, unmerged `client-displays` work. Client, Linux Host, protocol,
 dependency pins, input authorization and Quartz posting location are unchanged.
