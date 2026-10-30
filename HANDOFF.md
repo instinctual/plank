@@ -4,32 +4,106 @@ Read `AGENTS.md` and the relevant build runbook first. Machine-specific access,
 credentials, captures and operational evidence belong in the external private
 notes, never in Git.
 
-## Current continuation — macOS Host click pairing
+## Current main — Client displays and macOS click pairing
 
-The active Host fix is on separate branch `macos-click-pairing`, in
-`build/worktrees/macos-click-pairing/`; read that branch's `HANDOFF.md` for the
-diagnosis, validation and package provenance. This canonical checkout remains
-on `client-displays`, preserving the Client feature below. Neither feature
-branch is merged. Native Apple work remains separate.
+The operator authorized merging `client-displays` and `macos-click-pairing`.
+Canonical root and Client now use `main`. Client main is
+`9497bb0ccefe6830cfae21c7608d3f3a082a2bcc`; root includes both feature histories
+and retains package version **1.2.05**. The Client merge is a fast-forward to
+its already-tested source. Parent merge resolutions affect the handoff and
+version file, with no additional runtime changes.
 
-Signed Host candidate **1.2.05-macos-click-pairing-macos27.0**, built from
-`ca4903bbfb38fa97cc603a34ea9670942f03b69a`, passed hosted tests and package gates
-in [run 41140938612](https://github.com/instinctual/plank/actions/runs/41140938612).
-It is downloaded under
-`artifacts/packages/candidates/1.2.05-macos-click-pairing-macos27.0/macos/`.
-The change is macOS Host mouse-event pairing only; no Client update is required.
-The operator reports installation on the affected macOS 27.2 Host and no
-recurrence during the first few minutes. Sustained acceptance of this
-intermittent issue remains pending. Continue normal use, app activation,
-dragging, tablet input and reconnect testing; do not treat the initial positive
-observation as conclusive resolution.
-No build or live diagnostic collector remains active. Private evidence stays
-outside Git.
+Main now includes per-bookmark Ubuntu fullscreen display selection, the
+session display menu, the shared Native 1:1 bookmark default, and macOS Host
+press/drag/release event pairing. Existing macOS presentation and Linux Host
+code are unchanged. Linux Host remains
+`65dc0f1be60fe78d0457364f83813118c70bc8a8`; Kymux remains
+`3f7a9d8618978287186e5d6ce0eaa067743cb06c`. Dependency PRs were not adopted.
+Native Apple development remains on `native-builds`, outside shipping main.
 
-## Ready for hardware testing — Ubuntu Client displays
+Merged-source verification passed 98 CI-policy tests, 15 package-collection tests,
+four portable Host-target checks, release-version and whitespace checks. The
+Apple-compiler target check is skipped on this Linux checkout. The Client tree
+and macOS input files match their previously tested feature sources exactly.
+Prior exact candidate build evidence is retained below. Merge commits skip
+redundant package workflows; this request does not include a package rebuild,
+installation or release. Existing candidates keep their original names, hashes
+and source manifests; never relabel them as main.
 
-Root and Client branch `client-displays` starts from mainline 1.2.02. Version
-1.2.04 adds per-bookmark current/named/both-monitor fullscreen selection for
+The operator reports no recurrence during the first few minutes after installing
+the macOS click candidate. Continue normal-use observation; this is preliminary
+positive feedback, not conclusive resolution of an intermittent problem. The
+remaining Client display and input hardware checks are listed below. No live
+collector or product session was started or interrupted for the merge.
+
+## Merged — macOS click pairing
+
+Branch `macos-click-pairing` started from main
+`bd75c102d3487c6ee44b0d39a52f09b39b8756a4`; package version is **1.2.05**.
+The signed macOS 27 candidate is
+`1.2.05-macos-click-pairing-macos27.0`. This Host-only candidate predates the
+combined mainline and does not include the Client display changes. Client,
+Linux Host, protocol, dependency pins, input authorization and Quartz posting
+location are unchanged by the Host fix.
+
+Read-only investigation of macOS 27.2 captured first-click activation requests
+that reached WindowServer but remained pending until later clicks. The mapper
+constructed press, drag and release events independently without preserving
+`kCGMouseEventNumber`. It now assigns a number to each press and retains it for
+that button's drags, release and disconnect cleanup. Mouse and normalized-pen
+buttons have independent held identities. Rejected delivery cannot commit a
+new press or erase an accepted one. Double-click counts and modifier/pressure/
+tool information retain their existing behavior.
+
+Apple documents [matching press/release event numbers](https://developer.apple.com/documentation/coregraphics/cgeventfield/mouseeventnumber).
+Chromium's [related macOS drag repair](https://github.com/chromium/chromium/commit/4e33c976af4f92dc0e79b18a0b19dd7f17ed2ee7)
+supports this diagnosis, but does not prove the reported activation failure is
+resolved. The non-posting Quartz/AppKit fixtures now cover all five mouse
+buttons, overlapping presses, multi-clicks, denied releases, cleanup, pen tip/
+eraser/side buttons and mixed mouse/pen sequences. Local validation passed all
+98 CI-policy tests, 15 package-collection tests, release-version checks and
+whitespace checks. The first hosted attempt stopped compiling the expanded
+input fixture: its old `send()` helper conflicted with the socket declaration
+exposed by the new AppKit import. The helper is now `sendInput()`; no product
+change or test removal was needed.
+
+The signed Host-only [build 41140938612](https://github.com/instinctual/plank/actions/runs/41140938612)
+passed from root `ca4903bbfb38fa97cc603a34ea9670942f03b69a`, including **2,775**
+Quartz/AppKit input assertions, **1,537** pen assertions and **216** native-input
+assertions across eight scenarios. Those fixtures do not post OS input. The
+ordinary Host tests, installer gates, Developer ID signing, notarization,
+stapling and Gatekeeper checks also passed. Privacy passed on this exact source;
+clipboard regressions passed on the preceding implementation commit. The
+redundant push-triggered all-product build was canceled; no Client or Linux
+package was requested for this change.
+
+The verified candidate is
+`artifacts/packages/candidates/1.2.05-macos-click-pairing-macos27.0/macos/plank-host_1.2.05-macos-click-pairing-macos27.0_arm64.pkg`
+(7,005,861 bytes), SHA-256
+`56f1df348fa8cadd0356156c32b208ec04d0cc6455cb71115858cbe1fc593adb`.
+Original manifests, Actions metadata and both build logs are retained in
+`artifacts/qualification/macos-click-pairing-1.2.05/`. The manifest retains exact
+root and submodule pins; Kymux remains
+`3f7a9d8618978287186e5d6ce0eaa067743cb06c`. The candidate branch has a scoped
+signing permission; remove it when retiring the branch. No build remains active.
+
+The operator reports installing this candidate on the affected macOS 27.2 Host
+and observing no recurrence during the first few minutes. This is a positive
+initial result, not sustained acceptance of an intermittent failure. Installed
+bytes were not independently inspected after the operator's installation.
+
+Next: continue ordinary use and qualify switching between inactive applications,
+title-bar and content dragging, double/triple and modifier clicks, right-click
+menus, tablet pressure and disconnect/reconnect. No input was injected by the
+diagnostics, and no collector remains. The operator authorized merging the fix.
+Sustained hardware acceptance and release remain pending. Private notes contain
+the observed event timelines.
+
+## Merged — Ubuntu Client displays
+
+Root and Client branch `client-displays` started from mainline 1.2.02 and are
+now merged into main. Candidate 1.2.04 added per-bookmark
+current/named/both-monitor fullscreen selection for
 the Ubuntu Qt Client. Match Client uses that selection for Linux and Mac Host
 preparation. A local toolbar menu switches single/span presentation without
 changing the Host or persisted bookmark. Existing bookmarks retain spanning;
@@ -39,8 +113,9 @@ transport implementations are unchanged. See
 [user guidance](docs/user/client-displays.md).
 
 Root package source is `a3601f5a728c167f4f3cb0f9c0ff457aa03c259c`; Client is
-`56f84eb6f11dc3a2bf1dd0ed44d14842f98daff2`. Both branches are pushed, with no
-merge or release. [Hosted build41116553672](https://github.com/instinctual/plank/actions/runs/41116553672)
+`56f84eb6f11dc3a2bf1dd0ed44d14842f98daff2`. These candidate source checkpoints
+are preserved; the complete feature is now merged, without a release.
+[Hosted build41116553672](https://github.com/instinctual/plank/actions/runs/41116553672)
 passed. Local version/catalog checks and 92 CI policy checks pass. The new
 13-case selector suite passes normally and under sanitizers at 100%/125%.
 Both GNOME scale runs report 56 passed, zero failed, one two-output-only skip;
@@ -73,9 +148,9 @@ autostart was introduced. The Qt launcher starts successfully. Deployment
 details are retained privately.
 
 Follow-up root `0a2c77c3de635912edc29b00cc60785202a5c39b` and Client
-`9497bb0ccefe6830cfae21c7608d3f3a082a2bcc` are committed and pushed on
-`client-displays`: new bookmarks default to Native (1:1 pixels), including
-repeated Add Bookmark dialogs and discovered workstations. This shared default
+`9497bb0ccefe6830cfae21c7608d3f3a082a2bcc` are now included in root and Client
+main: new bookmarks default to Native (1:1 pixels), including repeated Add
+Bookmark dialogs and discovered workstations. This shared default
 also applies to the macOS Client; explicit saved scaling choices are preserved.
 The automatic [build 41128113628](https://github.com/instinctual/plank/actions/runs/41128113628)
 passed policy, Linux Host/Client and unsigned macOS Host/Client jobs; signing
@@ -89,7 +164,8 @@ to reconfirm the successful automatic run.
 Next: assign one named Client display to each of two bookmarks, and test
 simultaneous fullscreen sessions, pixel fit, keyboard/tablet focus,
 single/span/windowed toolbar changes and reconnect. Live-session hardware
-acceptance, merge and release remain pending. The separate GPU investigation
+acceptance remains unrecorded; merge authorization does not substitute for
+those checks. No release was published. The separate GPU investigation
 below remains paused.
 
 ## Merged — macOS 26.7 Host support
@@ -116,9 +192,8 @@ are unchanged by that wording update. Independent checks passed 98 policy,
 skipped locally. No installation, signing dispatch or release was performed.
 See [the review](docs/development/reviews/macos26-host-pr32-review.md).
 
-Canonical root/Client remain on `client-displays`; that feature has not been
-merged or rebased onto the new main. `native-builds` is preserved. Temporary
-PR review worktrees/references were removed after the merge.
+Canonical root and Client are now on `main`, including the accepted display
+and click-pairing changes. `native-builds` remains separate and preserved.
 
 ## Paused investigation — Intel VA-API surface timeout
 

@@ -19,6 +19,17 @@ static NSArray *sendPen(PLANKMacInputEvents *mapper, NSData *payload, PLANKMacIn
     return events;
 }
 static CGEventRef event(NSArray *events, unsigned index) { CHECK(index < events.count); return (__bridge CGEventRef)events[index]; }
+static int64_t sequence(CGEventRef e) {
+    int64_t number = CGEventGetIntegerValueField(e, kCGMouseEventNumber);
+    CHECK(number > 0);
+    CHECK([NSEvent eventWithCGEvent:e].eventNumber == number);
+    return number;
+}
+static NSData *buttons(unsigned action, unsigned value) {
+    NSMutableData *p = [pen(action,1,.5,.5,.75) mutableCopy];
+    ((uint8_t *)p.mutableBytes)[2] = value;
+    return p;
+}
 static void checkProximity(CGEventRef e, BOOL entering, NSUInteger tool) {
     CHECK(CGEventGetType(e) == kCGEventTabletProximity);
     CHECK(CGEventGetIntegerValueField(e, kCGTabletProximityEventCapabilityMask) == 0x447);
@@ -51,12 +62,15 @@ int main(void) {
             checkProximity(event(events,0), YES, NSPointingDeviceTypePen);
             CHECK(CGEventGetType(event(events,1)) == kCGEventMouseMoved);
             CHECK(CGEventGetDoubleValueField(event(events,1), kCGTabletEventPointPressure) == 0);
+            int64_t tipNumber = 0;
             for (unsigned i = 0; i <= 20; ++i) {
                 float p = i / 20.0f;
                 events = sendPen(mapper, pen(i ? 3 : 1,1,p,p,p), PLANKMacInputEvent);
                 CHECK(events.count == 1);
                 CGEventRef e = event(events,0);
                 CHECK(CGEventGetType(e) == (i ? kCGEventLeftMouseDragged : kCGEventLeftMouseDown));
+                if (!i) tipNumber = sequence(e);
+                CHECK(sequence(e) == tipNumber);
                 CHECK(fabs(CGEventGetDoubleValueField(e,kCGTabletEventPointPressure) - p) < .0001);
                 CHECK(CGEventGetIntegerValueField(e,kCGMouseEventSubtype) == kCGEventMouseSubtypeTabletPoint);
                 NSEvent *native = [NSEvent eventWithCGEvent:e]; CHECK(native);
@@ -70,6 +84,7 @@ int main(void) {
             }
             events = sendPen(mapper, pen(2,1,1,1,0), PLANKMacInputEvent);
             CHECK(CGEventGetType(event(events,0)) == kCGEventLeftMouseUp);
+            CHECK(sequence(event(events,0)) == tipNumber);
             events = sendPen(mapper, pen(0,2,.5,.5,0), PLANKMacInputEvent);
             CHECK(events.count == 3); // old tool leaves before eraser enters
             checkProximity(event(events,0), NO, NSPointingDeviceTypePen);
@@ -77,8 +92,10 @@ int main(void) {
             CHECK(CGEventGetIntegerValueField(event(events,1), kCGTabletProximityEventPointerType) == 3);
             events = sendPen(mapper, pen(1,2,.5,.5,.5), PLANKMacInputEvent);
             CHECK(CGEventGetType(event(events,0)) == kCGEventLeftMouseDown);
+            int64_t eraserNumber = sequence(event(events,0)); CHECK(eraserNumber != tipNumber);
             events = sendPen(mapper, pen(7,0,0,0,0), PLANKMacInputEvent);
             CHECK(events.count == 2 && CGEventGetType(event(events,0)) == kCGEventLeftMouseUp);
+            CHECK(sequence(event(events,0)) == eraserNumber);
             CHECK(CGEventGetIntegerValueField(event(events,1), kCGTabletProximityEventEnterProximity) == 0);
             checkProximity(event(events,1), NO, NSPointingDeviceTypeEraser);
             CHECK(sendPen(mapper,pen(7,0,0,0,0),PLANKMacInputNoEvent).count == 0);
@@ -104,15 +121,24 @@ int main(void) {
             CHECK(events.count == 1);
             CHECK(CGEventGetType(event(events,0)) == (bit == 1 ? kCGEventRightMouseDown : kCGEventOtherMouseDown));
             CHECK(CGEventGetIntegerValueField(event(events,0),kCGMouseEventButtonNumber) == (bit == 1 ? 2 : bit == 2 ? 1 : 3));
+            int64_t number = sequence(event(events,0));
             CHECK(sendPen(mapper,p,PLANKMacInputNoEvent).count == 0);
+            NSArray *drag = sendPen(mapper,buttons(0,bit),PLANKMacInputEvent);
+            CHECK(drag.count == 1 && sequence(event(drag,0)) == number);
+            CHECK(CGEventGetType(event(drag,0)) == (bit == 1 ? kCGEventRightMouseDragged : kCGEventOtherMouseDragged));
             ((uint8_t *)p.mutableBytes)[2] = 0;
             events = sendPen(mapper,p,PLANKMacInputEvent);
             CHECK(CGEventGetType(event(events,0)) == (bit == 1 ? kCGEventRightMouseUp : kCGEventOtherMouseUp));
+            CHECK(sequence(event(events,0)) == number);
         }
+        int64_t previousNumber = 0;
         for (unsigned click = 1; click <= 3; ++click) {
             NSArray *events = sendPen(mapper,pen(1,1,.5,.5,.5),PLANKMacInputEvent);
             CHECK(CGEventGetIntegerValueField(event(events,0),kCGMouseEventClickState) == click);
-            sendPen(mapper,pen(2,1,.5,.5,0),PLANKMacInputEvent);
+            int64_t number = sequence(event(events,0));
+            CHECK(number != previousNumber); previousNumber = number;
+            events = sendPen(mapper,pen(2,1,.5,.5,0),PLANKMacInputEvent);
+            CHECK(sequence(event(events,0)) == number);
         }
         sendPen(mapper,pen(7,0,0,0,0),PLANKMacInputEvent);
         for (unsigned length = 0; length < 34; ++length) if (length != 32)
@@ -126,13 +152,59 @@ int main(void) {
             NSMutableData *p = [pen(1,1,.5,.5,.5) mutableCopy]; ((uint8_t *)p.mutableBytes)[offset] = 1;
             CHECK(sendPen(mapper,p,PLANKMacInputMalformed).count == 0);
         }
-        sendPen(mapper,pen(1,1,.5,.5,.75),PLANKMacInputEvent);
+        NSArray *tip = sendPen(mapper,pen(1,1,.5,.5,.75),PLANKMacInputEvent);
+        int64_t cleanupNumber = sequence(event(tip,1)); // proximity then tip
         NSArray *cleanup = [mapper stopAndCopyReleaseEvents];
         CHECK(cleanup.count == 2 && CGEventGetType(event(cleanup,0)) == kCGEventLeftMouseUp);
+        CHECK(sequence(event(cleanup,0)) == cleanupNumber);
         CHECK(CGEventGetDoubleValueField(event(cleanup,0),kCGTabletEventPointPressure) == 0);
         checkProximity(event(cleanup,1), NO, NSPointingDeviceTypePen);
         CHECK([mapper stopAndCopyReleaseEvents].count == 0);
         CHECK(sendPen(mapper,pen(0,1,0,0,0),PLANKMacInputStopped).count == 0);
+        // Tip plus all side buttons, with a simultaneous ordinary mouse press:
+        // each accepted press retains its own identity through cleanup.
+        mapper = make(source,bounds[0],pixels[0]);
+        NSArray *held = sendPen(mapper,buttons(1,7),PLANKMacInputEvent);
+        CHECK(held.count == 5); // proximity, tip, three side buttons
+        int64_t numbers[4];
+        for (unsigned i = 0; i < 4; ++i) {
+            numbers[i] = sequence(event(held,i + 1));
+            for (unsigned j = 0; j < i; ++j) CHECK(numbers[i] != numbers[j]);
+        }
+        __block int64_t mouseNumber = 0;
+        NSData *mousePress = [NSData dataWithBytes:(uint8_t[]){1,1} length:2];
+        CHECK([mapper consumeType:2 payload:mousePress
+            time:1000000000 accept:^BOOL(CGEventRef e) { mouseNumber = sequence(e); return YES; }] == PLANKMacInputEvent);
+        for (unsigned i = 0; i < 4; ++i) CHECK(mouseNumber != numbers[i]);
+        CHECK(sequence(event(sendPen(mapper,buttons(3,7),PLANKMacInputEvent),0)) == numbers[0]);
+        cleanup = [mapper stopAndCopyReleaseEvents];
+        CHECK(cleanup.count == 6); // side releases, tip release, proximity, mouse release
+        for (unsigned i = 0; i < 3; ++i) CHECK(sequence(event(cleanup,i)) == numbers[i + 1]);
+        CHECK(sequence(event(cleanup,3)) == numbers[0]);
+        checkProximity(event(cleanup,4), NO, NSPointingDeviceTypePen);
+        CHECK(sequence(event(cleanup,5)) == mouseNumber);
+        CHECK([mapper stopAndCopyReleaseEvents].count == 0);
+        // Reject a side-button press after accepting proximity and tip. A later
+        // accepted side press must not replace the tip's active sequence.
+        mapper = make(source,bounds[0],pixels[0]);
+        __block unsigned accepted = 0;
+        __block int64_t tipNumber = 0;
+        CHECK([mapper consumeType:7 payload:buttons(1,1) time:1000000000 accept:^BOOL(CGEventRef e) {
+            if (CGEventGetType(e) == kCGEventLeftMouseDown) tipNumber = sequence(e);
+            return accepted++ < 2;
+        }] == PLANKMacInputDenied);
+        CHECK(accepted == 3);
+        held = sendPen(mapper,buttons(5,1),PLANKMacInputEvent);
+        CHECK(held.count == 1 && sequence(event(held,0)) != tipNumber);
+        // A denied tip release also keeps the original press for teardown.
+        CHECK([mapper consumeType:7 payload:buttons(2,1) time:1000000000 accept:^BOOL(CGEventRef e) {
+            CHECK(CGEventGetType(e) == kCGEventLeftMouseUp && sequence(e) == tipNumber); return NO;
+        }] == PLANKMacInputDenied);
+        cleanup = [mapper stopAndCopyReleaseEvents];
+        CHECK(cleanup.count == 3);
+        CHECK(sequence(event(cleanup,0)) == sequence(event(held,0)));
+        CHECK(sequence(event(cleanup,1)) == tipNumber);
+        checkProximity(event(cleanup,2), NO, NSPointingDeviceTypePen);
         CFRelease(source);
         printf("macos_pen_events_pass checks=%u posted=0\n",checks);
     }
