@@ -80,6 +80,10 @@ resolved: candidate versions, filenames and catalogs distinguish the selected
 passed, including all four product builds in
 [run 41133563710](https://github.com/instinctual/plank/actions/runs/41133563710).
 PR signing was skipped as intended; the merge tree matches the tested head.
+The automatic mainline merge build
+[41136635392](https://github.com/instinctual/plank/actions/runs/41136635392)
+is still running at this checkpoint; its privacy and clipboard checks passed.
+No packages from that run have been downloaded or installed.
 
 Main follow-up `bd75c102d3487c6ee44b0d39a52f09b39b8756a4` removes the experimental
 designation and records Chris (cnoellert) as owner of 26.7 hardware/session
@@ -91,7 +95,7 @@ See [the review](docs/development/reviews/macos26-host-pr32-review.md).
 
 Canonical root/Client remain on `client-displays`; that feature has not been
 merged or rebased onto the new main. `native-builds` is preserved. Temporary
-PR review worktrees/references are removed after the merge.
+PR review worktrees/references were removed after the merge.
 
 ## Paused investigation — Intel VA-API surface timeout
 
