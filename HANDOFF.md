@@ -4,6 +4,25 @@ Read `AGENTS.md` and the relevant build runbook first. Machine-specific access,
 credentials, captures and operational evidence belong in the external private
 notes, never in Git.
 
+## Candidate in progress — Ubuntu Client displays
+
+Root and Client branch `client-displays` starts from mainline 1.2.02. Version
+1.2.03 adds per-bookmark current/named/both-monitor fullscreen selection for
+the Ubuntu Qt Client. Match Client uses that selection for Linux and Mac Host
+preparation. A local toolbar menu switches single/span presentation without
+changing the Host or persisted bookmark. Existing bookmarks retain spanning;
+new bookmarks default to the current monitor. macOS Client, Host and transport
+implementations are unchanged. See
+[the plan](docs/development/plans/client-displays.plan) and
+[user guidance](docs/user/client-displays.md).
+
+Local version/catalog checks pass. Hosted compilation, new selection/QML/menu
+tests, sanitizer checks and two-output compositor checks are pending. Build
+the Ubuntu candidate through GitHub Actions, retain its original provenance,
+then request hardware acceptance with two simultaneous sessions. No remote
+installation, session interruption, merge or release is authorized for this
+candidate. The separate GPU investigation below remains paused.
+
 ## Paused investigation — Intel VA-API surface timeout
 
 Read-only inspection of an Ubuntu Client running **1.2.01** found repeated

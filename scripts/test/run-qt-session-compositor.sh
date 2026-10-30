@@ -38,7 +38,7 @@ dbus-run-session -- bash -eu -c '
     export QSG_RHI_BACKEND=opengl
     unset QT_QUICK_BACKEND
     if test "${PLANK_QT_CHECK_SCREEN_SELECTION:-0}" = 1; then
-        "$PLANK_QT_SESSION_TEST_BUILD/tests/qtsession" selectedScreenSurvivesHiddenCreation
+        "$PLANK_QT_SESSION_TEST_BUILD/tests/qtsession" selectedScreenSurvivesHiddenCreation independentFullscreenSessions
         exit
     fi
     if test -n "${PLANK_QT_CLIENT_BINARY:-}"; then

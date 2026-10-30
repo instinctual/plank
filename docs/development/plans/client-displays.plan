@@ -1,0 +1,38 @@
+# Ubuntu Client display selection
+
+Branch: client-displays, based on main and the complete 1.2.02 Client.
+Scope: Ubuntu Qt Client. Host protocol and macOS Client behavior stay unchanged.
+
+## Behavior
+
+- Add per-bookmark Client Displays: current monitor, a named connected monitor,
+  or both side-by-side monitors. New bookmarks use current; saved bookmarks
+  without the new key retain their existing spanning behavior.
+- Resolve connector identities on the GUI thread before authentication. Use
+  that same selection for Mac display preparation, Linux Match Client geometry
+  and the initial Qt presentation. Do not persist transient enumeration indices.
+- Keep Host layout and scaling independent. At 100% scale, a matching single
+  stream fills its selected fullscreen display with no window decorations.
+- Add a small menu beside the existing fullscreen control: fullscreen on this
+  monitor or span both. These are local, session-only presentation changes;
+  they do not change the negotiated Host layout, stream or bookmark.
+- Keep the selected monitor when moving between windowed and fullscreen states.
+  Missing saved monitors fall back to the current monitor with visible feedback.
+- Release held input on focus/layout changes. Permit the pointer to cross between
+  independent fullscreen sessions; background sessions must not receive pen input.
+
+## Validation
+
+- Test selection persistence, absent monitors, stable selection after enumeration
+  changes, equal/unequal displays, and 100%/125% physical versus logical geometry.
+- Test single-monitor Match Client for Linux and Mac preparation, and ensure
+  session presentation overrides do not mutate the negotiated display snapshot.
+- Exercise two independent fullscreen windows and single/span/windowed transitions
+  in the existing isolated GNOME compositor, including popup input isolation.
+- Run the complete Ubuntu hosted build, sanitizer, compositor and package gates;
+  collect the branch-labelled candidate with its original manifest and hashes.
+- User hardware acceptance: two different Hosts fullscreen one per monitor,
+  exact pixel fit, toolbar, focus/keyboard/Wacom, span and reconnect. Hosted
+  software-GPU results do not replace this acceptance.
+
+The deferred Intel GPU-hang/packet-loss investigation remains paused.

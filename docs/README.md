@@ -1,6 +1,8 @@
 # Documentation
 
 - [User documentation](user/): bookmark behavior and product configuration.
+  [Ubuntu Client displays](user/client-displays.md) covers per-bookmark fullscreen
+  monitor selection and spanning.
   [macOS configuration](user/macos-configuration.md) covers Host/Client INI files,
   installation, upgrade preservation and identity separation.
   [Permissions](user/permissions.md) covers launch-time setup, denied access,
