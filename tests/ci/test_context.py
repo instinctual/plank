@@ -48,6 +48,8 @@ class ContextTests(unittest.TestCase):
             env = dict(os.environ, GITHUB_WORKSPACE=str(source), RUNNER_TEMP=str(base),
                        GITHUB_SHA=sha, EXPECTED_SOURCE_SHA=sha,
                        BUILD_REF='feature/check', GITHUB_ENV=str(env_file))
+            # This fixture checks the default, regardless of the caller's target.
+            env.pop('REQUESTED_MACOS_HOST_MIN_OS', None)
             subprocess.run(['python3', str(ROOT / 'scripts/ci/context.py')], env=env, check=True,
                            stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             values = dict(line.split('=', 1) for line in env_file.read_text().splitlines())
