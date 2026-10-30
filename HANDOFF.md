@@ -32,16 +32,34 @@ eraser/side buttons and mixed mouse/pen sequences. Local validation passed all
 whitespace checks. The first hosted attempt stopped compiling the expanded
 input fixture: its old `send()` helper conflicted with the socket declaration
 exposed by the new AppKit import. The helper is now `sendInput()`; no product
-change or test removal was needed. Hosted Quartz/AppKit execution and the
-signed candidate build are pending at this checkpoint.
+change or test removal was needed.
 
-Next: build/sign through hosted Actions, retain exact source/package hashes,
-then qualify switching between inactive applications on macOS 27.2, title-bar
+The signed Host-only [build 41140938612](https://github.com/instinctual/plank/actions/runs/41140938612)
+passed from root `ca4903bbfb38fa97cc603a34ea9670942f03b69a`, including **2,775**
+Quartz/AppKit input assertions, **1,537** pen assertions and **216** native-input
+assertions across eight scenarios. Those fixtures do not post OS input. The
+ordinary Host tests, installer gates, Developer ID signing, notarization,
+stapling and Gatekeeper checks also passed. Privacy passed on this exact source;
+clipboard regressions passed on the preceding implementation commit. The
+redundant push-triggered all-product build was canceled; no Client or Linux
+package was requested for this change.
+
+The verified candidate is
+`artifacts/packages/candidates/1.2.05-macos-click-pairing-macos27.0/macos/plank-host_1.2.05-macos-click-pairing-macos27.0_arm64.pkg`
+(7,005,861 bytes), SHA-256
+`56f1df348fa8cadd0356156c32b208ec04d0cc6455cb71115858cbe1fc593adb`.
+Original manifests, Actions metadata and both build logs are retained in
+`artifacts/qualification/macos-click-pairing-1.2.05/`. The manifest retains exact
+root and submodule pins; Kymux remains
+`3f7a9d8618978287186e5d6ce0eaa067743cb06c`. The candidate branch has a scoped
+signing permission; remove it when retiring the branch. No build remains active.
+
+Next: qualify switching between inactive applications on macOS 27.2, title-bar
 and content dragging, double/triple and modifier clicks, right-click menus,
 tablet pressure and disconnect/reconnect. No live machine was changed, no input
-was injected, and no collector remains. Hardware acceptance, merge and release
-are pending; the production Host must not be reported fixed from compilation
-alone. Private notes contain the observed event timelines.
+was injected, and no collector remains. Installation, hardware acceptance,
+merge and release are pending; the production Host must not be reported fixed
+from compilation alone. Private notes contain the observed event timelines.
 
 ## Native macOS 26.7 Host support
 
