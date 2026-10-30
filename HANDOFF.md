@@ -43,10 +43,16 @@ Client common-C remains `437be9a0a4d164efdf9ed20dc6dd5a2b7b9edc90`, mDNS
 `65dc0f1be60fe78d0457364f83813118c70bc8a8` and Kymux
 `3f7a9d8618978287186e5d6ce0eaa067743cb06c`.
 
-Next: install the candidate manually, assign one named Client display to each
-of two bookmarks, and test simultaneous fullscreen sessions, pixel fit,
-keyboard/tablet focus, single/span/windowed toolbar changes and reconnect.
-No remote installation or session interruption was performed. Hardware
+The operator authorized installation on an Ubuntu hardware-test Client. Both
+previous Client processes closed cleanly before the upgrade. The installed
+version and executable hash match the candidate; existing preferences were
+preserved, the private-library RUNPATH is intact, and no Client user service or
+autostart was introduced. The Qt launcher starts successfully. Deployment
+details are retained privately.
+
+Next: assign one named Client display to each of two bookmarks, and test
+simultaneous fullscreen sessions, pixel fit, keyboard/tablet focus,
+single/span/windowed toolbar changes and reconnect. Live-session hardware
 acceptance, merge and release remain pending. The separate GPU investigation
 below remains paused.
 
