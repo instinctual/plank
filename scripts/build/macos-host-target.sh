@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
-# SDK and runtime floors are independent. The 26.7 candidate is opt-in.
+# One production Host package supports 26.7 and newer; SDK27 remains required.
+# An explicit 27.0 target is retained for candidate regression comparisons.
 plank_macos_host_target() {
-    PLANK_MACOS_HOST_MIN_OS=${PLANK_MACOS_HOST_MIN_OS:-27.0}
+    PLANK_MACOS_HOST_MIN_OS=${PLANK_MACOS_HOST_MIN_OS:-26.7}
     case $PLANK_MACOS_HOST_MIN_OS in
       26.7|27.0) ;;
       *) echo 'Host deployment target must be 27.0 or 26.7' >&2; return 2 ;;
@@ -24,7 +25,7 @@ plank_macos_host_target() {
         echo "Host component tests require macOS $PLANK_MACOS_HOST_MIN_OS or newer" >&2; return 2;
     }
     [[ ${sdk_version%%.*} -ge 27 ]] || {
-        echo 'Host requires SDK27 or newer, including the 26.7 candidate' >&2; return 2;
+        echo 'Host requires SDK27 or newer' >&2; return 2;
     }
     SDKROOT=$(xcrun --sdk macosx --show-sdk-path) || return
     MACOSX_DEPLOYMENT_TARGET=$PLANK_MACOS_HOST_MIN_OS

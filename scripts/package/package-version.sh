@@ -51,14 +51,14 @@ plank_load_package_version() {
 # Keep ordinary mainline versions and all other products' identities unchanged.
 plank_load_macos_host_package_version() {
   plank_load_package_version "$@" || return
-  local target=${PLANK_MACOS_HOST_MIN_OS:-27.0}
+  local target=${PLANK_MACOS_HOST_MIN_OS:-26.7}
   case $target in
     26.7|27.0) ;;
     *) echo "unsupported macOS Host package target: ${target}" >&2; return 1 ;;
   esac
   if [[ $PLANK_BUILD_BRANCH_RESOLVED = main ]]; then
-    [[ $target = 27.0 ]] || {
-      echo 'macOS Host 26.7 requires a candidate branch' >&2
+    [[ $target = 26.7 ]] || {
+      echo 'macOS Host 27.0 comparison requires a candidate branch' >&2
       return 1
     }
   else

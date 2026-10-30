@@ -4,7 +4,7 @@ set -euo pipefail
 product=${1:-all}
 signed=${2:-false}
 clean_bootstrap=false
-macos_host_min_os=27.0
+macos_host_min_os=26.7
 target_selected=false
 for option in "${@:3}"; do
   case $option in
@@ -19,7 +19,7 @@ for option in "${@:3}"; do
   esac
 done
 case $macos_host_min_os in 27.0|26.7) ;; *) exit 2;; esac
-[[ $macos_host_min_os != 26.7 || $product == macos-host ]] || exit 2
+[[ $macos_host_min_os != 27.0 || $product == macos-host ]] || exit 2
 case $product in all|linux-host|linux-client|macos-host|macos-client|macos-fullscreen-probe) ;; *) exit 2 ;; esac
 case $signed in
   false) ;;
@@ -31,8 +31,8 @@ root=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd)
 cd "$root"
 test -z "$(git status --porcelain)" || { echo 'Commit the candidate before dispatch.' >&2; exit 1; }
 branch=$(git symbolic-ref --quiet --short HEAD)
-[[ $macos_host_min_os != 26.7 || $branch != main ]] || {
-  echo 'Host 26.7 builds require a candidate branch.' >&2; exit 2;
+[[ $macos_host_min_os != 27.0 || $branch != main ]] || {
+  echo 'Host 27.0 comparison builds require a candidate branch.' >&2; exit 2;
 }
 revision=$(git rev-parse HEAD)
 remote=$(git ls-remote origin "refs/heads/$branch" | cut -f1)

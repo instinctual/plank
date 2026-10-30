@@ -21,16 +21,16 @@ def branch_name(ref):
 def macos_host_target(requested, product, event, ref, ref_type):
     if requested not in ('27.0', '26.7'):
         raise ValueError('Unsupported macOS Host runtime floor')
-    if requested == '26.7' and (product != 'macos-host'
+    if requested == '27.0' and (product != 'macos-host'
                               or event != 'workflow_dispatch' or ref_type != 'branch'
                               or not ref or ref == 'main'):
-        raise ValueError('Host 26.7 requires manual macos-host dispatch on a candidate branch')
+        raise ValueError('Host 27.0 comparison requires manual macos-host dispatch on a candidate branch')
     return requested
 
 
 if __name__ == '__main__':
     host_target = macos_host_target(
-        os.environ.get('REQUESTED_MACOS_HOST_MIN_OS', '27.0'),
+        os.environ.get('REQUESTED_MACOS_HOST_MIN_OS', '26.7'),
         os.environ.get('REQUESTED_PRODUCT', 'all'),
         os.environ.get('GITHUB_EVENT_NAME', ''), os.environ['BUILD_REF'],
         os.environ.get('GITHUB_REF_TYPE', ''))

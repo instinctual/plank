@@ -26,7 +26,7 @@ pinned dependencies, then invokes the normal build/package scripts. Existing
 patch, payload, version and clean-source gates remain mandatory.
 
 The Mac Client uses one package on macOS15 and macOS27. Its lower deployment
-floor does not lower the builder SDK requirement or change the Host's27.0
+floor does not lower the builder SDK requirement or change the Host's26.7
 minimum. Exact cache keys include the Client deployment policy; old
 27-minimum dependencies are not reused. Native target-validation fixtures run
 in the Client build, and PKG packaging checks every bundled binary and the app
@@ -400,53 +400,46 @@ The policy job rejects a stale dispatch revision before costly bootstrap.
 
 ### macOS 26.7 Host build
 
-Manual dispatch exposes `macos_host_min_os`, default **27.0**, with **26.7** as
-an explicit supported target. Chris (cnoellert) owns its hardware and session
-validation; macOS 27 remains the default and retains its build/regression gates.
-Select `product=macos-host` and a reviewed
-feature branch for 26.7. Other products, ordinary push/PR events, tags and
-`main` cannot select that alternate floor. Both unsigned and protected signed
-jobs validate the selection before dependency bootstrap, then pass the same
-floor to the fresh transport build, Host assembly and sealed installer metadata.
-The builder still uses Apple Silicon macOS27 and SDK27; Client targets and
-dependency pins are unchanged. Different target floors have separate workflow
-concurrency groups. Dependency caches contain toolchains/downloaded sources,
-not compiled Host objects, so each run rebuilds the transport for its floor.
+The standard Host package now targets **26.7** and runs on 26.7 and newer.
+Normal push/PR builds, mainline dispatch and signed Host packaging all use this
+minimum. The runner stays Apple Silicon macOS27/SDK27, so the same binary and
+component tests continue to exercise macOS27. Keep newer APIs behind runtime
+availability checks. Client minimum15.0 and Linux policies are independent.
+Chris (cnoellert) owns 26.7 installed qualification; validate the identical
+signed package on both 26.7 and 27 before recording shared-package acceptance.
 
-Mac Host candidates qualify their visible version, PKG filename and catalog
-directory with the selected floor: `1.2.02-<branch>-macos26.7` or
-`1.2.02-<branch>-macos27.0`. Both can be retained from the same source and branch
-without overwriting one another. Mainline 27.0 remains `1.2.02` with its ordinary
-release filename; Client and Linux identities are unchanged. The collector
-checks the filename against the target and still rejects changed bytes or
-provenance under an existing identity. The policy job exercises both collection
-orders, repeat collection and conflict protection using dummy package payloads.
+From a clean, pushed main checkout, use the ordinary signed Host dispatch:
 
-On a clean upstream candidate checkout whose `origin` points to that repository:
-
-```bash
-bash scripts/ci/dispatch.sh macos-host true --macos-host-min-os=26.7
+```sh
+bash scripts/ci/dispatch.sh macos-host true
 ```
 
-The helper checks the exact pushed commit before dispatch and uses
-[GitHub CLI's branch selection](https://cli.github.com/manual/gh_workflow_run)
-to run that branch's workflow. It supplies `product=macos-host`, the full
-reviewed `source_sha`, `signed=true`, and `macos_host_min_os=26.7` explicitly;
-this also works before the new input appears on the default branch's web form.
-`--clean-bootstrap` remains optional and can be combined with the target option.
+`--macos-host-min-os=26.7` remains an explicit equivalent. For a regression
+comparison only, a reviewed candidate branch may request
+`--macos-host-min-os=27.0`. That alternative is rejected for main, tags,
+other products and ordinary push/PR runs; it does not create a second release
+package. Both targets still require SDK27. Workflow concurrency separates the
+targets, and Host cache entries contain toolchains/downloaded sources rather
+than compiled Host objects. Every run rebuilds the transport for its target.
 
-For a fork PR, an upstream maintainer must first review and import its commits
-to an upstream candidate branch, then permit only that exact branch in the
-existing `macos-signing` environment. Dispatch there using the existing Host
-profile, matching Developer ID certificates and notarization credentials;
-fork PR jobs receive none of them. Do not broaden access to every branch or
-copy signing material into the PR. Remove the candidate's signing permission
-when retiring it. Preparing the PR does not authorize changing that policy.
+Mainline retains the ordinary filename, such as `plank-host_1.2.05_arm64.pkg`,
+with `target_os=macos-26.7` in the manifest. Candidates retain their branch and
+floor suffix, allowing a comparison pair without overwrite. Historical 27-only
+packages keep their exact names, bytes and original metadata. The collector
+rejects conflicting bytes or provenance, including changing an existing
+package's claimed OS floor. Never retarget or relabel signed installers.
 
-The result is a signed/notarized **test** PKG with source/hash provenance, not a
-release or installation. On return, independently verify its 26.7 minimum,
-signature/profile/entitlements and notarization before coordinating physical
-26.7 acceptance. See the [backport plan](../plans/macos26-host-backport.md).
+The dispatch helper checks the exact pushed source commit. Protected signing
+still requires explicit dispatch and a permitted branch; public push/PR jobs
+receive no signing credentials. Main is already permitted. For candidate
+signing, allow only the reviewed exact branch and remove that permission when
+retiring it. Do not broaden the environment to every branch.
+
+Download with the normal runbook, verify the original checksum and source
+manifest, and collect the installer without changing its identity. Passing
+component, signing, notarization and package gates is not installed session
+acceptance. See the [Host plan](../plans/macos26-host-backport.md) for remaining
+26.7/27 validation and the distinction from the earlier baseline candidate.
 
 Diagnostic-only `macos-fullscreen-probe` additionally requires `signed=true`.
 It builds the standalone AppKit probe, not either product, and uses the same

@@ -13,7 +13,7 @@ by PLANK. macOS Qt is downloaded from its pinned official release archives.
 | --- | --- | --- |
 | Linux Host | Rocky/RHEL 9.7, x86-64; GCC Toolset 14, CUDA 13 | [Linux bootstrap](builder-vm-bootstrap.md) |
 | Linux Client | Ubuntu 26.04, x86-64; Qt 6.10.2 | [Linux bootstrap](builder-vm-bootstrap.md) |
-| macOS Host / Client | Apple Silicon builder, macOS 27, Xcode/SDK 27; Host minimum27, Client minimum15 | [Host](macos-build-runbook.md), [Client dependencies](macos-client-build-runbook.md) |
+| macOS Host / Client | Apple Silicon builder, macOS 27, Xcode/SDK 27; Host minimum26.7, Client minimum15 | [Host](macos-build-runbook.md), [Client dependencies](macos-client-build-runbook.md) |
 
 The named internal builders in the operational runbooks identify where project
 releases are qualified. They are not required computer names for a contributor.

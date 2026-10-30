@@ -6,9 +6,10 @@ The operator authorized one Apple Silicon Client package for macOS 15 and newer,
 built with SDK27 or newer and a 15.0 deployment target. Bootstrap, application,
 and PKG packaging use that same policy; do not reuse dependencies built with a
 newer minimum OS. Use runtime availability checks for APIs newer than macOS15,
-not compile-time removal of macOS27 capabilities. The macOS Host defaults to
-27.0 and also supports an explicit 26.7 target. Select it with
-`PLANK_MACOS_HOST_MIN_OS=26.7` and retain SDK27 and exact dependency pins.
+not compile-time removal of macOS27 capabilities. The operator authorized one
+macOS Host package for 26.7 and newer, built with SDK27 and exact dependency
+pins. `PLANK_MACOS_HOST_MIN_OS` defaults to 26.7. The optional 27.0 target is
+only for candidate regression comparisons, not a second release package.
 Chris (cnoellert) owns macOS 26.7 hardware and session validation; the operator
 does not need a 26.7 test machine. This target is not experimental. Preserve
 the macOS 27 build/regression gates and distinguish uninstalled build checks
@@ -96,10 +97,12 @@ software decoding works, fail the connection clearly.
 
 ## Build, Test, and Development Commands
 
-macOS Host builds default to **macOS 27 or newer**, using SDK 27 or newer and
-an explicit 27.0 deployment target. The supported 26.7 build uses the explicit
-Host target and validation ownership above; no broader older-OS support is
-implied. The reference Mac used to inspect PCoIP is read-only. Build and run
+macOS Host builds use **SDK 27 or newer** and a **26.7 deployment target** for
+one package covering 26.7 and newer. Hosted compilation and component regression
+tests continue on macOS27. Qualify the identical signed package on 26.7 and 27
+before treating the shared package as accepted; use the validation ownership
+above. No broader older-OS support is implied. The reference Mac used to inspect
+PCoIP is read-only. Build and run
 macOS probes only on the user-authorized dedicated development Mac.
 Beta results require revalidation against the final
 OS release. This work does not change the supported Linux release gates below.

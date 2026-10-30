@@ -19,10 +19,10 @@ on:
         type: boolean
         default: false
       macos_host_min_os:
-        description: Host runtime floor (26.7 requires a macos-host feature branch)
+        description: Host runtime floor (27.0 is a macos-host candidate comparison only)
         type: choice
-        default: '27.0'
-        options: ['27.0', '26.7']
+        default: '26.7'
+        options: ['26.7', '27.0']
       clean_bootstrap:
         description: Bypass dependency cache restore and save
         type: boolean
@@ -32,7 +32,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: hosted-builds-${{ github.ref }}-${{ inputs.product || 'all' }}-${{ inputs.macos_host_min_os || '27.0' }}
+  group: hosted-builds-${{ github.ref }}-${{ inputs.product || 'all' }}-${{ inputs.macos_host_min_os || '26.7' }}
   cancel-in-progress: true
 
 env:
@@ -40,7 +40,7 @@ env:
   PYTHONDONTWRITEBYTECODE: '1'
   EXPECTED_SOURCE_SHA: ${{ inputs.source_sha || github.sha }}
   REQUESTED_PRODUCT: ${{ inputs.product || 'all' }}
-  REQUESTED_MACOS_HOST_MIN_OS: ${{ inputs.macos_host_min_os || '27.0' }}
+  REQUESTED_MACOS_HOST_MIN_OS: ${{ inputs.macos_host_min_os || '26.7' }}
 
 jobs:
   policy:

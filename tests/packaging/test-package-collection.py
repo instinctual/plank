@@ -135,29 +135,41 @@ class CollectionTests(unittest.TestCase):
         self.assertFalse((self.root / 'artifacts').exists())
 
     def test_host_mainline_and_default_target_identity(self):
-        for target in (None, '27.0'):
+        for target in (None, '26.7'):
             result = self.host_version('main', target)
             self.assertEqual(result.returncode, 0, result.stderr)
             self.assertEqual(result.stdout.splitlines(), ['1.2.3', 'main', '1.2.3', '1.2.3', '1'])
         self.assertEqual(self.host_version('test-host').stdout.splitlines(),
-                         ['1.2.3-test-host-macos27.0', 'test-host', '1.2.3', '1.2.3', '0.test_host.1'])
-        for target_os in ('macos-27', 'macos-27.0'):
-            args = self.host_arguments('27.0', 'main')
+                         ['1.2.3-test-host-macos26.7', 'test-host', '1.2.3', '1.2.3', '0.test_host.1'])
+        # Original 27-only release manifests remain valid during transfer.
+        for target_os in ('macos-26.7', 'macos-27', 'macos-27.0'):
+            args = self.host_arguments('26.7', 'main')
             args.target_os = target_os
             args.output_root = self.root / target_os
             MODULE.collect(args)
             self.assertTrue((args.output_root / 'releases/1.2.3/macos/plank-host_1.2.3_arm64.pkg').is_file())
 
-    def test_host_rejects_mainline_backport_and_unknown_floor(self):
-        for branch, target in (('main', '26.7'), ('test-host', '26.6'), ('test-host', '28.0')):
+    def test_host_rejects_mainline_comparison_and_unknown_floor(self):
+        self.assertNotEqual(self.host_version('main', '27.0').returncode, 0)
+        for branch, target in (('main', '26.6'), ('test-host', '26.6'), ('test-host', '28.0')):
             with self.subTest(branch=branch, target=target):
                 result = self.host_version(branch, target)
                 self.assertNotEqual(result.returncode, 0)
-                args = self.host_arguments('27.0', branch)
+                args = self.host_arguments('26.7', branch)
                 args.target_os = 'macos-' + target
-                with self.assertRaisesRegex(ValueError, 'requires a candidate branch|unsupported macOS Host'):
+                with self.assertRaisesRegex(ValueError, 'unsupported macOS Host'):
                     MODULE.collect(args)
         self.assertFalse((self.root / 'artifacts').exists())
+
+    def test_mainline_host_floor_cannot_relabel_existing_package(self):
+        args = self.host_arguments('26.7', 'main')
+        MODULE.collect(args)
+        manifest = self.root / 'artifacts/packages/releases/1.2.3/manifest.json'
+        original = manifest.read_bytes()
+        args.target_os = 'macos-27.0'
+        with self.assertRaisesRegex(ValueError, 'conflicting artifact/provenance'):
+            MODULE.collect(args)
+        self.assertEqual(manifest.read_bytes(), original)
 
     def test_historical_host_candidate_keeps_original_identity(self):
         args = self.arguments('test-host', b'immutable historical package')

@@ -3,10 +3,12 @@
 | Product | Platform | Source | Package integration |
 | --- | --- | --- | --- |
 | Host | Rocky/RHEL Linux, NVIDIA | `apps/host/linux` | `packaging/host/linux` |
-| Host | macOS 27+, Apple Silicon | `apps/host/macos` | `packaging/host/macos` |
+| Host | macOS 26.7+, Apple Silicon; built with SDK27+ | `apps/host/macos` | One Host PKG for macOS26.7 and macOS27 |
 | Client | Ubuntu Linux | `apps/client` | `packaging/client/linux` |
 | Client | macOS 15+, Apple Silicon; built with SDK27+ | `apps/client` | One Client PKG for macOS15 and macOS27 |
 
+Chris (cnoellert) owns 26.7 Host session qualification. The identical signed Host
+package must also pass installed macOS27 acceptance; hosted tests run on 27.
 macOS qualification is tracked separately from Linux; beta OS results require
 revalidation on the final release. See [acceptance criteria](acceptance-criteria.md)
 and the [Mac Client integration gates](macos15-integration-review.md). The common

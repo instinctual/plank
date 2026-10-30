@@ -21,26 +21,29 @@ def executable(path, text):
 
 
 class HostTargetTests(unittest.TestCase):
-    def test_backport_requires_exact_floor_manual_host_and_candidate_branch(self):
+    def test_comparison_requires_manual_host_candidate_and_standard_floor_is_unrestricted(self):
         self.assertEqual(CONTEXT.macos_host_target(
-            '26.7', 'macos-host', 'workflow_dispatch', 'test-host', 'branch'), '26.7')
+            '27.0', 'macos-host', 'workflow_dispatch', 'test-host', 'branch'), '27.0')
         for product in ('all', 'linux-host', 'linux-client', 'macos-client', 'macos-fullscreen-probe'):
             with self.assertRaises(ValueError):
-                CONTEXT.macos_host_target('26.7', product, 'workflow_dispatch', 'test-host', 'branch')
+                CONTEXT.macos_host_target('27.0', product, 'workflow_dispatch', 'test-host', 'branch')
+            self.assertEqual(CONTEXT.macos_host_target(
+                '26.7', product, 'workflow_dispatch', 'main', 'branch'), '26.7')
         for event, ref, kind in [('push', 'test-host', 'branch'),
                                  ('pull_request', 'test-host', 'branch'),
                                  ('workflow_dispatch', 'main', 'branch'),
                                  ('workflow_dispatch', 'test-host', 'tag')]:
             with self.assertRaises(ValueError):
-                CONTEXT.macos_host_target('26.7', 'macos-host', event, ref, kind)
-            self.assertEqual(CONTEXT.macos_host_target('27.0', 'all', event, ref, kind), '27.0')
+                CONTEXT.macos_host_target('27.0', 'macos-host', event, ref, kind)
+            self.assertEqual(CONTEXT.macos_host_target('26.7', 'all', event, ref, kind), '26.7')
         for target in ('', '26', '26.6', '28.0', '26.7\nUNTRUSTED=value'):
             with self.assertRaises(ValueError):
                 CONTEXT.macos_host_target(target, 'macos-host', 'workflow_dispatch', 'test-host', 'branch')
 
     def test_context_exports_target_and_rejects_bad_selection_before_scratch(self):
-        for target, product, accepted in [('27.0', 'all', True), ('26.7', 'macos-host', True),
-                                           ('26.7', 'macos-client', False), ('26.6', 'macos-host', False)]:
+        for target, product, accepted in [('26.7', 'all', True), ('26.7', 'macos-host', True),
+                                         ('26.7', 'macos-client', True), ('27.0', 'macos-host', True),
+                                         ('27.0', 'all', False), ('26.6', 'macos-host', False)]:
             with self.subTest(target=target, product=product), tempfile.TemporaryDirectory() as directory:
                 base = Path(directory).resolve()
                 source = base / 'checkout'
@@ -95,22 +98,27 @@ Path(os.environ['TEST_ARGS']).write_text(json.dumps(sys.argv[1:]))
         result, args = self.dispatch([])
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn('product=all', args)
-        self.assertIn('macos_host_min_os=27.0', args)
+        self.assertIn('macos_host_min_os=26.7', args)
         for signed in ('false', 'true'):
-            result, args = self.dispatch(['macos-host', signed])
+            result, args = self.dispatch(['macos-host', signed], branch='main')
             self.assertEqual(result.returncode, 0, result.stderr)
-            self.assertIn('macos_host_min_os=27.0', args)
-            for options in (['--macos-host-min-os=26.7', '--clean-bootstrap'],
-                            ['--clean-bootstrap', '--macos-host-min-os=26.7']):
-                result, args = self.dispatch(['macos-host', signed, *options])
-                self.assertEqual(result.returncode, 0, result.stderr)
-                for field in ('macos_host_min_os=26.7', 'clean_bootstrap=true',
-                              'source_sha=' + SHA, 'signed=' + signed):
-                    self.assertIn(field, args)
+            self.assertIn('macos_host_min_os=26.7', args)
+            for target in ('26.7', '27.0'):
+                for options in (['--macos-host-min-os=' + target, '--clean-bootstrap'],
+                                ['--clean-bootstrap', '--macos-host-min-os=' + target]):
+                    result, args = self.dispatch(['macos-host', signed, *options])
+                    self.assertEqual(result.returncode, 0, result.stderr)
+                    for field in ('macos_host_min_os=' + target, 'clean_bootstrap=true',
+                                  'source_sha=' + SHA, 'signed=' + signed):
+                        self.assertIn(field, args)
+        for product in ('all', 'linux-host', 'linux-client', 'macos-client'):
+            result, args = self.dispatch([product, 'false'], branch='main')
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertIn('macos_host_min_os=26.7', args)
 
     def test_invalid_or_unpushed_dispatch_never_calls_github(self):
-        for arguments in (['macos-client', 'true', '--macos-host-min-os=26.7'],
-                          ['all', 'false', '--macos-host-min-os=26.7'],
+        for arguments in (['macos-client', 'true', '--macos-host-min-os=27.0'],
+                          ['all', 'false', '--macos-host-min-os=27.0'],
                           ['macos-host', 'true', '--macos-host-min-os=26.6'],
                           ['macos-host', 'true', '--macos-host-min-os=26.7', '--macos-host-min-os=27.0'],
                           ['macos-host', 'true', '--clean-bootstrap', '--clean-bootstrap']):
@@ -118,7 +126,7 @@ Path(os.environ['TEST_ARGS']).write_text(json.dumps(sys.argv[1:]))
             self.assertNotEqual(result.returncode, 0)
             self.assertIsNone(args)
         for overrides in ({'branch': 'main'}, {'remote': 'b' * 40}, {'dirty': ' M example'}):
-            result, args = self.dispatch(['macos-host', 'true', '--macos-host-min-os=26.7'], **overrides)
+            result, args = self.dispatch(['macos-host', 'true', '--macos-host-min-os=27.0'], **overrides)
             self.assertNotEqual(result.returncode, 0)
             self.assertIsNone(args)
 

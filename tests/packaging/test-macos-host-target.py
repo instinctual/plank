@@ -34,13 +34,14 @@ echo "$MACOSX_DEPLOYMENT_TARGET"
         return subprocess.run(['bash', '-c', script, 'test', str(ROOT)],
                               env=env, capture_output=True, text=True)
 
-    def test_default_stays_27_and_backport_requires_explicit_selection(self):
-        self.assertEqual(self.select().stdout.strip(), '27.0')
-        self.assertNotEqual(self.select(system='26.7').returncode, 0)
+    def test_one_default_package_supports_26_7_and_newer(self):
+        self.assertEqual(self.select().stdout.strip(), '26.7')
         for system in ('26.7', '26.7.1', '27.0', '28.0'):
-            result = self.select('26.7', system=system)
+            result = self.select(system=system)
             self.assertEqual(result.returncode, 0, result.stderr)
             self.assertEqual(result.stdout.strip(), '26.7')
+        self.assertEqual(self.select('27.0').stdout.strip(), '27.0')
+        self.assertNotEqual(self.select('27.0', system='26.7').returncode, 0)
 
     def test_rejects_older_os_sdk_architecture_and_malformed_targets(self):
         for arguments in (
@@ -50,6 +51,13 @@ echo "$MACOSX_DEPLOYMENT_TARGET"
             self.assertNotEqual(self.select('26.7', **arguments).returncode, 0)
         for target in ('26.0', '26.6', '15.0', '26.7;false', 'unknown'):
             self.assertNotEqual(self.select(target).returncode, 0)
+
+    def test_default_bundle_metadata_matches_shared_floor(self):
+        minimum = self.select().stdout.strip()
+        for name in ('host-info.plist', 'microphone-info.plist', 'output-info.plist'):
+            with self.subTest(bundle=name):
+                info = plistlib.loads((ROOT / 'packaging/host/macos' / name).read_bytes())
+                self.assertEqual(info['LSMinimumSystemVersion'], minimum)
 
     def test_installer_uses_sealed_floor_and_rejects_unknown_values(self):
         template = (ROOT / 'packaging/host/macos/pkg-common.sh').read_text()
@@ -73,19 +81,23 @@ echo "$MACOSX_DEPLOYMENT_TARGET"
     def test_camera_metadata_matches_candidate_without_changing_entitlements(self):
         with tempfile.TemporaryDirectory() as temporary:
             base = Path(temporary)
-            for minimum in ('26.7', '27.0'):
+            for minimum in ('default', '26.7', '27.0'):
                 output = base / minimum
                 output.mkdir()
                 app = output / 'Host.app'
                 (app / 'Contents').mkdir(parents=True)
-                subprocess.run([
+                arguments = [
                     'python3', str(ROOT / 'scripts/package/prepare-macos-camera.py'),
                     '--app', str(app), '--output', str(output), '--version', '1.2.02',
-                    '--team', 'PLANKTEST0', '--identity', '-', '--minimum-macos', minimum,
-                ], check=True, capture_output=True)
+                    '--team', 'PLANKTEST0', '--identity', '-',
+                ]
+                if minimum != 'default':
+                    arguments += ['--minimum-macos', minimum]
+                subprocess.run(arguments, check=True, capture_output=True)
                 extension = app / 'Contents/Library/SystemExtensions/la.instinctual.PLANK.Host.Camera.systemextension'
                 info = plistlib.loads((extension / 'Contents/Info.plist').read_bytes())
-                self.assertEqual(info['LSMinimumSystemVersion'], minimum)
+                self.assertEqual(info['LSMinimumSystemVersion'],
+                                 '26.7' if minimum == 'default' else minimum)
             self.assertEqual((base / '26.7/camera-host-entitlements.plist').read_bytes(),
                              (base / '27.0/camera-host-entitlements.plist').read_bytes())
             self.assertEqual((base / '26.7/camera-extension-entitlements.plist').read_bytes(),

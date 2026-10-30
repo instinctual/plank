@@ -67,7 +67,7 @@ echo "$MACOSX_DEPLOYMENT_TARGET"
         transport = (ROOT / 'scripts/build/build-macos-transport.sh').read_text()
         self.assertIn('plank_macos_host_target', transport)
         policy = (ROOT / 'scripts/build/macos-host-target.sh').read_text()
-        self.assertIn('PLANK_MACOS_HOST_MIN_OS:-27.0', policy)
+        self.assertIn('PLANK_MACOS_HOST_MIN_OS:-26.7', policy)
 
 
 @unittest.skipUnless(platform.system() == 'Darwin' and platform.machine() == 'arm64',

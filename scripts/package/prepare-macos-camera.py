@@ -36,7 +36,7 @@ def main():
     parser.add_argument('--team', required=True)
     parser.add_argument('--identity', required=True)
     parser.add_argument('--profile', type=Path)
-    parser.add_argument('--minimum-macos', choices=('27.0', '26.7'), default='27.0')
+    parser.add_argument('--minimum-macos', choices=('26.7', '27.0'), default='26.7')
     args = parser.parse_args()
     if not re.fullmatch(r'[A-Z0-9]{10}', args.team) or not re.fullmatch(r'\d+\.\d+\.\d+', args.version):
         parser.error('Invalid camera bundle team/version')

@@ -9,7 +9,7 @@
     <key>CFBundleIconFile</key><string>plank.icns</string>
     <key>CFBundlePackageType</key><string>APPL</string>
     <key>CFBundleVersion</key><string>1</string>
-    <key>LSMinimumSystemVersion</key><string>27.0</string>
+    <key>LSMinimumSystemVersion</key><string>26.7</string>
     <key>LSUIElement</key><true/>
     <key>NSSystemExtensionUsageDescription</key>
     <string>Provide the camera forwarded by your connected PLANK Client.</string>

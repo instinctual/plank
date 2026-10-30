@@ -7,7 +7,7 @@
   <key>CFBundlePackageType</key><string>BNDL</string>
   <key>CFBundleVersion</key><string>1</string>
   <key>CFBundleShortVersionString</key><string>0.1.0</string>
-  <key>LSMinimumSystemVersion</key><string>27.0</string>
+  <key>LSMinimumSystemVersion</key><string>26.7</string>
   <key>CFPlugInDynamicRegistration</key><false/>
   <key>CFPlugInFactories</key><dict>
     <key>6BBAB490-7060-4B61-90BD-5B9C104FE3AB</key><string>PLANKOutputFactory</string>

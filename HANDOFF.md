@@ -4,6 +4,34 @@ Read `AGENTS.md` and the relevant build runbook first. Machine-specific access,
 credentials, captures and operational evidence belong in the external private
 notes, never in Git.
 
+## Release preparation — 1.2.05 and one macOS Host package
+
+The operator approved preparing the combined release and moving to one Mac
+Host package for 26.7 and newer. Root preparation branch is
+`macos-host-unified`; the Client changelog uses `release-1-2-05`. Both start
+from the merged display/click-pairing mainline below. Package version remains
+1.2.05; no mainline package at this version has been distributed.
+
+The standard Host floor is now 26.7 in CI, build helpers, bundle templates and
+packaging. SDK 27, the macOS 27 hosted runner, dependency pins and native runtime
+code remain unchanged. An explicit 27.0 candidate is retained only for regression
+comparisons. Ordinary mainline packaging produces one Host PKG; historical
+artifacts retain their original provenance. Client minimum 15.0 and Linux
+policies remain independent. The two-line CI fixture correction from Chris's
+baseline branch is included. The release notes cover changes since published
+1.1.039, including Qt/PipeWire, display selection, Wacom recovery, scrolling,
+idle status, CUDA and macOS clicks.
+
+Local preparation passed all 98 CI-policy tests under a 26.7 workflow environment,
+16 catalog tests, five portable Host-target and five Client-target tests.
+Each target suite has one Apple-compiler test skipped on Linux. These results
+do not replace hosted builds or installed acceptance. Next: commit/push, merge
+the prepared source, build all four mainline packages through Actions, sign and
+notarize both Mac PKGs, verify/collect originals, and record exact results.
+Chris’s 26.7 test and installed 27 testing must use the identical new Host PKG.
+Publication remains pending those shared-package acceptance results; no release
+has been published and no live session was changed for this preparation.
+
 ## Current main — Client displays and macOS click pairing
 
 The operator authorized merging `client-displays` and `macos-click-pairing`.

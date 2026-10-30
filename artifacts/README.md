@@ -20,10 +20,11 @@ visible app version, filename and catalog version. For example, one branch can
 retain `plank-host_1.2.02-test-host-macos26.7_arm64.pkg` and
 `plank-host_1.2.02-test-host-macos27.0_arm64.pkg` under their respective version
 directories. Their manifest `target_os` values are `macos-26.7` and `macos-27.0`;
-the manifest branch remains `test-host`. Mainline 27.0 remains
-`plank-host_1.2.02_arm64.pkg` under `releases/1.2.02/`; 26.7 is candidate-only.
+the manifest branch remains `test-host`. Mainline now has one Host package for
+26.7 and newer, for example `plank-host_1.2.05_arm64.pkg` under `releases/1.2.05/`,
+with `target_os=macos-26.7`. The 27.0 option is a candidate comparison only.
 Client and Linux naming are unchanged. Historical Host artifacts recorded as
-`macos-27` retain their original unsuffixed identity when re-collected. Preserve
+`macos-27` or `macos-27.0` retain their original identity when re-collected. Preserve
 their original manifest rather than relabelling them with a canonical new target.
 
 `releases` means an unqualified **mainline build**, not proof of hardware

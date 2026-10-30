@@ -50,8 +50,9 @@ def collect(args):
         # artifacts retain their original identity when transferred/re-collected.
         if args.target_os not in ('macos-27', 'macos-27.0', 'macos-26.7'):
             raise ValueError('unsupported macOS Host package target')
-        if args.branch == 'main' and args.target_os == 'macos-26.7':
-            raise ValueError('macOS Host 26.7 requires a candidate branch')
+        # Mainline now targets 26.7; retain original target metadata when
+        # transferring historical 27-only packages. Conflicting provenance
+        # remains an error, even if the package bytes are identical.
         if args.branch != 'main' and args.target_os != 'macos-27':
             effective += '-' + args.target_os.replace('macos-', 'macos', 1)
     source = args.package.resolve(strict=True)

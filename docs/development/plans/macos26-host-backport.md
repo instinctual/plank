@@ -4,9 +4,12 @@ The operator accepts native Apple Silicon Host support on 26.7, with
 Chris (cnoellert) responsible for its hardware and session validation. This is
 a supported target, not an experimental designation; the operator does not
 need to provide a 26.7 test machine. macOS 27 build/regression checks remain
-merge gates. The regular Host remains 27.0 by default. The 26.7 build explicitly selects
-`PLANK_MACOS_HOST_MIN_OS=26.7`; SDK 27 and the existing dependency versions remain
-required. It is not a repack of a signed 27-only installer.
+merge gates. The operator subsequently authorized one Host package covering
+26.7 and newer. `PLANK_MACOS_HOST_MIN_OS=26.7` is now the default for mainline
+and ordinary CI, retaining SDK27 and the existing dependency pins. A 27.0
+candidate remains available only for regression comparisons. No signed package
+is repacked or retargeted. Installed acceptance must use the identical package
+on 26.7 and 27; the earlier baseline test alone does not qualify the new release.
 
 ## Scope
 
@@ -60,8 +63,9 @@ sanitizers. This is component qualification, not an installed stream.
 The ad-hoc app assembly has restricted test entitlements and no Host profile;
 its extra version-only launch attempt was terminated. The retained standalone
 executable loads successfully without those app entitlements. No entitlements
-were removed to make the app launch. A genuine Host profile, matching signing
-certificates and the protected signing path are the next packaging gate.
+were removed to make the app launch. The later protected signed build below supplies the genuine Host profile,
+matching certificates and notarization; the original ad-hoc result is retained
+as component evidence only.
 
 Before installation, require a clean committed source, complete bundle and
 Mach-O minimum checks, matching certificate/profile/entitlements and a
@@ -75,64 +79,47 @@ and camera activation. Coordinate disruptive opportunities before touching
 running sessions. No OS upgrade, installer bypass, TCC reset or automatic
 reboot is part of the backport.
 
-## Build selection
+## Unified package build and validation
 
-Use the normal runbook's clean source and retained Cargo/Rustup paths, adding:
+Use the ordinary mainline Host dispatch:
 
 ```sh
-export PLANK_MACOS_HOST_MIN_OS=26.7
-export PLANK_BUILD_BRANCH=macos26-host-backport
-source scripts/package/package-version.sh
-plank_load_macos_host_package_version "$PWD"
-export PLANK_MACOS_HOST_VERSION="$PLANK_PACKAGE_VERSION"
+bash scripts/ci/dispatch.sh macos-host true
 ```
 
-Build a fresh transport archive with `build-macos-transport.sh`, then pass it
-to `build-macos-host.sh` or the protected `build-macos-host-pkg.sh` flow.
-The current candidate version is `1.2.02-macos26-host-backport-macos26.7`;
-the same branch targeting 27.0 uses `1.2.02-macos26-host-backport-macos27.0`.
-The displayed app version, PKG filename and catalog directory use that full
-identity. Both candidates can coexist while the collector's byte/provenance
-overwrite protection remains unchanged. Mainline 27.0 retains its unsuffixed
-release version; 26.7 cannot be packaged or collected as mainline. Historical
-`macos-27` artifacts keep their recorded identity and are not renamed.
-All nested bundles must declare 26.7
-and every linked arm64 Mach-O must require no newer runtime. The build reuses
-the existing minimum checker for the app, extension and both audio drivers.
-Retain build/source hashes and operational receipts privately. Record Chris's
-installed qualification separately from build results; support status does not
-imply that an unperformed hardware test has passed.
+The default 26.7 floor reaches the fresh Rust transport, Host, all component
+tests, camera extension, audio drivers, bundle metadata and sealed installer.
+Every arm64 Mach-O and bundle must require no newer runtime; the independent
+finished-package checks remain mandatory. SDK27 and the macOS27 hosted runner
+remain unchanged. Mainline uses the normal unsuffixed package version.
 
-## Review and signed test build
+For a focused regression comparison, a candidate branch may explicitly select
+`--macos-host-min-os=27.0`. Both candidate floors retain their version suffix
+and original manifest; only the 26.7 package is the standard release product.
+The Client 15.0 target and Linux build/qualification contracts are unchanged.
 
-The hosted workflow exposes an explicit `macos_host_min_os=26.7` input for a
-manual `macos-host` dispatch on a candidate branch. Normal push/PR builds and
-the default target remain 27.0. The runner stays macOS27/SDK27; validation
-rejects unsupported floors, other products and a 26.7 dispatch from
-main or a tag before bootstrap/signing. The selected floor reaches both the
-fresh transport and the signed or unsigned Host assembly. Dispatch retains the
-exact-source check and accepts `--macos-host-min-os=26.7` alongside the existing
-optional `--clean-bootstrap` flag.
+The context/dispatch fixtures cover mainline/default selection, explicit
+comparison restrictions, exact pushed source, malformed values and propagation
+through signed/unsigned assembly. Catalog tests preserve historical metadata,
+retain both comparison floors and reject relabeling or overwrite. The shared
+minimum checker rejects binaries or bundle metadata newer than the package's
+sealed minimum. Automated tests do not establish installed media/input behavior.
 
-Focused context, dispatch, build-routing and signing fixtures pass without
-loading credentials or creating a Host session. The package identity regression
-uses the production version helper and collector to retain both floors in either
-order, re-collect identical artifacts and reject filename/target mismatches or
-changed bytes/provenance. It also preserves mainline, historical Host and other
-product identities. All 15 collection tests pass; signed/unsigned build-routing
-fixtures check the actual version setup passed to assembly. These tests run in
-the hosted policy job and use dummy payloads, not signed installers.
-The earlier local full CI-policy execution
-passes 97 of 98 test methods; the unchanged SDL metadata test cannot run because
-`pkg-config` is absent on the development Mac. Using a canonical temporary path
-resolves two other macOS path-alias fixture failures from the initial run.
-These workflow checks do not replace the recorded full native component build
-or qualify a signed installer. No signing job has been dispatched.
+## Signed baseline and remaining acceptance
 
-An upstream maintainer can review/import the fork commits to a candidate branch,
-allow only that branch in the existing protected signing environment, and
-produce a signed/notarized test package with the normal Host identity. The
-[hosted-build runbook](../build/github-builds.md#macos-267-host-build)
-gives the exact command and retained profile/signing gates. No signing access,
-environment secrets, branch policy or operational installation is changed by
-this PR.
+Chris requested the earlier baseline `bd75c102` on `codex/macos26-host-test`.
+Signed [run41144764461](https://github.com/instinctual/plank/actions/runs/41144764461)
+passed from `a7aed9b98dbf76cb629141a22447aeae91eaceeb`, whose only difference
+is the two-line CI fixture isolation fix. Host, transport and dependency sources
+match the requested baseline. Package 1.2.02 is signed, notarized, stapled and
+Gatekeeper-accepted; HANDOFF records its exact manifest/hash. The CI correction
+is carried into the unified package preparation.
+
+The unified 1.2.05 preparation also includes the already-merged macOS click
+pairing and Client display changes. Rebuild all four products from the combined
+mainline source, with the ordinary Host default 26.7. Qualification on the older
+baseline does not establish acceptance of this new package. Chris owns 26.7
+session testing; the same installer needs 27 validation for picture, input,
+audio, virtual-display preparation, reconnect and login/logout. Optional
+microphone/camera checks remain separate. Do not publish a shared-package
+acceptance claim before those results are recorded.

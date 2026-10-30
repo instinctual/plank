@@ -56,7 +56,7 @@ class ContextTests(unittest.TestCase):
             worktree = base / 'plank-ci/source'
             self.assertEqual(values['PLANK_SOURCE_ROOT'], str(worktree))
             self.assertEqual(values['PLANK_BUILD_BRANCH'], context.branch_name('feature/check'))
-            self.assertEqual(values['PLANK_MACOS_HOST_MIN_OS'], '27.0')
+            self.assertEqual(values['PLANK_MACOS_HOST_MIN_OS'], '26.7')
             self.assertEqual(subprocess.check_output(['git', '-C', str(worktree), 'rev-parse', 'HEAD'], text=True).strip(), sha)
             # Reusing a scratch root must fail instead of trusting stale outputs.
             self.assertNotEqual(subprocess.run(['python3', str(ROOT / 'scripts/ci/context.py')], env=env,
@@ -103,14 +103,14 @@ class ContextTests(unittest.TestCase):
 
     def test_host_floor_input_is_available_before_either_mac_build(self):
         workflow = (ROOT / '.github/workflows/build.yml').read_text()
-        self.assertIn("options: ['27.0', '26.7']", workflow)
+        self.assertIn("options: ['26.7', '27.0']", workflow)
         self.assertIn("REQUESTED_PRODUCT: ${{ inputs.product || 'all' }}", workflow)
-        self.assertIn("REQUESTED_MACOS_HOST_MIN_OS: ${{ inputs.macos_host_min_os || '27.0' }}", workflow)
+        self.assertIn("REQUESTED_MACOS_HOST_MIN_OS: ${{ inputs.macos_host_min_os || '26.7' }}", workflow)
         for job in ('macos', 'macos-signed'):
             body = workflow.split('  ' + job + ':\n', 1)[1].split('\n  macos-signed:', 1)[0]
             self.assertLess(body.index('python3 scripts/ci/context.py'),
                             body.index('Restore and verify dependencies'))
-        self.assertIn("${{ inputs.product || 'all' }}-${{ inputs.macos_host_min_os || '27.0' }}", workflow)
+        self.assertIn("${{ inputs.product || 'all' }}-${{ inputs.macos_host_min_os || '26.7' }}", workflow)
 
     def test_all_root_workflows_use_current_node_actions(self):
         for path in (ROOT / '.github/workflows').glob('*.yml'):

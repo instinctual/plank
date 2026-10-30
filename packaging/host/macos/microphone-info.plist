@@ -7,7 +7,7 @@
   <key>CFBundlePackageType</key><string>BNDL</string>
   <key>CFBundleVersion</key><string>1</string>
   <key>CFBundleShortVersionString</key><string>0.1.0</string>
-  <key>LSMinimumSystemVersion</key><string>27.0</string>
+  <key>LSMinimumSystemVersion</key><string>26.7</string>
   <key>CFPlugInDynamicRegistration</key><false/>
   <key>CFPlugInFactories</key><dict>
     <key>78B40B13-FD9D-4896-A7B6-6443217D1DC9</key><string>PLANKMicrophoneFactory</string>

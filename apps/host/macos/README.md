@@ -5,9 +5,9 @@ It provides remote workstation access from PLANK Clients on Ubuntu and macOS.
 It is not the macOS backend of the Sunshine-derived
 [Linux Host](https://github.com/instinctual/plank-host-linux).
 
-The Host defaults to **macOS 27 or newer on Apple Silicon**, with a separately
-selected **macOS 26.7** build also supported. It is distributed as a signed,
-notarized PKG; a 27.0 package cannot be installed on 26.7. The separate Mac
+The Host uses one signed, notarized PKG for **macOS 26.7 or newer on Apple
+Silicon**, built with SDK27 or newer. Newer APIs remain guarded at runtime.
+The separate Mac
 Client supports macOS 15 and newer, which does not lower the Host requirement.
 
 Chris (cnoellert) owns macOS 26.7 hardware and session validation. Compiler and
@@ -80,7 +80,8 @@ Neither is duplicated in a separate Mac Host repository.
 
 Use [Building from source](../../../docs/development/build/from-source.md) and
 the [macOS Host build runbook](../../../docs/development/build/macos-build-runbook.md).
-Host builds require SDK 27 or newer and a macOS 27 deployment target.
+Host builds require SDK 27 or newer and a macOS 26.7 deployment target.
+The optional 27.0 target is for candidate regression comparisons only.
 Developer compilation and signed/notarized distribution have different
 requirements; maintainer signing credentials are never source dependencies.
 
