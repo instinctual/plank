@@ -53,6 +53,8 @@ jobs:
       - name: Install source-gate test dependency
         run: sudo apt-get update && sudo apt-get install -y --no-install-recommends ripgrep
       - run: python3 -m unittest discover -s tests/ci -v
+      - name: Verify package identities and catalog coexistence
+        run: python3 tests/packaging/test-package-collection.py -v
       - name: Require the intended source revision
         run: test "$(git rev-parse HEAD)" = "$EXPECTED_SOURCE_SHA"
 

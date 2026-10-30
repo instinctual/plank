@@ -7,12 +7,24 @@ separate, explicit publication step; collecting a package does not publish it.
 packages/
   releases/<version>/<linux|macos>/<original-package-filename>
   candidates/<version>-<branch>/<linux|macos>/<original-package-filename>
+  candidates/<version>-<branch>-macos<minimum>/macos/<original-host-package-filename>
 ```
 
 Each version directory has `manifest.json` and `SHA256SUMS`. Each package also
 has a neighboring `.sha256` sidecar. Run `sha256sum -c SHA256SUMS` from the
 version directory (on macOS, `shasum -a 256 -c SHA256SUMS`). Filenames retain
 product/version/architecture and the feature branch when applicable.
+
+New macOS Host candidates also include the selected runtime floor in the
+visible app version, filename and catalog version. For example, one branch can
+retain `plank-host_1.2.02-test-host-macos26.7_arm64.pkg` and
+`plank-host_1.2.02-test-host-macos27.0_arm64.pkg` under their respective version
+directories. Their manifest `target_os` values are `macos-26.7` and `macos-27.0`;
+the manifest branch remains `test-host`. Mainline 27.0 remains
+`plank-host_1.2.02_arm64.pkg` under `releases/1.2.02/`; 26.7 is candidate-only.
+Client and Linux naming are unchanged. Historical Host artifacts recorded as
+`macos-27` retain their original unsuffixed identity when re-collected. Preserve
+their original manifest rather than relabelling them with a canonical new target.
 
 `releases` means an unqualified **mainline build**, not proof of hardware
 acceptance or a published release. Read each manifest's validation state.

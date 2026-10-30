@@ -16,7 +16,7 @@ plank_macos_host_target
 [[ $PLANK_MACOS_TEAM_ID =~ ^[A-Z0-9]{10}$ ]]
 test -z "$(git -C "$source_root" status --porcelain)"
 source "$source_root/scripts/package/package-version.sh"
-plank_load_package_version "$source_root"
+plank_load_macos_host_package_version "$source_root"
 export PLANK_MACOS_HOST_VERSION=$PLANK_PACKAGE_VERSION PLANK_MACOS_DISTRIBUTION=1
 identities=$(security find-identity -v)
 echo "$identities" | grep -F "$PLANK_MACOS_SIGNING_IDENTITY" | grep -F '"Developer ID Application:'

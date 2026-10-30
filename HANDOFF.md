@@ -19,7 +19,13 @@ physical session qualification remain separate in the
 The review candidate now includes explicit hosted `macos_host_min_os=26.7`
 dispatch for a Mac Host feature branch; default/ordinary builds remain 27.0.
 Target selection, exact-source dispatch and signed/unsigned routing fixtures
-pass. An upstream maintainer must review/import the candidate and use the
+pass. Mac Host candidates now include `-macos26.7` or `-macos27.0` in the
+visible version, installer name and catalog directory. Fifteen production
+collector tests pass, including retention in both orders and unchanged
+byte/provenance conflict protection; routing fixtures verify the version passed
+to assembly. Mainline 27.0, Client/Linux and historical artifact names are
+preserved. This packaging-only follow-up does not rebuild or qualify a Host.
+An upstream maintainer must review/import the candidate and use the
 existing protected signing path before installation can be qualified. No
 signing policy was changed and no signed workflow was dispatched.
 No Host has been installed or started operationally, no client session changed,

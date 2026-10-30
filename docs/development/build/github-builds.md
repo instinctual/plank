@@ -411,6 +411,15 @@ dependency pins are unchanged. Different target floors have separate workflow
 concurrency groups. Dependency caches contain toolchains/downloaded sources,
 not compiled Host objects, so each run rebuilds the transport for its floor.
 
+Mac Host candidates qualify their visible version, PKG filename and catalog
+directory with the selected floor: `1.2.02-<branch>-macos26.7` or
+`1.2.02-<branch>-macos27.0`. Both can be retained from the same source and branch
+without overwriting one another. Mainline 27.0 remains `1.2.02` with its ordinary
+release filename; Client and Linux identities are unchanged. The collector
+checks the filename against the target and still rejects changed bytes or
+provenance under an existing identity. The policy job exercises both collection
+orders, repeat collection and conflict protection using dummy package payloads.
+
 On a clean upstream candidate checkout whose `origin` points to that repository:
 
 ```bash

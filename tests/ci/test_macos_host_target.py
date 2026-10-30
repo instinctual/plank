@@ -131,18 +131,35 @@ Path(os.environ['TEST_ARGS']).write_text(json.dumps(sys.argv[1:]))
                     record = base / 'calls'
                     executable(source / 'tests/network/test_datagram_sender.py', 'pass\n')
                     executable(source / 'scripts/package/package-version.sh',
-                               'plank_load_package_version() { export PLANK_PACKAGE_VERSION=1.2.02-test-host; }\n')
+                               (ROOT / 'scripts/package/package-version.sh').read_text())
+                    (source / 'packaging').mkdir()
+                    (source / 'packaging/VERSION').write_text('1.2.02\n')
+                    package_source = (ROOT / 'scripts/package/build-macos-host-pkg.sh').read_text()
+                    # Execute the production package-version setup only. All
+                    # signing, compilation and package operations stay stubbed.
+                    version_setup = package_source.split(
+                        'source "$source_root/scripts/package/package-version.sh"', 1)[1].split(
+                        'identities=$(security', 1)[0]
                     for script, label in [('scripts/build/build-macos-transport.sh', 'transport'),
                                           ('scripts/build/build-macos-host.sh', 'assembly'),
                                           ('scripts/package/build-macos-host-pkg.sh', 'package')]:
-                        executable(source / script,
-                                   'printf "%s:%s\\n" ' + label + ' "$PLANK_MACOS_HOST_MIN_OS" >> "$TEST_RECORD"\n')
+                        setup = ''
+                        if label == 'package':
+                            setup = ('set -eu\nsource_root=$1\n'
+                                     'source "$source_root/scripts/package/package-version.sh"' + version_setup)
+                        if label == 'transport':
+                            record_command = 'printf "transport:%s\\n" "$PLANK_MACOS_HOST_MIN_OS"'
+                        else:
+                            record_command = ('printf "%s:%s:%s\\n" ' + label +
+                                              ' "$PLANK_MACOS_HOST_MIN_OS" "$PLANK_MACOS_HOST_VERSION"')
+                        executable(source / script, setup + record_command + ' >> "$TEST_RECORD"\n')
                     # Isolated stubs: no sudo, package scripts, compiler or Git state changes.
                     for command in ('sudo', 'git'):
                         executable(base / 'bin' / command, '#!/bin/bash\nexit 0\n')
                     env = dict(os.environ, PLANK_SOURCE_ROOT=str(source),
                                PLANK_WORK_ROOT=str(base / 'work'), PLANK_CARGO_ROOT=str(base / 'cargo'),
                                PLANK_RUSTUP_ROOT=str(base / 'rustup'), PLANK_CI_SIGNED=signed,
+                               PLANK_BUILD_BRANCH='test-host',
                                PLANK_MACOS_HOST_MIN_OS=target, TEST_RECORD=str(record),
                                PATH=str(base / 'bin') + os.pathsep + os.environ['PATH'])
                     result = subprocess.run(['bash', str(ROOT / 'scripts/ci/build.sh'), 'macos-host'],
@@ -150,7 +167,8 @@ Path(os.environ['TEST_ARGS']).write_text(json.dumps(sys.argv[1:]))
                     self.assertEqual(result.returncode, 0, result.stderr)
                     self.assertEqual(record.read_text().splitlines(),
                                      ['transport:' + target,
-                                      ('package:' if signed == 'true' else 'assembly:') + target])
+                                      ('package:' if signed == 'true' else 'assembly:') + target +
+                                      ':1.2.02-test-host-macos' + target])
 
 
 if __name__ == '__main__':

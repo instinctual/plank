@@ -41,7 +41,7 @@ lifetime and audio-driver bounds. It uses the existing Rust transport and
 fingerprint/profile loopbacks. Synthetic sources and fake input remain test
 inputs; they do not replace physical acceptance.
 
-The clean committed candidate `1.2.02-macos26-host-backport` completes the full
+The original frozen assembly `1.2.02-macos26-host-backport` completes the full
 native Host assembly and component sequence on 26.7 with SDK27. All four
 bundle checks pass: Host, camera extension and both audio drivers. The Host
 links only Apple system libraries. The existing standalone build executable
@@ -79,11 +79,21 @@ Use the normal runbook's clean source and retained Cargo/Rustup paths, adding:
 ```sh
 export PLANK_MACOS_HOST_MIN_OS=26.7
 export PLANK_BUILD_BRANCH=macos26-host-backport
+source scripts/package/package-version.sh
+plank_load_macos_host_package_version "$PWD"
+export PLANK_MACOS_HOST_VERSION="$PLANK_PACKAGE_VERSION"
 ```
 
 Build a fresh transport archive with `build-macos-transport.sh`, then pass it
 to `build-macos-host.sh` or the protected `build-macos-host-pkg.sh` flow.
-Use a branch-qualified candidate version. All nested bundles must declare 26.7
+The current candidate version is `1.2.02-macos26-host-backport-macos26.7`;
+the same branch targeting 27.0 uses `1.2.02-macos26-host-backport-macos27.0`.
+The displayed app version, PKG filename and catalog directory use that full
+identity. Both candidates can coexist while the collector's byte/provenance
+overwrite protection remains unchanged. Mainline 27.0 retains its unsuffixed
+release version; 26.7 cannot be packaged or collected as mainline. Historical
+`macos-27` artifacts keep their recorded identity and are not renamed.
+All nested bundles must declare 26.7
 and every linked arm64 Mach-O must require no newer runtime. The build reuses
 the existing minimum checker for the app, extension and both audio drivers.
 Retain build/source hashes and operational receipts privately; publication of
@@ -101,7 +111,14 @@ exact-source check and accepts `--macos-host-min-os=26.7` alongside the existing
 optional `--clean-bootstrap` flag.
 
 Focused context, dispatch, build-routing and signing fixtures pass without
-loading credentials or creating a Host session. Local full CI-policy execution
+loading credentials or creating a Host session. The package identity regression
+uses the production version helper and collector to retain both floors in either
+order, re-collect identical artifacts and reject filename/target mismatches or
+changed bytes/provenance. It also preserves mainline, historical Host and other
+product identities. All 15 collection tests pass; signed/unsigned build-routing
+fixtures check the actual version setup passed to assembly. These tests run in
+the hosted policy job and use dummy payloads, not signed installers.
+The earlier local full CI-policy execution
 passes 97 of 98 test methods; the unchanged SDL metadata test cannot run because
 `pkg-config` is absent on the development Mac. Using a canonical temporary path
 resolves two other macOS path-alias fixture failures from the initial run.
