@@ -7,7 +7,7 @@ notes, never in Git.
 ## Candidate in progress — Ubuntu Client displays
 
 Root and Client branch `client-displays` starts from mainline 1.2.02. Version
-1.2.03 adds per-bookmark current/named/both-monitor fullscreen selection for
+1.2.04 adds per-bookmark current/named/both-monitor fullscreen selection for
 the Ubuntu Qt Client. Match Client uses that selection for Linux and Mac Host
 preparation. A local toolbar menu switches single/span presentation without
 changing the Host or persisted bookmark. Existing bookmarks retain spanning;
@@ -16,10 +16,12 @@ implementations are unchanged. See
 [the plan](docs/development/plans/client-displays.plan) and
 [user guidance](docs/user/client-displays.md).
 
-Local version/catalog checks pass. Hosted compilation, new selection/QML/menu
-tests, sanitizer checks and two-output compositor checks are pending. Build
-the Ubuntu candidate through GitHub Actions, retain its original provenance,
-then request hardware acceptance with two simultaneous sessions. No remote
+Local version/catalog checks and hosted build41113303188 pass. That first
+1.2.03 candidate passed selection/QML/menu, sanitizer and two-output compositor
+checks, but visual review found a truncated menu label. Version 1.2.04 sizes
+the menu to both labels and adds a rendered-width regression check. Its hosted
+build is pending. Retain its original provenance, then request hardware
+acceptance with two simultaneous sessions. No remote
 installation, session interruption, merge or release is authorized for this
 candidate. The separate GPU investigation below remains paused.
 
