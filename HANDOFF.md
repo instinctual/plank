@@ -54,12 +54,16 @@ root and submodule pins; Kymux remains
 `3f7a9d8618978287186e5d6ce0eaa067743cb06c`. The candidate branch has a scoped
 signing permission; remove it when retiring the branch. No build remains active.
 
-Next: qualify switching between inactive applications on macOS 27.2, title-bar
-and content dragging, double/triple and modifier clicks, right-click menus,
-tablet pressure and disconnect/reconnect. No live machine was changed, no input
-was injected, and no collector remains. Installation, hardware acceptance,
-merge and release are pending; the production Host must not be reported fixed
-from compilation alone. Private notes contain the observed event timelines.
+The operator reports installing this candidate on the affected macOS 27.2 Host
+and observing no recurrence during the first few minutes. This is a positive
+initial result, not sustained acceptance of an intermittent failure. Installed
+bytes were not independently inspected after the operator's installation.
+
+Next: continue ordinary use and qualify switching between inactive applications,
+title-bar and content dragging, double/triple and modifier clicks, right-click
+menus, tablet pressure and disconnect/reconnect. No input was injected by the
+diagnostics, and no collector remains. Sustained hardware acceptance, merge and
+release are pending. Private notes contain the observed event timelines.
 
 ## Native macOS 26.7 Host support
 
