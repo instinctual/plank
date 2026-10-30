@@ -29,8 +29,11 @@ resolved. The non-posting Quartz/AppKit fixtures now cover all five mouse
 buttons, overlapping presses, multi-clicks, denied releases, cleanup, pen tip/
 eraser/side buttons and mixed mouse/pen sequences. Local validation passed all
 98 CI-policy tests, 15 package-collection tests, release-version checks and
-whitespace checks. Hosted Quartz/AppKit execution and the signed candidate
-build are pending at this checkpoint.
+whitespace checks. The first hosted attempt stopped compiling the expanded
+input fixture: its old `send()` helper conflicted with the socket declaration
+exposed by the new AppKit import. The helper is now `sendInput()`; no product
+change or test removal was needed. Hosted Quartz/AppKit execution and the
+signed candidate build are pending at this checkpoint.
 
 Next: build/sign through hosted Actions, retain exact source/package hashes,
 then qualify switching between inactive applications on macOS 27.2, title-bar

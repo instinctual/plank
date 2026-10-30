@@ -17,7 +17,7 @@ static int64_t sequence(CGEventRef event) {
     CHECK([NSEvent eventWithCGEvent:event].eventNumber == number);
     return number;
 }
-static CGEventRef send(PLANKMacInputEvents *mapper, uint8_t type, NSData *data, PLANKMacInputResult expected) {
+static CGEventRef sendInput(PLANKMacInputEvents *mapper, uint8_t type, NSData *data, PLANKMacInputResult expected) {
     __block CGEventRef event = NULL;
     CHECK([mapper consumeType:type payload:data time:now++ accept:^BOOL(CGEventRef value) {
         event = (CGEventRef)CFRetain(value); return YES;
@@ -54,7 +54,7 @@ int main(void) {
         for (unsigned g = 0; g < 4; ++g) {
             PLANKMacInputEvents *mapper = make(source, rectangles[g], pixels[g]);
             for (unsigned scale = 1; scale < 4; ++scale) for (unsigned step = 0; step <= 10; ++step) {
-                CGEventRef event = send(mapper, 1, motion(step * scale, step * scale, 10 * scale, 10 * scale), PLANKMacInputEvent);
+                CGEventRef event = sendInput(mapper, 1, motion(step * scale, step * scale, 10 * scale, 10 * scale), PLANKMacInputEvent);
                 CGPoint actual = CGEventGetLocation(event);
                 CHECK(fabs(actual.x - (rectangles[g].origin.x + step / 10.0 * (ends[g].x - rectangles[g].origin.x))) < 1e-7);
                 CHECK(fabs(actual.y - (rectangles[g].origin.y + step / 10.0 * (ends[g].y - rectangles[g].origin.y))) < 1e-7);
@@ -64,73 +64,73 @@ int main(void) {
             CHECK([mapper stopAndCopyReleaseEvents].count == 0);
         }
         PLANKMacInputEvents *mapper = make(source, rectangles[0], pixels[0]);
-        send(mapper, 1, motion(0, 0, 0, 10), PLANKMacInputMalformed);
-        send(mapper, 1, motion(11, 0, 10, 10), PLANKMacInputMalformed);
-        send(mapper, 1, motion(0, 11, 10, 10), PLANKMacInputMalformed);
+        sendInput(mapper, 1, motion(0, 0, 0, 10), PLANKMacInputMalformed);
+        sendInput(mapper, 1, motion(11, 0, 10, 10), PLANKMacInputMalformed);
+        sendInput(mapper, 1, motion(0, 11, 10, 10), PLANKMacInputMalformed);
         CGEventRef event = NULL;
         CHECK([mapper consumeType:1 payload:motion(0, 0, 10, 10) time:now accept:nil] == PLANKMacInputMalformed);
         for (unsigned type = 1; type <= 5; ++type) for (unsigned length = 0; length <= 10; ++length) {
             unsigned size = type == 1 ? 8 : type == 5 ? 5 : 2;
             if (length == size) continue;
-            send(mapper, type, [NSMutableData dataWithLength:length], PLANKMacInputMalformed);
+            sendInput(mapper, type, [NSMutableData dataWithLength:length], PLANKMacInputMalformed);
         }
         for (unsigned type = 6; type <= 255; ++type)
-            send(mapper, type, packet((uint8_t[]){1}, 1), type == 7 ? PLANKMacInputMalformed : PLANKMacInputUnsupported);
-        send(mapper, 5, key(0x141, YES, 0, 0), PLANKMacInputMalformed);
-        send(mapper, 5, key(0x8041, YES, 16, 0), PLANKMacInputMalformed);
-        send(mapper, 5, key(0x8041, YES, 0, 2), PLANKMacInputMalformed);
-        send(mapper, 5, key(0x8041, YES, 0, 1), PLANKMacInputUnsupported);
-        send(mapper, 5, key(0x8000, YES, 0, 0), PLANKMacInputUnsupported);
-        send(mapper, 2, packet((uint8_t[]){0, 1}, 2), PLANKMacInputMalformed);
-        send(mapper, 2, packet((uint8_t[]){6, 1}, 2), PLANKMacInputMalformed);
-        send(mapper, 2, packet((uint8_t[]){1, 2}, 2), PLANKMacInputMalformed);
+            sendInput(mapper, type, packet((uint8_t[]){1}, 1), type == 7 ? PLANKMacInputMalformed : PLANKMacInputUnsupported);
+        sendInput(mapper, 5, key(0x141, YES, 0, 0), PLANKMacInputMalformed);
+        sendInput(mapper, 5, key(0x8041, YES, 16, 0), PLANKMacInputMalformed);
+        sendInput(mapper, 5, key(0x8041, YES, 0, 2), PLANKMacInputMalformed);
+        sendInput(mapper, 5, key(0x8041, YES, 0, 1), PLANKMacInputUnsupported);
+        sendInput(mapper, 5, key(0x8000, YES, 0, 0), PLANKMacInputUnsupported);
+        sendInput(mapper, 2, packet((uint8_t[]){0, 1}, 2), PLANKMacInputMalformed);
+        sendInput(mapper, 2, packet((uint8_t[]){6, 1}, 2), PLANKMacInputMalformed);
+        sendInput(mapper, 2, packet((uint8_t[]){1, 2}, 2), PLANKMacInputMalformed);
         // All five button identities, drag, paired up, duplicate suppression.
         unsigned buttons[] = {0, 2, 1, 3, 4};
         CGEventType drag[] = {kCGEventLeftMouseDragged, kCGEventOtherMouseDragged,
             kCGEventRightMouseDragged, kCGEventOtherMouseDragged, kCGEventOtherMouseDragged};
         int64_t previousNumber = 0;
         for (unsigned i = 0; i < 5; ++i) {
-            event = send(mapper, 2, packet((uint8_t[]){i + 1, 1}, 2), PLANKMacInputEvent);
+            event = sendInput(mapper, 2, packet((uint8_t[]){i + 1, 1}, 2), PLANKMacInputEvent);
             int64_t number = sequence(event);
             CHECK(number != previousNumber); previousNumber = number;
             CHECK(CGEventGetIntegerValueField(event, kCGMouseEventButtonNumber) == buttons[i]);
             CHECK(CGEventGetIntegerValueField(event, kCGMouseEventClickState) == 1); CFRelease(event);
-            send(mapper, 2, packet((uint8_t[]){i + 1, 1}, 2), PLANKMacInputNoEvent);
-            event = send(mapper, 1, motion(5, 5, 10, 10), PLANKMacInputEvent);
+            sendInput(mapper, 2, packet((uint8_t[]){i + 1, 1}, 2), PLANKMacInputNoEvent);
+            event = sendInput(mapper, 1, motion(5, 5, 10, 10), PLANKMacInputEvent);
             CHECK(sequence(event) == number);
             CHECK(CGEventGetIntegerValueField(event, kCGMouseEventClickState) == 1);
             CHECK(CGEventGetType(event) == drag[i]); CFRelease(event);
-            event = send(mapper, 2, packet((uint8_t[]){i + 1, 0}, 2), PLANKMacInputEvent);
+            event = sendInput(mapper, 2, packet((uint8_t[]){i + 1, 0}, 2), PLANKMacInputEvent);
             CHECK(sequence(event) == number); CFRelease(event);
-            send(mapper, 2, packet((uint8_t[]){i + 1, 0}, 2), PLANKMacInputNoEvent);
+            sendInput(mapper, 2, packet((uint8_t[]){i + 1, 0}, 2), PLANKMacInputNoEvent);
         }
         for (unsigned i = 1; i <= 3; ++i) {
             now += 100000000;
-            event = send(mapper, 2, packet((uint8_t[]){1, 1}, 2), PLANKMacInputEvent);
+            event = sendInput(mapper, 2, packet((uint8_t[]){1, 1}, 2), PLANKMacInputEvent);
             int64_t number = sequence(event);
             CHECK(number != previousNumber); previousNumber = number;
             CHECK(CGEventGetIntegerValueField(event, kCGMouseEventClickState) == i); CFRelease(event);
-            event = send(mapper, 1, motion(5, 5, 10, 10), PLANKMacInputEvent);
+            event = sendInput(mapper, 1, motion(5, 5, 10, 10), PLANKMacInputEvent);
             CHECK(sequence(event) == number);
             CHECK(CGEventGetIntegerValueField(event, kCGMouseEventClickState) == i); CFRelease(event);
-            event = send(mapper, 2, packet((uint8_t[]){1, 0}, 2), PLANKMacInputEvent);
+            event = sendInput(mapper, 2, packet((uint8_t[]){1, 0}, 2), PLANKMacInputEvent);
             CHECK(sequence(event) == number); CFRelease(event);
         }
         now += 1000000000;
-        event = send(mapper, 2, packet((uint8_t[]){1, 1}, 2), PLANKMacInputEvent);
+        event = sendInput(mapper, 2, packet((uint8_t[]){1, 1}, 2), PLANKMacInputEvent);
         CHECK(CGEventGetIntegerValueField(event, kCGMouseEventClickState) == 1); CFRelease(event);
-        event = send(mapper, 2, packet((uint8_t[]){1, 0}, 2), PLANKMacInputEvent); CFRelease(event);
+        event = sendInput(mapper, 2, packet((uint8_t[]){1, 0}, 2), PLANKMacInputEvent); CFRelease(event);
         // Fractions must survive both directions/axes. Never truncate 1/120.
         int amounts[] = {1, 60, 120, -1, -60, -120, 32767, -32768};
         for (unsigned axis = 0; axis < 2; ++axis) for (unsigned a = 0; a < 8; ++a) {
             uint8_t p[2]; plank_transport_input_write_u16(p, (uint16_t)amounts[a]);
-            event = send(mapper, axis ? 4 : 3, packet(p, 2), PLANKMacInputEvent);
+            event = sendInput(mapper, axis ? 4 : 3, packet(p, 2), PLANKMacInputEvent);
             CHECK(CGEventGetType(event) == kCGEventScrollWheel);
             CHECK(fabs(CGEventGetDoubleValueField(event, axis ? kCGScrollWheelEventFixedPtDeltaAxis2 : kCGScrollWheelEventFixedPtDeltaAxis1) - amounts[a] / 120.0) < 1.0 / 65536);
             CHECK(CGEventGetIntegerValueField(event, axis ? kCGScrollWheelEventPointDeltaAxis2 : kCGScrollWheelEventPointDeltaAxis1) == llround(amounts[a] / 12.0));
             CFRelease(event);
         }
-        send(mapper, 3, packet((uint8_t[]){0, 0}, 2), PLANKMacInputNoEvent);
+        sendInput(mapper, 3, packet((uint8_t[]){0, 0}, 2), PLANKMacInputNoEvent);
         // Exact measured OS slider positions, odd persisted values, and safe
         // fallbacks. Never read or modify the test account's OS preferences.
         double positions[] = {0, 0.0735, 0.1265, 0.1838, 0.3125, 0.4412, 0.5882, 1};
@@ -151,7 +151,7 @@ int main(void) {
             mapper.scrollLinesPerNotch = ^double { return lines; };
             for (unsigned axis = 0; axis < 2; ++axis) for (unsigned a = 0; a < 8; ++a) {
                 uint8_t p[2]; plank_transport_input_write_u16(p, (uint16_t)amounts[a]);
-                event = send(mapper, axis ? 4 : 3, packet(p, 2), PLANKMacInputEvent);
+                event = sendInput(mapper, axis ? 4 : 3, packet(p, 2), PLANKMacInputEvent);
                 double expected = amounts[a] / 120.0 * lines;
                 CHECK(CGEventGetIntegerValueField(event, axis ? kCGScrollWheelEventDeltaAxis2 : kCGScrollWheelEventDeltaAxis1) == (int64_t)expected);
                 CHECK(fabs(CGEventGetDoubleValueField(event, axis ? kCGScrollWheelEventFixedPtDeltaAxis2 : kCGScrollWheelEventFixedPtDeltaAxis1) - expected) < 1.0 / 65536);
@@ -163,7 +163,7 @@ int main(void) {
         for (NSNumber *invalid in @[@(NAN), @(INFINITY), @0, @(-1), @9]) {
             mapper.scrollLinesPerNotch = ^double { return invalid.doubleValue; };
             uint8_t p[2]; plank_transport_input_write_u16(p, 120);
-            event = send(mapper, 3, packet(p, 2), PLANKMacInputEvent);
+            event = sendInput(mapper, 3, packet(p, 2), PLANKMacInputEvent);
             CHECK(CGEventGetDoubleValueField(event, kCGScrollWheelEventFixedPtDeltaAxis1) == 1);
             CFRelease(event);
         }
@@ -173,29 +173,29 @@ int main(void) {
             0x08, 0x09, 0x0d, 0x1b, 0x25, 0x28, 0xba, 0xde};
         unsigned mac[] = {0, 6, 29, 18, 82, 92, 122, 90, 51, 48, 36, 53, 123, 125, 41, 39};
         for (unsigned i = 0; i < sizeof(vk)/sizeof(vk[0]); ++i) {
-            event = send(mapper, 5, key(vk[i] | 0x8000, YES, 0, 0), PLANKMacInputEvent);
+            event = sendInput(mapper, 5, key(vk[i] | 0x8000, YES, 0, 0), PLANKMacInputEvent);
             CHECK(CGEventGetIntegerValueField(event, kCGKeyboardEventKeycode) == mac[i]);
             CHECK(CGEventGetType(event) == kCGEventKeyDown); CFRelease(event);
-            event = send(mapper, 5, key(vk[i], YES, 0, 0), PLANKMacInputEvent);
+            event = sendInput(mapper, 5, key(vk[i], YES, 0, 0), PLANKMacInputEvent);
             CHECK(CGEventGetIntegerValueField(event, kCGKeyboardEventAutorepeat) == 1); CFRelease(event);
-            event = send(mapper, 5, key(vk[i], NO, 0, 0), PLANKMacInputEvent);
+            event = sendInput(mapper, 5, key(vk[i], NO, 0, 0), PLANKMacInputEvent);
             CHECK(CGEventGetType(event) == kCGEventKeyUp); CFRelease(event);
-            send(mapper, 5, key(vk[i], NO, 0, 0), PLANKMacInputNoEvent);
+            sendInput(mapper, 5, key(vk[i], NO, 0, 0), PLANKMacInputNoEvent);
         }
         // Both shifts held; release one must not release the other. Snapshots
         // also affect subsequent mouse events (e.g. shift-click).
-        event = send(mapper, 5, key(0xa0, YES, 1, 0), PLANKMacInputEvent);
+        event = sendInput(mapper, 5, key(0xa0, YES, 1, 0), PLANKMacInputEvent);
         CHECK(CGEventGetType(event) == kCGEventFlagsChanged); CFRelease(event);
-        event = send(mapper, 5, key(0xa1, YES, 1, 0), PLANKMacInputEvent); CFRelease(event);
-        event = send(mapper, 5, key(0xa0, NO, 0, 0), PLANKMacInputEvent);
+        event = sendInput(mapper, 5, key(0xa1, YES, 1, 0), PLANKMacInputEvent); CFRelease(event);
+        event = sendInput(mapper, 5, key(0xa0, NO, 0, 0), PLANKMacInputEvent);
         CHECK(CGEventGetFlags(event) & kCGEventFlagMaskShift); CFRelease(event);
-        event = send(mapper, 1, motion(10, 10, 10, 10), PLANKMacInputEvent);
+        event = sendInput(mapper, 1, motion(10, 10, 10, 10), PLANKMacInputEvent);
         CHECK(CGEventGetFlags(event) & kCGEventFlagMaskShift); CFRelease(event);
-        event = send(mapper, 5, key(0xa1, NO, 0, 0), PLANKMacInputEvent);
+        event = sendInput(mapper, 5, key(0xa1, NO, 0, 0), PLANKMacInputEvent);
         CHECK(!(CGEventGetFlags(event) & kCGEventFlagMaskShift)); CFRelease(event);
-        event = send(mapper, 5, key(0x41, YES, 0, 0), PLANKMacInputEvent); CFRelease(event);
-        event = send(mapper, 5, key(0xa2, YES, 2, 0), PLANKMacInputEvent); CFRelease(event);
-        event = send(mapper, 2, packet((uint8_t[]){3, 1}, 2), PLANKMacInputEvent);
+        event = sendInput(mapper, 5, key(0x41, YES, 0, 0), PLANKMacInputEvent); CFRelease(event);
+        event = sendInput(mapper, 5, key(0xa2, YES, 2, 0), PLANKMacInputEvent); CFRelease(event);
+        event = sendInput(mapper, 2, packet((uint8_t[]){3, 1}, 2), PLANKMacInputEvent);
         int64_t cleanupNumber = sequence(event); CFRelease(event);
         CHECK([mapper consumeType:1 payload:motion(0, 0, 10, 10) time:1 accept:^BOOL(CGEventRef value) {
             (void)value; CHECK(NO); return YES;
@@ -207,7 +207,7 @@ int main(void) {
         CHECK(CGEventGetType((__bridge CGEventRef)releases[2]) == kCGEventRightMouseUp);
         CHECK(sequence((__bridge CGEventRef)releases[2]) == cleanupNumber);
         CHECK([mapper stopAndCopyReleaseEvents].count == 0);
-        send(mapper, 1, motion(0, 0, 10, 10), PLANKMacInputStopped);
+        sendInput(mapper, 1, motion(0, 0, 10, 10), PLANKMacInputStopped);
         mapper = make(source, rectangles[0], pixels[0]);
         for (unsigned kind = 0; kind < 3; ++kind) {
             uint8_t type = kind == 0 ? 1 : kind == 1 ? 2 : 5;
@@ -217,7 +217,7 @@ int main(void) {
                 CHECK(value != NULL); return NO;
             }] == PLANKMacInputDenied);
         }
-        event = send(mapper, 2, packet((uint8_t[]){1, 1}, 2), PLANKMacInputEvent);
+        event = sendInput(mapper, 2, packet((uint8_t[]){1, 1}, 2), PLANKMacInputEvent);
         cleanupNumber = sequence(event);
         CHECK(CGEventGetLocation(event).x == 0 && CGEventGetLocation(event).y == 0);
         CHECK(CGEventGetIntegerValueField(event, kCGMouseEventClickState) == 1); CFRelease(event);
@@ -228,31 +228,31 @@ int main(void) {
         // Interleaved buttons must retain independent press identities; a later
         // press cannot replace the number needed by an earlier drag or release.
         mapper = make(source, rectangles[0], pixels[0]);
-        event = send(mapper, 5, key(0xa0, YES, 1, 0), PLANKMacInputEvent); CFRelease(event);
+        event = sendInput(mapper, 5, key(0xa0, YES, 1, 0), PLANKMacInputEvent); CFRelease(event);
         int64_t held[5];
         for (unsigned i = 0; i < 5; ++i) {
-            event = send(mapper, 2, packet((uint8_t[]){i + 1, 1}, 2), PLANKMacInputEvent);
+            event = sendInput(mapper, 2, packet((uint8_t[]){i + 1, 1}, 2), PLANKMacInputEvent);
             held[i] = sequence(event);
             for (unsigned j = 0; j < i; ++j) CHECK(held[i] != held[j]);
             CHECK(CGEventGetFlags(event) & kCGEventFlagMaskShift); CFRelease(event);
         }
         for (unsigned i = 0; i < 5; ++i) {
-            event = send(mapper, 1, motion(i, i, 10, 10), PLANKMacInputEvent);
+            event = sendInput(mapper, 1, motion(i, i, 10, 10), PLANKMacInputEvent);
             CHECK(CGEventGetType(event) == drag[i] && sequence(event) == held[i]);
             CHECK(CGEventGetFlags(event) & kCGEventFlagMaskShift); CFRelease(event);
-            event = send(mapper, 2, packet((uint8_t[]){i + 1, 0}, 2), PLANKMacInputEvent);
+            event = sendInput(mapper, 2, packet((uint8_t[]){i + 1, 0}, 2), PLANKMacInputEvent);
             CHECK(sequence(event) == held[i]); CFRelease(event);
         }
         CHECK([mapper stopAndCopyReleaseEvents].count == 1); // Shift only.
         // A rejected release leaves the accepted press available for drag and
         // eventual cleanup, without allocating another press identity.
         mapper = make(source, rectangles[0], pixels[0]);
-        event = send(mapper, 2, packet((uint8_t[]){1, 1}, 2), PLANKMacInputEvent);
+        event = sendInput(mapper, 2, packet((uint8_t[]){1, 1}, 2), PLANKMacInputEvent);
         cleanupNumber = sequence(event); CFRelease(event);
         CHECK([mapper consumeType:2 payload:packet((uint8_t[]){1, 0}, 2) time:now++ accept:^BOOL(CGEventRef value) {
             CHECK(sequence(value) == cleanupNumber); return NO;
         }] == PLANKMacInputDenied);
-        event = send(mapper, 1, motion(1, 1, 10, 10), PLANKMacInputEvent);
+        event = sendInput(mapper, 1, motion(1, 1, 10, 10), PLANKMacInputEvent);
         CHECK(CGEventGetType(event) == kCGEventLeftMouseDragged && sequence(event) == cleanupNumber); CFRelease(event);
         rollback = [mapper stopAndCopyReleaseEvents];
         CHECK(rollback.count == 1 && sequence((__bridge CGEventRef)rollback[0]) == cleanupNumber);
@@ -260,7 +260,7 @@ int main(void) {
         mapper = make(source, rectangles[0], pixels[0]);
         mapper.keyRepeatTiming = ^PLANKMacKeyRepeatTiming { return (PLANKMacKeyRepeatTiming){0.25, 0.05}; };
         now = 10000000000;
-        event = send(mapper, 5, key(0x41, YES, 0, 0), PLANKMacInputEvent); CFRelease(event);
+        event = sendInput(mapper, 5, key(0x41, YES, 0, 0), PLANKMacInputEvent); CFRelease(event);
         uint64_t due = mapper.nextRepeatTime;
         CHECK(due == 10250000000);
         BOOL (^repeatSink)(CGEventRef) = ^BOOL(CGEventRef value) {
@@ -273,7 +273,7 @@ int main(void) {
         CHECK([mapper repeatAtTime:due accept:repeatSink] == PLANKMacInputEvent);
         CHECK(mapper.nextRepeatTime == due + 50000000);
         now = due + 1;
-        event = send(mapper, 5, key(0xa0, YES, 1, 0), PLANKMacInputEvent); CFRelease(event);
+        event = sendInput(mapper, 5, key(0xa0, YES, 1, 0), PLANKMacInputEvent); CFRelease(event);
         CHECK(mapper.nextRepeatTime == due + 50000000); // modifier doesn't restart delay
         CHECK([mapper repeatAtTime:due + 50000000 accept:^BOOL(CGEventRef value) {
             CHECK(CGEventGetFlags(value) & kCGEventFlagMaskShift); return repeatSink(value);
@@ -284,11 +284,11 @@ int main(void) {
         CHECK([mapper repeatAtTime:deniedDue + 1000000000 accept:repeatSink] == PLANKMacInputEvent);
         CHECK(mapper.nextRepeatTime == deniedDue + 1050000000); // no catch-up burst
         now = deniedDue + 1000000001;
-        event = send(mapper, 5, key(0x41, NO, 1, 0), PLANKMacInputEvent); CFRelease(event);
+        event = sendInput(mapper, 5, key(0x41, NO, 1, 0), PLANKMacInputEvent); CFRelease(event);
         CHECK(mapper.nextRepeatTime == 0);
         CHECK([mapper repeatAtTime:now accept:repeatSink] == PLANKMacInputNoEvent);
-        event = send(mapper, 5, key(0x42, YES, 1, 0), PLANKMacInputEvent); CFRelease(event);
-        event = send(mapper, 5, key(0x43, YES, 1, 0), PLANKMacInputEvent); CFRelease(event);
+        event = sendInput(mapper, 5, key(0x42, YES, 1, 0), PLANKMacInputEvent); CFRelease(event);
+        event = sendInput(mapper, 5, key(0x43, YES, 1, 0), PLANKMacInputEvent); CFRelease(event);
         CHECK([mapper repeatAtTime:mapper.nextRepeatTime accept:^BOOL(CGEventRef value) {
             CHECK(CGEventGetIntegerValueField(value, kCGKeyboardEventKeycode) == 8); return YES;
         }] == PLANKMacInputEvent); // newest held key only
@@ -299,13 +299,13 @@ int main(void) {
         for (NSNumber *delay in @[@(NAN), @(INFINITY), @(-1), @1000000]) {
             mapper = make(source, rectangles[0], pixels[0]);
             mapper.keyRepeatTiming = ^PLANKMacKeyRepeatTiming { return (PLANKMacKeyRepeatTiming){delay.doubleValue, 0.05}; };
-            event = send(mapper, 5, key(0x41, YES, 0, 0), PLANKMacInputEvent); CFRelease(event);
+            event = sendInput(mapper, 5, key(0x41, YES, 0, 0), PLANKMacInputEvent); CFRelease(event);
             CHECK(mapper.nextRepeatTime == 0);
             CHECK([mapper stopAndCopyReleaseEvents].count == 1);
         }
         mapper = make(source, rectangles[0], pixels[0]);
         mapper.keyRepeatTiming = ^PLANKMacKeyRepeatTiming { return (PLANKMacKeyRepeatTiming){0.25, 0}; };
-        event = send(mapper, 5, key(0x41, YES, 0, 0), PLANKMacInputEvent); CFRelease(event);
+        event = sendInput(mapper, 5, key(0x41, YES, 0, 0), PLANKMacInputEvent); CFRelease(event);
         CHECK(mapper.nextRepeatTime == 0);
         CHECK([mapper stopAndCopyReleaseEvents].count == 1);
         CFRelease(source);
