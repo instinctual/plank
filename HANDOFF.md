@@ -16,6 +16,12 @@ checks pass and the standalone Host executable returns its version. The
 ad-hoc entitled app is not install-ready. Proper Host provisioning/signing and
 physical session qualification remain separate in the
 [backport plan](docs/development/plans/macos26-host-backport.md).
+The review candidate now includes explicit hosted `macos_host_min_os=26.7`
+dispatch for a Mac Host feature branch; default/ordinary builds remain 27.0.
+Target selection, exact-source dispatch and signed/unsigned routing fixtures
+pass. An upstream maintainer must review/import the candidate and use the
+existing protected signing path before installation can be qualified. No
+signing policy was changed and no signed workflow was dispatched.
 No Host has been installed or started operationally, no client session changed,
 and no OS, TCC, network, encryption or service maintenance accompanies this work.
 

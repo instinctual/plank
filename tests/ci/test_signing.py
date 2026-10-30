@@ -101,12 +101,13 @@ class SigningTests(unittest.TestCase):
                     directory = Path(temporary) / 'plank-macos-signing'
                     env = {name: 'Zml4dHVyZQ==' for name in signing.SECRET_NAMES}
                     env.update(PLANK_CI_PRODUCT=role, PLANK_MACOS_TEAM_ID='ABCDEFGHIJ',
-                               PLANK_SOURCE_ROOT='/example/source')
+                               PLANK_SOURCE_ROOT='/example/source', PLANK_MACOS_HOST_MIN_OS='26.7')
 
                     def run(args):
                         self.assertFalse(set(signing.SECRET_NAMES) & set(os.environ))
                         self.assertEqual(args, ['bash', '/example/source/scripts/ci/build.sh', role])
                         if role == 'macos-host':
+                            self.assertEqual(os.environ['PLANK_MACOS_HOST_MIN_OS'], '26.7')
                             profile = Path(os.environ['PLANK_MACOS_APP_PROVISION_PROFILE'])
                             self.assertEqual(profile.read_bytes(), b'fixture')
                             self.assertEqual(profile.stat().st_mode & 0o777, 0o600)

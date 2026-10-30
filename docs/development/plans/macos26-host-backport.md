@@ -88,3 +88,30 @@ and every linked arm64 Mach-O must require no newer runtime. The build reuses
 the existing minimum checker for the app, extension and both audio drivers.
 Retain build/source hashes and operational receipts privately; publication of
 a candidate does not promote 26.7 to a fully qualified supported platform.
+
+## Review and signed test build
+
+The hosted workflow exposes an explicit `macos_host_min_os=26.7` input for a
+manual `macos-host` dispatch on a candidate branch. Normal push/PR builds and
+the default target remain 27.0. The runner stays macOS27/SDK27; validation
+rejects unsupported floors, other products and an experimental dispatch from
+main or a tag before bootstrap/signing. The selected floor reaches both the
+fresh transport and the signed or unsigned Host assembly. Dispatch retains the
+exact-source check and accepts `--macos-host-min-os=26.7` alongside the existing
+optional `--clean-bootstrap` flag.
+
+Focused context, dispatch, build-routing and signing fixtures pass without
+loading credentials or creating a Host session. Local full CI-policy execution
+passes 97 of 98 test methods; the unchanged SDL metadata test cannot run because
+`pkg-config` is absent on the development Mac. Using a canonical temporary path
+resolves two other macOS path-alias fixture failures from the initial run.
+These workflow checks do not replace the recorded full native component build
+or qualify a signed installer. No signing job has been dispatched.
+
+An upstream maintainer can review/import the fork commits to a candidate branch,
+allow only that branch in the existing protected signing environment, and
+produce a signed/notarized test package with the normal Host identity. The
+[hosted-build runbook](../build/github-builds.md#experimental-macos-267-host-candidate)
+gives the exact command and retained profile/signing gates. No signing access,
+environment secrets, branch policy or operational installation is changed by
+this PR.

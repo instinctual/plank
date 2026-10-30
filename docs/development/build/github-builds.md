@@ -119,7 +119,7 @@ product. The job requires manual dispatch and directly names the protected
 `macos-signing` environment. At the operator's request, this environment has no
 required reviewers or wait timer: an explicitly dispatched signed build on an
 allowed branch proceeds automatically. Keep custom deployment branch policies
-enabled (currently `main` only after merged-branch cleanup); do not replace them
+enabled for explicitly reviewed branches; do not replace them
 with an all-branches wildcard. Remove a temporary branch's signing permission
 when retiring that branch. Review source, workflow and dependency changes before
 dispatching or adding a candidate branch. Public push/PR jobs have no signing
@@ -397,6 +397,45 @@ failed job's first error, not the final nonzero-exit summary.
 Use `bash scripts/ci/dispatch.sh linux-host` (or another product) after pushing.
 It requires a clean, fully pushed branch and passes its exact expected SHA.
 The policy job rejects a stale dispatch revision before costly bootstrap.
+
+### Experimental macOS 26.7 Host candidate
+
+Manual dispatch exposes `macos_host_min_os`, default **27.0**, with **26.7** as
+an explicit experimental choice. Select `product=macos-host` and a reviewed
+feature branch for 26.7. Other products, ordinary push/PR events, tags and
+`main` cannot select that experimental floor. Both unsigned and protected signed
+jobs validate the selection before dependency bootstrap, then pass the same
+floor to the fresh transport build, Host assembly and sealed installer metadata.
+The builder still uses Apple Silicon macOS27 and SDK27; Client targets and
+dependency pins are unchanged. Different target floors have separate workflow
+concurrency groups. Dependency caches contain toolchains/downloaded sources,
+not compiled Host objects, so each run rebuilds the transport for its floor.
+
+On a clean upstream candidate checkout whose `origin` points to that repository:
+
+```bash
+bash scripts/ci/dispatch.sh macos-host true --macos-host-min-os=26.7
+```
+
+The helper checks the exact pushed commit before dispatch and uses
+[GitHub CLI's branch selection](https://cli.github.com/manual/gh_workflow_run)
+to run that branch's workflow. It supplies `product=macos-host`, the full
+reviewed `source_sha`, `signed=true`, and `macos_host_min_os=26.7` explicitly;
+this also works before the new input appears on the default branch's web form.
+`--clean-bootstrap` remains optional and can be combined with the target option.
+
+For a fork PR, an upstream maintainer must first review and import its commits
+to an upstream candidate branch, then permit only that exact branch in the
+existing `macos-signing` environment. Dispatch there using the existing Host
+profile, matching Developer ID certificates and notarization credentials;
+fork PR jobs receive none of them. Do not broaden access to every branch or
+copy signing material into the PR. Remove the candidate's signing permission
+when retiring it. Preparing the PR does not authorize changing that policy.
+
+The result is a signed/notarized **test** PKG with source/hash provenance, not a
+release or installation. On return, independently verify its 26.7 minimum,
+signature/profile/entitlements and notarization before coordinating physical
+26.7 acceptance. See the [backport plan](../plans/macos26-host-backport.md).
 
 Diagnostic-only `macos-fullscreen-probe` additionally requires `signed=true`.
 It builds the standalone AppKit probe, not either product, and uses the same

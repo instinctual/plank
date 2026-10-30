@@ -18,6 +18,11 @@ on:
         description: Request protected macOS signing (allowed branches only)
         type: boolean
         default: false
+      macos_host_min_os:
+        description: Host runtime floor (26.7 requires a macos-host feature branch)
+        type: choice
+        default: '27.0'
+        options: ['27.0', '26.7']
       clean_bootstrap:
         description: Bypass dependency cache restore and save
         type: boolean
@@ -27,13 +32,15 @@ permissions:
   contents: read
 
 concurrency:
-  group: hosted-builds-${{ github.ref }}-${{ inputs.product || 'all' }}
+  group: hosted-builds-${{ github.ref }}-${{ inputs.product || 'all' }}-${{ inputs.macos_host_min_os || '27.0' }}
   cancel-in-progress: true
 
 env:
   BUILD_REF: ${{ github.head_ref || github.ref_name }}
   PYTHONDONTWRITEBYTECODE: '1'
   EXPECTED_SOURCE_SHA: ${{ inputs.source_sha || github.sha }}
+  REQUESTED_PRODUCT: ${{ inputs.product || 'all' }}
+  REQUESTED_MACOS_HOST_MIN_OS: ${{ inputs.macos_host_min_os || '27.0' }}
 
 jobs:
   policy:

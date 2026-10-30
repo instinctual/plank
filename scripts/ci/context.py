@@ -18,7 +18,22 @@ def branch_name(ref):
     return normalized
 
 
+def macos_host_target(requested, product, event, ref, ref_type):
+    if requested not in ('27.0', '26.7'):
+        raise ValueError('Unsupported macOS Host runtime floor')
+    if requested == '26.7' and (product != 'macos-host'
+                              or event != 'workflow_dispatch' or ref_type != 'branch'
+                              or not ref or ref == 'main'):
+        raise ValueError('Host 26.7 requires manual macos-host dispatch on a candidate branch')
+    return requested
+
+
 if __name__ == '__main__':
+    host_target = macos_host_target(
+        os.environ.get('REQUESTED_MACOS_HOST_MIN_OS', '27.0'),
+        os.environ.get('REQUESTED_PRODUCT', 'all'),
+        os.environ.get('GITHUB_EVENT_NAME', ''), os.environ['BUILD_REF'],
+        os.environ.get('GITHUB_REF_TYPE', ''))
     root = Path(os.environ['GITHUB_WORKSPACE']).resolve()
     base = Path(os.environ['RUNNER_TEMP']).resolve() / 'plank-ci'
     assert not base.exists(), 'CI scratch root already exists'
@@ -37,6 +52,7 @@ if __name__ == '__main__':
         'PLANK_ARTIFACT_ROOT': str(base/'packages'), 'PLANK_PACKAGE_ROOT': str(base/'packages'),
         'PLANK_RUSTUP_ROOT': str(base/'deps/rustup'), 'PLANK_CARGO_ROOT': str(base/'deps/cargo'),
         'PLANK_BUILD_BRANCH': branch,
+        'PLANK_MACOS_HOST_MIN_OS': host_target,
     }
     for value in values.values():
         assert '\n' not in value and '\r' not in value
@@ -45,3 +61,4 @@ if __name__ == '__main__':
             f.write(f'{key}={value}\n')
     subprocess.run(['git', '-C', str(root), 'worktree', 'add', '--detach', values['PLANK_SOURCE_ROOT'], sha], check=True)
     print('Clean CI worktree selected; branch qualifier:', branch)
+    print('macOS Host runtime floor:', host_target)
