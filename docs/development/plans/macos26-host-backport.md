@@ -115,10 +115,15 @@ match the requested baseline. Package 1.2.02 is signed, notarized, stapled and
 Gatekeeper-accepted; HANDOFF records its exact manifest/hash. The CI correction
 is carried into the unified package preparation.
 
-The unified 1.2.05 preparation also includes the already-merged macOS click
-pairing and Client display changes. Rebuild all four products from the combined
-mainline source, with the ordinary Host default 26.7. Qualification on the older
-baseline does not establish acceptance of this new package. Chris owns 26.7
+The unified 1.2.05 release includes the already-merged macOS click pairing and
+Client display changes. All four products were rebuilt from main source
+`a0dc5fae73d7e072d923b5fd499bdd8151313456`, with the ordinary Host default 26.7.
+The [signed Host build](https://github.com/instinctual/plank/actions/runs/41147081014)
+passed its automated input, package, signing and notarization checks on the
+macOS 27 runner. The unchanged package is published in
+[1.2.05](https://github.com/instinctual/plank/releases/tag/v1.2.05), with installed
+acceptance still recorded as pending. Qualification on the older baseline does
+not establish acceptance of this new package. Chris owns 26.7
 session testing; the same installer needs 27 validation for picture, input,
 audio, virtual-display preparation, reconnect and login/logout. Optional
 microphone/camera checks remain separate. Do not publish a shared-package

@@ -4,7 +4,7 @@ Read `AGENTS.md` and the relevant build runbook first. Machine-specific access,
 credentials, captures and operational evidence belong in the external private
 notes, never in Git.
 
-## Release draft ready — 1.2.05 and one macOS Host package
+## Published — 1.2.05 and one macOS Host package
 
 The operator approved preparing the combined release and moving to one Mac
 Host package for 26.7 and newer. Root `macos-host-unified` and Client
@@ -57,18 +57,20 @@ Original per-product manifests, run logs and Qt test evidence are retained in
 `artifacts/qualification/main-1.2.05/`. The catalog records package checks as
 passed and functional acceptance as not recorded; do not conflate those states.
 
-The [1.2.05 release draft](https://github.com/instinctual/plank/releases)
-targets the built root SHA and contains all four packages, a combined manifest
-and checksums using downloadable filenames. GitHub asset digests match the
-local originals. Release notes are in `docs/releases/1.2.05.md`. Later handoff
-commits do not change that exact package provenance.
+The [1.2.05 release](https://github.com/instinctual/plank/releases/tag/v1.2.05)
+was published on October 30 and is GitHub's latest release. Its `v1.2.05` tag
+resolves to the exact built root SHA. It contains all four unchanged packages,
+a combined manifest and checksums using downloadable filenames. GitHub asset
+digests match the local originals. Release notes are in
+`docs/releases/1.2.05.md`. Later documentation commits do not change that exact
+package provenance; no additional rebuild was needed for publication.
 Next: Chris’s 26.7 test and installed 27 testing must use this identical new
 Host PKG; the older baseline candidate is not equivalent.
 The operator has the package path and Chris's artifact link for that testing.
-The operator will report test results later and authorized completing the
-preparation meanwhile. Publication remains pending shared-package acceptance.
-No package was remotely
-installed and no live session was changed for this preparation.
+The operator will report test results later and subsequently directed proceeding
+with the release. Publication does not mark the outstanding installed tests
+as passed; the release notes and manifests retain that distinction. No package
+was remotely installed and no live session was changed for this publication.
 
 ## Merged baseline — Client displays and macOS click pairing
 
