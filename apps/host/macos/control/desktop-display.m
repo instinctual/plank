@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 #import "desktop-display.h"
+#import "display-layout.h"
 #import <objc/runtime.h>
 #import <IOKit/pwr_mgt/IOPMLib.h>
 #include <math.h>
@@ -70,6 +71,8 @@ static BOOL supportedAPI(void) {
 
 @implementation PLANKMacDesktopDisplay {
     PLANKMacVirtualDisplay *_display;
+    PLANKMacDisplayLayout *_layout;
+    BOOL _layoutNeedsRetirement;
     atomic_uint _displayID;
     BOOL _busy;
     BOOL _signIn;
@@ -83,6 +86,10 @@ static BOOL supportedAPI(void) {
     return self;
 }
 - (CGDirectDisplayID)displayID { return atomic_load(&_displayID); }
+- (BOOL)restoreLayout {
+    BOOL restored = !_layout || [_layout restore];
+    return restored && !_layoutNeedsRetirement;
+}
 - (BOOL)createWidth:(unsigned)width height:(unsigned)height scale:(unsigned)scale {
     if (!supportedAPI()) { NSLog(@"PLANK virtual display API signature unavailable"); return NO; }
     PLANKMacDisplayDescriptor *descriptor = [[NSClassFromString(@"CGVirtualDisplayDescriptor") alloc] init];
@@ -127,7 +134,8 @@ static BOOL supportedAPI(void) {
             (_display && (!self.displayID || !_readyWidth || !_readyHeight))) {
         completion(NO); return;
     }
-    CGDirectDisplayID target = _display ? self.displayID : CGMainDisplayID();
+    BOOL localDesktop = !_display || (self.mirrorHostDisplays && !_layout.pending);
+    CGDirectDisplayID target = localDesktop ? CGMainDisplayID() : self.displayID;
     if (target && CGDisplayIsActive(target)) { completion(YES); return; }
     NSLog(@"PLANK authenticated display recovery starting: owned=%d", _display != nil);
     // Report an authenticated remote user, not a synthetic keyboard/mouse event.
@@ -145,7 +153,7 @@ static BOOL supportedAPI(void) {
         if (activity != kIOPMNullAssertionID) IOPMAssertionRelease(activity);
         completion(NO); return;
     }
-    if (!_display) {
+    if (localDesktop) {
         // Before the first bookmark preparation there is no owned virtual
         // output. Topology must first describe the existing desktop so the
         // Client can request preparation. Wake only; never change a physical
@@ -216,10 +224,20 @@ static BOOL supportedAPI(void) {
     if (_busy || !valid || !completion || !valid() || (scale != 1 && scale != 2) || !PLANKMacDesktopModeSupported(width, height)) {
         if (completion) completion(NO); return;
     }
-    if (!_display && ![self createWidth:width height:height scale:scale]) { completion(NO); return; }
+    if (self.mirrorHostDisplays && !_signIn) {
+        if (!_layout) _layout = [PLANKMacDisplayLayout new];
+        if (![_layout beginExcludingDisplay:self.displayID]) { _layoutNeedsRetirement = YES; completion(NO); return; }
+    }
+    if (!_display && ![self createWidth:width height:height scale:scale]) {
+        if (_layout) _layoutNeedsRetirement = YES;
+        [self restoreLayout]; completion(NO); return;
+    }
+    if (_layout && ![_layout adoptDisplay:self.displayID]) {
+        _layoutNeedsRetirement = YES; completion(NO); return;
+    }
     _busy = YES;
     NSLog(@"PLANK desktop mode preparing: %ux%u scale=%u display=%u", width, height, scale, self.displayID);
-    __block BOOL selected = NO;
+    __block BOOL selected = NO, consolidated = NO, attempted = NO;
     NSTimeInterval deadline = NSProcessInfo.processInfo.systemUptime + 6;
     dispatch_source_t timer = dispatch_source_create(DISPATCH_SOURCE_TYPE_TIMER, 0, 0, dispatch_get_main_queue());
     dispatch_source_set_timer(timer, DISPATCH_TIME_NOW, 50*NSEC_PER_MSEC, 5*NSEC_PER_MSEC);
@@ -227,7 +245,12 @@ static BOOL supportedAPI(void) {
         BOOL allowed = valid();
         if (allowed && !selected) selected = [self selectWidth:width height:height scale:scale];
         CGDirectDisplayID display = self.displayID;
-        BOOL ready = allowed && selected && CGDisplayIsActive(display) && currentModeMatches(display, width, height, scale);
+        if (allowed && selected && _layout.pending && !attempted) {
+            attempted = YES; consolidated = [_layout activateDisplay:display];
+        }
+        if (attempted && !consolidated) allowed = NO;
+        BOOL ready = allowed && selected && (!_layout.pending || (consolidated && [_layout matchesDisplay:display])) &&
+            CGDisplayIsActive(display) && currentModeMatches(display, width, height, scale);
         if (ready || !allowed || NSProcessInfo.processInfo.systemUptime >= deadline) {
             dispatch_source_cancel(timer);
             dispatch_source_set_event_handler(timer, nil);
@@ -237,7 +260,10 @@ static BOOL supportedAPI(void) {
                 self->_readyScale = scale;
                 NSLog(@"PLANK desktop mode ready: %ux%u scale=%u", width, height, scale);
             }
-            else NSLog(@"PLANK desktop mode not ready: selected=%d authorized=%d", selected, allowed);
+            else {
+                if (![self restoreLayout]) NSLog(@"PLANK display mirroring restoration requires worker retirement");
+                NSLog(@"PLANK desktop mode not ready: selected=%d authorized=%d", selected, allowed);
+            }
             completion(ready);
         }
     });

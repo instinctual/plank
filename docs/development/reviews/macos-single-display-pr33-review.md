@@ -1,4 +1,24 @@
-# PR33: temporary macOS single-display sessions
+# PR33: temporary macOS display mirroring
+
+## Current candidate
+
+The operator chose the simpler mirroring implementation after comparing it
+with independent virtual displays and physical-output deactivation.
+`macos-display-mirroring` integrates the reviewed PR head below into main
+`d9e0ca5339f205c1f06bf6c811bb4b6eebb8812d`, with package version **1.2.09**.
+The public setting is now `[general] mirror_host_displays`; the internal
+configuration/property names follow it. It remains off by default. Session
+ownership, capture, rollback and restoration behavior are unchanged from PR33.
+The shipped comments distinguish mirroring from disabling physical screens and
+from creating one virtual monitor per Client display. No compatibility alias
+for the pre-release `single_display` name is included.
+
+The 1.2.08 approved branch and signing-request registry remain unchanged; their
+validation below does not count as a build or hardware pass for 1.2.09. Current
+source, build evidence and remaining gates are recorded in `HANDOFF.md`.
+See [the investigation decision](../investigations/macos-display-mirroring.md).
+
+## Original reviewed candidate
 
 Reviewed [PLANK PR33](https://github.com/instinctual/plank/pull/33) at
 `696815c3bc33598f4401a21d95749c369d0f92a6`. The approved test candidate is
@@ -64,7 +84,7 @@ results, nor establish physical monitor acceptance on either OS.
 Remaining installed tests on the same candidate PKG:
 
 - Verify the default extended-display behavior is unchanged on 26.7 and 27.
-- Enable single display; connect, disconnect and reconnect with physical
+- Enable display mirroring; connect, disconnect and reconnect with physical
   monitors present. Confirm the original modes, arrangement and mirroring return.
 - Exercise a preexisting mirrored layout, hotplug, failed setup and crash
   recovery. Verify window and Spaces placement rather than assuming mode

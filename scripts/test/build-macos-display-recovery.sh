@@ -9,7 +9,7 @@ output=${2:?new absolute output required}
 mkdir "$output"
 common=(-mmacosx-version-min="$MACOSX_DEPLOYMENT_TARGET" -fobjc-arc -Wall -Wextra -Werror -Werror=unguarded-availability -Werror=unguarded-availability-new
     -I"$source_root/apps/host/macos/control" -I"$source_root/apps/host/macos/auth"
-    -framework Foundation -framework AppKit -framework CoreGraphics -framework Security
+    -framework Foundation -framework AppKit -framework ColorSync -framework CoreGraphics -framework Security
     -framework SystemConfiguration -framework Network -framework IOKit)
 bash "$source_root/scripts/test/build-macos-auth.sh" "$source_root" "$output/auth"
 # Only the test object redirects virtual-class lookup; production compilation
@@ -18,7 +18,7 @@ xcrun clang -mmacosx-version-min="$MACOSX_DEPLOYMENT_TARGET" -fobjc-arc -Wall -W
     -DNSClassFromString=PLANKTestClassFromString \
     -I"$source_root/apps/host/macos/control" \
     -c "$source_root/apps/host/macos/control/desktop-display.m" -o "$output/display.o"
-xcrun clang "${common[@]}" "$output/display.o" \
+xcrun clang "${common[@]}" "$output/display.o" "$source_root/apps/host/macos/control/display-layout.m" \
     "$source_root/tests/auth/macos-display-recovery.m" -o "$output/display-recovery-test"
 "$output/display-recovery-test"
 xcrun clang "${common[@]}" -DPLANK_SYNTHETIC_AUTH_TEST \

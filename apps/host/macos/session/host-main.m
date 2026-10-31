@@ -220,7 +220,7 @@ static int graphical(const char *service, NSString *role, NSString *directory, B
     NSMutableData *certificatePEM = readPrivate(fd, "cert.pem"), *keyPEM = readPrivate(fd, "key.pem");
     close(fd);
     NSDictionary *config = publicConfiguration ?: PLANKMacReadHostConfiguration(directory, directory, geteuid(), YES);
-    if (![config isKindOfClass:NSDictionary.class] || config.count != 6 ||
+    if (![config isKindOfClass:NSDictionary.class] || config.count != 7 ||
         ![config[@"Address"] isKindOfClass:NSString.class] || ![config[@"Name"] isKindOfClass:NSString.class] ||
         ![config[@"UUID"] isKindOfClass:NSString.class] || ![config[@"Port"] isKindOfClass:NSNumber.class] ||
         CFGetTypeID((__bridge CFTypeRef)config[@"Port"]) == CFBooleanGetTypeID() ||
@@ -245,6 +245,7 @@ static int graphical(const char *service, NSString *role, NSString *directory, B
     PLANKMacFixedCapture *capture = [PLANKMacFixedCapture new];
     PLANKMacDesktopDisplay *desktopDisplay = phase == PLANKMacScopeSignIn ?
         [[PLANKMacDesktopDisplay alloc] initForSignIn] : [PLANKMacDesktopDisplay new];
+    desktopDisplay.mirrorHostDisplays = phase == PLANKMacScopeDesktop && [config[@"MirrorHostDisplays"] boolValue];
     __block PLANKMacHostRuntime *runtime;
     __block __weak PLANKMacAgentConnection *weakAgent;
     __block BOOL stopping = NO;
@@ -315,6 +316,22 @@ static int graphical(const char *service, NSString *role, NSString *directory, B
             return capture;
         }
         input:^id<PLANKMacInputDevice> { return [PLANKMacQuartzInput new]; }];
+    if (desktopDisplay.mirrorHostDisplays) runtime.releaseDisplay = ^BOOL {
+        dispatch_semaphore_t finished = dispatch_semaphore_create(0);
+        __block atomic_bool restored = false;
+        dispatch_async(dispatch_get_main_queue(), ^{
+            BOOL sameScope = plank_macos_same_graphical_scope(initial, [authority snapshot]);
+            BOOL ok = sameScope && [desktopDisplay restoreLayout];
+            if (ok) capture.selectedDisplay = 0;
+            atomic_store(&restored, ok);
+            dispatch_semaphore_signal(finished);
+            // Never modify the replacement user's desktop. App-lifetime Quartz
+            // settings and the owned virtual output retire with this process.
+            if (!ok) stop();
+        });
+        return dispatch_semaphore_wait(finished, dispatch_time(DISPATCH_TIME_NOW, 7*NSEC_PER_SEC)) == 0 &&
+            atomic_load(&restored);
+    };
     runtime.prepareDisplay = ^BOOL(unsigned width, unsigned height, unsigned scale, NSString *encodingMode, BOOL (^valid)(void)) {
         if (!PLANKMacDesktopModeSupported(width, height)) return NO;
         dispatch_semaphore_t finished = dispatch_semaphore_create(0);
@@ -350,7 +367,7 @@ static int graphical(const char *service, NSString *role, NSString *directory, B
             // Zero/zero is first-use capture of the current desktop, before
             // bookmark preparation creates our virtual display. It may need
             // waking too. A nonzero selection must still be our owned output.
-            if (!valid() || capture.selectedDisplay != desktopDisplay.displayID) {
+            if (!valid() || (capture.selectedDisplay && capture.selectedDisplay != desktopDisplay.displayID)) {
                 dispatch_semaphore_signal(finished); return;
             }
             [desktopDisplay recoverWithValidity:valid completion:^(BOOL success) {

@@ -4,6 +4,45 @@ Read `AGENTS.md` and the relevant build runbook first. Machine-specific access,
 credentials, captures and operational evidence belong in the external private
 notes, never in Git.
 
+## Active — macOS Host display mirroring candidate
+
+The operator chose PR33's simpler mirroring approach over the separate
+independent-virtual-display investigation. `macos-display-mirroring` combines
+main `d9e0ca5339f205c1f06bf6c811bb4b6eebb8812d` with reviewed PR33 head
+`696815c3bc33598f4401a21d95749c369d0f92a6`, preserving the author's history.
+The configuration and internal names now say `mirror_host_displays`,
+`MirrorHostDisplays` and `mirrorHostDisplays`. The setting remains under
+`[general]`, defaults to false, and uses the same session/Quartz lifecycle.
+Physical screens show the PLANK workspace; they are not disabled. The existing
+single virtual workspace and capture path remain. No Client, Linux Host,
+transport or dependency pin changes are included. Package version is **1.2.09**.
+
+This branch is separate from Chris's approved `macos-host-test` source and its
+signed 1.2.08 artifact below. Those approvals and the exact-source registry are
+unchanged. The pre-release `single_display` key is not retained as an alias;
+testers who enabled it must replace it with `mirror_host_displays`. Released
+Host configurations without the new key keep their existing behavior.
+
+Portable preparation passed 114 CI-policy tests, 16 package-catalog tests,
+two Installer preflight tests, shell syntax and whitespace checks. Reviewing
+the Host source against the exact PR head confirms only configuration/internal
+renaming, comments and the diagnostic text changed beyond that implementation.
+Next: run the native configuration and existing display/session regressions in
+one signed GitHub-hosted macOS Host build for 26.7+, then record the exact
+source and original artifact. Physical display mirroring, restoration on
+disconnect/crash, hotplug, login/logout and takeover remain installed gates
+before merging. Chris owns 26.7 validation; ordinary 27 qualification also
+remains required. Do not claim hosted fixtures as physical-display acceptance.
+
+The deferred investigation is preserved on `macos-session-displays`, tip
+`7bfbb1665a4e8318780b825a4b2e827ebf4c03c4`. Its temporary independent-display
+probe is not part of this product candidate. The currently authorized Mac has
+no physical display. Keep Terminal and the existing user/Host session alive;
+do not log out, reboot, terminate WindowServer or restart the Host for testing.
+Private deployment notes record the authorization and restored machine state.
+See `docs/development/investigations/macos-display-mirroring.md` for the decision
+and the bounds of the earlier evidence.
+
 ## Discussed — protecting main, not yet enabled
 
 GitHub was checked on October 31: `main` is unprotected and the repository has

@@ -101,9 +101,11 @@ macOS Host builds use **SDK 27 or newer** and a **26.7 deployment target** for
 one package covering 26.7 and newer. Hosted compilation and component regression
 tests continue on macOS27. Qualify the identical signed package on 26.7 and 27
 before treating the shared package as accepted; use the validation ownership
-above. No broader older-OS support is implied. The reference Mac used to inspect
-PCoIP is read-only. Build and run
-macOS probes only on the user-authorized dedicated development Mac.
+above. No broader older-OS support is implied. Reference Macs are read-only
+unless the operator explicitly reassigns one for development. Use only the
+currently authorized test Mac; private notes hold the current assignment and
+session-preservation constraints. Build probes on hosted SDK27 workers and run
+them on that Mac only within the operator's authorization.
 Beta results require revalidation against the final
 OS release. This work does not change the supported Linux release gates below.
 

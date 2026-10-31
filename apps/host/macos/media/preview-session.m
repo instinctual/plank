@@ -519,6 +519,8 @@ BOOL PLANKMacPreviewRequestMatchesTopology(NSDictionary *request, NSDictionary *
     }
     _capture = nil;
     self.state = PLANKMacPreviewStopped;
+    void (^didStop)(void) = self.didStop; self.didStop = nil;
+    if (didStop) didStop();
     NSArray *callbacks = [_stopCallbacks copy]; [_stopCallbacks removeAllObjects];
     for (void (^callback)(void) in callbacks) callback();
 }

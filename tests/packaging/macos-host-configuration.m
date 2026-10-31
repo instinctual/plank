@@ -48,8 +48,17 @@ int main(void) { @autoreleasepool {
     assert([parse(@"# Defaults\n")[@"Port"] isEqual:@28989]);
     NSDictionary *config = parse(@"; comment\r\n[general]\r\nhost_name = Example Host\r\n[network]\r\nport = 30000\r\n");
     assert([config[@"Name"] isEqual:@"Example Host"] && [config[@"Port"] isEqual:@30000]);
-    assert([config[@"Address"] isEqual:@"0.0.0.0"] && config.count == 5);
+    assert([config[@"Address"] isEqual:@"0.0.0.0"] && config.count == 6);
     assert([config[@"PingTimeoutMs"] isEqual:@10000] && [config[@"PublishSessionUser"] isEqual:@NO]);
+    assert([config[@"MirrorHostDisplays"] isEqual:@NO]);
+    assert([parse(@"[general]\nmirror_host_displays=true")[@"MirrorHostDisplays"] isEqual:@YES]);
+    assert([parse(@"[general]\nmirror_host_displays=false")[@"MirrorHostDisplays"] isEqual:@NO]);
+    for (NSString *invalid in @[@"yes", @"1", @"TRUE", @"", @"true #comment"])
+        assert(!parse([@"[general]\nmirror_host_displays=" stringByAppendingString:invalid]));
+    assert(!parse(@"[general]\nmirror_host_displays=true\nmirror_host_displays=false"));
+    assert(!parse(@"[network]\nmirror_host_displays=true"));
+    // The unpublished PR name is intentionally not a second configuration key.
+    assert(!parse(@"[general]\nsingle_display=true"));
     for (NSString *timeout in @[@"200", @"201", @"10000", @"30000", @"120000"]) {
         NSDictionary *custom = parse([@"[network]\nping_timeout = " stringByAppendingString:timeout]);
         assert([custom[@"PingTimeoutMs"] unsignedIntValue] == (uint32_t)timeout.integerValue);
