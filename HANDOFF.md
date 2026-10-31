@@ -37,6 +37,7 @@ to Qt/Metal was explicitly deferred to another branch; its SDL/Metal session
 frontend is unchanged.
 
 GitHub-hosted builds passed:
+
 - [Ubuntu Client 41244211684](https://github.com/instinctual/plank/actions/runs/41244211684):
   33 connectivity cases, 6 policy-upgrade cases, 15 package/upgrade fixtures,
   and the existing Qt/PipeWire, Wacom, sanitizer, compositor, launcher and final
@@ -53,6 +54,7 @@ GitHub-hosted builds passed:
 
 Both original packages are checksum-verified in
 `artifacts/packages/candidates/1.2.10-client-connectivity/`:
+
 - `linux/plank-client_1.2.10-client-connectivity_amd64.deb` — 17,199,108 bytes;
   SHA-256 `7dab5e521cd5a9fbb53a0c5a5adb9fbe472d2d70b82da8bab3360104a495c127`;
   GitHub artifact `13058966713`.
@@ -71,6 +73,11 @@ Unchanged dependency provenance: Client common-C
 `65dc0f1be60fe78d0457364f83813118c70bc8a8`, Kymux
 `3f7a9d8618978287186e5d6ce0eaa067743cb06c`. Other recursive pins remain those
 recorded in the baseline provenance below and in the retained Ubuntu source report.
+
+The candidate download links have been delivered to the operator; no installed
+test result or merge approval has been received. Resume on `client-connectivity`.
+Documentation-only commits after the recorded build source do not change the
+candidate binaries or require another build.
 
 Next: manually install the exact Client candidate, confirm customized policy
 retains its values and gains missing comments/keys, then verify the indicator
