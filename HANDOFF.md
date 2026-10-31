@@ -4,10 +4,14 @@ Read `AGENTS.md` and the relevant build runbook first. Machine-specific access,
 credentials, captures and operational evidence belong in the external private
 notes, never in Git.
 
-## Candidate ready — native macOS Installer requirements
+## Merged — native macOS Installer requirements
 
-Branch `macos-installer-preflight` starts from main `72f8132`; the signed
-**1.2.07** candidate was built from `ce2c2e4d63ad58aa0e622d085311309592942a06`.
+The operator authorized merging `macos-installer-preflight` on October 31.
+Canonical `main` fast-forwarded from `72f8132` to the branch tip `e02eee7`.
+The signed **1.2.07** candidate was built from
+`ce2c2e4d63ad58aa0e622d085311309592942a06`; subsequent branch changes were
+documentation only. Source comparisons confirm the merged packaging, tests,
+Host, Client and dependency trees match that successful candidate exactly.
 The operator requested replacing the deprecated external-JavaScript preflight
 with a non-deprecated method.
 
@@ -39,8 +43,9 @@ The downloaded original is hash-verified at
 `caf55a7da1340c2b8378f811d863d54632d3fa5948edb230f2a4b84e07334fd4`.
 Original manifests and both build logs are retained in
 `artifacts/qualification/macos-installer-preflight-1.2.07/`; duplicate download
-staging is removed. Main/published 1.2.05 are unchanged. This branch is pushed,
-not merged or released. No build remains active.
+staging is removed. Main now contains the fix; published 1.2.05 is unchanged.
+This merge does not rebuild or relabel the candidate, publish a release, or
+mark pending installed validation as passed. No build remains active.
 
 Next: open this exact PKG in Installer on a supported Mac and confirm the early
 Requirements page, its FileVault explanation and Check Again/Continue behavior.
