@@ -4,6 +4,40 @@ Read `AGENTS.md` and the relevant build runbook first. Machine-specific access,
 credentials, captures and operational evidence belong in the external private
 notes, never in Git.
 
+## In validation — macOS display readiness and headless regressions
+
+The operator approved integrating PR33's two newer commits on October 31,
+including explicit coverage for headless Macs with no physical monitors or
+dummy plugs. `macos-display-readiness` starts from main `7ad4f39` and integrates
+PR head `712a4759783e5d8b9b637e48cf973b239bca8063`, preserving author history.
+Package version is **1.2.11**. Client, Linux Host and dependency pins remain
+unchanged from the mainline provenance below.
+
+The reviewed `cf31832` correction adopts a newly created output's UUID inside
+existing bounded preparation, after online visibility and before selecting modes
+or mirroring. It introduces no fixed delay; readiness completes immediately when
+satisfied. Cancellation and timeout retain the worker-retirement requirement
+for an unidentified output. `712a475` corrects earlier physical-trial reporting:
+Chris's default-off macOS26.7 trial worked, but enabled mirroring did not connect.
+The correction was not part of the 1.2.08/1.2.09 signed candidates.
+
+Integration retains `mirror_host_displays` / `mirrorHostDisplays`, resolves the
+new test's old property name and names it `macos-display-readiness.m`. Its nine
+synthetic scenarios cover physical delayed readiness/reconnect/replaced identity,
+cancellation, timeout and default mode; plus headless default/reconnect,
+headless mirroring/reconnect, LoginWindow, headless timeout and cancellation.
+Headless fixtures begin with zero displays, introduce only PLANK's owned output,
+and require reconnect to reuse it. Default-off and LoginWindow perform no UUID
+adoption or mirror transactions. The fixture substitutes Quartz, virtual-display
+classes and power calls; it cannot modify a real desktop.
+
+Review verified Chris's latest unsigned hosted run
+[41241150325](https://github.com/cnoellert/plank/actions/runs/41241150325), including
+150 readiness and 247 layout assertions. That evidence belongs to his pre-rename
+branch, not this integration. Combined-source hosted validation is next; installed
+headless/physical and macOS26.7/27 acceptance remain pending. Builds run on GitHub
+Actions. No Mac session is interrupted and no package is installed or released.
+
 ## Merged — Client connectivity and macOS display mirroring
 
 On October 31 the operator authorized integrating `client-connectivity` and
@@ -15,12 +49,13 @@ Only the version and handoff notes needed merge conflict resolution. Production
 source changes are the previously built candidates described below. No combined
 mainline package was built, installed or published; published 1.2.05 is unchanged.
 
-**PR33 is not fully merged.** Its original reviewed commit `696815c` is included,
-but GitHub now reports head `712a4759783e5d8b9b637e48cf973b239bca8063` with two
+**At that merge PR33 was incomplete.** Its original reviewed commit `696815c` was
+included, but GitHub reported head `712a4759783e5d8b9b637e48cf973b239bca8063` with two
 later commits: `cf31832` (virtual-display identity readiness) and `712a475`
 (correction of unaccepted physical-trial status). Leave the PR open until these
-additions are reviewed. They are not part of either tested mirroring candidate
-or this integration. Exact-source signing approvals remain unchanged.
+additions are integrated. The section above now tracks their review and integration.
+They are not part of either tested mirroring candidate. Exact-source signing
+approvals remain unchanged.
 
 Mirroring defaults to false; installed physical-display and headless regression
 gates remain pending. The Client indicator is IPv4-only and informational;

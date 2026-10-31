@@ -232,19 +232,21 @@ static BOOL supportedAPI(void) {
         if (_layout) _layoutNeedsRetirement = YES;
         [self restoreLayout]; completion(NO); return;
     }
-    if (_layout && ![_layout adoptDisplay:self.displayID]) {
-        _layoutNeedsRetirement = YES; completion(NO); return;
-    }
     _busy = YES;
     NSLog(@"PLANK desktop mode preparing: %ux%u scale=%u display=%u", width, height, scale, self.displayID);
-    __block BOOL selected = NO, consolidated = NO, attempted = NO;
+    __block BOOL selected = NO, consolidated = NO, attempted = NO, adopted = !_layout;
     NSTimeInterval deadline = NSProcessInfo.processInfo.systemUptime + 6;
     dispatch_source_t timer = dispatch_source_create(DISPATCH_SOURCE_TYPE_TIMER, 0, 0, dispatch_get_main_queue());
     dispatch_source_set_timer(timer, DISPATCH_TIME_NOW, 50*NSEC_PER_MSEC, 5*NSEC_PER_MSEC);
     dispatch_source_set_event_handler(timer, ^{
         BOOL allowed = valid();
-        if (allowed && !selected) selected = [self selectWidth:width height:height scale:scale];
         CGDirectDisplayID display = self.displayID;
+        // Creation returns an ID before WindowServer necessarily exposes its
+        // UUID. Wait inside the existing bounded preparation loop; never change
+        // modes or consolidate physical screens before ownership is identified.
+        if (allowed && !adopted && CGDisplayIsOnline(display))
+            adopted = [_layout adoptDisplay:display];
+        if (allowed && adopted && !selected) selected = [self selectWidth:width height:height scale:scale];
         if (allowed && selected && _layout.pending && !attempted) {
             attempted = YES; consolidated = [_layout activateDisplay:display];
         }
@@ -261,8 +263,11 @@ static BOOL supportedAPI(void) {
                 NSLog(@"PLANK desktop mode ready: %ux%u scale=%u", width, height, scale);
             }
             else {
+                // Without a verified UUID the output cannot safely be parked
+                // during restoration. Retiring its owner releases it instead.
+                if (!adopted) self->_layoutNeedsRetirement = YES;
                 if (![self restoreLayout]) NSLog(@"PLANK display mirroring restoration requires worker retirement");
-                NSLog(@"PLANK desktop mode not ready: selected=%d authorized=%d", selected, allowed);
+                NSLog(@"PLANK desktop mode not ready: identified=%d selected=%d authorized=%d", adopted, selected, allowed);
             }
             completion(ready);
         }

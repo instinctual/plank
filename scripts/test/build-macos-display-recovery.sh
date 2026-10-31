@@ -21,6 +21,9 @@ xcrun clang -mmacosx-version-min="$MACOSX_DEPLOYMENT_TARGET" -fobjc-arc -Wall -W
 xcrun clang "${common[@]}" "$output/display.o" "$source_root/apps/host/macos/control/display-layout.m" \
     "$source_root/tests/auth/macos-display-recovery.m" -o "$output/display-recovery-test"
 "$output/display-recovery-test"
+xcrun clang "${common[@]}" "$output/display.o" "$source_root/apps/host/macos/control/display-layout.m" \
+    "$source_root/tests/auth/macos-display-readiness.m" -o "$output/display-readiness-test"
+"$output/display-readiness-test"
 xcrun clang "${common[@]}" -DPLANK_SYNTHETIC_AUTH_TEST \
     "$source_root/apps/host/macos/control/http-request.m" \
     "$source_root/apps/host/macos/control/server-information.m" \

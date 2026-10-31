@@ -7,11 +7,35 @@ The operator authorized merging `macos-display-mirroring` into main on October
 physical-display and headless/default-off checks remain pending. No combined
 mainline package was built or published as part of that merge.
 
-PR33 now has two later commits beyond the reviewed `696815c`: `cf31832` adds
-virtual-display identity readiness and `712a475` corrects the physical-trial
-status. Its current head is `712a4759783e5d8b9b637e48cf973b239bca8063`. These
-additions remain unreviewed and unmerged; leave PR33 open. The exact-source
-signing approvals below do not authorize those newer commits.
+PR33's later head `712a4759783e5d8b9b637e48cf973b239bca8063` was reviewed and
+the operator authorized integration on October 31. `cf31832` adds virtual-display
+identity readiness; `712a475` corrects the physical-trial status. The integrated
+`macos-display-readiness` branch retains the renamed setting and fixes the new
+fixture's use of the removed `singleDisplay` property. Combined-source hosted
+validation is pending; the exact-source signing approvals below are unchanged.
+
+## Follow-up readiness review
+
+Virtual-display creation can return an ID before WindowServer publishes its UUID.
+The correction moves adoption into the existing six-second, asynchronous readiness
+loop and keeps mode selection and mirroring behind confirmed ownership. It does
+not add a fixed sleep. Cancellation/timeout before identification require worker
+retirement, while reused-ID protection and restoration remain in place.
+Default-off desktop operation and LoginWindow bypass the new adoption requirement.
+
+The author's [unsigned hosted run 41241150325](https://github.com/cnoellert/plank/actions/runs/41241150325)
+passed on SDK27, including 150 readiness assertions and 247 layout assertions.
+The added fixture assumed two physical displays. Our integration expands it to
+nine scenarios, including zero physical displays or dummy plugs: first connection,
+changed-resolution reconnect reusing the sole PLANK output, mirroring enabled
+and disabled, LoginWindow, cancellation and timeout. All Quartz/virtual-display
+and power calls are substituted; no installed acceptance is implied.
+
+The corrected trial notes explicitly say that default-off behavior passed on
+26.7 but enabled mirroring failed before streaming. Physical layout restoration
+was not accepted. Earlier successful candidate builds did not contain the new
+readiness fix. Installed headless and physical-display qualification remain
+separate from the combined-source build checks.
 
 ## Built mirroring candidate
 

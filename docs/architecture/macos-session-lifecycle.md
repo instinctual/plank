@@ -141,6 +141,34 @@ before opening a listener. LoginWindow retains the machine certificate. The
 Client pins their common machine public key; the public workstation UUID is
 not a cryptographic trust anchor. See [Host identity trust](../security/host-identity-trust.md).
 
+## Display mirroring preparation readiness
+
+The optional `mirror_host_displays` policy snapshots the physical layout before creating
+the owned virtual output. A successful virtual-display creation can return an ID
+before WindowServer exposes that output's UUID. Online visibility and UUID adoption
+therefore belong inside the existing six-second preparation loop, ahead of mode
+selection and consolidation. No physical screen is mirrored before the owned
+output is identified. A reused ID with a different UUID remains rejected.
+
+Cancellation or expiry before identification still requires worker retirement:
+without a verified identity, cleanup cannot safely park the owned output as a
+mirror. The original restoration snapshot, app-lifetime Quartz policy and
+authorization checks remain in effect. The integrated preparation/layout fixture
+uses simulated Quartz and virtual-display classes to cover delayed visibility and
+identity, reconnect, identity replacement, cancellation, timeout and default
+extended mode. It also starts with no physical monitors or dummy plugs: the
+only output after preparation is PLANK's virtual display. Headless reconnect
+at a different resolution reuses that output, with mirroring enabled or disabled.
+An enabled policy can snapshot and restore an empty physical layout. If identity
+never arrives, cancellation/timeout still require worker retirement even when
+there is no physical output on which to park the virtual display.
+
+Default-off desktop operation and LoginWindow do not wait for UUID adoption or
+perform mirror transactions. LoginWindow ignores the desktop mirroring preference.
+The synthetic fixture verifies these boundaries, including headless login-screen
+preparation. Installed login/logout, display and Spaces behavior remain separate
+gates; simulated Quartz checks do not establish installed headless acceptance.
+
 ## Development installation and reboot recovery
 
 `install-macos-host-development.py` installs the machine coordinator as a
