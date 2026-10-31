@@ -4,15 +4,53 @@ Read `AGENTS.md` and the relevant build runbook first. Machine-specific access,
 credentials, captures and operational evidence belong in the external private
 notes, never in Git.
 
-## Merged — macOS display readiness and headless regressions
+## Built — mainline 1.2.11 Host and Clients
 
-The operator requested signed mainline Host packaging, then a larger, colored
-Internet indicator in the Client toolbar. Version **1.2.11** now also pins Client
-`94f36ce0`: the indicator uses 12-point semibold text, a matching larger dot,
+The operator requested signed mainline macOS Host packaging, then a larger,
+colored Internet indicator in the Client toolbar. All three packages were built
+on GitHub-hosted Actions from main
+`e9fcb5f834178559f1f880dbbba96662fb8c664d`, with Client
+`94f36ce0d6f0fda663b772dbf3d0f12ccab5ce92`. The indicator uses 12-point semibold
+text, a matching larger dot,
 green Reachable, red No response, amber Unavailable and gray Checking. It retains
-the descriptive text, tooltip and existing IPv4 probe behavior. Updated Ubuntu
-and signed macOS Client builds accompany the signed Host build. Build/package
-results are pending; no installation or GitHub release was requested.
+the descriptive text, tooltip and existing IPv4 probe behavior. There is no
+streaming, protocol, Linux Host or dependency change in this presentation update.
+
+Successful builds and checksum-verified packages under
+`artifacts/packages/releases/1.2.11/`:
+
+- [macOS Host run 41251765345](https://github.com/instinctual/plank/actions/runs/41251765345),
+  artifact `13062310013`: `macos/plank-host_1.2.11_arm64.pkg`, 7,034,609 bytes;
+  SHA-256 `38c6158e997fffb340e72e6069c9d4617739a1146c16eef33cfca99a394f5ce1`.
+- [macOS Client run 41251777336](https://github.com/instinctual/plank/actions/runs/41251777336),
+  artifact `13061626916`: `macos/plank-client_1.2.11_arm64.pkg`, 72,914,352 bytes;
+  SHA-256 `ad70480fc4c2923ec0763d015da79904642d7756e9e30fe476f3cdc72a15baca`.
+- [Ubuntu Client run 41251771330](https://github.com/instinctual/plank/actions/runs/41251771330),
+  artifact `13062136633`: `linux/plank-client_1.2.11_amd64.deb`, 17,197,332 bytes;
+  SHA-256 `1ea7765660050853cc35c9849473c9325ad81dafae69b8ecdd68db82a08609ce`.
+
+Both Mac installers passed Developer ID signing, notarization, stapling,
+Gatekeeper and package checks. SDK27 targets remain Host26.7 and Client15.0.
+The Host repeated all nine readiness scenarios (289 assertions), 247 layout
+assertions, Installer preflight and existing regression gates. Both Clients
+passed 33 connectivity cases, including the actual IPv4 loopback utility and
+QML layout checks. The larger green/red indicators were visually inspected in
+both platforms' 720-pixel-wide fixture captures. That fixture uses a static old
+version label; package/visible application version gates passed for 1.2.11.
+Ubuntu also passed its existing Qt, PipeWire, sanitizer, compositor, launcher
+and package/upgrade gates. No required checks were bypassed.
+
+Original manifests, run metadata, logs, focused results, indicator captures and
+Ubuntu qualification artifact `13062067313` are retained under
+`artifacts/qualification/main-1.2.11/`. Collection preserved original package
+bytes/provenance; final catalog checksums passed and download staging was removed.
+No build remains active. No package was installed and no GitHub release was
+published. Installed Client UI/network and Host headless/physical acceptance,
+including the identical packages on their supported Mac OS versions, remain
+pending. Main is current; subsequent documentation commits do not change the
+built source.
+
+## Merged — macOS display readiness and headless regressions
 
 The operator approved integrating PR33's two newer commits on October 31,
 including explicit coverage for headless Macs with no physical monitors or
@@ -59,8 +97,9 @@ Original run metadata, full Host log and focused results are retained in
 The tested implementation is integrated into main; PR33's current head is
 included in its history. Subsequent documentation updates do not change the
 tested source. Exact-source signing approvals were not broadened. No build
-remains active. This was an unsigned compile/regression gate, not a distributable
-PKG. Installed headless/physical and macOS26.7/27 acceptance remain pending.
+remains active. That original run was an unsigned compile/regression gate;
+the signed mainline follow-up is recorded above. Installed headless/physical
+and macOS26.7/27 acceptance remain pending.
 No Mac session was interrupted and no package was installed or released.
 
 ## Merged — Client connectivity and macOS display mirroring
