@@ -37,9 +37,10 @@ minimum26.7, SDK27, Apple-system-link and ad-hoc signature/resource checks.
 
 The maintainer-signed 1.2.08 candidate at
 `ba454f8713675e54e189e1d748ca00f94fbdffa4` retains this reviewed runtime.
-Installed macOS26.7 feedback accepts default extended mode and reports a shared
-workspace with normal layout restoration. Subsequent connection attempts fail
-during display preparation: virtual creation succeeds, but WindowServer reports
+Installed macOS26.7 feedback accepts default extended mode. The operator corrected
+an accidental positive response: single-display mode never connected, so shared
+workspace and disconnect restoration are not physically accepted. Connection
+attempts fail during display preparation: virtual creation succeeds, but WindowServer reports
 the new ID invalid before publishing it milliseconds later. Early UUID adoption
 then retires the worker, surfacing as a lost connection before streaming.
 
@@ -50,6 +51,10 @@ fix, including delayed online/UUID readiness, reconnect, identity replacement,
 cancellation, timeout and disabled mode. Existing layout247, recovery29,
 authentication525 and topology-recovery checks pass. This correction is not yet
 signed or installed and requires renewed maintainer approval for a test build.
+The maintainer's signed 1.2.09 source
+`4dbe000d71229d5d8b97ce9ec92e0f1014502386` renames the policy to
+`mirror_host_displays`, but predates this readiness correction and retains the
+immediate identity check. That package does not qualify the corrected startup.
 Physical reconnect/stability, window/Spaces placement, hotplug, crash restoration
 and the macOS27 matrix remain open. Client, Linux Host, transport/dependency pins,
 authorization, input posting and signing policy are unchanged.
