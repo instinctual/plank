@@ -6,6 +6,11 @@ each bookmarked Host. A failure never prevents a connection or interrupts a
 session. **Internet: Unavailable** means the configuration or the local ping
 utility could not perform the check.
 
+The toolbar uses larger, semibold text and a matching status dot: green for
+Reachable, red for No response, amber for Unavailable, and gray for Checking.
+The text and hover explanation remain available regardless of color; No response
+means the ping targets did not reply, not proof that all Internet access is down.
+
 By default, the Client sends one ICMP echo to Google's public resolver at startup.
 If it does not reply within one second, it tries Cloudflare's, then Quad9's.
 The exact addresses are in the [configuration template](../../packaging/client/config/plank-client.conf).

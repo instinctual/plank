@@ -6,12 +6,20 @@ notes, never in Git.
 
 ## Merged — macOS display readiness and headless regressions
 
+The operator requested signed mainline Host packaging, then a larger, colored
+Internet indicator in the Client toolbar. Version **1.2.11** now also pins Client
+`94f36ce0`: the indicator uses 12-point semibold text, a matching larger dot,
+green Reachable, red No response, amber Unavailable and gray Checking. It retains
+the descriptive text, tooltip and existing IPv4 probe behavior. Updated Ubuntu
+and signed macOS Client builds accompany the signed Host build. Build/package
+results are pending; no installation or GitHub release was requested.
+
 The operator approved integrating PR33's two newer commits on October 31,
 including explicit coverage for headless Macs with no physical monitors or
 dummy plugs. `macos-display-readiness` started from main `7ad4f39` and integrates
 PR head `712a4759783e5d8b9b637e48cf973b239bca8063`, preserving author history.
-Package version is **1.2.11**. Client, Linux Host and dependency pins remain
-unchanged from the mainline provenance below.
+Package version is **1.2.11**. The readiness integration itself changed no Client,
+Linux Host or dependency pins; the Client presentation follow-up is noted above.
 
 The reviewed `cf31832` correction adopts a newly created output's UUID inside
 existing bounded preparation, after online visibility and before selecting modes
