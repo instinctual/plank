@@ -4,11 +4,12 @@ Read `AGENTS.md` and the relevant build runbook first. Machine-specific access,
 credentials, captures and operational evidence belong in the external private
 notes, never in Git.
 
-## In progress — approved contributor macOS Host test builds
+## Ready — approved contributor macOS Host test builds
 
 The operator authorized signed test requests for `cnoellert` without granting
-repository write access. `macos-test-requests` adds a default-branch
-`/build-macos-host` PR-comment controller and exact-commit approval registry.
+repository write access. Automation was merged to main at `be507cd` and adds a
+default-branch `/build-macos-host` PR-comment controller and exact-commit approval
+registry.
 Only Chris and the owner are allowlisted by immutable GitHub IDs. The controller
 receives no Apple secrets and never checks out PR code. Changed PR heads or
 candidate branches require renewed maintainer approval; fixed dispatch inputs
@@ -23,10 +24,32 @@ PR33 remains outside main and retains its opt-in/default-off behavior. Review
 and pending hardware tests are in
 `docs/development/reviews/macos-single-display-pr33-review.md`.
 The candidate passed 98 portable policy tests and two Installer preflight tests.
-Sixteen request authorization/dispatch tests pass. End-to-end GitHub command,
-protected signing, artifact download and installed display acceptance are still
-pending; update this section with actual results. No release or installation
-is authorized by the command, and unfinished `native-builds` stays separate.
+All 114 policy tests pass on automation main, including 16 new request tests.
+The owner exercised the actual command on PR33:
+[request 41223843546](https://github.com/instinctual/plank/actions/runs/41223843546)
+passed and the bot dispatched
+[signed build 41223854554](https://github.com/instinctual/plank/actions/runs/41223854554)
+at the approved source. It passed on the first run in approximately eight
+minutes, reusing the Rust/Cargo caches. The exact `macos-host-test` branch is allowed in
+`macos-signing`; no reviewer or wait timer was added. Chris retains read access.
+The bot's reply and the maintainer's instructions are on PR33. Hosted macOS27
+checks passed: 247 synthetic Quartz layout assertions, the actual TLS/QUIC
+disconnect/failure/abandoned-preparation fixture, 767 session assertions across
+24 scenarios, and the ordinary Host regressions. Native Installer preflight,
+Developer ID signing, notarization, stapling, Gatekeeper and temporary-keychain
+cleanup passed. No installed display/Installer UI acceptance is implied.
+
+The original signed PKG is hash-verified at
+`artifacts/packages/candidates/1.2.08-macos-host-test-macos26.7/macos/plank-host_1.2.08-macos-host-test-macos26.7_arm64.pkg`
+(7,030,038 bytes), SHA-256
+`e2c00abb9f329f226724fef760e3cff891f5410fdad58e74186b8fa0b3785aa1`.
+GitHub artifact ID is `13051455737`, name `signed-macos-host-41223854554-1`.
+Original manifests, policy results and request/build logs are retained under
+`artifacts/qualification/macos-host-test-1.2.08/`; download staging is removed.
+No build remains active. Next: Chris tests this exact signed candidate on 26.7,
+with the ordinary 27 regression gate also pending. The command does not authorize
+release publication or installation. PR33 remains draft/unmerged and unfinished
+`native-builds` stays separate. Published 1.2.05 is unchanged.
 
 ## Merged — native macOS Installer requirements
 

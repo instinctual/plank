@@ -2,7 +2,7 @@
 
 Reviewed [PLANK PR33](https://github.com/instinctual/plank/pull/33) at
 `696815c3bc33598f4401a21d95749c369d0f92a6`. The approved test candidate is
-`ba454f8713675e54e189e1d748ca00f94fbdffa4` on `macos-host-test`, version1.2.08.
+`ba454f8713675e54e189e1d748ca00f94fbdffa4` on `macos-host-test`, version 1.2.08.
 It combines that PR with main `ab92c128749d2db8b25d3b932510a865a7e624e2`, including
 the native Installer requirements preflight. Only the handoff required a merge
 resolution. No dependency pin changed.
@@ -40,20 +40,36 @@ that hosted fixtures prove real monitor behavior.
 
 The merged candidate passed 98 portable CI-policy tests, two Installer packaging
 preflight tests and whitespace/privacy checks. These ran on Linux and do not
-exercise Quartz. The PR author's reported macOS26.7 build and synthetic-layout,
-runtime-release and teardown tests remain author evidence until reproduced by
-the hosted candidate build. Check the build linked from PR33 for its exact
-result and signed artifact.
+exercise Quartz. The request controller also passed 16 authorization/dispatch
+tests (114 total CI-policy tests on main) and its actual GitHub comment-to-build
+path was exercised by the owner.
+
+[Hosted build 41223854554](https://github.com/instinctual/plank/actions/runs/41223854554)
+then passed on macOS 27 at the exact candidate SHA. It reproduced the 247
+synthetic Quartz layout assertions, the actual TLS/QUIC runtime fixture for
+disconnect/failure/60-second abandoned preparation, and 767 session assertions
+across 24 scenarios, alongside existing Host regressions. Physical displays and
+live capture/input were not exercised. The signed package passed Developer ID,
+notarization, stapling, Gatekeeper and native Installer preflight package gates;
+Installer UI and installation were not performed. Both dependency caches were
+reused, and signing material was removed after the run.
+
+[Signed candidate artifact](https://github.com/instinctual/plank/actions/runs/41223854554/artifacts/13051455737):
+`plank-host_1.2.08-macos-host-test-macos26.7_arm64.pkg`, SHA-256
+`e2c00abb9f329f226724fef760e3cff891f5410fdad58e74186b8fa0b3785aa1`.
+The original was downloaded, verified and collected in the local candidate
+catalog. Hosted evidence does not independently verify the author's 26.7 session
+results, nor establish physical monitor acceptance on either OS.
 
 Remaining installed tests on the same candidate PKG:
 
-- Verify the default extended-display behavior is unchanged on26.7 and27.
+- Verify the default extended-display behavior is unchanged on 26.7 and 27.
 - Enable single display; connect, disconnect and reconnect with physical
   monitors present. Confirm the original modes, arrangement and mirroring return.
 - Exercise a preexisting mirrored layout, hotplug, failed setup and crash
   recovery. Verify window and Spaces placement rather than assuming mode
   restoration also guarantees application-window restoration.
 - Check login/logout and session takeover, especially delayed display cleanup
-  racing a newly prepared session. Chris owns26.7 hardware qualification.
+  racing a newly prepared session. Chris owns 26.7 hardware qualification.
 
 No live machine was changed for this review. The published release is unchanged.
