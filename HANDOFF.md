@@ -4,38 +4,80 @@ Read `AGENTS.md` and the relevant build runbook first. Machine-specific access,
 credentials, captures and operational evidence belong in the external private
 notes, never in Git.
 
-## In progress — Client Internet indicator
+## Ready to test — Client Internet indicator
 
-`client-connectivity` starts from main
-`d9e0ca5339f205c1f06bf6c811bb4b6eebb8812d` and Client main
-`aa4b16cfc945c1831a99bd96953d6e60f1aad8a1`. Version **1.2.10** is reserved
-for Ubuntu and macOS Client candidates. It is independent of the unmerged
-`macos-display-mirroring` 1.2.09 Host candidate; no Host, transport or dependency
-pin changes are intended. No main merge or release is requested.
+Both `client-connectivity` branches are committed and pushed. The **1.2.10-client-connectivity**
+Ubuntu and signed macOS Client candidates were built from root
+`a8912517683e7a2abb8b1909cac69da751c74529` and Client
+`23cc988154ea62688c83aeac7ff15f21a2962d90`. The branch starts from main
+`d9e0ca5339f205c1f06bf6c811bb4b6eebb8812d`; it remains independent of the
+unmerged `macos-display-mirroring` 1.2.09 Host candidate. No main merge, release
+or installation was performed. Published 1.2.05 is unchanged.
 
-The operator approved an informational main-window Internet indicator: ordered
-IPv4-only ICMP probes of the configured public resolver addresses, stopping at the first reply, with
-one second per target and a 15-second repeat interval. Administrator policy
-controls enabled/targets/interval/timeout in `[network]` of `client.conf`.
+The operator approved an informational main-window Internet indicator, with
+**IPv4 only**: ordered ICMP probes of configured public resolver addresses,
+stopping at the first reply, one second per target and a 15-second repeat
+interval. Administrator policy controls enabled/targets/interval/timeout in
+`[network]` of `/etc/plank/client.conf`. Numeric IPv6 and DNS entries are rejected.
 The monitor cannot change Host status, block login or influence recovery.
 No response is not proof of an Internet outage; unavailable utility/configuration
 is reported separately. Checks use fixed OS ping executables without a shell,
-bounded asynchronous processes, and native network notifications when available.
+bounded asynchronous processes and native network notifications when available.
 See `docs/user/client-internet-connectivity.md` for operation and limitations.
 
-The operator additionally approved adding missing connectivity keys/comments
-during both Client upgrades while preserving existing values. Ubuntu's root
+The operator also approved adding missing connectivity keys/comments during
+both Client upgrades while preserving every existing value. Ubuntu's root
 package helper and the existing native macOS configurator make bounded, atomic,
-idempotent additions. No application daemon or new runtime service is added.
-The macOS streaming move to Qt/Metal was discussed and explicitly deferred to
-a separate future branch; do not start it as part of this task.
+idempotent additions. Existing administrator policy, bookmarks and Host trust
+are retained. Ubuntu packages include `iputils-ping`, Python3, the installer-only
+`/usr/libexec/plank-client-update-policy`, and the complete policy example under
+`/usr/share/doc/plank-client/`. The finished-DEB gate verifies helper/template
+contents. No application daemon or autostart is added. The macOS streaming move
+to Qt/Metal was explicitly deferred to another branch; its SDL/Metal session
+frontend is unchanged.
 
-Implementation and focused component/QML fixtures are being prepared. Next:
-run the existing portable gates, commit/push Client then root, build both
-Client candidates on GitHub Actions, and retain verified original packages and
-test screenshots in the catalog. No test machine is needed for builds and no
-live session is to be interrupted. Installed UI/network acceptance remains
-separate from hosted tests. The existing macOS streaming frontend is unchanged.
+GitHub-hosted builds passed:
+- [Ubuntu Client 41244211684](https://github.com/instinctual/plank/actions/runs/41244211684):
+  33 connectivity cases, 6 policy-upgrade cases, 15 package/upgrade fixtures,
+  and the existing Qt/PipeWire, Wacom, sanitizer, compositor, launcher and final
+  package gates. Actual IPv4 loopback ping ran as the ordinary runner account.
+- [Signed macOS Client 41244214246](https://github.com/instinctual/plank/actions/runs/41244214246):
+  33 connectivity cases, native configuration/installer regressions and existing
+  Client component gates; Developer ID signing, notarization, stapling and
+  Gatekeeper passed. SDK27, deployment target15.0. Actual IPv4 loopback ping passed.
+- Both runs passed 114 CI policy tests. Indicator screenshots from the QML
+  fixture were inspected in reachable/no-response states; these are not live
+  installed-session screenshots. Dependency caches were reused. Early attempts
+  caught a Qt integer-overload error and new fixture/build-wiring errors, all
+  corrected before these successful runs; no required checks were bypassed.
+
+Both original packages are checksum-verified in
+`artifacts/packages/candidates/1.2.10-client-connectivity/`:
+- `linux/plank-client_1.2.10-client-connectivity_amd64.deb` — 17,199,108 bytes;
+  SHA-256 `7dab5e521cd5a9fbb53a0c5a5adb9fbe472d2d70b82da8bab3360104a495c127`;
+  GitHub artifact `13058966713`.
+- `macos/plank-client_1.2.10-client-connectivity_arm64.pkg` — 72,912,728 bytes;
+  SHA-256 `519f61c7be9633f634caad2cb335098037ffc52a989b879065c88fa40d33ef8e`;
+  GitHub artifact `13058556969`.
+Original manifests, logs, screenshots and Ubuntu qualification reports are under
+`artifacts/qualification/client-connectivity-1.2.10/`. Downloaded package copies
+were moved through the catalog collector, preserving original build provenance.
+The exact `client-connectivity` branch is allowed in `macos-signing`; no reviewer
+or wait timer was added. No build remains active.
+
+Unchanged dependency provenance: Client common-C
+`437be9a0a4d164efdf9ed20dc6dd5a2b7b9edc90`, qmdnsengine
+`920c097ffa742e2968290f15d4dde6693aec02e5`, Linux Host
+`65dc0f1be60fe78d0457364f83813118c70bc8a8`, Kymux
+`3f7a9d8618978287186e5d6ce0eaa067743cb06c`. Other recursive pins remain those
+recorded in the baseline provenance below and in the retained Ubuntu source report.
+
+Next: manually install the exact Client candidate, confirm customized policy
+retains its values and gains missing comments/keys, then verify the indicator
+through a real network interruption/recovery. Confirm a normal session still
+connects independently of the ping result. Installed UI/network and macOS15/27
+session acceptance remain pending; hosted compilation does not establish them.
+No live session was interrupted or test machine accessed for this work.
 
 ## Discussed — protecting main, not yet enabled
 

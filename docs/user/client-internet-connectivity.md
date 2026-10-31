@@ -9,8 +9,7 @@ utility could not perform the check.
 By default, the Client sends one ICMP echo to Google's public resolver at startup.
 If it does not reply within one second, it tries Cloudflare's, then Quad9's.
 The exact addresses are in the [configuration template](../../packaging/client/config/plank-client.conf).
-The first reply
-ends the round. Every 15 seconds it starts again at the first address. Checks
+The first reply ends the round. Every 15 seconds it starts again at the first address. Checks
 are asynchronous and never overlap. A round longer than the configured interval
 finishes before the next round starts. Only state transitions are logged.
 
