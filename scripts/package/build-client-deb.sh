@@ -132,6 +132,10 @@ install -D -m 0755 "$moonlight_binary" \
 strip --strip-debug "$stage_dir/usr/bin/$client_package"
 install -D -m 0644 "$repo_dir/packaging/client/config/plank-client.conf" \
   "$stage_dir/etc/plank/$client_config"
+install -D -m 0644 "$repo_dir/packaging/client/config/plank-client.conf" \
+  "$stage_dir/usr/share/doc/$client_package/client.conf.example"
+install -D -m 0755 "$repo_dir/packaging/client/linux/update-policy.py" \
+  "$stage_dir/usr/libexec/plank-client-update-policy"
 printf '%s\n' "/etc/plank/$client_config" \
   >"$stage_dir/DEBIAN/conffiles"
 install -D -m 0644 \
@@ -260,6 +264,8 @@ dpkg-deb --root-owner-group --uniform-compression -Zxz --build "$stage_dir" "$de
 dpkg-deb --info "$deb_file" >/dev/null
 dpkg-deb --contents "$deb_file" >/dev/null
 for required_package in \
+  iputils-ping \
+  python3 \
   intel-media-va-driver-non-free \
   qml6-module-qtquick \
   qml6-module-qtquick-controls \

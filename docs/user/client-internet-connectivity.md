@@ -33,15 +33,23 @@ internet_check_timeout_ms = 1000
 Use 1–8 numeric unicast IPv4 or IPv6 addresses, without interface scopes or DNS
 names. The interval accepts 5–3600 seconds and each timeout accepts 100–10000 ms.
 Invalid configuration does not silently send probes to the public defaults.
-Omitted keys use the defaults above. An existing configuration is preserved
-on upgrade; the new defaults also apply when those keys are absent.
+Omitted keys use the defaults above. During installation or upgrade, both
+packages add missing connectivity keys and their comments under `[network]`.
+Existing values, comments and unrelated settings are preserved. Repeated
+installation does not duplicate keys. Ubuntu retains its normal package-manager
+keep/replace behavior for customized configuration; choosing to keep a file
+still adds the missing connectivity keys. Unsafe/symlinked files are not rewritten.
 
 The check sends only small ping packets, with no account details or Host names.
 It does not measure bandwidth or verify DNS, VPN access, captive-portal login,
 or PLANK service availability. A network may block ICMP while other traffic
 works. Hover over the indicator for the result's explanation.
 
-Ubuntu uses the packaged `iputils-ping` dependency. macOS uses its system ping
+Ubuntu uses the packaged `iputils-ping` dependency and a Python 3 installer helper
+at `/usr/libexec/plank-client-update-policy`. The helper runs only during package
+configuration and is removed with the package. The complete example is installed
+at `/usr/share/doc/plank-client/client.conf.example`.
+macOS uses its existing native installer configuration helper and system ping
 utilities. PLANK itself gains no new privileges, services or capabilities.
 Only fixed executable paths and separately supplied arguments are used;
 configuration cannot specify a program or shell command.

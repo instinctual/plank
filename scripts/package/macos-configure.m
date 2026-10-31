@@ -12,6 +12,75 @@ static NSData *propertyList(id object) {
     return [NSPropertyListSerialization dataWithPropertyList:object format:NSPropertyListXMLFormat_v1_0 options:0 error:NULL];
 }
 
+static NSData *clientConnectivityDefaults(NSData *previous, NSData *reference) {
+    NSString *text = [[NSString alloc] initWithData:previous encoding:NSUTF8StringEncoding];
+    NSString *template = [[NSString alloc] initWithData:reference encoding:NSUTF8StringEncoding];
+    if (!text || !template) return nil;
+    NSArray<NSString *> *keys = @[@"internet_check_enabled", @"internet_check_hosts",
+        @"internet_check_interval_seconds", @"internet_check_timeout_ms"];
+    NSRegularExpression *sectionPattern = [NSRegularExpression regularExpressionWithPattern:
+        @"^\\s*\\[([^]]+)\\]\\s*(?:[#;].*)?$" options:0 error:NULL];
+    NSRegularExpression *keyPattern = [NSRegularExpression regularExpressionWithPattern:
+        @"^\\s*([^=\\s]+)\\s*=" options:0 error:NULL];
+    NSMutableDictionary<NSString *, NSString *> *blocks = [NSMutableDictionary dictionary];
+    NSMutableString *comments = [NSMutableString string];
+    NSString *section = @"";
+    for (NSString *line in [template componentsSeparatedByString:@"\n"]) {
+        NSTextCheckingResult *header = [sectionPattern firstMatchInString:line options:0 range:NSMakeRange(0, line.length)];
+        NSString *trimmed = [line stringByTrimmingCharactersInSet:NSCharacterSet.whitespaceCharacterSet];
+        if (header) {
+            section = [line substringWithRange:[header rangeAtIndex:1]];
+            [comments setString:@""];
+        } else if ([trimmed hasPrefix:@"#"] || [trimmed hasPrefix:@";"]) {
+            [comments appendFormat:@"%@\n", line];
+        } else {
+            NSTextCheckingResult *assignment = [keyPattern firstMatchInString:line options:0 range:NSMakeRange(0, line.length)];
+            NSString *key = assignment ? [line substringWithRange:[assignment rangeAtIndex:1]] : nil;
+            if ([section isEqual:@"network"] && key && [keys containsObject:key])
+                blocks[key] = [NSString stringWithFormat:@"%@%@\n", comments, line];
+            [comments setString:@""];
+        }
+    }
+    if (blocks.count != keys.count) return nil;
+    NSMutableSet<NSString *> *present = [NSMutableSet set];
+    NSUInteger offset = 0, insertion = NSNotFound;
+    section = @"";
+    for (NSString *line in [text componentsSeparatedByString:@"\n"]) {
+        NSTextCheckingResult *header = [sectionPattern firstMatchInString:line options:0 range:NSMakeRange(0, line.length)];
+        if (header) {
+            section = [line substringWithRange:[header rangeAtIndex:1]];
+            if ([section isEqual:@"network"] && insertion == NSNotFound)
+                insertion = MIN(text.length, offset + line.length + 1);
+        } else if ([section isEqual:@"network"]) {
+            NSTextCheckingResult *assignment = [keyPattern firstMatchInString:line options:0 range:NSMakeRange(0, line.length)];
+            if (assignment) [present addObject:[line substringWithRange:[assignment rangeAtIndex:1]]];
+        }
+        offset += line.length + 1;
+    }
+    NSMutableArray<NSString *> *missing = [NSMutableArray array];
+    for (NSString *key in keys) if (![present containsObject:key]) [missing addObject:blocks[key]];
+    if (!missing.count) return previous;
+    NSString *prefix = insertion == NSNotFound ? text : [text substringToIndex:insertion];
+    if (prefix.length && ![prefix hasSuffix:@"\n"]) prefix = [prefix stringByAppendingString:@"\n"];
+    if (insertion == NSNotFound) prefix = [prefix stringByAppendingString:@"\n[network]\n"];
+    NSString *suffix = insertion == NSNotFound ? @"" : [text substringFromIndex:insertion];
+    NSData *updated = [[NSString stringWithFormat:@"%@\n%@\n%@", prefix,
+        [missing componentsJoinedByString:@"\n"], suffix] dataUsingEncoding:NSUTF8StringEncoding];
+    return updated.length <= 32768 ? updated : nil;
+}
+
+static BOOL updateClientConnectivityDefaults(int directory, NSData *previous, NSData *reference, uid_t owner) {
+    NSData *updated = clientConnectivityDefaults(previous, reference);
+    if (!updated) return NO;
+    if ([updated isEqual:previous]) return YES;
+    NSString *temporary = [@".client-connectivity-" stringByAppendingString:NSUUID.UUID.UUIDString];
+    BOOL ok = plank_config_create(directory, temporary.UTF8String, updated) &&
+        [plank_config_read(directory, "client.conf", owner, 0644) isEqual:previous] &&
+        !renameat(directory, temporary.UTF8String, directory, "client.conf");
+    unlinkat(directory, temporary.UTF8String, 0);
+    return ok && !fsync(directory);
+}
+
 static NSData *automaticHostnameINI(NSData *ini) {
     // Recognize only the old installer's exact generated block. Do not infer
     // intent from a matching name alone or rewrite an administrator's own block.
@@ -77,8 +146,10 @@ int main(int argc, const char *argv[]) { @autoreleasepool {
     if (!reference.length || reference.length > 32768) return failure("missing or oversized reference template");
     if (client) {
         BOOL exists = plank_config_exists(config, "client.conf");
-        // Never parse/rewrite an administrator's private policy during install.
-        BOOL ok = exists ? plank_config_read(config, "client.conf", owner, 0644) != nil :
+        // Add only missing connectivity settings/comments, retaining administrator
+        // values and unrelated bytes. No broad reserialization or policy reset.
+        NSData *previous = exists ? plank_config_read(config, "client.conf", owner, 0644) : nil;
+        BOOL ok = exists ? (previous && updateClientConnectivityDefaults(config, previous, reference, owner)) :
             plank_config_create(config, "client.conf", reference);
         close(config);
         return ok ? 0 : failure("unsafe Client policy or cannot create default policy");

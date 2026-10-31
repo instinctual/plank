@@ -259,9 +259,31 @@ class Configuration(unittest.TestCase):
         for custom in (b"# private administrator additions\n[network]\nport=30001\n", b""):
             path.write_bytes(custom)
             self.invoke("client")
-            self.assertEqual(path.read_bytes(), custom)
+            updated = path.read_bytes()
+            self.assertIn(b"internet_check_interval_seconds = 15", updated)
+            self.assertIn(b"# Maximum wait", updated)
+            if custom:
+                self.assertIn(b"port=30001\n", updated)
+                self.assertTrue(updated.startswith(b"# private administrator additions\n[network]\n"))
+            self.invoke("client")
+            self.assertEqual(path.read_bytes(), updated)
         path.chmod(0o666)
         self.invoke("client", success=False)
+
+    def test_client_connectivity_preserves_explicit_policy(self):
+        self.invoke("client")
+        path = self.config / "client.conf"
+        custom = (b"[network]\nport=30001\ninternet_check_enabled=false\n"
+                  b"internet_check_hosts=192.0.2.1\n[authentication]\nremember_username=true\n")
+        path.write_bytes(custom)
+        self.invoke("client")
+        updated = path.read_bytes()
+        self.assertIn(b"internet_check_enabled=false\n", updated)
+        self.assertNotIn(b"internet_check_enabled = true", updated)
+        self.assertIn(b"internet_check_hosts=192.0.2.1\n", updated)
+        self.assertTrue(updated.endswith(b"[authentication]\nremember_username=true\n"))
+        self.invoke("client")
+        self.assertEqual(path.read_bytes(), updated)
 
     def test_host_client_coexist(self):
         self.invoke("client")

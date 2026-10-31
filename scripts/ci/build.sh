@@ -17,6 +17,7 @@ case $role in
     bash "$PLANK_SOURCE_ROOT/scripts/ci/test-linux-host-input.sh" "$PLANK_WORK_ROOT/host-build"
     ;;
   linux-client)
+    python3 "$PLANK_SOURCE_ROOT/tests/packaging/test-client-policy-upgrade.py"
     source "$PLANK_SOURCE_ROOT/scripts/package/client-package-identity.sh"
     plank_client_package_identity
     export PLANK_CLIENT_SDL_WORK="$PLANK_DEP_ROOT/client-sdl"

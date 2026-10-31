@@ -23,6 +23,13 @@ is reported separately. Checks use fixed OS ping executables without a shell,
 bounded asynchronous processes, and native network notifications when available.
 See `docs/user/client-internet-connectivity.md` for operation and limitations.
 
+The operator additionally approved adding missing connectivity keys/comments
+during both Client upgrades while preserving existing values. Ubuntu's root
+package helper and the existing native macOS configurator make bounded, atomic,
+idempotent additions. No application daemon or new runtime service is added.
+The macOS streaming move to Qt/Metal was discussed and explicitly deferred to
+a separate future branch; do not start it as part of this task.
+
 Implementation and focused component/QML fixtures are being prepared. Next:
 run the existing portable gates, commit/push Client then root, build both
 Client candidates on GitHub Actions, and retain verified original packages and
