@@ -35,13 +35,24 @@ the unchanged three-second gate and full sequence passed on the next clean
 build. Four uninstalled app/extension/driver bundles independently pass arm64,
 minimum26.7, SDK27, Apple-system-link and ad-hoc signature/resource checks.
 
-This is a review candidate, not an installed or signed distribution package.
-The next step is the maintainer's normal protected signing workflow, followed
-by an explicitly disconnected installation opportunity. Physical mirroring,
-window/Spaces placement, reconnect, hotplug and crash restoration remain
-qualification gates. Existing installed apps, services, settings and sessions
-were not changed. Client, Linux Host, transport/dependency pins, authorization,
-input posting and signing policy are unchanged.
+The maintainer-signed 1.2.08 candidate at
+`ba454f8713675e54e189e1d748ca00f94fbdffa4` retains this reviewed runtime.
+Installed macOS26.7 feedback accepts default extended mode and reports a shared
+workspace with normal layout restoration. Subsequent connection attempts fail
+during display preparation: virtual creation succeeds, but WindowServer reports
+the new ID invalid before publishing it milliseconds later. Early UUID adoption
+then retires the worker, surfacing as a lost connection before streaming.
+
+The follow-up moves identity adoption into the existing bounded readiness loop
+before mode selection or mirroring. The integrated production preparation/layout
+regression fails on the prior runtime and passes 150 synthetic checks with the
+fix, including delayed online/UUID readiness, reconnect, identity replacement,
+cancellation, timeout and disabled mode. Existing layout247, recovery29,
+authentication525 and topology-recovery checks pass. This correction is not yet
+signed or installed and requires renewed maintainer approval for a test build.
+Physical reconnect/stability, window/Spaces placement, hotplug, crash restoration
+and the macOS27 matrix remain open. Client, Linux Host, transport/dependency pins,
+authorization, input posting and signing policy are unchanged.
 
 ## Published — 1.2.05 and one macOS Host package
 

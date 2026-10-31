@@ -141,6 +141,23 @@ before opening a listener. LoginWindow retains the machine certificate. The
 Client pins their common machine public key; the public workstation UUID is
 not a cryptographic trust anchor. See [Host identity trust](../security/host-identity-trust.md).
 
+## Single-display preparation readiness
+
+The optional single-display policy snapshots the physical layout before creating
+the owned virtual output. A successful virtual-display creation can return an ID
+before WindowServer exposes that output's UUID. Online visibility and UUID adoption
+therefore belong inside the existing six-second preparation loop, ahead of mode
+selection and consolidation. No physical screen is mirrored before the owned
+output is identified. A reused ID with a different UUID remains rejected.
+
+Cancellation or expiry before identification still requires worker retirement:
+without a verified identity, cleanup cannot safely park the owned output as a
+mirror. The original restoration snapshot, app-lifetime Quartz policy and
+authorization checks remain in effect. The integrated preparation/layout fixture
+uses simulated Quartz and virtual-display classes to cover delayed visibility and
+identity, reconnect, identity replacement, cancellation, timeout and default
+extended mode; installed display and Spaces behavior remain separate gates.
+
 ## Development installation and reboot recovery
 
 `install-macos-host-development.py` installs the machine coordinator as a
