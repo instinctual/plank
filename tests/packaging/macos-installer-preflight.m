@@ -3,15 +3,23 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#define CHECK(value) do { if (!(value)) { fprintf(stderr, "preflight check failed at %d\n", __LINE__); exit(1); } checks++; } while (0)
+#define CHECK(value) do { if (!(value)) { fprintf(stderr, "preflight check failed at %d: %s\n", __LINE__, #value); exit(1); } checks++; } while (0)
 static int checks;
 
 @interface PLANKTestRequirementsPane : PLANKRequirementsPane
 @property(nonatomic, copy) NSString *program;
 @property(nonatomic, copy) NSArray<NSString *> *arguments;
 @property(nonatomic) NSTimeInterval timeout;
+@property(nonatomic) BOOL requestedNextEnabled;
 @end
 @implementation PLANKTestRequirementsPane
+// The actual Continue button belongs to Installer, which this standalone fixture
+// does not launch. Observe the request while still invoking the framework API.
+// The production pane does not override this Installer-owned method.
+- (void)setNextEnabled:(BOOL)enabled {
+    self.requestedNextEnabled = enabled;
+    [super setNextEnabled:enabled];
+}
 - (NSTask *)newStatusTask {
     NSTask *task = [super newStatusTask];
     task.executableURL = [NSURL fileURLWithPath:self.program];
@@ -54,24 +62,24 @@ int main(void) {
         PLANKTestRequirementsPane *pane = [[PLANKTestRequirementsPane alloc] initWithSection:section];
         pane.program = @"/usr/bin/false"; // Exit 1 means FileVault is off.
         [pane willEnterPane:InstallerDirectionForward];
-        CHECK(!pane.nextEnabled);
+        CHECK(!pane.requestedNextEnabled);
         CHECK(![pane shouldExitPane:InstallerDirectionForward]);
         CHECK([pane shouldExitPane:InstallerDirectionBackward]);
         awaitResult(pane);
-        CHECK(pane.checkState == PLANKFileVaultOff && pane.nextEnabled);
+        CHECK(pane.checkState == PLANKFileVaultOff && pane.requestedNextEnabled);
         CHECK([pane shouldExitPane:InstallerDirectionForward]);
 
         pane.program = @"/usr/bin/true";
         [pane checkAgain:nil];
-        CHECK(!pane.nextEnabled);
+        CHECK(!pane.requestedNextEnabled);
         awaitResult(pane);
-        CHECK(pane.checkState == PLANKFileVaultOn && !pane.nextEnabled);
+        CHECK(pane.checkState == PLANKFileVaultOn && !pane.requestedNextEnabled);
         CHECK([pane.explanation.stringValue containsString:@"System Settings"]);
 
         pane.program = @"/nonexistent-plank-installer-fixture";
         [pane checkAgain:nil];
         awaitResult(pane);
-        CHECK(pane.checkState == PLANKFileVaultUnavailable && !pane.nextEnabled);
+        CHECK(pane.checkState == PLANKFileVaultUnavailable && !pane.requestedNextEnabled);
         CHECK(pane.checkButton.enabled);
 
         pane.program = @"/bin/sleep";
@@ -80,7 +88,7 @@ int main(void) {
         [pane checkAgain:nil];
         NSTask *slow = pane.statusTask;
         awaitResult(pane);
-        CHECK(pane.checkState == PLANKFileVaultUnavailable && !pane.nextEnabled);
+        CHECK(pane.checkState == PLANKFileVaultUnavailable && !pane.requestedNextEnabled);
         pump(0.05);
         CHECK(!slow.running);
 
@@ -92,7 +100,7 @@ int main(void) {
         pane.arguments = @[];
         [pane checkAgain:nil];
         awaitResult(pane);
-        CHECK(pane.checkState == PLANKFileVaultOff && pane.nextEnabled);
+        CHECK(pane.checkState == PLANKFileVaultOff && pane.requestedNextEnabled);
         pump(0.05);
         CHECK(!retired.running && pane.checkState == PLANKFileVaultOff);
 
@@ -103,7 +111,7 @@ int main(void) {
         [pane willExitPane:InstallerDirectionBackward];
         pump(0.05);
         CHECK(!closing.running && pane.statusTask == nil);
-        CHECK(pane.checkState == PLANKFileVaultChecking && !pane.nextEnabled);
+        CHECK(pane.checkState == PLANKFileVaultChecking && !pane.requestedNextEnabled);
         [pane checkAgain:nil];
         CHECK(pane.statusTask == nil);
         printf("macos_installer_preflight=pass checks=%d real_filevault_changes=0\n", checks);

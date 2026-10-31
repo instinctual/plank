@@ -24,7 +24,11 @@ removed. Host runtime, Client, protocol and dependency sources are unchanged.
 Portable page-order/no-JavaScript tests pass. Hosted gates must compile with
 `-Werror=deprecated-declarations`, exercise the actual pane lifecycle with harmless
 child processes, load the bundle, then check the signed bundle extracted from
-the finished PKG. Compilation, signing and actual Installer UI remain pending.
+the finished PKG. The first hosted attempt compiled the native fixture without
+deprecation warnings, then stopped at an assertion that read Installer's Continue
+button without running Installer. The fixture now observes the production pane's
+enable/disable request while calling the framework setter, and separately checks
+the real `shouldExitPane` gate. Signing and actual Installer UI remain pending.
 Apple has acknowledged plug-in extraction/loading issues on 26.7/27 and suggested
 retesting 27.2 beta 4: https://developer.apple.com/forums/thread/842811 .
 Direct bundle loading does not replace opening the actual PKG in Installer.
