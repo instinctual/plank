@@ -4,6 +4,22 @@ Read `AGENTS.md` and the relevant build runbook first. Machine-specific access,
 credentials, captures and operational evidence belong in the external private
 notes, never in Git.
 
+## Signed test preparation — PR 33
+
+Candidate branch `macos-host-test` combines main `ab92c12` with reviewed
+PR33 head `696815c3bc33598f4401a21d95749c369d0f92a6`. Package version is
+1.2.08. The single-display feature remains outside main and defaults off.
+The review found no new signing, credential, dependency or authorization path.
+Physical mirror/restore, hotplug, Spaces, takeover and crash recovery require
+Chris's hardware validation. His reported component results are not substituted
+for a hosted build or installed acceptance of this exact merged candidate.
+
+The only merge conflict was this handoff; current main's installer notes are
+retained. Build-script additions combine both the native Installer preflight
+and the display-lease fixtures. No product code was changed during integration.
+A dedicated PR command will dispatch the existing protected signing workflow
+from this branch at an explicitly approved SHA. Chris retains read-only access.
+
 ## Merged — native macOS Installer requirements
 
 The operator authorized merging `macos-installer-preflight` on October 31.

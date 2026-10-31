@@ -16,7 +16,8 @@
     id<PLANKMacPreviewCapture> (^_capture)(void);
     id<PLANKMacInputDevice> (^_input)(void);
     NSString *_address, *_certificate, *_privateKey;
-    BOOL _started;
+    BOOL _started, _displayPrepared;
+    uint64_t _displayGeneration;
     atomic_bool _stopping;
     NSString *_takeoverToken;
     NSData *_takeoverPeer;
@@ -81,6 +82,15 @@
         }
     };
     return _server ? self : nil;
+}
+// Caller holds the runtime lock, never the graphical main queue. A failed
+// restoration fails future admission; the graphical owner retires its worker.
+- (BOOL)releasePreparedDisplay {
+    ++_displayGeneration;
+    if (!_displayPrepared) return YES;
+    if (self.releaseDisplay && !self.releaseDisplay()) return NO;
+    _displayPrepared = NO;
+    return YES;
 }
 - (NSDictionary *)prepareDisplayRequest:(NSDictionary *)request token:(NSString *)token
                                   peer:(NSData *)peer valid:(BOOL (^)(void))requestValid status:(unsigned *)status {
@@ -148,7 +158,10 @@
             }
             if (_stream.state != PLANKMacPreviewStopped) { *status = 503; return nil; }
         }
+        if (![self releasePreparedDisplay]) { *status = 503; return nil; }
+        _displayPrepared = self.releaseDisplay != nil;
         if (!self.prepareDisplay(width, height, scale, request[@"encoding_mode"], valid) || !valid()) {
+            [self releasePreparedDisplay];
             NSLog(@"PLANK desktop preparation failed: %ux%u", width, height);
             *status = 503; return nil;
         }
@@ -158,7 +171,22 @@
             [topology[@"capture"][@"logical_bounds"][@"width"] doubleValue] != width / scale ||
             [topology[@"capture"][@"logical_bounds"][@"height"] doubleValue] != height / scale ||
             ![topology[@"capture"][@"encoding_profile"] isEqual:PLANKMacEncodingProfile(request[@"encoding_mode"])] || !valid()) {
-            *status = 503; return nil;
+            [self releasePreparedDisplay]; *status = 503; return nil;
+        }
+        if (_displayPrepared) {
+            uint64_t generation = _displayGeneration;
+            __weak typeof(self) weakSelf = self;
+            // /display may succeed without a subsequent /launch. Never leave
+            // a disconnected user's physical screens consolidated indefinitely.
+            dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 60*NSEC_PER_SEC),
+                dispatch_get_global_queue(QOS_CLASS_UTILITY, 0), ^{
+                    typeof(self) owner = weakSelf; if (!owner) return;
+                    @synchronized(owner) {
+                        if (owner->_displayGeneration == generation &&
+                            (!owner->_stream || owner->_stream.state == PLANKMacPreviewStopped))
+                            [owner releasePreparedDisplay];
+                    }
+                });
         }
         *status = 200; return topology;
     }
@@ -213,7 +241,21 @@
         _stream = [[PLANKMacPreviewSession alloc] initWithSessions:_sessions token:token peer:peer
             request:request topology:_topology config:&config capture:_capture() input:_input()
             microphoneGeneration:_snapshot().generation];
-        if (!_stream) { *status = 503; return nil; }
+        if (!_stream) { [self releasePreparedDisplay]; *status = 503; return nil; }
+        if (_displayPrepared) {
+            uint64_t generation = _displayGeneration;
+            __weak typeof(self) weakSelf = self;
+            _stream.didStop = ^{
+                // Do not take the runtime lock on the session drain queue:
+                // authenticated takeover can be waiting for that same drain.
+                dispatch_async(dispatch_get_global_queue(QOS_CLASS_UTILITY, 0), ^{
+                    typeof(self) owner = weakSelf; if (!owner) return;
+                    @synchronized(owner) {
+                        if (owner->_displayGeneration == generation) [owner releasePreparedDisplay];
+                    }
+                });
+            };
+        }
         if ([request[@"schema_version"] isEqual:@7]) {
             NSArray *required = request[@"required_features"];
             if (([required containsObject:@"clipboard"] && !_stream.clipboardEnabled) ||
@@ -261,7 +303,10 @@
         // Scope loss independently blocks release into another account. During
         // this bounded drain HTTP can still answer, but launch is already closed.
         void (^finish)(void) = ^{
-            [self->_server stopWithCompletion:completion];
+            dispatch_async(dispatch_get_global_queue(QOS_CLASS_UTILITY, 0), ^{
+                @synchronized(self) { [self releasePreparedDisplay]; }
+                [self->_server stopWithCompletion:completion];
+            });
         };
         if (stream) [stream stopWithCompletion:finish]; else finish();
     });
