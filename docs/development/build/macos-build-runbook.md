@@ -77,8 +77,16 @@ Do not generate a separate uninstall PKG. `macos_pkg_gate=pass` does not prove i
 permission continuity, reboot or streaming acceptance. No `installer -pkg`
 invocation is part of the build. Do not publish a rejected/pending artifact.
 
-The normal graphical workflow is to open the Host PKG, approve Installer, then
-open PLANK Host in Applications for privacy setup. Uninstall with the installed
+The normal graphical workflow is to open the Host PKG and allow Installer's
+initial requirements check. It runs the read-only `fdesetup isactive` command
+before installation starts. FileVault enabled or busy produces a named dialog
+explaining the remote-access requirement and where to turn FileVault off.
+A declined or failed check produces a separate verification message; it does
+not count as FileVault being off. No FileVault setting is changed automatically.
+The preinstall script rechecks before modifying state or stopping services,
+including command-line installations and changes since the initial check.
+After installation, open PLANK Host in Applications for privacy setup.
+Uninstall with the installed
 script (administrator authorization is required):
 
 ```bash
@@ -109,6 +117,11 @@ tests mocked launchd lifecycle without privileges; `--filesystem` additionally
 requires root and creates/removes an isolated fixture under
 `/Library/Application Support`, without touching product services or files.
 These are developer qualification commands, not operator instructions.
+`python3 tests/packaging/test-macos-installer-preflight.py` executes the actual
+distribution JavaScript with simulated FileVault results through JavaScriptCore.
+The package build repeats this test against the finished PKG's Distribution;
+the test never runs `fdesetup` or changes disk encryption. A real Installer UI
+check is still needed to confirm the dialog presentation.
 For command-line signature requirements, `codesign -R` needs a leading `=` for
 inline requirement text; otherwise it treats the expression as a filename.
 After this validation-command error, recheck the already signed binary and

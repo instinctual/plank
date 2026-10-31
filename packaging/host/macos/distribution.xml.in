@@ -3,9 +3,34 @@
   <title>@TITLE@</title>
   <welcome file="@WELCOME@" mime-type="text/html"/>
   <conclusion file="@CONCLUSION@" mime-type="text/html"/>
-  <options customize="never" require-scripts="false" hostArchitectures="arm64"/>
+  <options customize="never" require-scripts="true" allow-external-scripts="true" hostArchitectures="arm64"/>
   <domains enable_anywhere="false" enable_currentUserHome="false" enable_localSystem="true"/>
   <allowed-os-versions><os-version min="@MIN_MACOS@"/></allowed-os-versions>
+  <installation-check script="checkFileVault()"/>
+  <script><![CDATA[
+    function checkFileVault() {
+      var status;
+      try {
+        // Read-only check. Exit 1 means Off; 0 means On; 2 means On but busy.
+        // Do not cache the result: FileVault can change while Installer is open.
+        status = system.run('/usr/bin/fdesetup', 'isactive');
+      } catch (error) {
+        status = undefined;
+      }
+      if (status === 1) {
+        return true;
+      }
+      my.result.type = 'Fatal';
+      if (status === 0 || status === 2) {
+        my.result.title = 'Turn off FileVault before installing PLANK Host';
+        my.result.message = 'PLANK cannot provide remote access to the FileVault unlock screen after a restart.\n\nOpen System Settings > Privacy & Security > FileVault and turn FileVault off. Wait for it to finish, then reopen this installer.\n\nPLANK has not changed your FileVault settings.';
+      } else {
+        my.result.title = 'Unable to check FileVault';
+        my.result.message = 'PLANK must confirm that FileVault is off before installation.\n\nReopen this installer and allow Installer to check this Mac when prompted. If the check still fails, ask your administrator to verify FileVault in System Settings > Privacy & Security > FileVault.';
+      }
+      return false;
+    }
+  ]]></script>
   <choices-outline><line choice="default"/></choices-outline>
   <choice id="default" visible="false"><pkg-ref id="@IDENTIFIER@"/></choice>
   <pkg-ref id="@IDENTIFIER@" version="@VERSION@" auth="Root" onConclusion="RecommendRestart">@COMPONENT@</pkg-ref>

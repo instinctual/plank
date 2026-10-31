@@ -3,7 +3,8 @@ body { font: 14px -apple-system, sans-serif; color: #222; } h1 { font-size: 24px
 li { margin: 10px 0; }
 </style></head><body><h1>PLANK Host</h1>
 <p>Secure remote access to this Mac from PLANK Client.</p>
-<ul><li>Requires an Apple Silicon Mac running macOS @MIN_MACOS@ or later, with FileVault disabled for access after reboot.</li>
+<p><strong>Before you start:</strong> FileVault must be off so PLANK can provide remote access after a restart. Check System Settings &gt; Privacy &amp; Security &gt; FileVault before continuing.</p>
+<ul><li>Requires an Apple Silicon Mac running macOS @MIN_MACOS@ or later.</li>
 <li>Installs PLANK Host in Applications and configures automatic startup at the login screen and on the desktop.</li>
 <li>Disconnect existing remote sessions before continuing. Upgrades preserve your configuration, certificates and logs.</li>
 <li>A restart is recommended after installation to finish loading the PLANK audio devices. You can restart later.</li>

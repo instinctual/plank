@@ -4,6 +4,27 @@ Read `AGENTS.md` and the relevant build runbook first. Machine-specific access,
 credentials, captures and operational evidence belong in the external private
 notes, never in Git.
 
+## Candidate in progress — early macOS Installer FileVault check
+
+Branch `macos-installer-preflight` starts from main `72f8132` and uses package
+version **1.2.06**. A new Mac installation reached the existing preinstall
+FileVault guard and produced Installer's generic failure. The operator requested
+a clear check at the beginning of installation. Machine details and evidence
+remain in external private notes; no deployment settings were changed.
+
+The distribution now runs read-only `fdesetup isactive` in its initial
+requirements check. FileVault on/busy produces a specific explanation and
+Settings location. An unavailable or declined check has a separate message.
+The final preinstall guard remains ahead of service shutdown/state changes,
+with improved command-line guidance. The welcome page also names the requirement.
+No Host runtime, Client, protocol or dependency source is changed.
+
+Local tests pass: four JavaScriptCore requirements tests, 25 mocked lifecycle
+checks and eight package-permission tests. Two Apple package tests are unavailable
+on this Linux checkout. The hosted Mac build must execute the requirements tests
+again on Apple JavaScriptCore and on the finished PKG. Signed candidate packaging
+and actual early-dialog presentation remain pending. Published 1.2.05 is unchanged.
+
 ## Published — 1.2.05 and one macOS Host package
 
 The operator approved preparing the combined release and moving to one Mac

@@ -111,6 +111,15 @@ edit its runtime strings solely to remove public upstream diagnostics.
 
 ## Classify failures correctly
 
+The macOS Host requires FileVault off for access after restart. Its distribution
+runs an initial read-only requirements check and presents the reason and Settings
+location before installation begins. A failed or declined check is reported
+separately. The preinstall guard remains for CLI installs and changed state,
+before any service shutdown or state initialization. Earlier packages checked
+only in preinstall, so Installer could show a generic failure; inspect Installer
+Log for the FileVault message rather than treating it as a signing/build defect.
+Do not disable encryption automatically to work around this requirement.
+
 macOS Finder's prohibited icon / "damaged or incomplete" can be inaccessible
 bundle metadata, not a corrupt binary or rejected notarization. Host 1.0.103
 contained owner-only bundle directories and resources inherited from umask 077.

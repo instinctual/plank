@@ -85,6 +85,7 @@ if [[ $(/usr/sbin/installer -query RestartAction -pkg "$output/$name") != Recomm
   echo 'Host package must recommend a restart through macOS Installer.' >&2; exit 1
 fi
 python3 "$source_root/scripts/test/check-macos-host-permissions.py" --pkg "$output/$name"
+python3 "$source_root/tests/packaging/test-macos-installer-preflight.py" --package "$output/$name"
 notary_flags=(--keychain-profile "$PLANK_NOTARY_PROFILE")
 if [[ -n ${PLANK_NOTARY_KEYCHAIN:-} ]]; then
   [[ $PLANK_NOTARY_KEYCHAIN = /* && -f $PLANK_NOTARY_KEYCHAIN ]]

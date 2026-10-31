@@ -71,6 +71,7 @@ xcrun clang -std=c11 -mmacosx-version-min="$MACOSX_DEPLOYMENT_TARGET" -Wall -Wex
     -Iapps/host/macos/media tests/auth/macos-stream-diagnostics.c -o "$output/stream-diagnostics-test"
 "$output/stream-diagnostics-test"
 python3 "$source_root/tests/packaging/test-macos-host-permissions.py"
+python3 "$source_root/tests/packaging/test-macos-installer-preflight.py"
 python3 "$source_root/tests/packaging/test-macos-camera-profile.py"
 xcrun clang -mmacosx-version-min="$MACOSX_DEPLOYMENT_TARGET" -fobjc-arc -Wall -Wextra -Werror -Werror=unguarded-availability -Werror=unguarded-availability-new \
     -DPLANK_CLIPBOARD_TEST_PASTEBOARD -Iapps/host/macos/media -Iprotocol/plank-transport/include \
