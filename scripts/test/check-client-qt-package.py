@@ -11,6 +11,8 @@ PACKAGE = 'plank-client'
 DESKTOP = 'la.instinctual.Plank.Client'
 EXACT = {
     'usr/bin/plank-client', 'etc/plank/client.conf',
+    'usr/libexec/plank-client-update-policy',
+    'usr/share/doc/plank-client/client.conf.example',
     f'usr/share/applications/{DESKTOP}.desktop',
     f'usr/share/metainfo/{DESKTOP}.appdata.xml',
     'usr/share/icons/hicolor/512x512/apps/plank-client.png',
@@ -66,12 +68,19 @@ def validate(package):
         if field(package, key):
             raise ValueError('Client package must not declare ' + key)
     names, metadata = read_tar(package, '--fsys-tarfile',
-                               {f'usr/share/applications/{DESKTOP}.desktop'}, True)
+                               {f'usr/share/applications/{DESKTOP}.desktop',
+                                'usr/libexec/plank-client-update-policy',
+                                'usr/share/doc/plank-client/client.conf.example'}, True)
     if not EXACT.issubset(names):
         raise ValueError('Client package is missing required files')
     for name in names:
         if name not in EXACT and not name.startswith(PREFIXES):
             raise ValueError('file outside Client namespace: ' + name)
+    for installed, source in (
+            ('usr/libexec/plank-client-update-policy', 'packaging/client/linux/update-policy.py'),
+            ('usr/share/doc/plank-client/client.conf.example', 'packaging/client/config/plank-client.conf')):
+        if metadata[installed] != (ROOT / source).read_text():
+            raise ValueError('incorrect Client policy upgrade input')
     desktop = metadata[f'usr/share/applications/{DESKTOP}.desktop'].splitlines()
     for expected in ('Name=PLANK Client', 'Exec=plank-client', 'Icon=plank-client',
                      'StartupWMClass=' + DESKTOP):

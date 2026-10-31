@@ -23,6 +23,12 @@ class QtPackageTests(unittest.TestCase):
         self.stage.mkdir()
         for name in AUDIT.EXACT:
             self.write(name, 'fixture\n')
+        self.write('usr/libexec/plank-client-update-policy',
+                   (ROOT / 'packaging/client/linux/update-policy.py').read_text())
+        (self.stage / 'usr/libexec/plank-client-update-policy').chmod(0o755)
+        template = (ROOT / 'packaging/client/config/plank-client.conf').read_text()
+        self.write('usr/share/doc/plank-client/client.conf.example', template)
+        self.write('etc/plank/client.conf', template)
         self.write('usr/lib/plank/libfixture.so.1', 'fixture\n')
         (self.stage / 'usr/lib/plank/libfixture.so').symlink_to('libfixture.so.1')
         self.desktop = ('[Desktop Entry]\nName=PLANK Client\nExec=plank-client\n'
@@ -85,6 +91,16 @@ class QtPackageTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'lifecycle script'):
             AUDIT.validate(self.package())
 
+    def test_rejects_incorrect_policy_upgrade_inputs(self):
+        for installed in ('usr/libexec/plank-client-update-policy',
+                          'usr/share/doc/plank-client/client.conf.example'):
+            with self.subTest(installed=installed):
+                original = (self.stage / installed).read_text()
+                self.write(installed, 'incorrect fixture\n')
+                with self.assertRaisesRegex(ValueError, 'policy upgrade input'):
+                    AUDIT.validate(self.package())
+                self.write(installed, original)
+
     def test_rejects_url_registration(self):
         self.write(f'usr/share/applications/{AUDIT.DESKTOP}.desktop',
                    self.desktop + 'MimeType=x-scheme-handler/plank;\n')
@@ -112,12 +128,14 @@ class QtPackageTests(unittest.TestCase):
         install_root = self.root / 'installed'
         install_root.mkdir()
         def dpkg(*args):
-            subprocess.run(['dpkg', '--root=' + str(install_root), '--force-not-root',
-                            '--force-script-chrootless', '--force-confold', *args], check=True,
-                           stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
+            result = subprocess.run(['dpkg', '--root=' + str(install_root), '--force-not-root',
+                                     '--force-script-chrootless', '--force-confold', *args],
+                                    stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, text=True)
+            self.assertEqual(result.returncode, 0, result.stderr)
         dpkg('--install', str(previous))
         preserved = {
-            'etc/plank/client.conf': 'administrator configuration\n',
+            'etc/plank/client.conf': '# administrator configuration\n[network]\nport=30001\n'
+                                     'internet_check_enabled=false\n',
             'home/test/.config/Instinctual/PLANK.conf': 'bookmarks and preferences\n',
             'home/test/.local/share/PLANK/pinned-host.pem': 'existing trusted certificate\n',
         }
@@ -125,6 +143,15 @@ class QtPackageTests(unittest.TestCase):
             target = install_root / name
             target.parent.mkdir(parents=True, exist_ok=True)
             target.write_text(content)
+        dpkg('--install', str(candidate))
+        policy = (install_root / 'etc/plank/client.conf').read_text()
+        self.assertIn('port=30001\n', policy)
+        self.assertIn('internet_check_enabled=false\n', policy)
+        self.assertNotIn('internet_check_enabled = true', policy)
+        self.assertIn('internet_check_interval_seconds = 15\n', policy)
+        self.assertIn('# Maximum wait', policy)
+        preserved['etc/plank/client.conf'] = policy
+        # Reconfiguration must not duplicate comments/keys or change values.
         dpkg('--install', str(candidate))
         self.assertEqual((install_root / 'usr/bin/plank-client').read_text(), 'Qt client\n')
         self.assertFalse((install_root / 'usr/bin/plank-client-qt').exists())
