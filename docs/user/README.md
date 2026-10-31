@@ -1,6 +1,7 @@
 # User documentation
 
 - [Bookmark Host options](bookmark-host-options.md)
+- [Client Internet indicator](client-internet-connectivity.md)
 - [Mac remote audio output](macos-audio-output.md)
 - [Microphone forwarding candidate](microphone.md)
 - [Branding](branding.md)

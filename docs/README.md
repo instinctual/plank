@@ -9,6 +9,8 @@
   and OS-controlled prompts that cannot be moved out of a session.
   [Remembered usernames](user/remembered-usernames.md) documents the Client's
   default-off, per-bookmark sign-in prefill policy.
+  [Internet indicator](user/client-internet-connectivity.md) covers the
+  main-window connectivity checks and administrator-controlled targets.
   [Mac remote audio output](user/macos-audio-output.md) explains PLANK Output,
   volume controls and restoration of local playback.
 - [Architecture](architecture/): media, input, authentication and lifecycle.

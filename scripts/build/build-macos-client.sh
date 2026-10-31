@@ -78,7 +78,7 @@ qmake -r "$client/moonlight-qt.pro" CONFIG+=release CONFIG+=disable-prebuilts \
     "QMAKE_CFLAGS+=$PLANK_C_FILE_FLAGS" "QMAKE_CXXFLAGS+=$PLANK_C_FILE_FLAGS"
 make -j"${PLANK_BUILD_JOBS:-8}" release
 # Run shared topology and toolbar geometry on every Mac Client candidate.
-for suite in outputtopology plankdisplaymode planktoolbarlogic desktopstage macquitshortcut macapplication mackeyboardcapture plankpresentation macrawwacom macclipboardsync macmetaloverlay changelog authenticationtakeover hosttruststore hosttlsguard pacershutdown; do
+for suite in outputtopology plankdisplaymode planktoolbarlogic desktopstage macquitshortcut macapplication mackeyboardcapture plankpresentation macrawwacom macclipboardsync macmetaloverlay changelog authenticationtakeover hosttruststore hosttlsguard pacershutdown plankclientpolicy internetconnectivity; do
 mkdir -p "$build/tests/$suite"
 (
     cd "$build/tests/$suite"
@@ -89,6 +89,7 @@ mkdir -p "$build/tests/$suite"
     # These are bare test executables, not deployed app bundles. Give Qt's
     # OpenSSL loader the same pinned libraries the package puts in Frameworks.
     DYLD_LIBRARY_PATH="$PLANK_MAC_CLIENT_DEPS/install/lib" \
+        PLANK_CONNECTIVITY_CAPTURE_DIR="${PLANK_ARTIFACT_ROOT:-$build}/qualification/connectivity" \
         PLANK_REPO_ROOT="$source_root" QT_QPA_PLATFORM=offscreen QT_QUICK_BACKEND=software "./$suite"
 )
 done

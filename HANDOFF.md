@@ -4,6 +4,32 @@ Read `AGENTS.md` and the relevant build runbook first. Machine-specific access,
 credentials, captures and operational evidence belong in the external private
 notes, never in Git.
 
+## In progress — Client Internet indicator
+
+`client-connectivity` starts from main
+`d9e0ca5339f205c1f06bf6c811bb4b6eebb8812d` and Client main
+`aa4b16cfc945c1831a99bd96953d6e60f1aad8a1`. Version **1.2.10** is reserved
+for Ubuntu and macOS Client candidates. It is independent of the unmerged
+`macos-display-mirroring` 1.2.09 Host candidate; no Host, transport or dependency
+pin changes are intended. No main merge or release is requested.
+
+The operator approved an informational main-window Internet indicator: ordered
+ICMP probes of the configured public resolver addresses, stopping at the first reply, with
+one second per target and a 15-second repeat interval. Administrator policy
+controls enabled/targets/interval/timeout in `[network]` of `client.conf`.
+The monitor cannot change Host status, block login or influence recovery.
+No response is not proof of an Internet outage; unavailable utility/configuration
+is reported separately. Checks use fixed OS ping executables without a shell,
+bounded asynchronous processes, and native network notifications when available.
+See `docs/user/client-internet-connectivity.md` for operation and limitations.
+
+Implementation and focused component/QML fixtures are being prepared. Next:
+run the existing portable gates, commit/push Client then root, build both
+Client candidates on GitHub Actions, and retain verified original packages and
+test screenshots in the catalog. No test machine is needed for builds and no
+live session is to be interrupted. Installed UI/network acceptance remains
+separate from hosted tests. The existing macOS streaming frontend is unchanged.
+
 ## Discussed — protecting main, not yet enabled
 
 GitHub was checked on October 31: `main` is unprotected and the repository has

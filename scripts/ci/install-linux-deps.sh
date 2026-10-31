@@ -35,7 +35,7 @@ case "$role:$ID:$VERSION_ID" in
     sudo apt-get update
     sudo apt-get install -y --no-install-recommends \
       build-essential cmake curl git make nasm ninja-build openssl patch \
-      pkg-config python3 python3-venv ripgrep xz-utils dpkg-dev sccache \
+      pkg-config python3 python3-venv ripgrep xz-utils dpkg-dev sccache iputils-ping \
       qt6-base-dev qt6-base-private-dev qt6-declarative-dev qt6-svg-dev qt6-svg-plugins qt6-wayland qt6-wayland-dev \
       libsdl3-dev libsdl3-ttf-dev libpipewire-0.3-dev libdecor-0-dev libdrm-dev libinput-dev \
       libasound2-dev libpulse-dev libegl-dev libgles-dev libxkbcommon-dev libfontconfig1-dev \

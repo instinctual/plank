@@ -1739,12 +1739,13 @@ cleanup_bookmark_test() {
   fi
 }
 trap cleanup_bookmark_test EXIT
-for bookmark_test in outputtopology hostchoices planktoolbarlogic changelog authenticationtakeover hosttruststore hosttlsguard; do
+for bookmark_test in outputtopology hostchoices planktoolbarlogic changelog authenticationtakeover hosttruststore hosttlsguard internetconnectivity; do
   mkdir "$bookmark_test_build/$bookmark_test"
   qmake6 "$source_dir/tests/$bookmark_test/$bookmark_test.pro" \
     -o "$bookmark_test_build/$bookmark_test/Makefile"
   make -C "$bookmark_test_build/$bookmark_test" -j"$(nproc)"
   PLANK_REPO_ROOT="$repo_dir" PLANK_CLIENT_SOURCE="$source_dir" \
+    PLANK_CONNECTIVITY_CAPTURE_DIR="${PLANK_ARTIFACT_ROOT:-$build_dir}/qualification/connectivity" \
     QT_QPA_PLATFORM=offscreen QT_QUICK_BACKEND=software \
     "$bookmark_test_build/$bookmark_test/$bookmark_test"
 done
