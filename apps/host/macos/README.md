@@ -88,3 +88,36 @@ requirements; maintainer signing credentials are never source dependencies.
 Contributions follow the parent [contributor guide](../../../CONTRIBUTING.md).
 Preserve the license notices in this source and all linked dependencies;
 see [project licensing](../../../README.md#credits-and-licensing).
+
+## Single-display session candidate
+
+The administrator can opt into `general.single_display=true`. The graphical
+agent snapshots display identities, modes, origins and mirror relationships
+before preparing its owned virtual output. Public Quartz configuration makes
+PLANK the mirror master for the remote session, with `kCGConfigureForAppOnly`;
+no permanent/session display preferences or private display-disable API are used.
+The requested geometry and mirror ownership must read back correctly before
+launch. A failed transaction, revoked preparation, failed launch, normal
+or lost stream, or a successful preparation abandoned for 60 seconds retires
+the lease. Media and input drain before normal restoration. A late teardown
+cannot restore over a newer preparation. Restoration checks mode/mirror/origin
+readback and never writes to an absent or identity-replaced display. Failure
+retires the graphical worker; Quartz app-lifetime settings and the virtual
+output then end with that process. A hot-added display is not absorbed silently.
+
+SDK27 retains CGVirtualDisplay until process exit. While the worker remains
+idle, PLANK mirrors the restored local main display instead of leaving an
+extra extended workspace. On reconnect only that owned mirror is detached
+before mode preparation. Native WindowServer owns application-window reflow;
+exact per-window positions, fullscreen Spaces, unusual rotation/mirror sets,
+physical hotplug and crash recovery still require the signed candidate trial.
+No logout, AX window enumeration, new permission, screen blanking or permanent
+preference change is part of this implementation.
+
+Synthetic coverage: `scripts/test/build-macos-display-layout.sh` executes the
+actual lease with link-time Quartz substitutes. `tests/auth/macos-display-lease.py`
+uses the actual authenticated runtime with the synthetic display provider to
+check normal QUIC disconnect, failed preparation and the production 60-second
+abandoned-prepare deadline.
+Existing native session tests check the post-drain notification and all retained
+teardown cases. These fixtures never qualify physical mirroring or restoration.

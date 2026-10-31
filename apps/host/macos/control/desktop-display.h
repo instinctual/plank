@@ -4,12 +4,15 @@
 #import <CoreGraphics/CoreGraphics.h>
 
 // One experimental virtual display per graphical-agent lifetime. No root
-// helper, public socket or physical-display mode mutation. Agent process exit
+// helper or public socket. Opt-in single-display leases temporarily mirror
+// physical displays using app-lifetime Quartz configuration. Agent process exit
 // is the removal boundary on SDK 27; do not pretend releasing the object removes it.
 @interface PLANKMacDesktopDisplay : NSObject
 // Distinct display identity, with the same selectable modes as the desktop.
 - (instancetype)initForSignIn;
 @property(nonatomic, readonly) CGDirectDisplayID displayID;
+@property(nonatomic) BOOL singleDisplay;
+- (BOOL)restoreLayout;
 - (void)prepareWidth:(unsigned)width height:(unsigned)height
               valid:(BOOL (^)(void))valid completion:(void (^)(BOOL))completion;
 - (void)prepareWidth:(unsigned)width height:(unsigned)height scale:(unsigned)scale

@@ -48,6 +48,7 @@ int main(int argc, const char *argv[]) {
     struct rlimit noCore = {0, 0};
     if (setrlimit(RLIMIT_CORE, &noCore)) return 2;
     alarm(65);
+    unsigned fixtureLifetime = 60;
     @autoreleasepool {
         PLANKMacGraphicalAuthority *authority = [[PLANKMacGraphicalAuthority alloc] initWithPhase:PLANKMacScopeDesktop];
         if (argc == 1) {
@@ -61,7 +62,8 @@ int main(int argc, const char *argv[]) {
         if (argc == 3) {
             testScreenAllowed = strcmp(argv[2], "screen-denied") != 0;
             testInputAllowed = strcmp(argv[2], "input-denied") != 0;
-            if (testScreenAllowed && testInputAllowed) return 2;
+            if (!strcmp(argv[2], "display-lease")) { fixtureLifetime = 85; alarm(90); } // Exercise the real 60s lease plus TLS setup.
+            else if (testScreenAllowed && testInputAllowed) return 2;
         } else
 #endif
         if (argc != 2) return 2;
@@ -133,6 +135,10 @@ int main(int argc, const char *argv[]) {
 #endif
             }];
 #ifdef PLANK_SYNTHETIC_AUTH_TEST
+        runtime.releaseDisplay = ^BOOL {
+            desktopWidth = 1920; desktopHeight = 1080; desktopScale = 1;
+            puts("macos_display_released"); fflush(stdout); return YES;
+        };
         runtime.prepareDisplay = ^BOOL(unsigned width, unsigned height, unsigned scale, NSString *mode, BOOL (^valid)(void)) {
             if (!valid() || !((width == 1920 && height == 1080) || (width == 3840 && height == 2160) ||
                               (width == 3420 && height == 2214))) return NO;
@@ -198,7 +204,7 @@ int main(int argc, const char *argv[]) {
         dispatch_source_t termination = dispatch_source_create(DISPATCH_SOURCE_TYPE_SIGNAL, SIGTERM, 0, dispatch_get_main_queue());
         dispatch_source_set_event_handler(termination, stop);
         dispatch_resume(termination);
-        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 60 * NSEC_PER_SEC), dispatch_get_main_queue(), stop);
+        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, fixtureLifetime * NSEC_PER_SEC), dispatch_get_main_queue(), stop);
         // Aqua notifications and the authority watcher require the main run loop.
         [[NSRunLoop mainRunLoop] run];
     }
