@@ -4,6 +4,30 @@ Read `AGENTS.md` and the relevant build runbook first. Machine-specific access,
 credentials, captures and operational evidence belong in the external private
 notes, never in Git.
 
+## In progress — approved contributor macOS Host test builds
+
+The operator authorized signed test requests for `cnoellert` without granting
+repository write access. `macos-test-requests` adds a default-branch
+`/build-macos-host` PR-comment controller and exact-commit approval registry.
+Only Chris and the owner are allowlisted by immutable GitHub IDs. The controller
+receives no Apple secrets and never checks out PR code. Changed PR heads or
+candidate branches require renewed maintainer approval; fixed dispatch inputs
+select the existing protected signing workflow, minimum26.7 and cache reuse.
+See `docs/development/build/github-builds.md` for operation and retirement.
+
+The separately pushed `macos-host-test` candidate is **1.2.08**, source
+`ba454f8713675e54e189e1d748ca00f94fbdffa4`: current main `ab92c12` plus reviewed
+PR33 `696815c3bc33598f4401a21d95749c369d0f92a6`. It includes the native Installer
+requirements change. Client, Linux Host and dependency pins are unchanged.
+PR33 remains outside main and retains its opt-in/default-off behavior. Review
+and pending hardware tests are in
+`docs/development/reviews/macos-single-display-pr33-review.md`.
+The candidate passed 98 portable policy tests and two Installer preflight tests.
+Sixteen request authorization/dispatch tests pass. End-to-end GitHub command,
+protected signing, artifact download and installed display acceptance are still
+pending; update this section with actual results. No release or installation
+is authorized by the command, and unfinished `native-builds` stays separate.
+
 ## Merged — native macOS Installer requirements
 
 The operator authorized merging `macos-installer-preflight` on October 31.

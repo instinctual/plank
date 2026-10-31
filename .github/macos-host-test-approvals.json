@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "pull_requests": {
+    "33": {
+      "branch": "macos-host-test",
+      "source_sha": "ba454f8713675e54e189e1d748ca00f94fbdffa4",
+      "pr_head_sha": "696815c3bc33598f4401a21d95749c369d0f92a6",
+      "head_repository_id": 1373991422,
+      "author_id": 65196962
+    }
+  }
+}

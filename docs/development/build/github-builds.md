@@ -182,6 +182,52 @@ restricted to disposable GitHub-hosted machines running approved source, never
 an operator's Mac, shared runner or public PR. Local interactive keychain rules
 remain unchanged. See [GitHub's signing guidance](https://docs.github.com/en/actions/how-tos/deploy/deploy-to-third-party-platforms/sign-xcode-applications).
 
+### Approved contributor Host test builds
+
+Chris (`cnoellert`) can request a signed macOS Host candidate by posting a new
+PR Conversation comment containing exactly:
+
+```text
+/build-macos-host
+```
+
+The project owner can use the same command. Account authorization uses immutable
+GitHub user IDs. No repository write access, personal access token or Apple
+credential is given to the requester. A reply links the build and its artifact;
+after success, download the signed Host PKG from that run. Artifacts expire
+after seven days. This command does not merge, release or install anything.
+
+Before enabling a PR, a maintainer must review its source, including executable
+build/test scripts and dependencies. Prepare a candidate from current main and
+that reviewed PR revision, assign a new candidate version, run portable checks,
+and push it to `macos-host-test` (or an explicitly reviewed
+`macos-host-test-...` branch). Add only that exact branch to `macos-signing`'s
+deployment branch policies. Record its full SHA, the reviewed PR head SHA, PR
+author ID and fork repository ID in `.github/macos-host-test-approvals.json` on
+main. The PR feature itself need not be merged to main.
+
+`request-macos-host-build.yml` handles newly created PR comments using only the
+default branch's controller and approval registry. It does not check out PR
+code or receive signing secrets. It rechecks the live comment, open PR identity,
+reviewed head and exact candidate branch SHA, then dispatches the existing
+`build.yml` with fixed inputs: `macos-host`, signed, minimum26.7, exact source SHA,
+and ordinary dependency-cache reuse. The existing build policy checks the SHA
+again before the environment-protected signing job. Its limited Actions token
+can dispatch a workflow; this event is one of GitHub's documented exceptions to
+token-triggered workflow suppression. See [GitHub's workflow trigger rules](https://docs.github.com/en/actions/how-tos/write-workflows/choose-when-workflows-run/trigger-a-workflow).
+
+An updated PR or moved test branch requires a fresh maintainer review and
+approval-registry commit. Approval of one revision is not approval of future
+changes. Editing a comment or rerunning a request job does not authorize another
+build: post a new command. Concurrent requests reuse an already-running build
+for the same source. Retiring the candidate means removing its registry entry
+and its exact environment branch permission. Do not use wildcard branches or
+`pull_request_target` to execute contributor code with credentials.
+
+Hosted builds qualify compilation, component checks, signing and packaging.
+Chris still owns installed macOS26.7 testing; the identical package needs the
+ordinary macOS27 regression checks before feature acceptance.
+
 ## Initial qualification
 
 The protected direct Host job passed signing, notarization, stapling, final
