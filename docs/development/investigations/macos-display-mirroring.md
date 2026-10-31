@@ -19,8 +19,9 @@ worker is being introduced into the product.
 The integrated implementation includes PR33's original reviewed `696815c`,
 with configuration renamed to describe mirroring. PR33 later advanced to
 `712a475`; its virtual-display readiness fix and corrected physical-trial notes
-were subsequently reviewed and approved for integration. `macos-display-readiness`
-retains the renamed setting and adds zero-physical-display regression coverage.
+were subsequently reviewed and integrated after hosted checks passed.
+`macos-display-readiness` retains the renamed setting and adds zero-physical-display
+regression coverage (nine scenarios, 289 assertions across physical/headless cases).
 See [the follow-up review](../reviews/macos-single-display-pr33-review.md) for
 the exact source, integration correction and remaining acceptance limits.
 

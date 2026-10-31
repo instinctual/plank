@@ -4,11 +4,11 @@ Read `AGENTS.md` and the relevant build runbook first. Machine-specific access,
 credentials, captures and operational evidence belong in the external private
 notes, never in Git.
 
-## In validation — macOS display readiness and headless regressions
+## Merged — macOS display readiness and headless regressions
 
 The operator approved integrating PR33's two newer commits on October 31,
 including explicit coverage for headless Macs with no physical monitors or
-dummy plugs. `macos-display-readiness` starts from main `7ad4f39` and integrates
+dummy plugs. `macos-display-readiness` started from main `7ad4f39` and integrates
 PR head `712a4759783e5d8b9b637e48cf973b239bca8063`, preserving author history.
 Package version is **1.2.11**. Client, Linux Host and dependency pins remain
 unchanged from the mainline provenance below.
@@ -34,9 +34,26 @@ classes and power calls; it cannot modify a real desktop.
 Review verified Chris's latest unsigned hosted run
 [41241150325](https://github.com/cnoellert/plank/actions/runs/41241150325), including
 150 readiness and 247 layout assertions. That evidence belongs to his pre-rename
-branch, not this integration. Combined-source hosted validation is next; installed
-headless/physical and macOS26.7/27 acceptance remain pending. Builds run on GitHub
-Actions. No Mac session is interrupted and no package is installed or released.
+branch, not this integration.
+
+Combined source `b6a9839ce79ae157a4c221f100b74a9a664f8d0b` passed
+[unsigned hosted macOS Host build 41250675727](https://github.com/instinctual/plank/actions/runs/41250675727)
+on SDK27 with minimum26.7. All nine readiness scenarios passed (289 assertions),
+alongside 247 layout assertions, existing Host/transport regressions, 31 native
+Installer preflight assertions and final app permission checks. The policy job
+passed all 114 CI-policy and 16 package-catalog tests. Two portable Installer
+preflight checks and shell/whitespace checks also passed locally. Production
+readiness code matches the reviewed PR implementation with only our existing
+names retained; Client, Linux Host, protocol and dependency trees are unchanged.
+Original run metadata, full Host log and focused results are retained in
+`artifacts/qualification/macos-display-readiness-1.2.11/`.
+
+The tested implementation is integrated into main; PR33's current head is
+included in its history. Subsequent documentation updates do not change the
+tested source. Exact-source signing approvals were not broadened. No build
+remains active. This was an unsigned compile/regression gate, not a distributable
+PKG. Installed headless/physical and macOS26.7/27 acceptance remain pending.
+No Mac session was interrupted and no package was installed or released.
 
 ## Merged — Client connectivity and macOS display mirroring
 
@@ -52,8 +69,8 @@ mainline package was built, installed or published; published 1.2.05 is unchange
 **At that merge PR33 was incomplete.** Its original reviewed commit `696815c` was
 included, but GitHub reported head `712a4759783e5d8b9b637e48cf973b239bca8063` with two
 later commits: `cf31832` (virtual-display identity readiness) and `712a475`
-(correction of unaccepted physical-trial status). Leave the PR open until these
-additions are integrated. The section above now tracks their review and integration.
+(correction of unaccepted physical-trial status). The section above now records
+their completed review and integration.
 They are not part of either tested mirroring candidate. Exact-source signing
 approvals remain unchanged.
 
@@ -245,9 +262,9 @@ The separately pushed `macos-host-test` candidate is **1.2.08**, source
 `ba454f8713675e54e189e1d748ca00f94fbdffa4`: main at preparation, `ab92c12`, plus reviewed
 PR33 `696815c3bc33598f4401a21d95749c369d0f92a6`. It includes the native Installer
 requirements change. Client, Linux Host and dependency pins are unchanged.
-PR33's original reviewed commit is now in main through the renamed, default-off
-mirroring implementation. Its two later commits remain outside main; review
-and pending hardware tests are in
+PR33's reviewed commits are now in main through the renamed, default-off
+mirroring implementation and readiness follow-up. Review and pending hardware
+tests are in
 `docs/development/reviews/macos-single-display-pr33-review.md`.
 The candidate passed 98 portable policy tests and two Installer preflight tests.
 All 114 policy tests pass on automation main, including 16 new request tests.
@@ -274,9 +291,8 @@ Original manifests, policy results and request/build logs are retained under
 `artifacts/qualification/macos-host-test-1.2.08/`; download staging is removed.
 No build remains active. Next: Chris tests this exact signed candidate on 26.7,
 with the ordinary 27 regression gate also pending. The command does not authorize
-release publication or installation. PR33 remains open because of its later
-unreviewed commits; unfinished `native-builds` stays separate. Published 1.2.05
-is unchanged.
+release publication or installation. PR33's later commits are now integrated as
+recorded above; unfinished `native-builds` stays separate. Published 1.2.05 is unchanged.
 
 ## Merged — native macOS Installer requirements
 

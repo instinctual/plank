@@ -12,7 +12,8 @@ the operator authorized integration on October 31. `cf31832` adds virtual-displa
 identity readiness; `712a475` corrects the physical-trial status. The integrated
 `macos-display-readiness` branch retains the renamed setting and fixes the new
 fixture's use of the removed `singleDisplay` property. Combined-source hosted
-validation is pending; the exact-source signing approvals below are unchanged.
+validation passed and the implementation is integrated into main. Exact-source
+signing approvals below are unchanged.
 
 ## Follow-up readiness review
 
@@ -30,6 +31,15 @@ nine scenarios, including zero physical displays or dummy plugs: first connectio
 changed-resolution reconnect reusing the sole PLANK output, mirroring enabled
 and disabled, LoginWindow, cancellation and timeout. All Quartz/virtual-display
 and power calls are substituted; no installed acceptance is implied.
+
+Combined source `b6a9839ce79ae157a4c221f100b74a9a664f8d0b` passed
+[unsigned hosted build 41250675727](https://github.com/instinctual/plank/actions/runs/41250675727)
+on SDK27/minimum26.7: all nine readiness cases and 289 assertions, 247 layout
+assertions, ordinary Host/transport regressions, native Installer preflight and
+final app permission gates. The source comparison confirms only existing
+configuration/property/diagnostic renames differ from the reviewed production
+fix. No Client, Linux Host or transport implementation changed. This check
+produced no signed distribution package and changed no installed Mac.
 
 The corrected trial notes explicitly say that default-off behavior passed on
 26.7 but enabled mirroring failed before streaming. Physical layout restoration
