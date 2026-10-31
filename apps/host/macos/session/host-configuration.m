@@ -39,7 +39,7 @@ NSDictionary *PLANKMacParseHostConfiguration(NSData *data) {
         NSString *value = [[line substringFromIndex:separator.location + 1] stringByTrimmingCharactersInSet:spaces];
         key = [NSString stringWithFormat:@"%@.%@", section, key];
         if ((![key isEqual:@"general.host_name"] && ![key isEqual:@"network.port"] &&
-             ![key isEqual:@"network.ping_timeout"] && ![key isEqual:@"security.publish_session_user"]) || values[key]) return nil;
+             ![key isEqual:@"network.ping_timeout"] && ![key isEqual:@"general.single_display"] && ![key isEqual:@"security.publish_session_user"]) || values[key]) return nil;
         values[key] = value;
     }
     NSString *name = values[@"general.host_name"] ?: systemHostName();
@@ -54,9 +54,11 @@ NSDictionary *PLANKMacParseHostConfiguration(NSData *data) {
         !plank_macos_valid_ping_timeout((uint32_t)timeout.integerValue)) return nil;
     NSString *publishUser = values[@"security.publish_session_user"] ?: @"false";
     if (![publishUser isEqual:@"true"] && ![publishUser isEqual:@"false"]) return nil;
+    NSString *singleDisplay = values[@"general.single_display"] ?: @"false";
+    if (![singleDisplay isEqual:@"true"] && ![singleDisplay isEqual:@"false"]) return nil;
     // Listening on all interfaces is product policy, not a second configuration key.
     return @{@"Address": @"0.0.0.0", @"Name": name, @"Port": @(port.integerValue),
-             @"PingTimeoutMs": @(timeout.integerValue), @"PublishSessionUser": @([publishUser isEqual:@"true"])};
+             @"SingleDisplay": @([singleDisplay isEqual:@"true"]), @"PingTimeoutMs": @(timeout.integerValue), @"PublishSessionUser": @([publishUser isEqual:@"true"])};
 }
 
 NSString *PLANKMacReadWorkstationUUID(NSData *data) {

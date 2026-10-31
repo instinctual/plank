@@ -7,6 +7,7 @@
 #include "plank_transport_control.h"
 #include "plank_transport_input.h"
 #include <unistd.h>
+#include <stdatomic.h>
 #include <sys/resource.h>
 
 static unsigned checks;
@@ -202,6 +203,12 @@ int main(int argc, const char **argv) {
             PLANKMacPreviewSession *session = [[PLANKMacPreviewSession alloc] initWithSessions:auth token:token peer:peer
                 request:request topology:snapshot config:&cfg capture:source input:input microphoneGeneration:0];
             CHECK(session && session.state == PLANKMacPreviewPrepared);
+            __block atomic_uint stopNotifications = 0;
+            __weak PLANKMacPreviewSession *weakSession = session;
+            session.didStop = ^{
+                CHECK(weakSession.state == PLANKMacPreviewStopped && source.stops == 1);
+                atomic_fetch_add(&stopNotifications, 1);
+            };
             CHECK(![auth authorizeToken:token peer:peer identity:&identity]);
             NSString *transportToken = session.transportToken;
             CHECK(transportToken.length == 44 && ![transportToken isEqual:token]);
@@ -378,7 +385,7 @@ int main(int argc, const char **argv) {
             dispatch_semaphore_t stopped = dispatch_semaphore_create(0);
             [session stopWithCompletion:^{ dispatch_semaphore_signal(stopped); }];
             CHECK(dispatch_semaphore_wait(stopped, dispatch_time(DISPATCH_TIME_NOW, NSEC_PER_SEC)) == 0);
-            CHECK(source.stops == 1);
+            CHECK(source.stops == 1 && atomic_load(&stopNotifications) == 1);
             CHECK([session.stopReason isEqual:firstReason]);
             plank_transport_native_endpoint_destroy(client);
             if (agent) {

@@ -48,8 +48,15 @@ int main(void) { @autoreleasepool {
     assert([parse(@"# Defaults\n")[@"Port"] isEqual:@28989]);
     NSDictionary *config = parse(@"; comment\r\n[general]\r\nhost_name = Example Host\r\n[network]\r\nport = 30000\r\n");
     assert([config[@"Name"] isEqual:@"Example Host"] && [config[@"Port"] isEqual:@30000]);
-    assert([config[@"Address"] isEqual:@"0.0.0.0"] && config.count == 5);
+    assert([config[@"Address"] isEqual:@"0.0.0.0"] && config.count == 6);
     assert([config[@"PingTimeoutMs"] isEqual:@10000] && [config[@"PublishSessionUser"] isEqual:@NO]);
+    assert([config[@"SingleDisplay"] isEqual:@NO]);
+    assert([parse(@"[general]\nsingle_display=true")[@"SingleDisplay"] isEqual:@YES]);
+    assert([parse(@"[general]\nsingle_display=false")[@"SingleDisplay"] isEqual:@NO]);
+    for (NSString *invalid in @[@"yes", @"1", @"TRUE", @"", @"true #comment"])
+        assert(!parse([@"[general]\nsingle_display=" stringByAppendingString:invalid]));
+    assert(!parse(@"[general]\nsingle_display=true\nsingle_display=false"));
+    assert(!parse(@"[network]\nsingle_display=true"));
     for (NSString *timeout in @[@"200", @"201", @"10000", @"30000", @"120000"]) {
         NSDictionary *custom = parse([@"[network]\nping_timeout = " stringByAppendingString:timeout]);
         assert([custom[@"PingTimeoutMs"] unsignedIntValue] == (uint32_t)timeout.integerValue);

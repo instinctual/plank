@@ -4,6 +4,45 @@ Read `AGENTS.md` and the relevant build runbook first. Machine-specific access,
 credentials, captures and operational evidence belong in the external private
 notes, never in Git.
 
+## Review candidate — temporary single-display Mac sessions
+
+`codex/macos-single-display` starts from main
+`72f81329ecb818cddc46b35c0407be88ac4c66c4`. It adds the opt-in
+`[general] single_display=true` policy, default false. Authenticated desktop
+preparation snapshots the existing display identities, modes, origins and
+mirroring; the native Quartz transaction then makes PLANK the mirror master.
+Physical screens show the same workspace. Normal/lost-session teardown drains
+input and media before restoring the saved layout. Failed setup and a prepared
+connection abandoned for 60 seconds also restore. The idle virtual output
+mirrors the restored primary display instead of keeping a stranded workspace.
+
+The layout uses app-lifetime configuration, never permanent preferences or
+private screen-disable APIs. Scope changes cannot write into a replacement
+user's desktop. Failed restoration retires the graphical worker. A generation
+check prevents delayed teardown from undoing a newer connection. Display IDs
+must retain their UUID identity; hot-added outputs are not silently absorbed.
+LoginWindow and the default extended-display policy remain unchanged.
+
+Validation on the authorized macOS26.7 development machine: the full standard
+native Host build/component sequence passed with SDK27 and the exact retained
+transport archive. Focused layout coverage passes 247 checks; actual TLS/QUIC
+runtime coverage passes normal disconnect, failed preparation and the real
+60-second abandonment deadline. All 24 session teardown scenarios pass
+(767 checks), alongside existing authentication, takeover, cross-UID handoff,
+permission, input, media, sanitizers and packaging checks. An earlier
+negative-control listener-start timing failure is retained in private evidence;
+the unchanged three-second gate and full sequence passed on the next clean
+build. Four uninstalled app/extension/driver bundles independently pass arm64,
+minimum26.7, SDK27, Apple-system-link and ad-hoc signature/resource checks.
+
+This is a review candidate, not an installed or signed distribution package.
+The next step is the maintainer's normal protected signing workflow, followed
+by an explicitly disconnected installation opportunity. Physical mirroring,
+window/Spaces placement, reconnect, hotplug and crash restoration remain
+qualification gates. Existing installed apps, services, settings and sessions
+were not changed. Client, Linux Host, transport/dependency pins, authorization,
+input posting and signing policy are unchanged.
+
 ## Published — 1.2.05 and one macOS Host package
 
 The operator approved preparing the combined release and moving to one Mac

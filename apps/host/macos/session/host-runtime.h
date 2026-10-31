@@ -17,6 +17,9 @@
 // Restore only a previously owned virtual display, never an active stream or
 // a physical display. Configured before start; same bounded auth lane.
 @property(copy) BOOL (^recoverDisplay)(BOOL (^valid)(void));
+// Paired with prepareDisplay only for the opt-in single-display policy.
+// Called after drain or abandoned preparation, on a worker queue; bounded.
+@property(copy) BOOL (^releaseDisplay)(void);
 - (instancetype)initWithIdentity:(SecIdentityRef)identity
                        authority:(NSData *)authority
                      information:(PLANKMacServerInformation *)information

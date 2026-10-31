@@ -13,6 +13,15 @@ Administrator settings are installed as root-owned, mode0644 files in
   at startup, not reverse DNS or the signed-in account. Restart the Host after
   renaming the computer; an unusable OS hostname falls back to `PLANK`.
   The advertised name does not change the workstation UUID or TLS identity.
+  `[general] single_display` accepts `true`/`false`, default false. When enabled,
+  an authenticated desktop connection temporarily mirrors the existing screens
+  to the PLANK virtual display, creating one workspace. Physical screens show
+  the same desktop; this is not a privacy blackout. Disconnect restores the
+  saved physical display modes, arrangement and previous mirroring. The idle
+  PLANK output mirrors the restored primary screen so it cannot retain a
+  separate invisible workspace. LoginWindow is unaffected. This new mode
+  requires a matching signed Host candidate and physical qualification before
+  deployment; do not enable it in an older installed Host.
   `[network] port` sets its TCP/UDP port. Default port28989. The Host always
   listens on all IPv4 interfaces. Restart the Host roles or restart the Mac after
   changing Host configuration. Firewall changes remain administrator-managed.
