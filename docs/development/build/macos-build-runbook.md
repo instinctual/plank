@@ -27,7 +27,8 @@ the verified commit. Do not infer that a successful fetch means main is current.
 ## Click-through installer
 
 Use `scripts/package/build-macos-host-pkg.sh CLEAN_SOURCE NEW_OUTPUT TRANSPORT_ARCHIVE`
-on the dedicated Mac. Read `docs/development/plans/macos-installer.plan` for uncompleted live gates.
+through the GitHub-hosted signed build workflow. Read
+`docs/development/plans/macos-installer.plan` for uncompleted live gates.
 The destination Mac needs neither Python nor developer tools. The package owns
 the app payload at `/Applications/PLANK Host.app` and three system launchd
 entries. Bash pre/post-install scripts create administrator configuration,

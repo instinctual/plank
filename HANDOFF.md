@@ -4,44 +4,59 @@ Read `AGENTS.md` and the relevant build runbook first. Machine-specific access,
 credentials, captures and operational evidence belong in the external private
 notes, never in Git.
 
-## In progress — native macOS Installer requirements
+## Candidate ready — native macOS Installer requirements
 
-Branch `macos-installer-preflight` starts from main `72f8132`; the current
-candidate version is **1.2.07**. The operator requested replacing the deprecated
-external-JavaScript preflight with a non-deprecated method.
+Branch `macos-installer-preflight` starts from main `72f8132`; the signed
+**1.2.07** candidate was built from `ce2c2e4d63ad58aa0e622d085311309592942a06`.
+The operator requested replacing the deprecated external-JavaScript preflight
+with a non-deprecated method.
 
-The new implementation embeds a temporary native Installer Requirements pane
-in the same PKG, following Introduction. AppKit/InstallerPlugins provide the UI;
-Foundation runs the fixed read-only `fdesetup isactive` command. Continue requires
-confirmed FileVault off. Enabled/busy, failed verification and a five-second
-check timeout keep it disabled with an explanation and Check Again. Leaving
-stops the child; late callbacks cannot replace a newer check. No FileVault setting
-changes, permanent helper or additional installed service are introduced.
-The final preinstall guard still runs before service shutdown or state changes.
-The old external-script option, JavaScript and JavaScriptCore test harness are
-removed. Host runtime, Client, protocol and dependency sources are unchanged.
+The PKG now embeds a temporary native Installer Requirements pane after
+Introduction. Public AppKit/InstallerPlugins provide the UI; Foundation runs
+fixed read-only `fdesetup isactive`. Continue requires confirmed FileVault off.
+Enabled/busy, failed verification and a five-second timeout keep it disabled
+with an explanation and Check Again. Leaving cancels the child; late callbacks
+cannot replace a newer check. No FileVault setting, permanent helper or additional
+installed service is introduced. The final preinstall guard still runs before
+service shutdown or state changes. The external-script option, JavaScript and
+JavaScriptCore test harness are removed. Host runtime, Client, protocol and
+dependency sources remain unchanged.
 
-Portable page-order/no-JavaScript tests pass. Hosted gates must compile with
-`-Werror=deprecated-declarations`, exercise the actual pane lifecycle with harmless
-child processes, load the bundle, then check the signed bundle extracted from
-the finished PKG. The first hosted attempt compiled the native fixture without
-deprecation warnings, then stopped at an assertion that read Installer's Continue
-button without running Installer. The fixture now observes the production pane's
-enable/disable request while calling the framework setter, and separately checks
-the real `shouldExitPane` gate. Signing and actual Installer UI remain pending.
-Apple has acknowledged plug-in extraction/loading issues on 26.7/27 and suggested
-retesting 27.2 beta 4: https://developer.apple.com/forums/thread/842811 .
-Direct bundle loading does not replace opening the actual PKG in Installer.
-Do not bypass code-signing protections if the OS exhibits that bug.
+GitHub-hosted [signed build 41157320963](https://github.com/instinctual/plank/actions/runs/41157320963)
+passed. Native code compiled with deprecated-API diagnostics treated as errors;
+31 lifecycle assertions exercised checks, retries, timeout and cancellation with
+harmless fixture processes. Generated, signed and finished-PKG-extracted bundles
+loaded successfully. Package page-order/signature, ordinary Host/component,
+Developer ID, notarization, stapling and Gatekeeper gates passed. No deprecated
+external-script warning remained. The first attempt had a fixture-only failure:
+it tried reading Installer's Continue button outside Installer. The corrected
+fixture observes the production enable/disable request while calling the framework
+setter and separately checks the actual `shouldExitPane` gate.
+
+The downloaded original is hash-verified at
+`artifacts/packages/candidates/1.2.07-macos-installer-preflight-macos26.7/macos/plank-host_1.2.07-macos-installer-preflight-macos26.7_arm64.pkg`
+(7,021,244 bytes), SHA-256
+`caf55a7da1340c2b8378f811d863d54632d3fa5948edb230f2a4b84e07334fd4`.
+Original manifests and both build logs are retained in
+`artifacts/qualification/macos-installer-preflight-1.2.07/`; duplicate download
+staging is removed. Main/published 1.2.05 are unchanged. This branch is pushed,
+not merged or released. No build remains active.
+
+Next: open this exact PKG in Installer on a supported Mac and confirm the early
+Requirements page, its FileVault explanation and Check Again/Continue behavior.
+An actual Installer session has not been verified. Apple acknowledged plug-in
+extraction/loading issues on 26.7/27 and suggested retesting 27.2 beta 4:
+https://developer.apple.com/forums/thread/842811 . Direct bundle loading is not
+proof of Installer's own extraction path; do not bypass signing protections.
+Chris owns the 26.7 validation. No remote installation, FileVault change or
+session interruption was performed. Private deployment evidence stays outside Git.
 
 The superseded 1.2.06 external-script candidate remains preserved with its original
 source `cbc69b4da19cf84ecc6e45d387094417592b62dd` and successful signed
 [run 41155675552](https://github.com/instinctual/plank/actions/runs/41155675552).
 Its catalog is `artifacts/packages/candidates/1.2.06-macos-installer-preflight-macos26.7/`;
 reports are in `artifacts/qualification/macos-installer-preflight-1.2.06/`.
-It is not the non-deprecated implementation. Main/published 1.2.05 are unchanged.
-Deployment evidence and access details remain outside Git. No remote installation,
-FileVault change or session interruption was performed for this work.
+It is not the non-deprecated implementation.
 
 ## Published — 1.2.05 and one macOS Host package
 
