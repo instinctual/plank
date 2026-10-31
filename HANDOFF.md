@@ -14,7 +14,7 @@ for Ubuntu and macOS Client candidates. It is independent of the unmerged
 pin changes are intended. No main merge or release is requested.
 
 The operator approved an informational main-window Internet indicator: ordered
-ICMP probes of the configured public resolver addresses, stopping at the first reply, with
+IPv4-only ICMP probes of the configured public resolver addresses, stopping at the first reply, with
 one second per target and a 15-second repeat interval. Administrator policy
 controls enabled/targets/interval/timeout in `[network]` of `client.conf`.
 The monitor cannot change Host status, block login or influence recovery.

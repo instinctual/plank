@@ -30,8 +30,8 @@ internet_check_interval_seconds = 15
 internet_check_timeout_ms = 1000
 ```
 
-Use 1–8 numeric unicast IPv4 or IPv6 addresses, without interface scopes or DNS
-names. The interval accepts 5–3600 seconds and each timeout accepts 100–10000 ms.
+Use 1–8 numeric unicast IPv4 addresses. IPv6 addresses and DNS names are rejected.
+The interval accepts 5–3600 seconds and each timeout accepts 100–10000 ms.
 Invalid configuration does not silently send probes to the public defaults.
 Omitted keys use the defaults above. During installation or upgrade, both
 packages add missing connectivity keys and their comments under `[network]`.
@@ -56,7 +56,7 @@ configuration cannot specify a program or shell command.
 
 Component tests cover ordered fallback, timer deadlines, responsive UI,
 periodic recovery, cancellation, disabled/invalid policy, unavailable tools,
-no-route versus permission failures, and actual IPv4/IPv6 loopback pings on
+no-route versus permission failures, and actual IPv4 loopback pings on
 both supported build platforms. Hosted QML checks cover indicator text,
 visibility, sizing and screenshots. Installed UI/network acceptance remains
 separate from those build checks.
