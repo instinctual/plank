@@ -13,9 +13,17 @@ The shipped comments distinguish mirroring from disabling physical screens and
 from creating one virtual monitor per Client display. No compatibility alias
 for the pre-release `single_display` name is included.
 
-The 1.2.08 approved branch and signing-request registry remain unchanged; their
-validation below does not count as a build or hardware pass for 1.2.09. Current
-source, build evidence and remaining gates are recorded in `HANDOFF.md`.
+The 1.2.08 approved branch and signing-request registry remain unchanged.
+Current candidate source `4dbe000d71229d5d8b97ce9ec92e0f1014502386` passed
+[signed hosted build 41235998822](https://github.com/instinctual/plank/actions/runs/41235998822),
+including the renamed native parser, 247 synthetic layout assertions, actual
+TLS/QUIC disconnect/failure/abandoned-preparation tests and all 767 session
+assertions across 24 scenarios. Ordinary Host regressions and Installer,
+Developer ID, notarization, stapling and Gatekeeper checks passed. The original
+PKG and checksum were verified after download; exact artifact provenance is in
+`HANDOFF.md`. No installation or physical-display acceptance is implied.
+The source remains outside main pending those installed gates. No Mac session
+was interrupted to build or collect it.
 See [the investigation decision](../investigations/macos-display-mirroring.md).
 
 ## Original reviewed candidate

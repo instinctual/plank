@@ -4,7 +4,7 @@ Read `AGENTS.md` and the relevant build runbook first. Machine-specific access,
 credentials, captures and operational evidence belong in the external private
 notes, never in Git.
 
-## Active — macOS Host display mirroring candidate
+## Ready for physical testing — macOS Host display mirroring candidate
 
 The operator chose PR33's simpler mirroring approach over the separate
 independent-virtual-display investigation. `macos-display-mirroring` combines
@@ -27,9 +27,30 @@ Portable preparation passed 114 CI-policy tests, 16 package-catalog tests,
 two Installer preflight tests, shell syntax and whitespace checks. Reviewing
 the Host source against the exact PR head confirms only configuration/internal
 renaming, comments and the diagnostic text changed beyond that implementation.
-Next: run the native configuration and existing display/session regressions in
-one signed GitHub-hosted macOS Host build for 26.7+, then record the exact
-source and original artifact. Physical display mirroring, restoration on
+
+Candidate source `4dbe000d71229d5d8b97ce9ec92e0f1014502386` passed
+[signed hosted build 41235998822](https://github.com/instinctual/plank/actions/runs/41235998822)
+on macOS 27/SDK 27 with minimum 26.7. The native parser and configuration fixtures,
+247 synthetic Quartz layout assertions, actual TLS/QUIC display-release tests
+for disconnect/failed/60-second-abandoned preparation, and 767 session assertions
+across 24 scenarios passed. Ordinary Host/input/audio regressions, 31 native
+Installer preflight assertions, package checks, Developer ID signing,
+notarization, stapling, Gatekeeper and signing-material cleanup passed. Both
+Rust/Cargo dependency caches were reused; the run took about ten minutes.
+The exact branch alone was added to `macos-signing`; Chris's approved test
+branch, request registry and repository access remain unchanged.
+
+Original signed PKG, 7,030,516 bytes:
+`artifacts/packages/candidates/1.2.09-macos-display-mirroring-macos26.7/macos/plank-host_1.2.09-macos-display-mirroring-macos26.7_arm64.pkg`.
+SHA-256: `f4d90ba15cd936c9a2cca3cf3cf40cf0936584fcbd3226d9e0d524a4882d954a`.
+The downloaded original and local catalog manifests/checksums match.
+[GitHub artifact 13056375888](https://github.com/instinctual/plank/actions/runs/41235998822/artifacts/13056375888)
+contains the same installer. Build logs, original manifest and run metadata are
+retained under `artifacts/qualification/macos-display-mirroring-1.2.09/`;
+download staging is removed. No build remains active. Nothing was installed,
+merged to main or released. Terminal and the existing Mac session were untouched.
+
+Next: installed physical display mirroring, restoration on
 disconnect/crash, hotplug, login/logout and takeover remain installed gates
 before merging. Chris owns 26.7 validation; ordinary 27 qualification also
 remains required. Do not claim hosted fixtures as physical-display acceptance.
