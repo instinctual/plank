@@ -122,6 +122,14 @@ distribution JavaScript with simulated FileVault results through JavaScriptCore.
 The package build repeats this test against the finished PKG's Distribution;
 the test never runs `fdesetup` or changes disk encryption. A real Installer UI
 check is still needed to confirm the dialog presentation.
+The SDK 27 `productbuild` tool warns that `allow-external-scripts=true` is
+deprecated and can prevent installability/notarization in a future release.
+The current signed candidate passed notarization and Gatekeeper. Installer's
+documented system/target objects expose no direct FileVault-status property;
+the check uses the fixed read-only command, not private preference/registry
+heuristics. Retain the warning as a known limitation and requalify this check
+when changing the OS/toolchain; successful current packaging is not a guarantee
+of future support.
 For command-line signature requirements, `codesign -R` needs a leading `=` for
 inline requirement text; otherwise it treats the expression as a filename.
 After this validation-command error, recheck the already signed binary and

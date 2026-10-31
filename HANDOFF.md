@@ -4,7 +4,7 @@ Read `AGENTS.md` and the relevant build runbook first. Machine-specific access,
 credentials, captures and operational evidence belong in the external private
 notes, never in Git.
 
-## Candidate in progress — early macOS Installer FileVault check
+## Candidate ready — early macOS Installer FileVault check
 
 Branch `macos-installer-preflight` starts from main `72f8132` and uses package
 version **1.2.06**. A new Mac installation reached the existing preinstall
@@ -20,10 +20,28 @@ with improved command-line guidance. The welcome page also names the requirement
 No Host runtime, Client, protocol or dependency source is changed.
 
 Local tests pass: four JavaScriptCore requirements tests, 25 mocked lifecycle
-checks and eight package-permission tests. Two Apple package tests are unavailable
-on this Linux checkout. The hosted Mac build must execute the requirements tests
-again on Apple JavaScriptCore and on the finished PKG. Signed candidate packaging
-and actual early-dialog presentation remain pending. Published 1.2.05 is unchanged.
+checks and eight package-permission tests. Two Apple package tests were unavailable
+on this Linux checkout and subsequently passed on the Mac builder.
+Hosted [run 41155675552](https://github.com/instinctual/plank/actions/runs/41155675552)
+passed at source `cbc69b4da19cf84ecc6e45d387094417592b62dd`, using retained exact
+Rust/Cargo dependency caches. The initial requirements tests passed on Apple
+JavaScriptCore and again against the finished PKG. Signing, notarization,
+stapling, Gatekeeper, Host regressions and package permissions passed.
+
+The original candidate is hash-verified at
+`artifacts/packages/candidates/1.2.06-macos-installer-preflight-macos26.7/macos/plank-host_1.2.06-macos-installer-preflight-macos26.7_arm64.pkg`.
+SHA256: `c845eec6ef8aa8064373cef5269de0d93a2cea3c5c40b37a6a727f01c7dbe2e5`.
+Builder logs/manifests are retained under
+`artifacts/qualification/macos-installer-preflight-1.2.06/`.
+
+Known limitation: `productbuild` warns that `allow-external-scripts=true` is
+deprecated and may block installation/notarization on a future macOS release.
+The current SDK/OS accepted this signed candidate. Apple's documented Installer
+objects expose no direct FileVault status property; this candidate uses the fixed
+read-only command rather than inferring status from private registry/preferences.
+Do not suppress the warning or claim future-OS qualification. Actual early-dialog
+presentation remains pending. No deployment installation or FileVault change
+was performed. Published 1.2.05 and main are unchanged.
 
 ## Published — 1.2.05 and one macOS Host package
 
