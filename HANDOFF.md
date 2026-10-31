@@ -4,13 +4,15 @@ Read `AGENTS.md` and the relevant build runbook first. Machine-specific access,
 credentials, captures and operational evidence belong in the external private
 notes, never in Git.
 
-## Release preparation — 1.2.05 and one macOS Host package
+## Release draft ready — 1.2.05 and one macOS Host package
 
 The operator approved preparing the combined release and moving to one Mac
-Host package for 26.7 and newer. Root preparation branch is
-`macos-host-unified`; the Client changelog uses `release-1-2-05`. Both start
-from the merged display/click-pairing mainline below. Package version remains
-1.2.05; no mainline package at this version has been distributed.
+Host package for 26.7 and newer. Root `macos-host-unified` and Client
+`release-1-2-05` were pushed and fast-forwarded into main. Exact package source
+is root `a0dc5fae73d7e072d923b5fd499bdd8151313456`, with Client
+`aa4b16cfc945c1831a99bd96953d6e60f1aad8a1`. The Client change over the accepted
+display work is its changelog only. Linux Host and Kymux pins remain those
+listed below; unfinished `native-builds` work is excluded.
 
 The standard Host floor is now 26.7 in CI, build helpers, bundle templates and
 packaging. SDK 27, the macOS 27 hosted runner, dependency pins and native runtime
@@ -25,17 +27,53 @@ idle status, CUDA and macOS clicks.
 Local preparation passed all 98 CI-policy tests under a 26.7 workflow environment,
 16 catalog tests, five portable Host-target and five Client-target tests.
 Each target suite has one Apple-compiler test skipped on Linux. These results
-do not replace hosted builds or installed acceptance. Next: commit/push, merge
-the prepared source, build all four mainline packages through Actions, sign and
-notarize both Mac PKGs, verify/collect originals, and record exact results.
-Chris’s 26.7 test and installed 27 testing must use the identical new Host PKG.
-Publication remains pending those shared-package acceptance results; no release
-has been published and no live session was changed for this preparation.
+do not replace hosted builds or installed acceptance.
 
-## Current main — Client displays and macOS click pairing
+GitHub-hosted mainline builds at that exact source:
+
+| Package | Run | Result |
+| --- | --- | --- |
+| Linux Host RPM | [41147067115](https://github.com/instinctual/plank/actions/runs/41147067115) | Passed |
+| Ubuntu Client DEB | [41147072679](https://github.com/instinctual/plank/actions/runs/41147072679) | Passed |
+| Signed macOS Host PKG | [41147081014](https://github.com/instinctual/plank/actions/runs/41147081014) | Passed |
+| Signed macOS Client PKG | [41147086870](https://github.com/instinctual/plank/actions/runs/41147086870) | Passed |
+
+Both Mac packages passed Developer ID signing, notarization, stapling and
+Gatekeeper checks. The Host passed 2,775 Quartz/AppKit checks, 1,537 pen checks
+and 216 native-input checks on the macOS 27 runner, without posting OS input.
+The Ubuntu job passed component/sanitizer, compositor, launcher, upgrade and
+package checks, including two virtual Client displays. The Linux Host passed
+three 900-frame FEC loss trials with zero unrecovered source symbols, RPM
+ownership/dependency checks and input-lifecycle fixtures. Three real-kernel
+tablet cases were unavailable on the builder, not accepted as hardware passes.
+Dependency caches were reused in all four jobs.
+[Privacy](https://github.com/instinctual/plank/actions/runs/41147180348)
+passed at the same source. These are uninstalled build/fixture results.
+
+All four originals are hash-verified in `artifacts/packages/releases/1.2.05/`.
+The Mac Host is `macos/plank-host_1.2.05_arm64.pkg`, target `macos-26.7`, SHA256
+`cd13060f2c3fcd640f21030c5cc406a6be91e3b6cd8455228305dda6ad2905ad`.
+Original per-product manifests, run logs and Qt test evidence are retained in
+`artifacts/qualification/main-1.2.05/`. The catalog records package checks as
+passed and functional acceptance as not recorded; do not conflate those states.
+
+The [1.2.05 release draft](https://github.com/instinctual/plank/releases)
+targets the built root SHA and contains all four packages, a combined manifest
+and checksums using downloadable filenames. GitHub asset digests match the
+local originals. Release notes are in `docs/releases/1.2.05.md`. Later handoff
+commits do not change that exact package provenance.
+Next: Chris’s 26.7 test and installed 27 testing must use this identical new
+Host PKG; the older baseline candidate is not equivalent.
+The operator has the package path and Chris's artifact link for that testing.
+The operator will report test results later and authorized completing the
+preparation meanwhile. Publication remains pending shared-package acceptance.
+No package was remotely
+installed and no live session was changed for this preparation.
+
+## Merged baseline — Client displays and macOS click pairing
 
 The operator authorized merging `client-displays` and `macos-click-pairing`.
-Canonical root and Client now use `main`. Client main is
+Canonical root and Client were switched to `main`. The merged Client source was
 `9497bb0ccefe6830cfae21c7608d3f3a082a2bcc`; root includes both feature histories
 and retains package version **1.2.05**. The Client merge is a fast-forward to
 its already-tested source. Parent merge resolutions affect the handoff and
