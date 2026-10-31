@@ -228,6 +228,32 @@ Hosted builds qualify compilation, component checks, signing and packaging.
 Chris still owns installed macOS26.7 testing; the identical package needs the
 ordinary macOS27 regression checks before feature acceptance.
 
+### Proposed main protection — not enabled
+
+The October 31 discussion recommended protecting `main`, which currently has no
+branch protection or repository rulesets. This is a proposal awaiting operator
+authorization, not a description of enforced settings.
+
+- Block force pushes and branch deletion.
+- Require a PR before changes enter main, with appropriate automated checks.
+- Initially require no second-person approval; the ordinary authorized
+  commit/push/merge workflow can create and merge its PR after checks pass.
+- Retain a narrowly scoped administrator bypass through PRs for exceptional
+  recovery, with a visible record.
+
+Before enabling required checks, ensure they always report a result for their
+applicable PRs. Account for documentation-only changes, path filters and
+`[skip ci]`; a required skipped workflow can otherwise block merging indefinitely.
+Do not require all four package rebuilds for an unrelated documentation change.
+Choose exact check identities and validate the resulting merge workflow first.
+
+Protecting main also protects the normal change path for the trusted request
+controller and signing-approval registry. It does not replace source review or
+the exact-branch restrictions on the signing environment. The existing signed
+test command and automatic environment approval policy should remain intact.
+See [GitHub's rules](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-rulesets/available-rules-for-rulesets)
+and [PR-only bypass settings](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-rulesets/creating-rulesets-for-a-repository).
+
 ## Initial qualification
 
 The protected direct Host job passed signing, notarization, stapling, final

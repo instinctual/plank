@@ -4,6 +4,21 @@ Read `AGENTS.md` and the relevant build runbook first. Machine-specific access,
 credentials, captures and operational evidence belong in the external private
 notes, never in Git.
 
+## Discussed — protecting main, not yet enabled
+
+GitHub was checked on October 31: `main` is unprotected and the repository has
+no rulesets. The operator requested an explanation, not a settings change.
+Recommendation: block force pushes/deletion, require PRs and appropriate
+automated checks, initially without mandatory second-person approval. Preserve
+an administrator exception through PRs for exceptional recovery. Select required
+checks carefully so documentation edits do not require all package builds and
+skipped workflows cannot leave merges waiting indefinitely.
+The usual authorized commit/push/merge work can be handled through PRs without
+extra operator approval clicks. Chris's approved signed-build command remains
+independent. Details are in the proposed-main-protection section of
+`docs/development/build/github-builds.md`. No branch/signing permissions were
+changed during this discussion; wait for implementation authorization.
+
 ## Ready — approved contributor macOS Host test builds
 
 The operator authorized signed test requests for `cnoellert` without granting
@@ -17,7 +32,7 @@ select the existing protected signing workflow, minimum26.7 and cache reuse.
 See `docs/development/build/github-builds.md` for operation and retirement.
 
 The separately pushed `macos-host-test` candidate is **1.2.08**, source
-`ba454f8713675e54e189e1d748ca00f94fbdffa4`: current main `ab92c12` plus reviewed
+`ba454f8713675e54e189e1d748ca00f94fbdffa4`: main at preparation, `ab92c12`, plus reviewed
 PR33 `696815c3bc33598f4401a21d95749c369d0f92a6`. It includes the native Installer
 requirements change. Client, Linux Host and dependency pins are unchanged.
 PR33 remains outside main and retains its opt-in/default-off behavior. Review
