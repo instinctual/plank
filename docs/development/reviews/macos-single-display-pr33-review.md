@@ -1,4 +1,45 @@
-# PR33: temporary macOS single-display sessions
+# PR33: temporary macOS display mirroring
+
+## Integration status
+
+The operator authorized merging `macos-display-mirroring` into main on October
+31, alongside Client connectivity, at package version **1.2.10**. Installed
+physical-display and headless/default-off checks remain pending. No combined
+mainline package was built or published as part of that merge.
+
+PR33 now has two later commits beyond the reviewed `696815c`: `cf31832` adds
+virtual-display identity readiness and `712a475` corrects the physical-trial
+status. Its current head is `712a4759783e5d8b9b637e48cf973b239bca8063`. These
+additions remain unreviewed and unmerged; leave PR33 open. The exact-source
+signing approvals below do not authorize those newer commits.
+
+## Built mirroring candidate
+
+The operator chose the simpler mirroring implementation after comparing it
+with independent virtual displays and physical-output deactivation.
+`macos-display-mirroring` integrates the reviewed PR head below into main
+`d9e0ca5339f205c1f06bf6c811bb4b6eebb8812d`, with package version **1.2.09**.
+The public setting is now `[general] mirror_host_displays`; the internal
+configuration/property names follow it. It remains off by default. Session
+ownership, capture, rollback and restoration behavior are unchanged from PR33.
+The shipped comments distinguish mirroring from disabling physical screens and
+from creating one virtual monitor per Client display. No compatibility alias
+for the pre-release `single_display` name is included.
+
+The 1.2.08 approved branch and signing-request registry remain unchanged.
+Current candidate source `4dbe000d71229d5d8b97ce9ec92e0f1014502386` passed
+[signed hosted build 41235998822](https://github.com/instinctual/plank/actions/runs/41235998822),
+including the renamed native parser, 247 synthetic layout assertions, actual
+TLS/QUIC disconnect/failure/abandoned-preparation tests and all 767 session
+assertions across 24 scenarios. Ordinary Host regressions and Installer,
+Developer ID, notarization, stapling and Gatekeeper checks passed. The original
+PKG and checksum were verified after download; exact artifact provenance is in
+`HANDOFF.md`. No installation or physical-display acceptance is implied.
+The source is now integrated by the operator's explicit request; installed
+gates remain pending. No Mac session was interrupted to build or collect it.
+See [the investigation decision](../investigations/macos-display-mirroring.md).
+
+## Original reviewed candidate
 
 Reviewed [PLANK PR33](https://github.com/instinctual/plank/pull/33) at
 `696815c3bc33598f4401a21d95749c369d0f92a6`. The approved test candidate is
@@ -7,12 +48,12 @@ It combines that PR with main `ab92c128749d2db8b25d3b932510a865a7e624e2`, includ
 the native Installer requirements preflight. Only the handoff required a merge
 resolution. No dependency pin changed.
 
-## Recommendation
+## Original review recommendation
 
-Suitable for an isolated signed test candidate. Keep the PR outside main until
-physical display/session validation is reported. This is approval of the exact
-reviewed source for testing, not blanket approval of later commits or a claim
-that hosted fixtures prove real monitor behavior.
+The original review recommended an isolated signed candidate before mainline
+integration. The operator subsequently authorized merging the reviewed source;
+this does not approve later commits or establish physical display/session
+acceptance. Hosted fixtures do not prove real monitor behavior.
 
 ## Scope and review
 
@@ -64,7 +105,7 @@ results, nor establish physical monitor acceptance on either OS.
 Remaining installed tests on the same candidate PKG:
 
 - Verify the default extended-display behavior is unchanged on 26.7 and 27.
-- Enable single display; connect, disconnect and reconnect with physical
+- Enable display mirroring; connect, disconnect and reconnect with physical
   monitors present. Confirm the original modes, arrangement and mirroring return.
 - Exercise a preexisting mirrored layout, hotplug, failed setup and crash
   recovery. Verify window and Spaces placement rather than assuming mode

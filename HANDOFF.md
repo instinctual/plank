@@ -4,15 +4,44 @@ Read `AGENTS.md` and the relevant build runbook first. Machine-specific access,
 credentials, captures and operational evidence belong in the external private
 notes, never in Git.
 
-## Ready to test — Client Internet indicator
+## Merged — Client connectivity and macOS display mirroring
 
-Both `client-connectivity` branches are committed and pushed. The **1.2.10-client-connectivity**
-Ubuntu and signed macOS Client candidates were built from root
-`a8912517683e7a2abb8b1909cac69da751c74529` and Client
-`23cc988154ea62688c83aeac7ff15f21a2962d90`. The branch starts from main
-`d9e0ca5339f205c1f06bf6c811bb4b6eebb8812d`; it remains independent of the
-unmerged `macos-display-mirroring` 1.2.09 Host candidate. No main merge, release
-or installation was performed. Published 1.2.05 is unchanged.
+On October 31 the operator authorized integrating `client-connectivity` and
+`macos-display-mirroring` into main and retiring `macos-session-displays`.
+Client main is `23cc988154ea62688c83aeac7ff15f21a2962d90`. Parent main combines
+connectivity tip `7451e659a6be9988b85710c75bb79b6ad70b1a8c` with mirroring tip
+`39e7ca900e8b322cd1d996c5196228204f5c7819`; package version stays **1.2.10**.
+Only the version and handoff notes needed merge conflict resolution. Production
+source changes are the previously built candidates described below. No combined
+mainline package was built, installed or published; published 1.2.05 is unchanged.
+
+**PR33 is not fully merged.** Its original reviewed commit `696815c` is included,
+but GitHub now reports head `712a4759783e5d8b9b637e48cf973b239bca8063` with two
+later commits: `cf31832` (virtual-display identity readiness) and `712a475`
+(correction of unaccepted physical-trial status). Leave the PR open until these
+additions are reviewed. They are not part of either tested mirroring candidate
+or this integration. Exact-source signing approvals remain unchanged.
+
+Mirroring defaults to false; installed physical-display and headless regression
+gates remain pending. The Client indicator is IPv4-only and informational;
+installed policy-upgrade/UI/network checks remain pending. No live sessions
+were interrupted. The abandoned independent-display probes are not merged;
+findings remain in `docs/development/investigations/macos-display-mirroring.md`.
+Unfinished `native-builds` and unrelated branches remain separate.
+
+Merge validation passed: 114 CI-policy tests, 16 package-catalog tests, six
+Client policy-upgrade tests, two macOS Installer preflight tests, changed Host
+shell syntax checks and whitespace checks. Source comparisons confirmed the
+merged Host runtime and Client source/packaging match their respective tested
+candidates. Native macOS and installed-session tests were not rerun for this merge.
+
+## Client connectivity — candidate evidence and pending acceptance
+
+The **1.2.10-client-connectivity** Ubuntu and signed macOS Client candidates
+were built from root `a8912517683e7a2abb8b1909cac69da751c74529` and Client
+`23cc988154ea62688c83aeac7ff15f21a2962d90`. Both branches are now integrated
+into their respective `main` branches. The following evidence describes those
+original candidate packages, not a combined mainline rebuild.
 
 The operator approved an informational main-window Internet indicator, with
 **IPv4 only**: ordered ICMP probes of configured public resolver addresses,
@@ -74,10 +103,9 @@ Unchanged dependency provenance: Client common-C
 `3f7a9d8618978287186e5d6ce0eaa067743cb06c`. Other recursive pins remain those
 recorded in the baseline provenance below and in the retained Ubuntu source report.
 
-The candidate download links have been delivered to the operator; no installed
-test result or merge approval has been received. Resume on `client-connectivity`.
-Documentation-only commits after the recorded build source do not change the
-candidate binaries or require another build.
+The candidate download links have been delivered to the operator. Integration
+was authorized on October 31; installed test results are still pending. Resume
+on `main`. The original candidate artifacts retain their build-source identities.
 
 Next: manually install the exact Client candidate, confirm customized policy
 retains its values and gains missing comments/keys, then verify the indicator
@@ -85,6 +113,71 @@ through a real network interruption/recovery. Confirm a normal session still
 connects independently of the ping result. Installed UI/network and macOS15/27
 session acceptance remain pending; hosted compilation does not establish them.
 No live session was interrupted or test machine accessed for this work.
+
+## macOS display mirroring — candidate evidence and pending acceptance
+
+The operator chose PR33's simpler mirroring approach over the separate
+independent-virtual-display investigation. `macos-display-mirroring` combines
+main `d9e0ca5339f205c1f06bf6c811bb4b6eebb8812d` with reviewed PR33 head
+`696815c3bc33598f4401a21d95749c369d0f92a6`, preserving the author's history.
+The configuration and internal names now say `mirror_host_displays`,
+`MirrorHostDisplays` and `mirrorHostDisplays`. The setting remains under
+`[general]`, defaults to false, and uses the same session/Quartz lifecycle.
+Physical screens show the PLANK workspace; they are not disabled. The existing
+single virtual workspace and capture path remain. The Host candidate itself
+changed no Client, Linux Host, transport or dependency pins. Its historical
+package version is **1.2.09**; combined main is **1.2.10**.
+
+This branch is separate from Chris's approved `macos-host-test` source and its
+signed 1.2.08 artifact below. Those approvals and the exact-source registry are
+unchanged. The pre-release `single_display` key is not retained as an alias;
+testers who enabled it must replace it with `mirror_host_displays`. Released
+Host configurations without the new key keep their existing behavior.
+
+Portable preparation passed 114 CI-policy tests, 16 package-catalog tests,
+two Installer preflight tests, shell syntax and whitespace checks. Reviewing
+the Host source against the exact PR head confirms only configuration/internal
+renaming, comments and the diagnostic text changed beyond that implementation.
+
+Candidate source `4dbe000d71229d5d8b97ce9ec92e0f1014502386` passed
+[signed hosted build 41235998822](https://github.com/instinctual/plank/actions/runs/41235998822)
+on macOS 27/SDK 27 with minimum 26.7. The native parser and configuration fixtures,
+247 synthetic Quartz layout assertions, actual TLS/QUIC display-release tests
+for disconnect/failed/60-second-abandoned preparation, and 767 session assertions
+across 24 scenarios passed. Ordinary Host/input/audio regressions, 31 native
+Installer preflight assertions, package checks, Developer ID signing,
+notarization, stapling, Gatekeeper and signing-material cleanup passed. Both
+Rust/Cargo dependency caches were reused; the run took about ten minutes.
+The exact branch alone was added to `macos-signing`; Chris's approved test
+branch, request registry and repository access remain unchanged.
+
+Original signed PKG, 7,030,516 bytes:
+`artifacts/packages/candidates/1.2.09-macos-display-mirroring-macos26.7/macos/plank-host_1.2.09-macos-display-mirroring-macos26.7_arm64.pkg`.
+SHA-256: `f4d90ba15cd936c9a2cca3cf3cf40cf0936584fcbd3226d9e0d524a4882d954a`.
+The downloaded original and local catalog manifests/checksums match.
+[GitHub artifact 13056375888](https://github.com/instinctual/plank/actions/runs/41235998822/artifacts/13056375888)
+contains the same installer. Build logs, original manifest and run metadata are
+retained under `artifacts/qualification/macos-display-mirroring-1.2.09/`;
+download staging is removed. No build remains active. The operator authorized
+integration into main on October 31. No new package, release or installation
+was performed for the merge. Terminal and the existing Mac session were untouched.
+
+Next: installed physical display mirroring, restoration on disconnect/crash,
+hotplug, login/logout and takeover remain qualification gates. Also check
+headless/default-off session behavior because preparation/release code is shared.
+Chris owns 26.7 validation; ordinary 27 qualification also remains required.
+The authorized merge does not convert hosted fixtures into installed acceptance.
+
+The operator retired the independent-display approach and authorized deleting
+local and remote `macos-session-displays` (former tip
+`7bfbb1665a4e8318780b825a4b2e827ebf4c03c4`). Its findings are preserved in the
+investigation document below; its temporary probes are not product code. The
+currently authorized Mac has no physical display. Keep Terminal and the existing
+user/Host session alive;
+do not log out, reboot, terminate WindowServer or restart the Host for testing.
+Private deployment notes record the authorization and restored machine state.
+See `docs/development/investigations/macos-display-mirroring.md` for the decision
+and the bounds of the earlier evidence.
 
 ## Discussed — protecting main, not yet enabled
 
@@ -117,7 +210,8 @@ The separately pushed `macos-host-test` candidate is **1.2.08**, source
 `ba454f8713675e54e189e1d748ca00f94fbdffa4`: main at preparation, `ab92c12`, plus reviewed
 PR33 `696815c3bc33598f4401a21d95749c369d0f92a6`. It includes the native Installer
 requirements change. Client, Linux Host and dependency pins are unchanged.
-PR33 remains outside main and retains its opt-in/default-off behavior. Review
+PR33's original reviewed commit is now in main through the renamed, default-off
+mirroring implementation. Its two later commits remain outside main; review
 and pending hardware tests are in
 `docs/development/reviews/macos-single-display-pr33-review.md`.
 The candidate passed 98 portable policy tests and two Installer preflight tests.
@@ -145,8 +239,9 @@ Original manifests, policy results and request/build logs are retained under
 `artifacts/qualification/macos-host-test-1.2.08/`; download staging is removed.
 No build remains active. Next: Chris tests this exact signed candidate on 26.7,
 with the ordinary 27 regression gate also pending. The command does not authorize
-release publication or installation. PR33 remains draft/unmerged and unfinished
-`native-builds` stays separate. Published 1.2.05 is unchanged.
+release publication or installation. PR33 remains open because of its later
+unreviewed commits; unfinished `native-builds` stays separate. Published 1.2.05
+is unchanged.
 
 ## Merged — native macOS Installer requirements
 

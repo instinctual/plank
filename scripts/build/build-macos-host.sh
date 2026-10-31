@@ -58,6 +58,7 @@ xcrun clang -mmacosx-version-min="$MACOSX_DEPLOYMENT_TARGET" -fobjc-arc -Wall -W
     -Iapps/host/macos/session tests/auth/macos-machine-identity.m \
     -framework Foundation -framework Security -o "$output/machine-identity-test"
 "$output/machine-identity-test"
+bash "$source_root/scripts/test/build-macos-display-layout.sh" "$source_root" "$output/display-layout-tests"
 bash "$source_root/scripts/test/build-macos-display-recovery.sh" "$source_root" "$output/display-recovery-tests"
 bash "$source_root/scripts/test/build-macos-input.sh" "$source_root" "$output/input-tests" "$archive"
 bash "$source_root/scripts/test/build-macos-preview.sh" "$source_root" "$output/preview-tests" "$archive" --synthetic-only
@@ -149,14 +150,14 @@ common=("${PLANK_FILE_FLAGS[@]}" -mmacosx-version-min="$MACOSX_DEPLOYMENT_TARGET
     -Iapps/host/macos/auth -Iapps/host/macos/control -Iapps/host/macos/media -Iapps/host/macos/input
     -Iapps/host/macos/session -Iprotocol/plank-transport/include
     -framework Foundation -framework Security -framework SystemConfiguration -framework CoreFoundation
-    -framework CoreGraphics -framework AppKit -framework Network -framework CoreMedia
+    -framework ColorSync -framework CoreGraphics -framework AppKit -framework Network -framework CoreMedia
     -framework CoreVideo -framework ScreenCaptureKit -framework VideoToolbox -framework AudioToolbox -framework CoreAudio
     -framework Carbon -framework ApplicationServices -framework OpenDirectory -framework IOKit -framework SystemExtensions
     -Wl,-fatal_warnings -Wl,-sectcreate,__CGPreLoginApp,__cgpreloginapp,/dev/null)
 sources=(apps/host/macos/auth/authentication-session.m apps/host/macos/auth/graphical-authority.m
     apps/host/macos/auth/account-verifier.m apps/host/macos/auth/account-channel.m
     apps/host/macos/control/http-request.m apps/host/macos/control/server-information.m
-    apps/host/macos/control/fixed-capture.m apps/host/macos/control/desktop-display.m apps/host/macos/control/https-auth-server.m
+    apps/host/macos/control/fixed-capture.m apps/host/macos/control/desktop-display.m apps/host/macos/control/display-layout.m apps/host/macos/control/https-auth-server.m
     apps/host/macos/media/native-video.m apps/host/macos/media/preview-session.m apps/host/macos/media/clipboard-sync.m apps/host/macos/media/screen-capture.m apps/host/macos/audio-device/output-route.m
     apps/host/macos/media/native-audio.m apps/host/macos/media/opus-encoder.m apps/host/macos/media/audio-tap.m
     apps/host/macos/media/camera-session.m apps/host/macos/camera-device/camera-producer.m apps/host/macos/camera-device/camera-signing.m

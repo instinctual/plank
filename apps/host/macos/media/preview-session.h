@@ -53,6 +53,8 @@ typedef NS_ENUM(unsigned, PLANKMacPreviewState) {
 @property(readonly, copy) NSString *sessionID;
 // Secret for the authenticated HTTPS launch reply only; never log/persist.
 @property(atomic, readonly, copy) NSString *transportToken;
+// Set before start. Called once on the session queue after all media/input drain.
+@property(copy) void (^didStop)(void);
 - (void)start;
 - (BOOL)mayBeTakenOverWithToken:(NSString *)token peer:(NSData *)peer;
 - (BOOL)reserveTakeoverWithToken:(NSString *)token peer:(NSData *)peer;
