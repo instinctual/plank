@@ -111,14 +111,19 @@ edit its runtime strings solely to remove public upstream diagnostics.
 
 ## Classify failures correctly
 
-The macOS Host requires FileVault off for access after restart. Its distribution
-runs an initial read-only requirements check and presents the reason and Settings
-location before installation begins. A failed or declined check is reported
-separately. The preinstall guard remains for CLI installs and changed state,
+The macOS Host requires FileVault off for access after restart. A native Installer
+Requirements page runs a bounded read-only check and presents the reason and
+Settings location before installation begins. A failed check is reported
+separately. Continue requires a confirmed off result; Check Again repeats the
+check. The preinstall guard remains for CLI installs and changed state,
 before any service shutdown or state initialization. Earlier packages checked
 only in preinstall, so Installer could show a generic failure; inspect Installer
 Log for the FileVault message rather than treating it as a signing/build defect.
 Do not disable encryption automatically to work around this requirement.
+The 1.2.06 candidate's deprecated external-JavaScript hook was replaced by this
+temporary signed Installer pane. It is never installed as a service or helper.
+Verify actual Installer loading as described in the macOS build runbook; a
+bundle-load fixture alone does not cover Apple's Installer extraction path.
 
 macOS Finder's prohibited icon / "damaged or incomplete" can be inaccessible
 bundle metadata, not a corrupt binary or rejected notarization. Host 1.0.103

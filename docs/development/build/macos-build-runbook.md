@@ -33,7 +33,9 @@ the app payload at `/Applications/PLANK Host.app` and three system launchd
 entries. Bash pre/post-install scripts create administrator configuration,
 private identity and administrator-readable system logs. Private state is not a
 payload and survives uninstall.
-There is no compiled installer helper or persistent installation service.
+The PKG contains a signed native Installer Requirements pane, loaded only for
+the installation wizard. It is not installed with the product and introduces
+no persistent helper or installation service.
 Prepare/validate persistent state and logs in preinstall, before worker shutdown.
 The .82 real install found root-owned logs changed to directory0744/files0644;
 the postinstall-only strict mode check stopped after replacing the app. The
@@ -77,12 +79,13 @@ Do not generate a separate uninstall PKG. `macos_pkg_gate=pass` does not prove i
 permission continuity, reboot or streaming acceptance. No `installer -pkg`
 invocation is part of the build. Do not publish a rejected/pending artifact.
 
-The normal graphical workflow is to open the Host PKG and allow Installer's
-initial requirements check. It runs the read-only `fdesetup isactive` command
-before installation starts. FileVault enabled or busy produces a named dialog
-explaining the remote-access requirement and where to turn FileVault off.
-A declined or failed check produces a separate verification message; it does
-not count as FileVault being off. No FileVault setting is changed automatically.
+The normal graphical workflow is to open the Host PKG. A native Requirements
+page follows Introduction and runs read-only `fdesetup isactive` through
+Foundation's process API. Continue stays disabled while checking, when FileVault
+is enabled/busy, or when verification fails. The page explains the remote-access
+requirement, points to Settings and offers Check Again. The check has a five-second
+deadline and stops its child when the page closes. Late results from retired
+checks cannot enable Continue. No FileVault setting is changed automatically.
 The preinstall script rechecks before modifying state or stopping services,
 including command-line installations and changes since the initial check.
 After installation, open PLANK Host in Applications for privacy setup.
@@ -117,19 +120,20 @@ tests mocked launchd lifecycle without privileges; `--filesystem` additionally
 requires root and creates/removes an isolated fixture under
 `/Library/Application Support`, without touching product services or files.
 These are developer qualification commands, not operator instructions.
-`python3 tests/packaging/test-macos-installer-preflight.py` executes the actual
-distribution JavaScript with simulated FileVault results through JavaScriptCore.
-The package build repeats this test against the finished PKG's Distribution;
-the test never runs `fdesetup` or changes disk encryption. A real Installer UI
-check is still needed to confirm the dialog presentation.
-The SDK 27 `productbuild` tool warns that `allow-external-scripts=true` is
-deprecated and can prevent installability/notarization in a future release.
-The current signed candidate passed notarization and Gatekeeper. Installer's
-documented system/target objects expose no direct FileVault-status property;
-the check uses the fixed read-only command, not private preference/registry
-heuristics. Retain the warning as a known limitation and requalify this check
-when changing the OS/toolchain; successful current packaging is not a guarantee
-of future support.
+`python3 tests/packaging/test-macos-installer-preflight.py` checks page order and
+rejects the deprecated external-script option. The Mac build compiles the pane
+with deprecated-API diagnostics treated as errors, exercises its actual lifecycle
+against harmless child processes, and loads the generated bundle without opening
+Installer or executing FileVault commands. Finished-PKG checks verify the embedded
+page order, signature and loadability. The pane uses public AppKit/Foundation and
+InstallerPlugins interfaces; no distribution JavaScript or private registry status
+heuristic remains. The native bundle is signed before productbuild/notarization.
+
+Actual Installer presentation remains a separate gate. Apple has acknowledged
+[plug-in loading failures](https://developer.apple.com/forums/thread/842811) in
+26.7/27 and suggested retesting 27.2 beta 4. Direct bundle loading does not prove
+Installer's own extraction/loading path works. Test the identical signed PKG's
+Requirements page on supported systems; do not disable signing checks as a workaround.
 For command-line signature requirements, `codesign -R` needs a leading `=` for
 inline requirement text; otherwise it treats the expression as a filename.
 After this validation-command error, recheck the already signed binary and

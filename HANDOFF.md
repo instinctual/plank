@@ -4,44 +4,40 @@ Read `AGENTS.md` and the relevant build runbook first. Machine-specific access,
 credentials, captures and operational evidence belong in the external private
 notes, never in Git.
 
-## Candidate ready — early macOS Installer FileVault check
+## In progress — native macOS Installer requirements
 
-Branch `macos-installer-preflight` starts from main `72f8132` and uses package
-version **1.2.06**. A new Mac installation reached the existing preinstall
-FileVault guard and produced Installer's generic failure. The operator requested
-a clear check at the beginning of installation. Machine details and evidence
-remain in external private notes; no deployment settings were changed.
+Branch `macos-installer-preflight` starts from main `72f8132`; the current
+candidate version is **1.2.07**. The operator requested replacing the deprecated
+external-JavaScript preflight with a non-deprecated method.
 
-The distribution now runs read-only `fdesetup isactive` in its initial
-requirements check. FileVault on/busy produces a specific explanation and
-Settings location. An unavailable or declined check has a separate message.
-The final preinstall guard remains ahead of service shutdown/state changes,
-with improved command-line guidance. The welcome page also names the requirement.
-No Host runtime, Client, protocol or dependency source is changed.
+The new implementation embeds a temporary native Installer Requirements pane
+in the same PKG, following Introduction. AppKit/InstallerPlugins provide the UI;
+Foundation runs the fixed read-only `fdesetup isactive` command. Continue requires
+confirmed FileVault off. Enabled/busy, failed verification and a five-second
+check timeout keep it disabled with an explanation and Check Again. Leaving
+stops the child; late callbacks cannot replace a newer check. No FileVault setting
+changes, permanent helper or additional installed service are introduced.
+The final preinstall guard still runs before service shutdown or state changes.
+The old external-script option, JavaScript and JavaScriptCore test harness are
+removed. Host runtime, Client, protocol and dependency sources are unchanged.
 
-Local tests pass: four JavaScriptCore requirements tests, 25 mocked lifecycle
-checks and eight package-permission tests. Two Apple package tests were unavailable
-on this Linux checkout and subsequently passed on the Mac builder.
-Hosted [run 41155675552](https://github.com/instinctual/plank/actions/runs/41155675552)
-passed at source `cbc69b4da19cf84ecc6e45d387094417592b62dd`, using retained exact
-Rust/Cargo dependency caches. The initial requirements tests passed on Apple
-JavaScriptCore and again against the finished PKG. Signing, notarization,
-stapling, Gatekeeper, Host regressions and package permissions passed.
+Portable page-order/no-JavaScript tests pass. Hosted gates must compile with
+`-Werror=deprecated-declarations`, exercise the actual pane lifecycle with harmless
+child processes, load the bundle, then check the signed bundle extracted from
+the finished PKG. Compilation, signing and actual Installer UI remain pending.
+Apple has acknowledged plug-in extraction/loading issues on 26.7/27 and suggested
+retesting 27.2 beta 4: https://developer.apple.com/forums/thread/842811 .
+Direct bundle loading does not replace opening the actual PKG in Installer.
+Do not bypass code-signing protections if the OS exhibits that bug.
 
-The original candidate is hash-verified at
-`artifacts/packages/candidates/1.2.06-macos-installer-preflight-macos26.7/macos/plank-host_1.2.06-macos-installer-preflight-macos26.7_arm64.pkg`.
-SHA256: `c845eec6ef8aa8064373cef5269de0d93a2cea3c5c40b37a6a727f01c7dbe2e5`.
-Builder logs/manifests are retained under
-`artifacts/qualification/macos-installer-preflight-1.2.06/`.
-
-Known limitation: `productbuild` warns that `allow-external-scripts=true` is
-deprecated and may block installation/notarization on a future macOS release.
-The current SDK/OS accepted this signed candidate. Apple's documented Installer
-objects expose no direct FileVault status property; this candidate uses the fixed
-read-only command rather than inferring status from private registry/preferences.
-Do not suppress the warning or claim future-OS qualification. Actual early-dialog
-presentation remains pending. No deployment installation or FileVault change
-was performed. Published 1.2.05 and main are unchanged.
+The superseded 1.2.06 external-script candidate remains preserved with its original
+source `cbc69b4da19cf84ecc6e45d387094417592b62dd` and successful signed
+[run 41155675552](https://github.com/instinctual/plank/actions/runs/41155675552).
+Its catalog is `artifacts/packages/candidates/1.2.06-macos-installer-preflight-macos26.7/`;
+reports are in `artifacts/qualification/macos-installer-preflight-1.2.06/`.
+It is not the non-deprecated implementation. Main/published 1.2.05 are unchanged.
+Deployment evidence and access details remain outside Git. No remote installation,
+FileVault change or session interruption was performed for this work.
 
 ## Published — 1.2.05 and one macOS Host package
 

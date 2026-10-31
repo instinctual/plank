@@ -3,7 +3,7 @@ set -euo pipefail
 source "$(/usr/bin/dirname "$0")/pkg-common.sh"
 preflight "${3:-}"
 # Recheck before changing files or stopping services, including CLI installs
-# and FileVault changes since the distribution's initial requirements check.
+# and FileVault changes since the native Requirements page checked it.
 [[ $(/usr/bin/fdesetup status) = 'FileVault is Off.' ]] || fail 'FileVault must be off before installing PLANK Host. Open System Settings > Privacy & Security > FileVault, turn it off, wait for it to finish, then reopen this installer.'
 # Discover unsafe state/log paths before stopping a working Host or replacing
 # its app. Repeating this in postinstall is intentional and idempotent.
