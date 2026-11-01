@@ -2,12 +2,16 @@
 #import "fixed-capture.h"
 #include <math.h>
 #include <stdatomic.h>
+#include <time.h>
 
 // One process-lifetime observer; no object pointer can outlive its owner and
-// no polling thread or per-frame WindowServer query is introduced. The low
-// bit denotes reconfiguration in progress; other bits identify each event.
+// no object-specific callback or polling thread is needed. The low bit denotes
+// reconfiguration in progress; other bits identify each event.
 static atomic_uint_fast64_t displayRevision = 0;
 static BOOL displayObservationAvailable;
+// Notifications invalidate immediately. A bounded refresh also catches a
+// missing notification; reads never extend the lifetime of cached geometry.
+static const uint64_t snapshotLifetimeNs = 20 * NSEC_PER_MSEC;
 static void displayChanged(CGDirectDisplayID display, CGDisplayChangeSummaryFlags flags, void *context) {
     (void)display; (void)context;
     uint64_t previous = atomic_load(&displayRevision);
@@ -49,12 +53,16 @@ NSDictionary *PLANKMacFixedCaptureDescription(NSString *generation, NSString *id
 
 @implementation PLANKMacFixedCapture {
     NSDictionary *_previous;
+    NSDictionary *_cached;
+    uint64_t _cachedRevision, _cachedAt;
+    CGDirectDisplayID _selectedDisplay;
+    NSString *_encodingMode;
     NSString *_generation;
     NSString *_unavailableReason;
 }
 - (NSDictionary *)unavailable:(NSString *)reason {
     if (![_unavailableReason isEqual:reason]) NSLog(@"PLANK capture geometry unavailable: %@", reason);
-    _unavailableReason = reason; _previous = nil; _generation = nil;
+    _unavailableReason = reason; _previous = nil; _generation = nil; _cached = nil;
     return nil;
 }
 - (instancetype)init {
@@ -67,12 +75,35 @@ NSDictionary *PLANKMacFixedCaptureDescription(NSString *generation, NSString *id
     if (self) _encodingMode = @"hevc-10-420-videotoolbox";
     return self;
 }
+- (CGDirectDisplayID)selectedDisplay { @synchronized(self) { return _selectedDisplay; } }
+- (void)setSelectedDisplay:(CGDirectDisplayID)display {
+    @synchronized(self) {
+        if (_selectedDisplay == display) return;
+        _selectedDisplay = display; _cached = nil; _previous = nil; _generation = nil;
+    }
+}
+- (NSString *)encodingMode { @synchronized(self) { return _encodingMode; } }
+- (void)setEncodingMode:(NSString *)mode {
+    @synchronized(self) {
+        if ([_encodingMode isEqual:mode]) return;
+        _encodingMode = [mode copy]; _cached = nil; _previous = nil; _generation = nil;
+    }
+}
 - (NSDictionary *)snapshot {
     @synchronized(self) {
         uint64_t revision = atomic_load(&displayRevision);
         if (revision & 1) return [self unavailable:@"display reconfiguration in progress"];
-        CGDirectDisplayID selection = self.selectedDisplay;
-        NSString *encodingMode = self.encodingMode;
+        uint64_t now = clock_gettime_nsec_np(CLOCK_MONOTONIC);
+        if (_cached && revision == _cachedRevision && now >= _cachedAt &&
+            now - _cachedAt < snapshotLifetimeNs) {
+            // The observer is independent of this lock. Reject a change that
+            // arrived while checking the cache, just as after a full read.
+            if (revision != atomic_load(&displayRevision))
+                return [self unavailable:@"display changed during snapshot"];
+            return _cached;
+        }
+        CGDirectDisplayID selection = _selectedDisplay;
+        NSString *encodingMode = _encodingMode;
         if (!PLANKMacEncodingProfile(encodingMode)) return [self unavailable:@"unsupported encoding mode"];
         CGDirectDisplayID display = selection ?: CGMainDisplayID();
         if (!display || !CGDisplayIsActive(display)) return [self unavailable:@"selected display is inactive"];
@@ -104,6 +135,7 @@ NSDictionary *PLANKMacFixedCaptureDescription(NSString *generation, NSString *id
         NSDictionary *description = PLANKMacFixedCaptureDescription(_generation, identifier, width, height, bounds, encodingMode);
         if (!description) return [self unavailable:@"unsupported pixel or desktop bounds"];
         _unavailableReason = nil;
+        _cached = description; _cachedRevision = revision; _cachedAt = now;
         return description;
     }
 }

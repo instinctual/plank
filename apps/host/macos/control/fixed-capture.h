@@ -8,6 +8,10 @@
 // Construction fails if display-change observation cannot be installed.
 // Every observed reconfiguration changes generation, including change-back.
 // The eventual stream owner must compare this generation and stop on change.
+// Stable geometry is cached for at most 20 ms; notifications and property
+// changes invalidate immediately. Expiry performs the complete stable double
+// read, including detection of unnotified changes. Account authority is never
+// cached here and must still be checked at each media/input boundary.
 @interface PLANKMacFixedCapture : NSObject
 // Zero describes the current main display. Nonzero describes only the selected
 // owned display, never silently falling back to a different screen.
