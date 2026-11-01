@@ -102,7 +102,7 @@ class DependencyCacheTests(unittest.TestCase):
 
     def test_bootstrap_executes_every_independent_recipe(self):
         source = (ROOT / 'scripts/ci/bootstrap.sh').read_text()
-        for name in ('rust', 'cargo', 'boost', 'host-ffmpeg', 'client-ffmpeg', 'client-sdl', 'macos-libraries', 'qt'):
+        for name in ('rust', 'cargo', 'boost', 'host-ffmpeg', 'client-ffmpeg', 'macos-libraries', 'qt'):
             self.assertIn(f'bash "$dependency_scripts/{name}.sh"', source)
         # Pin/build flags belong in the recipe hashed for the affected cache,
         # not an orchestration script shared by unrelated dependencies.

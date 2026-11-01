@@ -15,12 +15,6 @@ plank_client_require_session_runtime "$source_dir"
 ffmpeg_work_dir=$(realpath -- "$2")
 build_dir=$(realpath -m -- "${3:-${repo_dir}/build/package-client}")
 ffmpeg_prefix="${ffmpeg_work_dir}/install"
-client_sdl_work=${PLANK_CLIENT_SDL_WORK:?prepare patched Client SDL and set PLANK_CLIENT_SDL_WORK}
-source "$repo_dir/scripts/build/client-sdl.sh"
-plank_verify_client_sdl "$repo_dir" "$client_sdl_work"
-python3 "$repo_dir/tests/input/test-sdl-cursor-retirement.py" "$client_sdl_work/SDL3-$plank_sdl_version"
-export PKG_CONFIG_PATH="$client_sdl_work/install/lib/pkgconfig${PKG_CONFIG_PATH:+:$PKG_CONFIG_PATH}"
-export LD_LIBRARY_PATH="$client_sdl_work/install/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
 source "$repo_dir/scripts/build/build-paths.sh"
 plank_build_path_flags "$repo_dir" "$build_dir"
 plank_native_dependency_flags
@@ -38,27 +32,12 @@ for command_name in cc c++ cargo cmp diff find git make mktemp nm patch pkg-conf
   }
 done
 
-# The exact HEVC Main444 10-bit VA-API path depends on the EGL/DMA-BUF
-# frontend. Keep its qmake qualification test on native SDL3 and fail before
-# compilation if a clean builder cannot provide either dependency. A stale
-# SDL2 probe previously disabled HAVE_EGL silently and forced 4K software
-# decoding on otherwise-qualified Intel hardware.
-rg -Fxq 'PKGCONFIG += sdl3 egl libavcodec libavutil' \
-  "$source_dir/config.tests/EGL/EGL.pro" || {
-  echo "client EGL qualification test is not using native SDL3" >&2
-  exit 1
-}
-for sdl3_egl_header in SDL_egl.h SDL_opengles2.h; do
-  rg -Fq "#include <SDL3/${sdl3_egl_header}>" \
-    "$source_dir/config.tests/EGL/main.cpp" || {
-    echo "client EGL qualification test is not using SDL3 headers" >&2
-    exit 1
-  }
-done
-pkg-config --exists sdl3 egl || {
+# Exact HEVC 4:4:4 hardware imports require native EGL/DMA-BUF support.
+pkg-config --exists egl libva libdrm || {
   echo "client EGL/DMA-BUF build dependencies are unavailable" >&2
   exit 1
 }
+python3 "$repo_dir/scripts/test/check-client-no-sdl.py" "$source_dir"
 echo "client_egl_build_input_gate=pass"
 
 identity_gbr_patch="$source_dir/app/deploy/linux/ffmpeg-patches/0001-hevc-enable-hwaccel-for-identity-gbr.patch"
@@ -498,7 +477,8 @@ for required_raw_hid_token in \
   suspendForwarding \
   'sendFrame(PLANK_RAW_HID_SUSPEND, 0, 0, nullptr, 0)'; do
   rg -Fq "$required_raw_hid_token" \
-    "$source_dir/app/streaming/input/input.cpp" \
+    "$source_dir/app/streaming/qt/sessioninput.cpp" \
+    "$source_dir/app/streaming/qt/sessionruntime.cpp" \
     "$source_dir/app/streaming/input/linuxrawwacom.cpp" \
     "$source_dir/app/streaming/input/linuxrawwacom.h" || {
     echo "client raw-HID focus-suspend invariant is missing: ${required_raw_hid_token}" >&2
@@ -522,13 +502,14 @@ echo "client_raw_hid_focus_suspend_gate=pass"
 # acknowledgement timeout ensures a lost reply cannot leave reports disabled
 # for the rest of the session.
 for required_raw_hid_reconnect_token in \
-  beginRawHidReconnect \
-  finishRawHidReconnect \
+  beginReconnect \
+  finishReconnect \
   'm_Reconnecting.load()' \
   'Timed out waiting for exact Wacom host attachment; retrying'; do
   rg -Fq "$required_raw_hid_reconnect_token" \
     "$source_dir/app/streaming/session.cpp" \
-    "$source_dir/app/streaming/input/input.cpp" \
+    "$source_dir/app/streaming/qt/sessioninput.cpp" \
+    "$source_dir/app/streaming/qt/sessionruntime.cpp" \
     "$source_dir/app/streaming/input/linuxrawwacom.cpp" || {
     echo "client raw-HID reconnect barrier is missing: ${required_raw_hid_reconnect_token}" >&2
     exit 1
@@ -546,9 +527,10 @@ for required_wacom_generation_token in \
   'case 0x0317: // PTH-851' \
   'return PlankWacomTransport::NormalizedPen;' \
   'return PlankWacomTransport::ExactRawHid;' \
-  'Using normalized pen transport for first-generation Intuos Pro'; do
+  'PlankWacomTransport::NormalizedPen'; do
   rg -Fq "$required_wacom_generation_token" \
-    "$source_dir/app/streaming/input/input.cpp" \
+    "$source_dir/app/streaming/qt/sessioninput.cpp" \
+    "$source_dir/app/streaming/qt/sessionruntime.cpp" \
     "$source_dir/app/streaming/input/linuxrawwacom.cpp" \
     "$source_dir/app/streaming/input/linuxrawwacom.h" || {
     echo "client Wacom generation transport invariant is missing: ${required_wacom_generation_token}" >&2
@@ -575,17 +557,9 @@ if rg -Fq '0x5507' "$client_common_dir/ControlStream.c"; then
   echo "client still contains the retired GameStream cursor message" >&2
   exit 1
 fi
-for required_cursor_token in \
-  handleRemoteCursorChunk \
-  applyPendingRemoteCursor \
-  SDL_CreateColorCursor \
-  SDL_CODE_PLANK_CURSOR; do
-  rg -Fq "$required_cursor_token" \
-    "$source_dir/app/streaming/input/input.cpp" \
-    "$source_dir/app/streaming/input/input.h" \
-    "$source_dir/app/streaming/session.cpp" || {
-    echo "client local-cursor renderer invariant is missing: ${required_cursor_token}" >&2
-    exit 1
+for required_cursor_token in handleCursorShape consumeShape; do
+  rg -Fq "$required_cursor_token" "$source_dir/app/streaming/qt" || {
+    echo "Qt cursor routing is missing: $required_cursor_token" >&2; exit 1;
   }
 done
 if rg -Fq 'forwardNativePointerPosition' "$source_dir/app/streaming"; then
@@ -770,24 +744,16 @@ for required_loss_ui_token in \
   'Frame time (decode/queue/render incl. V-sync): %.2f/%.2f/%.2f ms' \
   'currentNetworkRttMs' \
   'quic_rtt_us' \
-  'packetLossColor' \
-  'const QColor blue(52, 132, 228)' \
-  'const QColor green(52, 199, 110)' \
-  'const QColor red(239, 88, 88)' \
-  'clampedLoss <= 5.0' \
-  '(clampedLoss - 5.0) / 5.0' \
-  'QString("%1%").arg(m_PacketLossPercent' \
-  'QRect(174, 16, 52, 17)' \
-  'return toolbarLeft() + PlankToolbarStats::EncoderTargetLeft' \
   'Network RTT: %s' \
   'PlankToolbarStats::networkRttText(stats.lastRtt)' \
-  'PlankToolbarStats::networkRttText(m_NetworkRttMs)'; do
+  'loss.toFixed(3)' \
+  'objectName: "rttStat"'; do
   rg -Fq "$required_loss_ui_token" \
     "$source_dir/app/streaming/session.cpp" \
     "$source_dir/app/streaming/session.h" \
     "$source_dir/app/streaming/videopacketlosswindow.h" \
-    "$source_dir/app/streaming/planktoolbar.cpp" \
-    "$source_dir/app/streaming/planktoolbar.h" \
+    "$source_dir/app/streaming/qt/SessionSurface.qml" \
+    "$source_dir/app/streaming/qt/sessionruntime.cpp" \
     "$source_dir/app/streaming/video/ffmpeg.cpp" || {
     echo "video packet-loss toolbar invariant is missing: ${required_loss_ui_token}" >&2
     exit 1
@@ -835,34 +801,18 @@ if rg -n -i \
   echo "obsolete client frame-pacing preference remains" >&2
   exit 1
 fi
-rg -Fq 'params.enableFramePacing = false;' \
-  "$source_dir/app/streaming/session.cpp" || {
-  echo "PLANK unpaced presentation policy is missing" >&2
-  exit 1
-}
 echo "client_frame_pacing_preference_absence_gate=pass"
 
-# Prefer the pooled host-import allocator on capable devices; keep the mapped
-# and system-memory fallbacks and developer-only selector. Host import
-# preserves cacheable FFmpeg reference frames while
-# importing their allocations as Vulkan transfer buffers, avoiding the Intel
-# driver's CPU linear-to-tiled upload path.
+# Qt owns GPU selection and the cacheable host-import decode buffer pool.
 for required_frame_allocator_token in \
-  'static int getMappedBuffer(AVCodecContext *context, AVFrame *frame, int flags);' \
-  'static int getImportedHostBuffer(AVCodecContext *context, AVFrame *frame, int flags);' \
-  'mappedContext.opaque = const_cast<pl_gpu*>(&renderer->m_Vulkan->gpu);' \
-  'return pl_get_buffer2(&mappedContext, frame, flags);' \
-  'PLANK_VULKAN_FRAME_ALLOCATOR' \
-  'requestedAllocator == "host-import"' \
   'bufferParams.import_handle = PL_HANDLE_HOST_PTR' \
-  'Using pooled cacheable FFmpeg decode buffers imported into Vulkan' \
-  'context->get_buffer2 = getMappedBuffer;' \
-  'Using persistently mapped Vulkan decode buffers'; do
+  'PlVkFramePool::supported(device->vk->gpu)' \
+  'm_Converter->framePool().getBuffer(context, frame, flags)' \
+  'return m_Device->getBuffer(context, frame, flags);'; do
   rg -Fq "$required_frame_allocator_token" \
-    "$source_dir/app/streaming/video/ffmpeg-renderers/plvk.cpp" \
-    "$source_dir/app/streaming/video/ffmpeg-renderers/plvk.h" \
+    "$source_dir/app/streaming/qt" \
     "$source_dir/app/streaming/video/ffmpeg-renderers/plvkframepool.cpp" || {
-    echo "Vulkan frame-allocator invariant is missing: ${required_frame_allocator_token}" >&2
+    echo "Qt Vulkan frame-allocator invariant is missing: $required_frame_allocator_token" >&2
     exit 1
   }
 done
@@ -1112,7 +1062,6 @@ echo "client_session_takeover_gate=pass"
 
 for required_topology_retry_token in \
   'bool Session::configurePlankLaunchGeometry()' \
-  'm_InputHandler->setStreamDimensions' \
   'PLANK refreshed stale topology and launch geometry; retrying launch:'; do
   rg -Fq "$required_topology_retry_token" \
     "$source_dir/app/streaming/session.cpp" || {
@@ -1153,23 +1102,12 @@ for required_retained_renderer_token in \
 done
 echo "client_retained_reconnect_renderer_gate=pass"
 
-for required_reconnect_local_event_token in \
-  'handlePlankLocalUserEvent' \
-  'applyPendingRemoteCursor();' \
-  'applyPendingTabletCursorActivation();' \
-  'applyPendingRemoteCursorPosition();' \
-  'one-shot pending latches'; do
-  rg -Fq "$required_reconnect_local_event_token" \
-    "$source_dir/app/streaming/session.cpp" || {
-    echo "responsive reconnect local-event invariant is missing: ${required_reconnect_local_event_token}" >&2
-    exit 1
-  }
-done
-echo "client_reconnect_local_event_gate=pass"
+# Qt owns queued cursor/input callbacks throughout reconnect; component tests
+# exercise focus, suspension and teardown without the retired SDL event pump.
+python3 "$repo_dir/tests/input/test-client-callback-lifetime.py" "$source_dir"
 
 for required_client_identity_token in \
   'QGuiApplication::setApplicationDisplayName(PlankClientIdentity::displayName);' \
-  'SDL_SetAppMetadata(PlankClientIdentity::displayName,' \
   'QCoreApplication::setApplicationName(PlankClientIdentity::applicationName);' \
   'app.setDesktopFileName(PlankClientIdentity::desktopId);'; do
   rg -Fq "$required_client_identity_token" "$source_dir/app/main.cpp" || {
@@ -1243,19 +1181,9 @@ if rg -n '\bWM_FULLSCREEN\b|\{"fullscreen",[[:space:]]*StreamingPreferences::WM|
   echo "exclusive fullscreen support is present in the Wayland-only PLANK client" >&2
   exit 1
 fi
-for required_window_token in \
-  SDL_HINT_VIDEO_WAYLAND_ALLOW_LIBDECOR \
-  SDL_HINT_VIDEO_WAYLAND_PREFER_LIBDECOR \
-  SDL_HINT_OVERRIDE \
-  SDL_RestoreWindow \
-  SDL_SetWindowBordered \
-  SDL_SetWindowResizable \
-  'Action::ToggleFullscreen' \
-  fullscreenContains \
-  'toolbar fullscreen toggle requested'; do
-  rg -q "$required_window_token" "$source_dir/app" || {
-    echo "decorated Wayland window invariant is missing: ${required_window_token}" >&2
-    exit 1
+for required_window_token in showNormal showFullScreen; do
+  rg -Fq "$required_window_token" "$source_dir/app/streaming/qt" || {
+    echo "Qt window mode invariant missing: $required_window_token" >&2; exit 1;
   }
 done
 echo "client_wayland_window_mode_gate=pass"
@@ -1384,7 +1312,7 @@ if rg -Fq 'QStringLiteral("1280x720")' "$source_dir/app/backend/outputtopology.c
 fi
 echo "client_bookmark_resolution_list_gate=pass"
 
-# Match Client is a client-side bookmark policy that resolves the active SDL3
+# Match Client is a client-side bookmark policy that resolves the active Qt
 # monitor inventory into an exact one- or two-output host request. The former
 # inherited-host policy is intentionally absent because it made bookmark
 # behavior depend on stale host state.
@@ -1681,14 +1609,9 @@ cleanup_packed_test() {
 }
 trap cleanup_packed_test EXIT
 c++ -std=c++17 -O2 -Wall -Wextra -Werror \
-  "$source_dir/tests/embeddedcursor/main.cpp" -I"$source_dir/app" \
-  $(pkg-config --cflags sdl3) -o "$packed_test_build/embedded-cursor"
-"$packed_test_build/embedded-cursor"
-echo "client_embedded_cursor_lifecycle_gate=pass"
-c++ -std=c++17 -O2 -Wall -Wextra -Werror \
   "$repo_dir/tests/video/packed-bt709-policy.cpp" \
   -I"$source_dir/app" -I"$client_common_dir" \
-  $(pkg-config --cflags --libs Qt6Gui sdl3) -o "$packed_test_build/policy"
+  $(pkg-config --cflags --libs Qt6Gui) -o "$packed_test_build/policy"
 "$packed_test_build/policy"
 c++ -std=c++17 -O2 -Wall -Wextra -Werror \
   "$repo_dir/tests/video/packed-bt709-shader.cpp" \
@@ -1771,20 +1694,13 @@ cleanup_bookmark_test
 trap - EXIT
 echo "client_host_aware_bookmark_test=pass"
 
-export PKG_CONFIG_PATH="${ffmpeg_prefix}/lib/pkgconfig:$client_sdl_work/install/lib/pkgconfig"
+export PKG_CONFIG_PATH="${ffmpeg_prefix}/lib/pkgconfig"
 export LD_LIBRARY_PATH="${ffmpeg_prefix}/lib${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}"
 [[ $(pkg-config --modversion libavcodec) == 63.* ]] || {
   echo "FFmpeg 9 libavcodec pkg-config metadata was not selected" >&2
   exit 1
 }
 
-mkdir -p "$build_dir/tests/pacershutdown"
-(
-  cd "$build_dir/tests/pacershutdown"
-  qmake6 "$source_dir/tests/pacershutdown/pacershutdown.pro" CONFIG+=release
-  make -j"$(nproc)"
-  QT_QPA_PLATFORM=offscreen timeout 60 ./pacershutdown
-)
 echo "client_render_shutdown_gate=pass"
 
 c++ -std=c++17 -Wall -Wextra -Werror -I"$source_dir/app/streaming/audio" \

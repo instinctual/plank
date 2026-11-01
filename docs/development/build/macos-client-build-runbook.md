@@ -70,7 +70,7 @@ bash "$PLANK_SOURCE_ROOT/scripts/build/bootstrap-macos-client-deps.sh"
 ```
 
 The script pins archive SHA256 values and prepares private OpenSSL3.5.9,
-Opus1.6.1, SDL3.4.18, SDL_ttf3.2.2, FreeType2.15.0 and FFmpeg9.0.2. It applies
+Opus1.6.1 and FFmpeg9.0.2. It applies
 the same required HEVC identity-GBR patch as Linux (also enables VideoToolbox
 format probing). A missing Client checkout is an input-preflight error, not a
 compiler failure. `ffmpeg` as the optional argument resumes only that stage.
@@ -80,10 +80,10 @@ signed and closure-checked before any package is offered to a user.
 
 Main uses the shared Qt session controls with a native Metal window and Cocoa
 fullscreen Spaces. Match Client requests the usable logical/backing area below
-a display's camera inset; non-notched displays retain the complete area. SDL
-remains a build input for CoreAudio playback and retained comparison code; do
-not remove it or restore the retired SDL fullscreen dependency patch. The Qt
-session port requires no dependency upgrade or private Qt API. See
+a display's camera inset; non-notched displays retain the complete area. Native
+Core Audio supplies playback and microphone capture. SDL and its comparison
+frontend are removed; do not restore them or the retired fullscreen patch.
+Qt session presentation requires no private Qt API. See
 [the Qt session plan](../plans/macos-qt-session.plan) for its installed acceptance
 gates and remaining parity work.
 
@@ -159,7 +159,7 @@ and macOS27 as described in the Qt session plan.
   without opening devices. CLI autoconnect and toolbar toggles query grants
   only. See [permission timing](../../user/permissions.md), including denial,
   hot-plug and OS-controlled exceptions. `macos-microphone-permission.mm` uses
-  fake AVFoundation authorization and `client-microphone` uses SDL dummy input;
+  fake AVFoundation authorization and `client-microphone` uses synthetic native input;
   neither native build test may request real TCC consent or open hardware.
 - macOS system shortcuts require the Client's Accessibility authorization when
   Capture system keyboard shortcuts is enabled. The session-scoped public
@@ -177,7 +177,7 @@ and macOS27 as described in the Qt session plan.
   The authorized tap stays registered during ordinary focus loss; background
   keys pass through untouched before their key data is inspected. Returning to
   the stream re-arms forwarding on the first key using native AppKit focus and
-  active-Space state, not cached SDL focus or a later timer tick. Do not disable
+  active-Space state, not cached window focus or a later timer tick. Do not disable
   the tap on every focus loss: that prevents first-key recovery after a Spaces
   swipe. Explicit capture release and revoked permission still block re-arm;
   teardown/revocation remove the tap. Test repeated three-finger swipe-away and
@@ -188,18 +188,15 @@ and macOS27 as described in the Qt session plan.
   bounded queue without installing an OS tap or requesting permission. It is
   not proof of live TCC, Command-Tab/Command-Space or Spaces behavior: test the
   signed app with permission granted/denied/revoked and focus changes on both
-  supported Mac OS versions. Do not enable SDL's optional private CGS grab
-  path or restore global hotkey suppression as an alternative.
-- In the retained SDL comparison frontend, toolbar flashing during a stats
-  update can be a Metal overlay publication race. Build/upload the replacement
-  before exchanging the texture under the overlay lock, and preserve the old
-  image on allocation failure.
-  Do not publish an empty slot except for an explicit hide. Every Mac Client
-  build runs `macmetaloverlay` against the production updater with deterministic
-  allocation/upload stalls, allocation failure, concurrent readers and lifetime
-  checks. The test uses Metal resource doubles without a desktop/GPU. Main's
-  toolbar is rendered in the Qt scene; use the Qt Metal/window fixtures and
-  live-session observation to investigate that path.
+  supported Mac OS versions. Do not use private CGS grabs or global hotkey
+  suppression as an alternative.
+- `macnativeaudio` calls the production Core Audio playback callback with fixed
+  PCM buffers and exercises atomic playback snapshots. It never opens an audio
+  device. Microphone fixtures cover negotiated mute, timestamped/untimed capture,
+  input-device replacement and permission denial. These are not audible A/V
+  sync or live device-switch acceptance; keep the installed listening soak.
+- The toolbar is rendered in the Qt scene. Use the Qt Metal/window fixtures and
+  live-session observation for texture flashing or window-lifecycle defects.
 - Command-Q reaching the Host and also quitting PLANK is duplicate native
   shortcut handling, not a transport disconnect. The Qt input adapter reuses
   the native shortcut guard and Accessibility capture queue. The guard prevents
@@ -208,8 +205,7 @@ and macOS27 as described in the Qt session plan.
   do not restore the removed Qt-to-SDL Quit bridge or treat sessionFinished
   as completed cleanup.
   The `macquitshortcut` native suite runs in every Mac Client build and checks
-  native menu dispatch, capture transitions, restoration and the retained SDL
-  input path. The macqtsession fixture checks Qt's Mac key mapping, while the
+  native menu dispatch, capture transitions, restoration and Qt queued dispatch. The macqtsession fixture checks Qt's Mac key mapping, while the
   macapplication suite checks real Qt application lifetimes separately.
   Shortcut tests use a harmless Quit target rather than an active remote app;
   a live captured Command-Q/menu/Dock test is still required for acceptance.
@@ -222,9 +218,6 @@ and macOS27 as described in the Qt session plan.
   `arm_acle.h` explicitly. Standalone Qt test projects must receive the same
   `QMAKE_CXXFLAGS+=-include arm_acle.h` input; they do not inherit app.pro's
   flags. The hosted outputtopology gate covers this. Do not change Linux flags.
-- FreeType's optional zlib pkgconfig dependency is not available from the SDK:
-  bootstrap disables that optional compression backend; SDL_ttf fonts work
-  through retained FreeType. Do not introduce a moving Homebrew dependency.
 - macdeployqt includes unrelated server-database plugins referencing
   `/opt/homebrew` or `/usr/local`: package only SQLite in the SQL plugin
   directory. Every retained Mach-O still passes the external dependency gate.

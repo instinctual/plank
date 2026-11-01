@@ -23,20 +23,13 @@ class MacKeyboardCapture(unittest.TestCase):
         self.assertIn("CFMachPortInvalidate", source)
 
     def test_focused_session_routes_once(self):
-        source = (CLIENT / "app/streaming/input/input.cpp").read_text()
-        self.assertIn("auto ownsKeyboard = [this] { return isSystemKeyCaptureActive(); };", source)
-        self.assertIn("MacWindow::hasKeyboardFocus(output.window)", source)
-        ownership = source.split("bool SdlInputHandler::isSystemKeyCaptureActive()", 1)[1].split(
-            "void SdlInputHandler::setCaptureActive", 1)[0]
-        native = ownership.split("#ifdef Q_OS_MACOS", 1)[1].split("#else", 1)[0]
-        self.assertIn("MacWindow::hasKeyboardFocus(output.window)", native)
-        self.assertNotIn("SDL_WINDOW_INPUT_FOCUS", native)
-        self.assertIn("nativeWindow.isOnActiveSpace", (CLIENT / "app/streaming/macwindow.mm").read_text())
-        self.assertIn("m_MacKeyboardCapture.reset();", source)
-        keyboard = (CLIENT / "app/streaming/input/keyboard.cpp").read_text()
-        self.assertIn("suppressSdlKeyEvent() || !hasMacStreamKeyboardFocus()", keyboard)
-        session = (CLIENT / "app/streaming/session.cpp").read_text()
-        self.assertIn("m_InputHandler->handleCapturedMacKeyEvent(event)", session)
+        source = (CLIENT / "app/streaming/qt/sessioninput.cpp").read_text()
+        self.assertIn("m_Enabled && m_SystemKeys", source)
+        self.assertIn("m_NativeFocus ? m_NativeFocus() : m_Focused", source)
+        self.assertIn("m_MacKeys.reset();", source)
+        self.assertIn("m_MacKeys->dispatchPending", source)
+        self.assertIn("Qt::QueuedConnection", source)
+        self.assertIn("capturesNativeKeys()", source)
 
     def test_permission_requested_before_session_not_by_capture(self):
         main = (CLIENT / "app/main.cpp").read_text()
@@ -74,12 +67,12 @@ class MacKeyboardCapture(unittest.TestCase):
         self.assertIn('#include "../../app/streaming/mackeyboardcapture.mm"', test)
         for name in ("commandTabAndSpaceAreQueuedOnce", "focusLossDiscardsQueuedKeys",
                      "deniedOrRevokedPermissionReleasesCapture", "disabledTapReleasesBeforeRecovery",
-                     "overflowFailsOpenAndReleasesRemoteKeys", "sdlQueueFailureDoesNotSwallowInput",
+                     "overflowFailsOpenAndReleasesRemoteKeys", "qtDispatcherFailureReleasesCapture",
                      "repeatedSpaceReturnsCaptureFirstShortcutWithoutRefresh",
                      "focusReturnDoesNotOverrideExplicitCaptureRelease",
                      "focusReturnDoesNotOverridePermissionRevocation",
                      "backgroundKeysNeverEnterTheRemoteQueue",
-                     "gesturesAndHardwareControlsStayLocal", "teardownFlushesOnlyItsOwnEvents"):
+                     "gesturesAndHardwareControlsStayLocal", "teardownReleasesPendingKeys"):
             self.assertIn(name, test)
 
 

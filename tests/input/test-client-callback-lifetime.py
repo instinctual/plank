@@ -3,13 +3,14 @@
 from pathlib import Path
 import sys
 
-source = (Path(sys.argv[1]) / 'app/streaming/session.cpp').read_text()
+app = Path(sys.argv[1]) / 'app/streaming'
+source = (app / 'session.cpp').read_text()
 for name in ('clRawHidControl', 'clCursorChunk', 'clCursorPosition'):
     body = source.split('void Session::' + name + '(', 1)[1].split('\nvoid Session::', 1)[0]
-    assert 'm_InputCallbacks.invoke(' in body, name
+    assert 'm_QtInputCallbacks.invoke(' in body, name
     assert 'm_InputHandler' not in body, name
-cleanup = source.split('void Session::destroyInputHandler()', 1)[1].split('\nvoid Session::', 1)[0]
-assert cleanup.index('m_InputCallbacks.clear()') < cleanup.index('delete m_InputHandler')
-assert source.count('delete m_InputHandler') == 1
-assert source.index('m_InputCallbacks.publish(m_InputHandler)') < source.index('AsyncConnectionStartThread asyncConnThread(this)')
+runtime = (app / 'qt/sessionruntime.cpp').read_text()
+assert 's.m_QtInputCallbacks.publish(m_Input.get())' in runtime
+clear = runtime.index('s.m_QtInputCallbacks.clear()')
+assert clear < runtime.index('m_Input->shutdown()', clear)
 print('client_input_callback_lifetime_wiring=pass')

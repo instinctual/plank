@@ -54,7 +54,8 @@ class QtSessionWorkflowTests(unittest.TestCase):
         self.assertIn('qtsystemproperties.pro', runner)
         self.assertIn('QT_SCALE_FACTOR=1.25 ./qtsystemproperties', runner)
         smoke = (ROOT / 'scripts/test/smoke-qt-client.py').read_text()
-        self.assertIn("environment['SDL_VIDEO_DRIVER'] = 'plank-disabled-for-qt-test'", smoke)
+        self.assertIn("['ldd', str(args.binary.resolve())]", smoke)
+        self.assertIn("Client still depends on SDL", smoke)
         self.assertIn('process.terminate()', smoke)
         self.assertIn('process.wait(timeout=20)', smoke)
 
@@ -122,7 +123,10 @@ class QtSessionWorkflowTests(unittest.TestCase):
             source = Path(directory)
             inputs = source / 'app/streaming/input'
             inputs.mkdir(parents=True)
-            (inputs / 'input.cpp').write_text('LI_FF_RAW_HID_FOCUS_SUSPEND\n')
+            qt = source / 'app/streaming/qt'
+            qt.mkdir(parents=True)
+            (qt / 'sessioninput.cpp').write_text('LI_FF_RAW_HID_FOCUS_SUSPEND\n')
+            (qt / 'sessionruntime.cpp').write_text('')
             (inputs / 'linuxrawwacom.h').write_text('void suspendForwarding();\n')
             adapter = inputs / 'linuxrawwacom.cpp'
             valid = ('void LinuxRawWacomInput::setActive(bool active) {\n'

@@ -31,8 +31,6 @@ class ProductDependencyCacheTests(unittest.TestCase):
             'scripts/build/bootstrap-macos-client-deps.sh', 'scripts/build/macos-client-target.sh',
             'scripts/build/relocate-openssl-pc.py', 'scripts/build/sanitize-ffmpeg-build-info.py',
             'scripts/build/verify-host-dependency-patches.sh', cache.IDENTITY_PATCH,
-            'scripts/build/build-client-sdl.sh', 'scripts/build/client-sdl.sh',
-            'tests/input/test-sdl-cursor-retirement.py', 'scripts/test/check-client-sdl.py', cache.SDL_PATCH,
         )
         for name in (*inputs, *(str(p.relative_to(ROOT)) for p in
                                 (ROOT / cache.RECIPES).glob('*.sh'))):
@@ -91,7 +89,6 @@ class ProductDependencyCacheTests(unittest.TestCase):
             ('boost.sh', ('linux-host', 'boost')),
             ('host-ffmpeg.sh', ('linux-host', 'ffmpeg')),
             ('client-ffmpeg.sh', ('linux-client', 'ffmpeg')),
-            ('client-sdl.sh', ('linux-client', 'native')),
             ('macos-libraries.sh', ('macos-client', 'native')),
             ('qt.sh', ('macos-client', 'qt')),
         ):
@@ -107,15 +104,11 @@ class ProductDependencyCacheTests(unittest.TestCase):
         self.assert_changes_only('scripts/build/bootstrap-macos-client-deps.sh', expected)
         self.assert_changes_only('scripts/build/relocate-openssl-pc.py', expected)
         self.assert_changes_only('scripts/build/build-paths.sh',
-                                 expected | {('linux-client', 'ffmpeg'), ('linux-client', 'native')})
+                                 expected | {('linux-client', 'ffmpeg')})
 
-    def test_sdl_repair_only_invalidates_ubuntu_sdl(self):
-        self.assert_changes_only(cache.SDL_PATCH, {('linux-client', 'native')})
-        self.assert_changes_only('scripts/build/client-sdl.sh', {('linux-client', 'native')})
-        (self.root / cache.SDL_PATCH).unlink()
-        with self.assertRaises(FileNotFoundError):
-            self.key('linux-client', 'native')
-        self.key('macos-client', 'native')
+    def test_ubuntu_has_no_sdl_cache(self):
+        self.assertNotIn('native', cache.COMPONENTS['linux-client'])
+        self.assertFalse((ROOT / 'scripts/ci/dependencies/client-sdl.sh').exists())
 
     def test_host_codec_tree_changes_only_invalidate_host_ffmpeg(self):
         self.assert_changes_only(cache.HOST_DEPS + '/CMakeLists.txt', {('linux-host', 'ffmpeg')})
@@ -132,7 +125,7 @@ class ProductDependencyCacheTests(unittest.TestCase):
         after = self.keys()
         self.assertEqual({pair for pair in before if before[pair] != after[pair]},
                          {('linux-host', 'ffmpeg'), ('linux-client', 'ffmpeg'),
-                          ('macos-client', 'native'), ('linux-client', 'native')})
+                          ('macos-client', 'native')})
 
     def ubuntu_tools(self, packages, image='first', description='Ubuntu'):
         def command(args):
@@ -162,7 +155,7 @@ class ProductDependencyCacheTests(unittest.TestCase):
                         'libwayland-bin=5', 'new-optional-codec-dev=1'):
             name = changed.split('=', 1)[0]
             newer = self.ubuntu_tools([p for p in packages if not p.startswith(name + '=')] + [changed])
-            for component in ('ffmpeg', 'native'):
+            for component in ('ffmpeg',):
                 self.assertNotEqual(self.key('linux-client', component, tools),
                                     self.key('linux-client', component, newer))
             for component in ('rust', 'cargo'):
@@ -286,7 +279,7 @@ class ProductDependencyCacheTests(unittest.TestCase):
               ('libavcodec', 'libavutil', 'libswscale', 'libswresample')]),
             ('macos-client', 'native', ['macos-client/install/lib/' + name + '.dylib' for name in
              ('libavcodec', 'libavutil', 'libswscale', 'libswresample', 'libssl', 'libcrypto',
-              'libSDL3', 'libSDL3_ttf', 'libopus', 'libfreetype')]),
+              'libopus')]),
         ):
             with self.assertRaises(ValueError):
                 cache.check_prepared(self.root, self.deps, product, component)
@@ -328,7 +321,6 @@ class ProductDependencyCacheTests(unittest.TestCase):
         self.assertIn('rust-hit=false', output_path.read_text())
         self.assertIn('ffmpeg-hit=false', output_path.read_text())
         for name in ('cargo/bin/rustup', 'rustup/settings.toml',
-                     'client-sdl/prepared.sha256', 'client-sdl/install/lib/libSDL3.so.0',
                      'client-ffmpeg/ffmpeg-9.0.2.tar.xz',
                      *(f'client-ffmpeg/install/lib/{name}.so' for name in
                        ('libavcodec', 'libavutil', 'libswscale', 'libswresample'))):

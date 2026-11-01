@@ -12,9 +12,8 @@ mapfile -t vulkan_test_drivers < <(dpkg -L mesa-vulkan-drivers | grep -E '/lvp_i
 test "${#vulkan_test_drivers[@]}" -eq 1
 export VK_DRIVER_FILES="${vulkan_test_drivers[0]}" LIBGL_ALWAYS_SOFTWARE=1
 export PLANK_CLIENT_FFMPEG_WORK="$PLANK_DEP_ROOT/client-ffmpeg"
-export PLANK_CLIENT_SDL_WORK="$PLANK_DEP_ROOT/client-sdl"
-export PKG_CONFIG_PATH="$PLANK_CLIENT_FFMPEG_WORK/install/lib/pkgconfig:$PLANK_CLIENT_SDL_WORK/install/lib/pkgconfig"
-export LD_LIBRARY_PATH="$PLANK_CLIENT_FFMPEG_WORK/install/lib:$PLANK_CLIENT_SDL_WORK/install/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+export PKG_CONFIG_PATH="$PLANK_CLIENT_FFMPEG_WORK/install/lib/pkgconfig"
+export LD_LIBRARY_PATH="$PLANK_CLIENT_FFMPEG_WORK/install/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
 export PLANK_QT_SESSION_TEST_BUILD="$PLANK_WORK_ROOT/qt-session-tests"
 reports="$PLANK_WORK_ROOT/qt-session-reports"
 mkdir -p "$reports"
@@ -55,7 +54,6 @@ PLANK_QT_SESSION_TEST_BUILD="$PLANK_WORK_ROOT/qt-session-tests-asan" \
 # macOS retains its existing frontend and is compiled in its own hosted job.
 export CARGO_HOME="$PLANK_CARGO_ROOT" RUSTUP_HOME="$PLANK_RUSTUP_ROOT"
 export PATH="$CARGO_HOME/bin:$PATH" CARGO_NET_OFFLINE=true
-export PLANK_CLIENT_SDL_WORK="$PLANK_DEP_ROOT/client-sdl"
 bash scripts/build/build-client-package-binaries.sh "$PLANK_SOURCE_ROOT/apps/client" \
     "$PLANK_CLIENT_FFMPEG_WORK" "$PLANK_WORK_ROOT/client-build" \
     2>&1 | tee "$reports/client-build.log"

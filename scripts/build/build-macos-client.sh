@@ -26,6 +26,7 @@ source "$source_root/scripts/package/package-version.sh"
 plank_load_package_version "$source_root"
 version=$PLANK_PACKAGE_VERSION
 client="$source_root/apps/client"
+python3 "$source_root/scripts/test/check-client-no-sdl.py" "$client"
 test "$(qmake -query QT_VERSION)" = 6.10.2
 test "$(rustc --version | awk '{print $2}')" = 1.99.1
 python3 "$source_root/tests/packaging/test-macos-client-target.py"
@@ -53,6 +54,7 @@ run_shared_client_test() {
 run_shared_client_test plankclientpolicy
 run_shared_client_test internetconnectivity
 run_shared_client_test macqtsession
+run_shared_client_test macnativeaudio
 bash "$source_root/scripts/test/test-macos-qt-metal.sh" "$source_root" "$build/tests/qt-metal"
 xcrun clang++ -std=c++17 -include arm_acle.h -mmacosx-version-min="$MACOSX_DEPLOYMENT_TARGET" -Wall -Wextra -Werror \
     -F"$PLANK_QT_ROOT/lib" -I"$client/app" "$source_root/tests/packaging/macos-client-paths.cpp" \
@@ -65,7 +67,6 @@ xcrun clang++ -std=c++17 -mmacosx-version-min=27.0 -Wall -Wextra -Werror \
     -framework CoreFoundation -o "$build/tests/client-display-mode-test"
 "$build/tests/client-display-mode-test"
 python3 "$source_root/tests/packaging/test-macos-quit-lifecycle.py" "$source_root"
-python3 "$source_root/tests/packaging/test-macos-metal-overlay.py"
 bash "$source_root/scripts/test/test-macos-metal-scaling.sh" "$source_root" "$build/tests/metal-scaling"
 python3 "$source_root/tests/packaging/test-macos-keyboard-capture.py"
 python3 "$source_root/tests/packaging/test-startup-permissions.py"
@@ -78,7 +79,7 @@ xcrun clang++ -std=c++17 -fobjc-arc -mmacosx-version-min="$MACOSX_DEPLOYMENT_TAR
 patch_file="$client/app/deploy/linux/ffmpeg-patches/0001-hevc-enable-hwaccel-for-identity-gbr.patch"
 printf '%s  %s\n' d8514ed9db3fc2c1aba43cfad0b06f8be3670759bdb173b6fd0a6dc1cffa0bf4 "$patch_file" | shasum -a 256 -c -
 patch --batch --reverse --dry-run -d "$PLANK_MAC_CLIENT_DEPS/src/ffmpeg-9.0.2" -p1 < "$patch_file"
-pkg-config --modversion sdl3 sdl3-ttf openssl opus libavcodec libavutil
+pkg-config --modversion openssl opus libavcodec libavutil
 mkdir -p "$build"
 python3 "$source_root/scripts/test/check-macos-client-target.py" \
     "$PLANK_MAC_CLIENT_DEPS/install/lib" --target "$PLANK_MAC_CLIENT_MIN_MACOS" \
@@ -98,19 +99,22 @@ qmake -r "$client/moonlight-qt.pro" CONFIG+=release CONFIG+=disable-prebuilts \
     "QMAKE_CFLAGS+=$PLANK_C_FILE_FLAGS" "QMAKE_CXXFLAGS+=$PLANK_C_FILE_FLAGS"
 make -j"${PLANK_BUILD_JOBS:-8}" release
 # Run shared topology and toolbar geometry on every Mac Client candidate.
-for suite in outputtopology plankdisplaymode planktoolbarlogic desktopstage macquitshortcut macapplication mackeyboardcapture plankpresentation macrawwacom macclipboardsync macmetaloverlay changelog authenticationtakeover hosttruststore hosttlsguard pacershutdown; do
+for suite in outputtopology plankdisplaymode planktoolbarlogic desktopstage macquitshortcut macapplication mackeyboardcapture plankpresentation macrawwacom macclipboardsync changelog authenticationtakeover hosttruststore hosttlsguard; do
     run_shared_client_test "$suite"
 done
 # Dummy input only: no microphone permission or physical recording on builders.
-mkdir -p "$build/tests/client-microphone"
+for timed in 0 1; do
+mkdir -p "$build/tests/client-microphone-$timed"
 (
-    cd "$build/tests/client-microphone"
+    cd "$build/tests/client-microphone-$timed"
     qmake "$source_root/tests/audio/client-microphone.pro" "PLANK_CLIENT_SOURCE=$client" \
+        "PLANK_TIMED_CAPTURE_TEST=$timed" \
         "QMAKE_CXXFLAGS+=-include arm_acle.h" \
         CONFIG+=release QMAKE_MACOSX_DEPLOYMENT_TARGET="$MACOSX_DEPLOYMENT_TARGET" QMAKE_APPLE_DEVICE_ARCHS=arm64
     make -j2
     ./client-microphone
 )
+done
 # Exercise the actual input worker with a queued drag, without a host or UI.
 cc -std=gnu11 -Wall -Wextra -Werror -Wno-unused-parameter -DNDEBUG \
     -arch arm64 -mmacosx-version-min="$MACOSX_DEPLOYMENT_TARGET" \

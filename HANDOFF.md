@@ -4,6 +4,23 @@ Read `AGENTS.md` and the relevant build runbook first. Machine-specific access,
 credentials, captures and operational evidence belong in the external private
 notes, never in Git.
 
+## Active — remove SDL from desktop Clients
+
+The operator authorized replacing the remaining desktop Client SDL components
+on `client-no-sdl`, based on dependency-refresh root `e7f10d73c14c` and Client
+`7813e7b408d51ce890a926d6315530b0f678191c`. Both checkouts are on that branch.
+The new baseline is **1.3.00**, with the branch qualifier in candidate filenames
+and the visible version. See [the plan](docs/development/plans/client-no-sdl.plan).
+The first implementation is ready for hosted compilation. Removed the retired
+session/input/presentation backends, SDL APIs/build/package inputs and SDL-only
+tests. Mac playback/capture now use native Core Audio with bounded callback
+buffers and device-change recovery. Shared clocks, native keyboard capture,
+codec/color probes, Linux PipeWire and raw Wacom policy remain. Source/CI-policy
+checks pass; no SDL-free package has compiled or received installed acceptance.
+Native audio callbacks, microphone generation recovery and packaging linkage
+have new regression gates; these do not replace live A/V listening/device tests. Host/protocol changes are out of
+scope. Continue on GitHub-hosted builders; do not merge or publish a release.
+
 ## Candidates built — dependency refresh
 
 The operator authorized dependency updates while retaining SDL. Work is committed

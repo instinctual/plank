@@ -4,17 +4,10 @@ CONFIG -= app_bundle
 TEMPLATE = app
 TARGET = client-microphone
 isEmpty(PLANK_CLIENT_SOURCE): error(Set PLANK_CLIENT_SOURCE)
-PKGCONFIG += sdl3 opus
+PKGCONFIG += opus
 DEFINES += PLANK_TRANSPORT
 SOURCES += $$PWD/client-microphone.cpp $$PLANK_CLIENT_SOURCE/app/streaming/audio/microphone.cpp
 INCLUDEPATH += $$PLANK_CLIENT_SOURCE/app/streaming/audio $$PWD/../../protocol/plank-transport/include
 QMAKE_CXXFLAGS += -Wall -Wextra -Werror
 
-linux {
-    equals(PLANK_TIMED_CAPTURE_TEST, 1) {
-        DEFINES += PLANK_TIMED_CAPTURE_TEST
-    } else {
-        PKGCONFIG += libpipewire-0.3
-        SOURCES += $$PLANK_CLIENT_SOURCE/app/streaming/audio/linuxmicrophone.cpp
-    }
-}
+equals(PLANK_TIMED_CAPTURE_TEST, 1): DEFINES += PLANK_TIMED_CAPTURE_TEST

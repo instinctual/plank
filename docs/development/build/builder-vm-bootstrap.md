@@ -16,7 +16,7 @@ must not be used as fallback package builders.
 - Host builder: `linux-host-builder`, Rocky Linux 9.7, x86-64, GCC Toolset 14, CUDA 13.2 Update 2,
   RPM tooling, and local build storage. It is build-only and has no GPU.
 - Client builder: `linux-client-builder` (`192.0.2.42`), Ubuntu Desktop 26.04,
-  x86-64, Qt 6.10.2, SDL3, SDL3_ttf, PipeWire development files, and the
+  x86-64, Qt 6.10.2, PipeWire development files, and the
   Intel/Wayland client stack. It is build-only; its virtual display and Dummy
   Output are not product qualification devices.
 - Host hardware target: `hardware-test-host`, including licensed NvFBC headers, NVIDIA GPU,
@@ -57,7 +57,6 @@ export PLANK_CARGO_ROOT="$PLANK_DEP_ROOT/cargo"
 
 # Client builder only
 export PLANK_CLIENT_FFMPEG_WORK="$PLANK_DEP_ROOT/client-ffmpeg-9.0.2"
-export PLANK_CLIENT_SDL_WORK="$PLANK_DEP_ROOT/client-sdl"
 export PLANK_CLIENT_SUBMODULE_CACHE="$PLANK_DEP_ROOT/client-submodules"
 
 # Host builder only
@@ -193,26 +192,12 @@ sudo apt-get install -y \
   build-essential cmake curl gh git make nasm ninja-build nodejs openssl patch \
   pkg-config python3 python3-venv ripgrep xz-utils \
   qt6-base-dev qt6-declarative-dev qt6-svg-dev qt6-svg-plugins qt6-wayland \
-  libsdl3-dev libsdl3-ttf-dev libpipewire-0.3-dev libdecor-0-dev libdrm-dev libinput-dev \
+  libpipewire-0.3-dev libdrm-dev libinput-dev \
   libasound2-dev libpulse-dev libegl-dev libgles-dev libxkbcommon-dev \
   libxcursor-dev libxrandr-dev libxfixes-dev libxi-dev wayland-protocols \
   libopus-dev libplacebo-dev libssl-dev libudev-dev libva-dev \
   libvdpau-dev libwayland-dev libx11-dev zlib1g-dev
 ```
-
-After installing those prerequisites, prepare the private SDL 3.4.18 runtime
-with the tracked Wayland tablet-cursor retirement repair. This does not replace
-the distribution's SDL installation:
-
-```bash
-bash scripts/build/build-client-sdl.sh "$PLANK_CLIENT_SDL_WORK"
-```
-
-Both the binary build and package preflight verify the archive, the entire
-patched source tree and installed-library checksums. Missing preparation fails
-closed. Retain this prepared tree beside FFmpeg; do not reconstruct it for every
-application build. The isolated retirement regression requires no compositor,
-tablet or active session. A passing test is not hardware acceptance.
 
 APT installs transitive development packages. Record the resulting package
 versions during cutover. Do not satisfy a missing dependency with an untracked
@@ -221,8 +206,7 @@ local library.
 ```bash
 test "$(/usr/bin/qmake6 -query QT_VERSION)" = 6.10.2
 node --version
-pkg-config --modversion sdl3
-pkg-config --modversion sdl3-ttf
+pkg-config --modversion libpipewire-0.3
 ```
 
 Recreate private Client FFmpeg from the pinned archive and checksum in the

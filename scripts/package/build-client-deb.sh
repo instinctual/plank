@@ -22,9 +22,6 @@ runtime_client_logo="${moonlight_source_dir}/app/res/plank-logo.png"
 ffmpeg_version=9.0.2
 ffmpeg_sha256=8c3850283eb25fa026482078a04051e0be17347b09ef81a0849bec15a96e002e
 ffmpeg_lib_dir="${ffmpeg_work_dir}/install/lib"
-client_sdl_work=${PLANK_CLIENT_SDL_WORK:?prepare patched Client SDL and set PLANK_CLIENT_SDL_WORK}
-source "$repo_dir/scripts/build/client-sdl.sh"
-plank_verify_client_sdl "$repo_dir" "$client_sdl_work"
 if [[ -f ${ffmpeg_work_dir}/COPYING.LGPLv2.1 ]]; then
   ffmpeg_source_dir="$ffmpeg_work_dir"
 else
@@ -167,12 +164,6 @@ install -D -m 0644 "$ffmpeg_source_dir/COPYING.LGPLv3" \
 for library in libavcodec libavutil libswscale libswresample; do
   cp -a "${ffmpeg_lib_dir}/${library}.so."* "$private_lib_dir/"
 done
-cp -a "$client_sdl_work/install/lib/"libSDL3.so.* "$private_lib_dir/"
-python3 "$repo_dir/scripts/test/check-client-sdl.py" "$private_lib_dir/libSDL3.so.0"
-install -m 0644 "$client_sdl_work/SDL3-$plank_sdl_version/LICENSE.txt" \
-  "$stage_dir/usr/share/doc/$client_package/COPYING.SDL3"
-install -m 0644 "$repo_dir/$plank_sdl_patch_relative" \
-  "$stage_dir/usr/share/doc/$client_package/SDL3-cursor-retirement.patch"
 cmp --silent "$moonlight_source_dir/app/res/plank-logo.png" \
   "$stage_dir/usr/share/icons/hicolor/512x512/apps/$client_package.png" || {
   echo "packaged client logo differs from the approved runtime source" >&2
@@ -206,7 +197,6 @@ libavcodec 63 ${client_package}
 libavutil 61 ${client_package}
 libswscale 10 ${client_package}
 libswresample 7 ${client_package}
-libSDL3 0 ${client_package}
 EOF
 
 (
@@ -231,9 +221,8 @@ moonlight-common-c commit: ${common_commit}
 Kyber kymux commit: ${kyber_commit}
 FFmpeg version: ${ffmpeg_version}
 FFmpeg source SHA-256: ${ffmpeg_sha256}
-SDL version: ${plank_sdl_version} (PLANK Wayland tablet cursor retirement patch)
-SDL source SHA-256: ${plank_sdl_sha256}
-SDL patch SHA-256: $(sha256sum "$repo_dir/$plank_sdl_patch_relative" | awk '{print $1}')
+Session frontend: Qt
+Playback backend: PipeWire
 Unstripped build binary SHA-256: $(sha256sum "$moonlight_binary" | awk '{print $1}')
 Packaged binary SHA-256: $(sha256sum "$stage_dir/usr/bin/$client_package" | awk '{print $1}')
 EOF
@@ -407,7 +396,7 @@ rg -Fq "\$ORIGIN/../lib/$client_lib_name" <<<"$packaged_dynamic_section" || {
 }
 unmanaged_loader_output=$(env -u LD_LIBRARY_PATH \
   ldd "$stage_dir/usr/bin/$client_package")
-for soname in libavcodec.so.63 libavutil.so.61 libswscale.so.10 libswresample.so.7 libSDL3.so.0; do
+for soname in libavcodec.so.63 libavutil.so.61 libswscale.so.10 libswresample.so.7; do
   unmanaged_path=$(awk -v name="$soname" \
     '$1 == name && $2 == "=>" {print $3}' <<<"$unmanaged_loader_output")
   [[ -n ${unmanaged_path} ]] &&
@@ -419,9 +408,8 @@ for soname in libavcodec.so.63 libavutil.so.61 libswscale.so.10 libswresample.so
 done
 echo "client_private_runpath_gate=pass"
 dpkg-deb --field "$deb_file" Depends | rg -q 'libqt6core6'
-dpkg-deb --field "$deb_file" Depends | rg -q 'libdecor-0-plugin-1-cairo'
-if dpkg-deb --field "$deb_file" Depends | rg -q 'libdecor-0-plugin-1-gtk'; then
-  echo "client DEB still requires the main-thread-only GTK libdecor plugin" >&2
+if rg -i 'libSDL' <<<"$unmanaged_loader_output"; then
+  echo "client must not link SDL, including indirect dependencies" >&2
   exit 1
 fi
 echo "client_deb=${deb_file}"

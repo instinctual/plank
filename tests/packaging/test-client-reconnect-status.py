@@ -6,8 +6,7 @@ import unittest
 
 source = pathlib.Path(sys.argv.pop(1))
 session = (source / "app/streaming/session.cpp").read_text()
-toolbar = (source / "app/streaming/planktoolbar.cpp").read_text()
-wayland = (source / "app/streaming/plankwaylandtoolbar.cpp").read_text()
+runtime = (source / "app/streaming/qt/sessionruntime.cpp").read_text()
 http = (source / "app/backend/nvhttp.cpp").read_text()
 
 
@@ -46,7 +45,7 @@ class ReconnectPresentation(unittest.TestCase):
         gate = between(session, "bool Session::waitForPlankReconnectRequest", "bool Session::runPlankReconnect")
         self.assertIn("m_ReconnectCancelled.load()", gate)
         self.assertIn("m_ConnectionStartCancelled.load()", gate)
-        self.assertIn("m_ReconnectPolicy.allowsRequest(SDL_GetTicks())", gate)
+        self.assertIn("m_ReconnectPolicy.allowsRequest(PlankClock::milliseconds())", gate)
 
     def test_readiness_retry_retains_authorization(self):
         retry = between(session, "bool Session::runPlankReconnect", "bool Session::finishPlankReconnect")
@@ -56,16 +55,6 @@ class ReconnectPresentation(unittest.TestCase):
         self.assertNotIn("sessionToken.clear()", failure)
         self.assertIn("terminalStatus(error.getStatusCode(), authenticating)", retry)
         self.assertIn("SslHandshakeFailedError", retry)
-
-    def test_wait_is_explicit_and_completion_is_gated(self):
-        self.assertEqual(session.count("m_ReconnectPolicy.allowUntil(reconnectDecisionDeadline)"), 2)
-        begin = between(session, "case SDL_CODE_PLANK_RECONNECT:", "case SDL_CODE_PLANK_REPLANK_COMPLETE:")
-        self.assertLess(begin.index("m_ReconnectPolicy.allowUntil"), begin.index("reconnectThread->start()"))
-        retry = between(session, "bool Session::runPlankReconnect", "bool Session::finishPlankReconnect")
-        self.assertIn("m_ReconnectPolicy.allowsRequest(SDL_GetTicks())", retry)
-        gate = between(session, "bool Session::waitForPlankReconnectRequest", "bool Session::runPlankReconnect")
-        self.assertIn("return !(waited && restartAuthenticationAfterWait)", gate)
-        self.assertIn("waitForRequestPermission(true)", http)
 
     def test_control_queries_have_only_operation_parameters(self):
         request = between(http, "NvHTTP::openConnection(QUrl", "QNetworkRequest request(url);")
@@ -81,18 +70,8 @@ class ReconnectPresentation(unittest.TestCase):
         self.assertIn("1000, NvLogLevel::NVLL_NONE", probe)
         self.assertIn("peerCertificate().digest(QCryptographicHash::Sha256)", probe)
         self.assertIn("PlankHostRecovery::replacementConfirmed", probe)
-        worker = between(session, "class PlankWorkerProbeThread", "class PlankReconnectThread")
-        self.assertIn("NvHTTP http(m_Address)", worker)
-        self.assertNotIn("authenticate(", worker)
-        self.assertNotIn("Session*", worker)
-
-    def test_replacement_requires_video_silence_and_current_instance(self):
-        check = between(session, "if (workerProbe != nullptr && workerProbe->isFinished())", "if (m_PlankToolbar) {")
-        self.assertIn("workerProbe->wait()", check)
-        self.assertIn("videoSilent && workerProbe->instance() == m_PlankWorkerInstance && workerProbe->replacement()", check)
-        self.assertIn("workerProbe == nullptr && now >= nextWorkerProbe", check)
-        # Video silence schedules this probe; presentation belongs to confirmed
-        # recovery, covered by test_initial_status_is_neutral below.
+        self.assertIn('PlankHostRecovery::videoSilent(now, s.m_LastPlankVideoReceived.load())', runtime)
+        self.assertIn('http.probeWorkerReplacement(s.m_PlankWorkerInstance, s.m_PlankHostCertificateSha256)', runtime)
 
     def test_duplicate_reconnect_requests_do_not_quit(self):
         callback = between(session, "void Session::clConnectionTerminated", "void Session::clLogMessage")
@@ -125,34 +104,6 @@ class ReconnectPresentation(unittest.TestCase):
         self.assertLess(begin.index("setPlankReconnectStatus("), begin.index("suspendForReconnect()"))
         self.assertNotIn("updateOverlayText", begin)
 
-    def test_native_surface_precedes_video_fallback(self):
-        status = between(session, "void Session::setPlankReconnectStatus", "bool Session::beginPlankReconnect")
-        self.assertIn("m_PlankToolbar->setReconnectStatus", status)
-        self.assertIn("if (!nativeStatus && text[0] != '\\0')", status)
-        native = between(toolbar, "bool PlankToolbar::setReconnectStatus", "void PlankToolbar::showReconnectPrompt")
-        self.assertIn("redrawReconnectPrompt()", native)
-        self.assertIn("m_WaylandReconnectPrompt->setVisible(true)", native)
-        self.assertIn("wl_subsurface_set_desync(m_Subsurface)", wayland)
-        self.assertIn("wl_surface_commit(m_Surface)", wayland)
-
-    def test_timeout_and_logout_use_same_presentation(self):
-        self.assertIn('setPlankReconnectStatus("Returning to the sign-in screen...", false)', session)
-        self.assertIn('setPlankReconnectStatus("Workstation is taking longer to respond...", true)', session)
-
-    def test_completion_clears_status_and_wait_restores_it(self):
-        finish = between(session, "bool Session::finishPlankReconnect", "class PlankReconnectThread")
-        self.assertIn('setPlankReconnectStatus("", false)', finish)
-        hide = between(toolbar, "void PlankToolbar::hideReconnectPrompt", "void PlankToolbar::notifyWindowChanged")
-        self.assertIn("m_ReconnectPromptVisible = false", hide)
-        self.assertIn("setVisible(!m_ReconnectStatus.isEmpty())", hide)
-
-    def test_status_has_no_action_buttons(self):
-        paint = between(toolbar, "if (!m_ReconnectPromptVisible) {", "QFont titleFont;")
-        self.assertIn("m_ReconnectStatus", paint)
-        self.assertIn("m_WaylandReconnectPrompt->present(image)", paint)
-        self.assertNotIn("drawButton", paint)
-        button = between(toolbar, "void PlankToolbar::reconnectPromptPointerButton", "#else")
-        self.assertIn("!m_ReconnectPromptVisible", button)
 
 
 unittest.main()

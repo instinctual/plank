@@ -192,7 +192,7 @@ class IdentityContractTests(unittest.TestCase):
             runtime.check_source(source)
             session = source / 'app/streaming/session.cpp'
             session.write_text(session.read_text().replace('runtime->start(qtWindow);', 'execInternal();'))
-            with self.assertRaisesRegex(ValueError, 'ordinary session loop'):
+            with self.assertRaisesRegex(ValueError, 'Qt session owner|Retired session loop'):
                 runtime.check_source(source)
 
     @unittest.skipUnless(shutil.which('nm'), 'requires binary inspection tool')

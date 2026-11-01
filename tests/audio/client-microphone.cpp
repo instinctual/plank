@@ -1,24 +1,35 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-// Synthetic SDL dummy input, mocked authenticated transport. Never opens a
+// Synthetic native capture input, mocked authenticated transport. Never opens a
 // real device. Encrypted endpoint delivery is independently exercised in Rust.
 #include "microphone.h"
 #include <plank_transport.h>
 #include <plank_transport_control.h>
-#include <SDL3/SDL.h>
+#include <thread>
+#include <chrono>
+#include <QtGlobal>
 #include <opus.h>
 #include <atomic>
 #include <cstdlib>
 #include <cstdio>
 #include <functional>
-#ifdef PLANK_TIMED_CAPTURE_TEST
+#ifdef __APPLE__
+#include "macmicrophone.h"
+#define TestCapture PlankMacMicrophone
+#else
 #include "linuxmicrophone.h"
+#define TestCapture PlankLinuxMicrophone
+#endif
 #include <chrono>
 static std::atomic<bool> captureOpen {false};
-struct PlankLinuxMicrophone::Impl { std::uint64_t sample = 0; std::chrono::steady_clock::time_point next = std::chrono::steady_clock::now(); };
-PlankLinuxMicrophone::PlankLinuxMicrophone() : m_Impl(new Impl) { captureOpen = true; }
-PlankLinuxMicrophone::~PlankLinuxMicrophone() { captureOpen = false; }
-bool PlankLinuxMicrophone::valid() const { return true; }
-bool PlankLinuxMicrophone::take(Packet& packet) {
+static std::atomic<bool> captureChanged {false};
+struct TestCapture::Impl { std::uint64_t sample = 0; std::chrono::steady_clock::time_point next = std::chrono::steady_clock::now(); };
+TestCapture::TestCapture() : m_Impl(new Impl) { captureChanged = false; captureOpen = true; }
+TestCapture::~TestCapture() { captureOpen = false; }
+bool TestCapture::valid() const { return !captureChanged.load(); }
+#ifdef __APPLE__
+bool TestCapture::deviceChanged() const { return captureChanged.load(); }
+#endif
+bool TestCapture::take(Packet& packet) {
     const auto now = std::chrono::steady_clock::now();
     if (now < m_Impl->next) return false;
     packet = {}; packet.sampleTime = m_Impl->sample;
@@ -27,10 +38,9 @@ bool PlankLinuxMicrophone::take(Packet& packet) {
     m_Impl->sample += 480; m_Impl->next += std::chrono::milliseconds(10);
     return true;
 }
-#endif
 
 #ifdef __APPLE__
-// The SDL dummy backend is mandatory here. Never request real TCC permission
+// The synthetic backend is mandatory here. Never request real TCC permission
 // or touch a physical recording device on a build worker.
 static std::atomic<int> microphonePermission {1};
 int plankMacMicrophonePermission() { return microphonePermission.load(); }
@@ -93,12 +103,10 @@ int main()
 {
 #ifdef PLANK_TIMED_CAPTURE_TEST
     constexpr bool timed = true;
-    const auto recording = [] { return captureOpen.load(); };
 #else
     constexpr bool timed = false;
-    const auto recording = [] { return SDL_WasInit(SDL_INIT_AUDIO) != 0; };
 #endif
-    CHECK(SDL_SetHint(SDL_HINT_AUDIO_DRIVER, "dummy"));
+    const auto recording = [] { return captureOpen.load(); };
     PlankTransportNativeEndpoint endpoint;
     std::atomic<bool> requested {false};
     {
@@ -112,7 +120,7 @@ int main()
                         PLANK_TRANSPORT_MICROPHONE_ACTIVE : PLANK_TRANSPORT_MICROPHONE_OFF);
                 }
                 if (predicate()) return true;
-                SDL_Delay(5);
+                std::this_thread::sleep_for(std::chrono::milliseconds(5));
             }
             return false;
         };
@@ -121,9 +129,20 @@ int main()
         CHECK(!endpoint.packets && !recording());
         requested = true;
         CHECK(wait([&] { return endpoint.packets >= 20 && microphone.state() == PlankMicrophone::State::Active; }));
+#ifdef __APPLE__
+        // Core Audio input changes must negotiate a fresh sample-clock generation,
+        // resume automatically, and never request TCC consent from the session.
+        std::uint64_t oldCommand;
+        { std::lock_guard<std::mutex> guard(endpoint.mutex); oldCommand = endpoint.command; }
+        const auto oldPackets = endpoint.packets.load();
+        captureChanged = true;
+        CHECK(wait([&] { return !recording(); }));
+        CHECK(wait([&] { return endpoint.packets > oldPackets + 10 && microphone.state() == PlankMicrophone::State::Active; }));
+        { std::lock_guard<std::mutex> guard(endpoint.mutex); CHECK(endpoint.command > oldCommand); }
+#endif
         endpoint.blocked = true; requested = false;
         CHECK(wait([&] { return !recording(); }));
-        unsigned before = endpoint.packets; SDL_Delay(50); CHECK(endpoint.packets == before);
+        unsigned before = endpoint.packets; std::this_thread::sleep_for(std::chrono::milliseconds(50)); CHECK(endpoint.packets == before);
         endpoint.blocked = false;
         CHECK(wait([&] { return microphone.state() == PlankMicrophone::State::Off; }));
         requested = true;
@@ -136,7 +155,7 @@ int main()
         std::lock_guard<std::mutex> guard(endpoint.mutex); CHECK(endpoint.activation == 0);
     }
 #ifdef __APPLE__
-    // Unprovisioned CLI startup and denied consent must not open SDL capture,
+    // Unprovisioned CLI startup and denied consent must not open native capture,
     // send samples, or leave the optional lane indefinitely Pending.
     for (const int permission : {0, -1}) {
         microphonePermission = permission;
@@ -144,7 +163,7 @@ int main()
         std::atomic<bool> deniedRequested {true};
         PlankMicrophone microphone(&deniedEndpoint, deniedRequested, true, timed);
         for (unsigned i = 0; i < 400 && microphone.state() != PlankMicrophone::State::Unavailable; i++)
-            SDL_Delay(5);
+            std::this_thread::sleep_for(std::chrono::milliseconds(5));
         CHECK(microphone.state() == PlankMicrophone::State::Unavailable);
         CHECK(!recording() && !deniedEndpoint.packets);
         std::lock_guard<std::mutex> guard(deniedEndpoint.mutex);

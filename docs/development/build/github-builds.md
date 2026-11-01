@@ -91,8 +91,8 @@ See the release runbook's fortified-I/O and stale-preflight failure signatures
 before retrying a failed job; do not skip those gates.
 
 The job builds one complete Client with all ordinary preflight checks, requires
-native PipeWire playback rather than SDL audio, and checks three real
-launcher/shutdown cycles with SDL video deliberately unavailable. It packages
+native PipeWire playback and no SDL linkage, and checks three real
+launcher/shutdown cycles. It packages
 that exact binary under `plank-client`, validates source/linkage and package
 identity, and collects it in the normal mainline or candidate catalog.
 Existing bookmarks, trust, policy and logs keep their ordinary PLANK locations.
@@ -288,17 +288,12 @@ FFmpeg or Boost, and a Mac FFmpeg patch must not redownload Qt.
 | Product | Independent cache groups |
 | --- | --- |
 | Linux Host | Rust toolchain; Cargo downloads (including vendor-test dependencies); FFmpeg/codec build tree; Boost sources |
-| Ubuntu Client | Rust toolchain; Cargo downloads; FFmpeg libraries/source/archive; private SDL libraries/source/archive |
+| Ubuntu Client | Rust toolchain; Cargo downloads; FFmpeg libraries/source/archive |
 | macOS Host | Rust toolchain; Cargo downloads (capture/encoding/audio use Apple frameworks) |
 | macOS Client | Rust toolchain; Cargo downloads; native-library install/source/download tree; Qt |
 
 The Linux Host FFmpeg/x264 build tree is one coupled cache.
-Ubuntu's patched SDL has a separate native-library cache, keyed to its pinned
-archive, repair, verifier, regression test and build recipe. Restore verifies
-the patched source tree and installed bytes; application/package preflight
-verifies them again. No system library is replaced.
-
-Mac FFmpeg, OpenSSL, SDL, FreeType, Opus and pkgconf remain a coupled group because
+Mac FFmpeg, OpenSSL, Opus and pkgconf remain a coupled group because
 their current bootstrap shares one installation prefix. Never restore
 overlapping directories from independent keys. Qt is outside that prefix.
 
@@ -315,9 +310,9 @@ library keys retain the exact installed package inventory; Mac keys retain
 SDK/compiler/build tools. Ubuntu keys use the qualified OS/architecture, actual
 compiler/build-tool versions, development packages and relevant ABI/protocol
 packages, not the runner image date or unrelated desktop/runtime packages.
-Native development packages remain conservative inputs because FFmpeg and SDL
-auto-detect optional libraries. Unrelated PHP SDK packages are excluded: neither
-library uses them, and GitHub image updates can change PHP independently.
+Native development packages remain conservative inputs because FFmpeg
+auto-detects optional libraries. Unrelated PHP SDK packages are excluded: FFmpeg
+does not use them, and GitHub image updates can change PHP independently.
 Downloads/source-only groups do not depend on those C/C++ build tools.
 All keys remain product/platform/path-specific; Mac Client native/Qt keys
 retain the explicit deployment-target policy. Changes to the shared cache

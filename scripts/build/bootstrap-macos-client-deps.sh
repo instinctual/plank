@@ -67,12 +67,6 @@ fetch https://github.com/openssl/openssl/releases/download/openssl-3.5.9/openssl
 )
 fetch https://downloads.xiph.org/releases/opus/opus-1.6.1.tar.gz 6ffcb593207be92584df15b32466ed64bbec99109f007c82205f0194572411a1
 cmake_build opus-1.6.1 -DOPUS_BUILD_TESTING=OFF -DOPUS_BUILD_PROGRAMS=OFF
-fetch https://github.com/libsdl-org/SDL/releases/download/release-3.4.18/SDL3-3.4.18.tar.gz 9c75cf16330322c217dedd2e0609f1124f1b54b8633e763467b4684d0f4334a3
-cmake_build SDL3-3.4.18 -DSDL_TESTS=OFF -DSDL_TEST_LIBRARY=OFF -DSDL_SHARED=ON -DSDL_STATIC=OFF
-fetch https://download.savannah.gnu.org/releases/freetype/freetype-2.15.0.tar.xz 93cd47eb719c325107f2d3cf087d06299e944c3b48a40b55537302304dea1dd5
-cmake_build freetype-2.15.0 -DFT_DISABLE_HARFBUZZ=ON -DFT_DISABLE_BZIP2=ON -DFT_DISABLE_PNG=ON -DFT_DISABLE_BROTLI=ON -DFT_DISABLE_ZLIB=ON
-fetch https://github.com/libsdl-org/SDL_ttf/releases/download/release-3.2.2/SDL3_ttf-3.2.2.tar.gz 63547d58d0185c833213885b635a2c0548201cc8f301e6587c0be1a67e1e045d
-cmake_build SDL3_ttf-3.2.2 -DSDLTTF_VENDORED=OFF -DSDLTTF_HARFBUZZ=OFF -DSDLTTF_SAMPLES=OFF
 elif [[ $1 != ffmpeg ]]; then
     echo 'usage: bootstrap-macos-client-deps.sh [all|ffmpeg]' >&2
     exit 2
@@ -95,6 +89,6 @@ mkdir -p "$PLANK_MAC_CLIENT_DEPS/build-ffmpeg"
     make -j"$jobs"
     make install
 )
-pkg-config --modversion sdl3 sdl3-ttf openssl opus libavcodec libavutil
+pkg-config --modversion openssl opus libavcodec libavutil
 python3 "$PLANK_SOURCE_ROOT/scripts/test/check-macos-client-target.py" \
     "$prefix/lib" --target "$PLANK_MAC_CLIENT_MIN_MACOS"

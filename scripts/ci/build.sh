@@ -20,7 +20,6 @@ case $role in
     python3 "$PLANK_SOURCE_ROOT/tests/packaging/test-client-policy-upgrade.py"
     source "$PLANK_SOURCE_ROOT/scripts/package/client-package-identity.sh"
     plank_client_package_identity
-    export PLANK_CLIENT_SDL_WORK="$PLANK_DEP_ROOT/client-sdl"
     # Qualify and build the exact ordinary Client once, then package that binary.
     bash "$PLANK_SOURCE_ROOT/scripts/ci/test-qt-session.sh"
     bash "$PLANK_SOURCE_ROOT/scripts/package/build-client-deb.sh" \

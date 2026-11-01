@@ -11,9 +11,6 @@ patch --batch --reverse --no-backup-if-mismatch --dry-run -d "$ffmpeg_source" -p
 test "$(sha256sum "$ffmpeg_source/libavcodec/hevc/hevcdec.c" | cut -d' ' -f1)" = \
     9803af49884faaf2ed92ab4a1542099db235b5a4da06047be4bfeb885360714a
 export PKG_CONFIG_PATH="$PLANK_CLIENT_FFMPEG_WORK/install/lib/pkgconfig${PKG_CONFIG_PATH:+:$PKG_CONFIG_PATH}"
-if [[ -n ${PLANK_CLIENT_SDL_WORK:-} ]]; then
-    export PKG_CONFIG_PATH="$PLANK_CLIENT_SDL_WORK/install/lib/pkgconfig:$PKG_CONFIG_PATH"
-fi
 test "$(pkg-config --variable=prefix libavutil)" = "$PLANK_CLIENT_FFMPEG_WORK/install"
 qmake=${QMAKE:-qmake6}
 qmake_flags=()

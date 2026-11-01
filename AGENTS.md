@@ -123,7 +123,7 @@ sanitizer, compositor, launcher and package-upgrade gates and the resulting DEB.
 There is no separate Qt product or experimental configuration namespace.
 Preserve existing bookmarks, Host trust, administrator policy and log paths.
 The operator authorized merging the macOS Qt/Metal session frontend into main;
-Mac playback retains SDL/CoreAudio. Keep platform-specific rendering and audio
+Mac playback and microphone capture use native Core Audio. Keep platform-specific rendering and audio
 backends separate while sharing the Qt session controls. Installed Mac session
 acceptance and remaining parity work are still required before release; see
 `docs/development/plans/macos-qt-session.plan`.
@@ -176,10 +176,10 @@ hardware-test targets, not fallback build machines.
 
 Use clean Git worktrees as source snapshots. Reuse the prepared, Git-ignored
 host and client FFmpeg trees; creating a worktree does not recreate those build
-inputs. The Ubuntu Client also requires prepared, patched SDL through
-`PLANK_CLIENT_SDL_WORK`. Verify its source, installed bytes and actual compiled
-PipeWire/Wayland drivers; an SDL CMake `ON` setting alone does not prove those
-drivers were included. Bundle SDL privately, never replace the OS library.
+inputs. Desktop Clients no longer build, link or package SDL/SDL_ttf. Linux
+uses direct PipeWire, macOS uses native Core Audio, and both share Qt session
+controls with platform-specific GPU presentation. Require the no-SDL source
+and packaged-linkage gates; do not restore the retired session/audio backends.
 Every product dependency patch is a required, reproducible build
 input. A dependency bootstrap must either apply each selected patch or prove
 that the exact patch is already applied; a source/patch mismatch must stop the

@@ -48,7 +48,7 @@ sed "s/@TEAM@/$PLANK_MACOS_TEAM_ID/g" "$source_root/packaging/client/macos/unins
 chmod 0755 "$app/Contents/Resources/uninstall.sh"
 bash -n "$app/Contents/Resources/uninstall.sh"
 cp "$source_root/apps/client/LICENSE" "$app/Contents/Resources/licenses/client.txt"
-for name in SDL3-3.4.18 SDL3_ttf-3.2.2 opus-1.6.1 openssl-3.5.9 freetype-2.15.0 ffmpeg-9.0.2; do
+for name in opus-1.6.1 openssl-3.5.9 ffmpeg-9.0.2; do
     mkdir "$app/Contents/Resources/licenses/$name"
     find "$PLANK_MAC_CLIENT_DEPS/src/$name" -maxdepth 1 -type f \
         \( -name 'COPYING*' -o -name 'LICENSE*' -o -name 'LICENSE.txt' \) \
@@ -57,6 +57,9 @@ done
 while IFS= read -r -d '' binary; do
     file -b "$binary" | grep -q 'Mach-O' || continue
     # Remove debug sections before distribution signing, not runtime strings.
+    if otool -L "$binary" | grep -Eiq '(libSDL|SDL[23]?(_ttf)?\.framework)'; then
+        echo 'Client package unexpectedly contains an SDL dependency' >&2; exit 1
+    fi
     strip -S "$binary"
     # macdeployqt relocates linked libraries; remove developer-only search paths.
     while IFS= read -r rpath; do

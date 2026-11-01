@@ -26,15 +26,15 @@ if [[ $(uname -s) == Darwin ]]; then
 else
     "$build/audio-phase-resampler"
 fi
-# Exercise real SDL output demand and a finite queue with independently timed
+# Exercise production PCM output demand and a finite queue with independently timed
 # arrivals/device pulls; constant-depth phase tests cannot detect starvation.
 "${CXX:-c++}" -std=c++17 -O2 -Wall -Wextra -Werror -pthread \
-    -I"$client/app/streaming" $(pkg-config --cflags sdl3 libswresample libavutil) \
+    -I"$client/app/streaming" $(pkg-config --cflags libswresample libavutil) \
     "$client/tests/avsynccontroller/test_audio_playback.cpp" \
     "$client/app/streaming/avsynccontroller.cpp" \
-    $(pkg-config --libs sdl3 libswresample libavutil) -o "$build/audio-playback"
+    $(pkg-config --libs libswresample libavutil) -o "$build/audio-playback"
 if [[ $(uname -s) == Darwin ]]; then
-    DYLD_LIBRARY_PATH="$(pkg-config --variable=libdir libswresample):$(pkg-config --variable=libdir sdl3)" "$build/audio-playback"
+    DYLD_LIBRARY_PATH="$(pkg-config --variable=libdir libswresample)" "$build/audio-playback"
 else
     "$build/audio-playback"
 fi

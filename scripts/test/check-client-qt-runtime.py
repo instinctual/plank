@@ -10,15 +10,16 @@ def check_source(source):
     app = source / 'app'
     project = (app / 'app.pro').read_text()
     for token in ('linux|macx: CONFIG += plank-qt-session', 'TARGET = plank-client',
-                  '!linux:!macx: error(', 'DEFINES += PLANK_QT_SESSION', 'streaming/qt/sessionruntime.cpp',
+                  '!linux:!macx: error(', 'streaming/qt/sessionruntime.cpp',
                   'streaming/qt/sessioninput.cpp', 'streaming/qt/decodedvideorenderer.cpp'):
         if token not in project:
             raise ValueError('Qt runtime build input is missing: ' + token)
     session = (app / 'streaming/session.cpp').read_text()
     entry = session.split('void Session::exec(QWindow* qtWindow)', 1)[1].split('void Session::execInternal()', 1)[0]
-    if not re.search(r'#ifdef PLANK_QT_SESSION.*new QtSessionRuntime\(this\);\s*'
-                     r'runtime->start\(qtWindow\);\s*return;', entry, re.S):
-        raise ValueError('Qt Client still enters the ordinary session loop')
+    if 'new QtSessionRuntime(this)' not in entry or 'runtime->start(qtWindow)' not in entry:
+        raise ValueError('Qt session owner is missing')
+    if 'execInternal' in session:
+        raise ValueError('Retired session loop remains')
     runtime = (app / 'streaming/qt/sessionruntime.cpp').read_text()
     for token in ('QThread::create', 's.initialize(m_Factory.get())',
                   's.startConnectionAsync()', 's.runPlankReconnect()', 'm_Input->startTablets',

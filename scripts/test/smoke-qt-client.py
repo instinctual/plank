@@ -15,6 +15,9 @@ def main():
     parser.add_argument('--reports', type=Path, required=True)
     args = parser.parse_args()
     args.reports.mkdir(parents=True, exist_ok=True)
+    linkage = subprocess.check_output(['ldd', str(args.binary.resolve())], text=True)
+    if re.search(r'libSDL', linkage, re.IGNORECASE):
+        raise RuntimeError('Client still depends on SDL')
     for attempt in range(3):
         with tempfile.TemporaryDirectory(prefix='plank-qt-launcher-') as directory:
             environment = os.environ.copy()
@@ -22,10 +25,6 @@ def main():
                 path = Path(directory) / kind.lower()
                 path.mkdir(mode=0o700)
                 environment[f'XDG_{kind}_HOME'] = str(path)
-            # An SDL video probe must fail this test instead of silently opening
-            # a second native connection. Non-video SDL services remain available;
-            # ordinary Ubuntu playback uses PipeWire.
-            environment['SDL_VIDEO_DRIVER'] = 'plank-disabled-for-qt-test'
             report = args.reports / f'launcher-{attempt}.log'
             with report.open('w') as output:
                 process = subprocess.Popen([str(args.binary.resolve())], env=environment,
@@ -48,7 +47,7 @@ def main():
             text = report.read_text(errors='replace')
             if 'Qt launcher ready; decoder qualification deferred' not in text:
                 raise RuntimeError('Qt launcher did not load its real QML window')
-            if re.search(r'SDL_InitSubSystem\(SDL_INIT_VIDEO\)|QQmlApplicationEngine failed|'
+            if re.search(r'QQmlApplicationEngine failed|'
                          r'Cannot assign|ReferenceError:|TypeError:|Assertion.*failed|'
                          r'QObject: Cannot create children|QThread: Destroyed while', text):
                 raise RuntimeError('Qt launcher reported a lifecycle or QML error')

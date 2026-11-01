@@ -12,7 +12,7 @@ A full application rebuild still permits reuse of verified, exact-input
 dependencies. Reserve `--clean-bootstrap` for an explicit dependency-bootstrap
 qualification, not ordinary rebuilds after a merge. All four hosted products
 have exact-input dependency caches. Linux Host retains prepared FFmpeg and
-Boost sources, Ubuntu Client retains patched FFmpeg and SDL, and macOS Client retains
+Boost sources, Ubuntu Client retains patched FFmpeg, and macOS Client retains
 prepared libraries and Qt. The other three products also retain the pinned
 Rust toolchain and downloaded Cargo inputs; macOS Host uses native Apple media
 frameworks, so has no separate FFmpeg/Qt dependency build to cache. Ubuntu may
@@ -34,14 +34,11 @@ configuration. Export `PLANK_SOURCE_ROOT`, `PLANK_CANONICAL_ROOT`, `PLANK_WORK_R
 
 ## Package catalog and source layout
 
-Ubuntu Client builds now require `PLANK_CLIENT_SDL_WORK` from the builder's
-path manifest, prepared by `scripts/build/build-client-sdl.sh`. Hosted builds
-prepare and cache it independently from FFmpeg. The DEB carries the patched
-SDL privately in `/usr/lib/plank`; it never replaces the OS SDL. Package gates
-must resolve `libSDL3.so.0` there with `LD_LIBRARY_PATH` unset, and record the
-SDL source/patch hashes in BUILD-INFO. Do not bypass a missing/stale SDL input
-by linking the distribution library, which still contains the tablet cursor
-retirement defect. Mac Client and Host dependencies are unchanged.
+Desktop Clients use Qt session controls with Linux PipeWire or macOS Core Audio.
+SDL/SDL_ttf are no longer build inputs. Source and package gates reject their
+APIs/linkage. The Linux private runtime contains the qualified FFmpeg libraries;
+Mac packages retain Qt, FFmpeg, OpenSSL and Opus. Never reuse an old prepared
+Mac dependency prefix after this removal: rebuild it through the pinned bootstrap.
 
 Products live under `apps/`; packaging templates under `packaging/<product>/<os>`.
 Git submodule section names remain `host/sunshine-fork` and
@@ -364,8 +361,8 @@ PipeWire/WirePlumber for a private null-sink test daemon, not on the retained VM
 or any user's desktop. It runs PCM/clock/drift tests and real stream lifecycle
 tests normally and under sanitizers. The Ubuntu build must contain
 `app/release/pipewire.o`, not
-`app/release/sdlaud.o`. Preserve the
-shared private SDL dependency for the remaining non-playback uses. Neither
+`app/release/sdlaud.o`. No SDL library may appear in the executable's dependency
+closure. Neither
 daemon tests nor simulated clock drift qualify audible playback/A/V sync:
 require the operator's real-output listening test and long soak afterward.
 
@@ -459,9 +456,11 @@ real PipeWire renderer against an isolated null sink, along with clock/drift
 and sanitizer fixtures. Live validation must still use the actual output
 device, audible playback and an extended A/V synchronization soak.
 
-Retain the prepared, patched SDL3 dependency for remaining non-playback
-consumers and SDL3_ttf. Do not restore libsoundio, `sdl2-compat`, or qualify
-the Ubuntu playback path with the retired SDL audio probe.
+Mac playback and microphone use native Core Audio. Both platforms retain the
+shared A/V clock/resampling policy. Do not restore libsoundio, SDL audio, or
+qualify playback with the retired SDL probe. Native callback fixtures and
+synthetic microphone input exercise lifecycle and bounded buffering without
+opening hardware on a hosted worker.
 
 For a non-interactive diagnostic screenshot of the Client hardware-test target
 under GNOME Wayland, do not retry `gnome-screenshot` over SSH: GNOME rejects
