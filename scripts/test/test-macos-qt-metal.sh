@@ -18,11 +18,11 @@ for fixture in macqtmetal macqtvideo macqtwindow; do
     # Offscreen supplies no native RHI window. These fixtures provide their own
     # Metal device/target and exercise the normal RHI scene graph explicitly.
     platform=offscreen
-    args=()
     if [[ $fixture == macqtwindow ]]; then
         platform=cocoa
+        args=(-o -,txt)
     else
-        args+=("$source_root/apps/client/app/shaders/vt_renderer.metal")
+        args=("$source_root/apps/client/app/shaders/vt_renderer.metal")
     fi
     QT_QPA_PLATFORM=$platform QT_QUICK_BACKEND=rhi QSG_RHI_BACKEND=metal \
         python3 - "$fixture" "${args[@]}" >result.log 2>&1 <<'PY' || status=$?
