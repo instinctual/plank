@@ -190,7 +190,7 @@ deadline and HID-worker lifecycle.
 
 Device-independent regression checks live in `tests/input/linux-recovery`
 (Rocky builder, pinned Host dependencies, `PLANK_BOOST_SOURCE_DIR` pointing to
-the retained Boost 1.89.0 source, and `PLANK_FFMPEG_INCLUDE` to the prepared
+the retained Boost 1.92.0 source, and `PLANK_FFMPEG_INCLUDE` to the prepared
 FFmpeg headers), `scripts/test/test-linux-wacom.sh` (Ubuntu builder), and the
 shared transport's Rust unit tests. The Ubuntu checks also support
 `PLANK_WACOM_SANITIZERS=1`. The standalone Host fixture supplies test input
