@@ -11,12 +11,21 @@ on `client-no-sdl`, based on dependency-refresh root `e7f10d73c14c` and Client
 `7813e7b408d51ce890a926d6315530b0f678191c`. Both checkouts are on that branch.
 The new baseline is **1.3.00**, with the branch qualifier in candidate filenames
 and the visible version. See [the plan](docs/development/plans/client-no-sdl.plan).
-The first implementation is ready for hosted compilation. Removed the retired
+The first implementation is pushed on the feature branch. Removed the retired
 session/input/presentation backends, SDL APIs/build/package inputs and SDL-only
 tests. Mac playback/capture now use native Core Audio with bounded callback
 buffers and device-change recovery. Shared clocks, native keyboard capture,
 codec/color probes, Linux PipeWire and raw Wacom policy remain. Source/CI-policy
 checks pass; no SDL-free package has compiled or received installed acceptance.
+The first clean Linux and Mac dependency bootstraps passed at root
+`f9c364ef91e980b48ab9183fce5890c9aedf6ada` / Client `e583dfc3`.
+Ubuntu run `41345293227` passed raw Wacom recovery and sanitizer tests, then
+found a missing explicit D-Bus development prerequisite in its audio fixtures.
+Mac run `41345295955` found a timer-count assumption in the connectivity fixture.
+The subsequent source adds that prerequisite and checks a pending event-loop
+turn instead of counting coalesced timer callbacks. Core Audio also uses the
+documented AUHAL callback element and permits large output quanta to refill
+within the bounded queue. Continue with hosted builds of the current pushed tip.
 Native audio callbacks, microphone generation recovery and packaging linkage
 have new regression gates; these do not replace live A/V listening/device tests. Host/protocol changes are out of
 scope. Continue on GitHub-hosted builders; do not merge or publish a release.

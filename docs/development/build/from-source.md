@@ -22,7 +22,7 @@ copy a maintainer's `paths.env`, certificates, Cargo cache or prepared FFmpeg.
 Windows is not yet a supported build target.
 
 The macOS Host uses Apple's system capture/encoding frameworks and the Rust
-transport. The private Qt/SDL/FFmpeg dependency stack is needed for the macOS
+transport. The private Qt/FFmpeg dependency stack is needed for the macOS
 Client, not for a Host-only build.
 
 ## Source and dependencies
