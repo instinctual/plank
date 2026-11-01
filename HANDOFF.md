@@ -4,11 +4,40 @@ Read `AGENTS.md` and the relevant build runbook first. Machine-specific access,
 credentials, captures and operational evidence belong in the external private
 notes, never in Git.
 
+## Host cleanup candidates — in progress
+
+Current root and Linux Host branch: `host-cleanup`, based on root `be30580`.
+Linux Host pin `c9bf9f64` removes unreferenced GameStream crypto, bypassed Linux
+encoder registrations/options, the superseded macOS implementation, and old
+CPack/AppImage/Flatpak/Homebrew packaging and distribution build scripts. The
+HTTPS certificate generator remains, with a direct certificate/key regression
+in the hosted Host test filter. x264/direct NVENC, shared DRM/CUDA helpers,
+input, authentication and the explicit RPM manifest remain.
+
+The native Mac Host now uses `-O2`. Display snapshots are reused for at most
+20 ms, with immediate notification/selection/profile invalidation, stable
+revalidation, and no caching of authentication/desktop ownership decisions.
+The synthetic lifecycle test covers query count, expiry/missed notifications,
+change-back events, failed reads and property changes. Optimization and cache
+changes are separate commits. No live performance result is claimed yet.
+
+Candidate version: **1.3.02-host-cleanup**, Host packages only. Local policy
+checks (115), encoder-probe checks (2), Python lock consistency, shell syntax
+and privacy/diff checks pass. Hosted Rocky RPM and signed SDK27/26.7 Mac PKG
+builds are next. No merge, deployment or release. Installed Linux capture,
+color, input/Wacom and Mac login/logout/display/audio/video acceptance remain
+pending, including the same Mac package on 26.7 and 27.
+
+The branch also contains the dependency refresh and SDL-free Client work
+below; Client source remains `7a9704febb24015cb1dac3eb98eb184dffc88353`.
+See [the cleanup plan](docs/development/plans/host-cleanup.plan).
+
 ## Candidates built — SDL-free desktop Clients, version 1.3.01
 
 The operator authorized removing SDL on `client-no-sdl`, based on dependency
 refresh root `e7f10d73c14c` and Client `7813e7b408d51ce890a926d6315530b0f678191c`.
-Both checkouts remain on the feature branch. The new baseline began at **1.3.00**;
+Those branches remain preserved; current work continues on `host-cleanup`.
+The new baseline began at **1.3.00**;
 the follow-up uses `1.3.01-client-no-sdl` without replacing the original packages.
 See [the plan](docs/development/plans/client-no-sdl.plan). No merge or release.
 
