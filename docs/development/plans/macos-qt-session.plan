@@ -1,0 +1,78 @@
+# macOS Qt session parity
+
+## Authorized scope
+
+Develop on `macos-qt-session`, starting from root main
+`21a253aecd4ea75a88d7be6d4b375b955c8d64bd` and Client main
+`2ed1c5f66e90799659002faed6d8f0961c0d4c6f`. Bring the macOS streaming window
+and controls to the shared Qt frontend without changing the Host or protocol.
+Do not integrate the separate, unfinished Apple-native frontend.
+
+Retain one Apple Silicon Client package for macOS15 and newer, compiled with
+SDK27 or newer and the existing pinned dependencies. Hosted Actions perform
+builds and automated checks; installed session acceptance is a separate gate.
+Do not publish or merge an incomplete port. Ubuntu's accepted Qt/PipeWire path
+and the current macOS SDL/Metal frontend remain the comparison baselines.
+
+## Implementation order
+
+1. Prove native Metal rendering and Qt controls share an exact 10-bit SDR
+   target. Qt6.10.2's ordinary Metal SDR swapchain selects BGRA8, regardless
+   of the requested RGB channel sizes. Do not accept that reduction or label
+   SDR identity video as HDR to obtain a wider framebuffer. Investigate the
+   public QQuickRenderControl/QQuickRenderTarget path with an explicit
+   RGB10A2 Metal texture and the existing production video shader. Verify all
+   1,024 gray levels and independent RGB ramps after Qt composition, including
+   5K, resize and target replacement. An offscreen GPU test does not qualify
+   WindowServer, the physical panel or actual decoder support.
+2. Separate the shared Qt scene, toolbar, presentation geometry, bounded frame
+   mailbox and recovery controller from Linux EGL/VA-API/Wayland components.
+   Add a macOS window/Metal adapter using public Qt rendering integration.
+   Reuse the existing VideoToolbox/CoreVideo texture import and software-plane
+   formats, color parameters and scaling math. Never read hardware-decoded
+   frames back to the CPU or silently substitute another codec/profile.
+3. Wire macOS input and lifetime adapters: keyboard scan codes, Accessibility
+   capture with Spaces/focus recovery, ordinary Quit versus remote Command-Q,
+   normalized tablet input and existing raw-Wacom ownership. Reuse clipboard,
+   microphone, camera and permission policy. Preserve custom cursors and keep
+   toolbar input local. Retain the existing macOS SDL/CoreAudio playback
+   backend initially; direct PipeWire is Linux-only, not a generic Qt choice.
+4. Match Ubuntu's session controls: toolbar layout/icons/telemetry, reveal and
+   pinning, display selection, aspect-preserving presentation, window restore
+   size, and automatic network recovery with a Disconnect-only status dialog.
+   Preserve native Mac fullscreen Spaces, Retina logical/backing coordinates,
+   notch-safe content, multiple displays and three-finger switching. Do not
+   copy Linux compositor workarounds into Cocoa without evidence.
+5. Build branch-qualified candidates, then qualify the exact signed package
+   on supported macOS versions. Keep the same installed Client identity,
+   bookmarks, Host trust, administrator policy and logs. Update documented
+   behavior only after the corresponding path is implemented and verified.
+
+## Gates
+
+- Exact-format hardware decode qualification and exact software fallback;
+  8/10-bit, 4:4:4 identity and existing YCbCr profiles, 4K and 5120x2160.
+- One bounded rendering pipeline; no unbounded frame queue, GUI-thread
+  network/decoder waits, or resource release before GPU completion. Confirm
+  presentation feedback remains the audio/video synchronization clock.
+- Shared Ubuntu regression checks after common changes. On Mac, test Metal
+  precision and cleanup, toolbar event delivery, fullscreen/focus transitions,
+  repeated connection/recovery/cancel/Quit and media/input permission timing.
+- Real Mac sessions to Linux and macOS Hosts: smooth video, A/V soak, input,
+  Wacom pressure/buttons, clipboard, microphone, camera, resize and display
+  changes. Compilation or fixture success is not installed acceptance.
+- Keep the operator's active Terminal and other sessions running. No unattended
+  logout, reboot or installation on an occupied machine.
+
+## Source references
+
+- Qt6.10.2 `qtbase/src/gui/rhi/qrhimetal.mm`, `chooseFormats()`.
+- Qt6.10.2 `qtdeclarative/src/quick/scenegraph/qsgrhisupport_mac.mm`.
+- [QQuickRenderControl](https://doc.qt.io/qt-6.10/qquickrendercontrol.html).
+- Existing Client `vt_metal.mm`, `vt_colors.h`, `vt_renderer.metal` and
+  `streaming/qt/` implementation and tests.
+
+## Current state
+
+Branch created; architecture and format feasibility are under investigation.
+No shipping frontend selection, dependency pin or Host behavior has changed.

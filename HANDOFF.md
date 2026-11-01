@@ -4,6 +4,20 @@ Read `AGENTS.md` and the relevant build runbook first. Machine-specific access,
 credentials, captures and operational evidence belong in the external private
 notes, never in Git.
 
+## In progress — macOS Qt session parity
+
+The operator authorized `macos-qt-session` from current main: root
+`21a253aecd4ea75a88d7be6d4b375b955c8d64bd`, Client
+`2ed1c5f66e90799659002faed6d8f0961c0d4c6f`. Both canonical working checkouts are
+on that branch. See [the implementation plan](docs/development/plans/macos-qt-session.plan).
+Begin with a real Metal/Qt ten-bit SDR composition test: Qt6.10.2's ordinary
+Metal SDR swapchain is eight-bit. Preserve exact precision through the public
+custom render-target API before changing the shipping frontend. Keep current
+macOS SDL/CoreAudio playback initially, existing macOS15/SDK27 support, and all
+Ubuntu regression gates. Host, protocol and dependency pins are unchanged.
+No candidate, installation, merge or release has been made for this work.
+Do not interrupt the operator's active Terminal or other Mac sessions.
+
 ## Merged — Client ping details
 
 The operator approved making the Internet indicator open a compact summary of

@@ -51,6 +51,7 @@ run_shared_client_test() {
 # These small policy/network fixtures need no application objects; fail early.
 run_shared_client_test plankclientpolicy
 run_shared_client_test internetconnectivity
+bash "$source_root/scripts/test/test-macos-qt-metal.sh" "$source_root" "$build/tests/qt-metal"
 xcrun clang++ -std=c++17 -include arm_acle.h -mmacosx-version-min="$MACOSX_DEPLOYMENT_TARGET" -Wall -Wextra -Werror \
     -F"$PLANK_QT_ROOT/lib" -I"$client/app" "$source_root/tests/packaging/macos-client-paths.cpp" \
     -framework QtCore -Wl,-rpath,"$PLANK_QT_ROOT/lib" -o "$build/tests/client-paths-test"
