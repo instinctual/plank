@@ -20,7 +20,7 @@ fi
 export CARGO_HOME="$PLANK_CARGO_ROOT" RUSTUP_HOME="$PLANK_RUSTUP_ROOT"
 export PATH="$CARGO_HOME/bin:$PATH"
 # Rust's debug stripping can misalign proc-macro LINKEDIT on macOS 27.
-# Keep compiler inputs intact for both Host targets; do not change Rust.
+# Retain this workaround until removal is qualified on both supported Host targets.
 # See https://github.com/rust-lang/rust/issues/157750.
 export RUSTFLAGS="${RUSTFLAGS:+$RUSTFLAGS }-C strip=none"
 source "$source_root/scripts/build/build-paths.sh"
