@@ -112,7 +112,7 @@ mkdir -p "$build/tests/client-microphone-$timed"
         "QMAKE_CXXFLAGS+=-include arm_acle.h" \
         CONFIG+=release QMAKE_MACOSX_DEPLOYMENT_TARGET="$MACOSX_DEPLOYMENT_TARGET" QMAKE_APPLE_DEVICE_ARCHS=arm64
     make -j2
-    ./client-microphone
+    DYLD_LIBRARY_PATH="$PLANK_MAC_CLIENT_DEPS/install/lib" ./client-microphone
 )
 done
 # Exercise the actual input worker with a queued drag, without a host or UI.
