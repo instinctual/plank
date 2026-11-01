@@ -1,12 +1,12 @@
 # macOS Client build inputs and procedure
 
-Build one experimental Apple Silicon Client for macOS15 and newer with SDK27
+Build one Apple Silicon Client for macOS15 and newer with SDK27
 or newer. The deployment target is 15.0 throughout the app, dependencies, and
 PKG; there is no separate reduced-capability macOS15 edition. Newer APIs must
 use runtime availability checks so macOS27 retains its capabilities. The Host
-stays macOS27-only. Read the canonical release runbook first. Linux builder/test
-roles remain unchanged. Use clean Git worktrees and verified Git bundles
-imported dependency-first, with recursive fetch disabled.
+has a separate macOS26.7 minimum. Read the canonical release runbook first.
+Linux builder/test roles remain unchanged. Use clean Git worktrees and verified
+Git bundles imported dependency-first, with recursive fetch disabled.
 
 `macos-client-target.sh` exports the common deployment policy. Do not set
 `PLANK_MAC_CLIENT_MIN_MACOS=27.0` from an old shell: it is rejected instead of
@@ -78,12 +78,14 @@ Candidate builds must independently reverse-dry-run that patch and verify its
 hash. Private dylibs must be bundled with relocatable install names, licensed,
 signed and closure-checked before any package is offered to a user.
 
-SDL3.4.2 uses its unmodified native fullscreen Spaces implementation. Match
-Client requests the usable logical/backing area below a display's camera inset;
-non-notched displays retain the complete area. No content-size delegate patch
-or custom fullscreen hint is required. The changed bootstrap/cache inputs force
-a fresh hosted dependency build after removal of the experimental SDL patch.
-For local prepared dependencies, rerun the complete bootstrap, not FFmpeg-only.
+Main uses the shared Qt session controls with a native Metal window and Cocoa
+fullscreen Spaces. Match Client requests the usable logical/backing area below
+a display's camera inset; non-notched displays retain the complete area. SDL
+remains a build input for CoreAudio playback and retained comparison code; do
+not remove it or restore the retired SDL fullscreen dependency patch. The Qt
+session port requires no dependency upgrade or private Qt API. See
+[the Qt session plan](../plans/macos-qt-session.plan) for its installed acceptance
+gates and remaining parity work.
 
 The current packaging path is qualified; each new candidate still requires its
 affected live acceptance gates. Do not use the old upstream setup-deps/prebuilts
@@ -129,14 +131,25 @@ the session through signing. The PKG must pass signature verification,
 notarization, stapling and Gatekeeper; collect that exact file in the artifact
 catalog and compare SHA256 on both ends. No DMG wrapper or second notarization
 pass is generated.
-No installer service/autostart is created; uninstall by quitting and moving
-the app to Trash. The PKG creates root-owned `/etc/plank/client.conf` only if
-absent; existing policy is preserved. It ships the latest reference template in
+No installer service/autostart is created. The installed uninstall script can
+remove the app and receipt while retaining settings; see the documented purge
+option for explicit configuration removal. The PKG creates root-owned
+`/etc/plank/client.conf` if absent and adds missing connectivity keys/comments
+without replacing existing values. It ships the latest reference template in
 app Resources. Host installation/permissions are separate and unchanged. See
 [macOS configuration](../../user/macos-configuration.md). Before packaging, run
 `scripts/test/build-macos-configuration.sh SOURCE NEW_OUTPUT`; this compiles and
 tests the actual configuration installer against temporary fixtures, not the
 installed machine. Signing CI already provisions both Developer ID identities.
+
+The build runs the shared Qt control/input fixtures, production Metal rendering
+with constructed CVPixelBuffer and software planes, and native Cocoa window
+lifecycle checks. The Metal checks cover ten-bit identity, 4K/5K, scaling,
+letterboxing and overlay composition. The native fullscreen fixture waits for
+AppKit's completed transition before checking restored window dimensions.
+These gates do not establish real stream decoding, audible synchronization or
+installed input/permission behavior. Qualify the same signed package on macOS15
+and macOS27 as described in the Qt session plan.
 
 ## Known failure signatures
 
@@ -177,24 +190,27 @@ installed machine. Signing CI already provisions both Developer ID identities.
   signed app with permission granted/denied/revoked and focus changes on both
   supported Mac OS versions. Do not enable SDL's optional private CGS grab
   path or restore global hotkey suppression as an alternative.
-- A visible toolbar flashing during a stats update can be a Metal overlay
-  publication race. Build/upload the replacement before exchanging the texture
-  under the overlay lock, and preserve the old image on allocation failure.
+- In the retained SDL comparison frontend, toolbar flashing during a stats
+  update can be a Metal overlay publication race. Build/upload the replacement
+  before exchanging the texture under the overlay lock, and preserve the old
+  image on allocation failure.
   Do not publish an empty slot except for an explicit hide. Every Mac Client
   build runs `macmetaloverlay` against the production updater with deterministic
   allocation/upload stalls, allocation failure, concurrent readers and lifetime
-  checks. The test uses Metal resource doubles without a desktop/GPU; it does
-  not replace the native GPU presentation probe or live flicker acceptance.
+  checks. The test uses Metal resource doubles without a desktop/GPU. Main's
+  toolbar is rendered in the Qt scene; use the Qt Metal/window fixtures and
+  live-session observation to investigate that path.
 - Command-Q reaching the Host and also quitting PLANK is duplicate native
-  shortcut handling, not a transport disconnect. SDL queues the key before
-  AppKit can activate the local Quit menu. The shortcut guard prevents local
-  activation while captured. Explicit menu/Dock shutdown is owned by
+  shortcut handling, not a transport disconnect. The Qt input adapter reuses
+  the native shortcut guard and Accessibility capture queue. The guard prevents
+  local activation while captured. Explicit menu/Dock shutdown is owned by
   MacApplication, which waits for Session readyForDeletion before Qt exits;
   do not restore the removed Qt-to-SDL Quit bridge or treat sessionFinished
   as completed cleanup.
   The `macquitshortcut` native suite runs in every Mac Client build and checks
-  native menu dispatch, capture transitions, restoration and queued SDL input.
-  The macapplication suite checks real Qt application lifetimes separately.
+  native menu dispatch, capture transitions, restoration and the retained SDL
+  input path. The macqtsession fixture checks Qt's Mac key mapping, while the
+  macapplication suite checks real Qt application lifetimes separately.
   Shortcut tests use a harmless Quit target rather than an active remote app;
   a live captured Command-Q/menu/Dock test is still required for acceptance.
 - Rust1.89 proc macros fail under SDK27 stripping: retain `RUSTFLAGS=-C

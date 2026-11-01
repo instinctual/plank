@@ -4,83 +4,77 @@ Read `AGENTS.md` and the relevant build runbook first. Machine-specific access,
 credentials, captures and operational evidence belong in the external private
 notes, never in Git.
 
-## Merged — macOS Qt session; installed validation pending
+## Merged — macOS Qt session; mainline 1.2.13 built
 
-The operator authorized `macos-qt-session` from current main: root
-`21a253aecd4ea75a88d7be6d4b375b955c8d64bd`, Client
-`2ed1c5f66e90799659002faed6d8f0961c0d4c6f`. The operator then explicitly
-authorized merging the current integration. Both canonical working checkouts
-are back on main. See [the implementation plan](docs/development/plans/macos-qt-session.plan).
-The branch now has a shared Qt scene/frame presenter, a worker-driven native
-Metal window, retained VideoToolbox imports, Mac key/Wacom/clipboard adapters
-and asynchronous rendering teardown. Tested Client source is
-`365506fd8550b410eb1fa66da7ee439c3713ef6e`; candidate version is
-**1.2.13-macos-qt-session**. Host, protocol and dependency pins are unchanged.
-Mac playback remains SDL/CoreAudio; PipeWire is Linux-only. Mac Qt selection is
-now enabled on main. The root integration includes branch tip
-`b8efef8060981920bce76a1d026d61fc70e0e459`, and the Client integration includes
-the tested source above. Both were clean fast-forwards; follow-up documentation
-and the corresponding Client gitlink update do not alter the tested code.
-No installed acceptance, new mainline package or release is implied by the merge.
+The operator authorized `macos-qt-session`, then explicitly approved merging the
+current integration and building from main. Both canonical checkouts are on
+main. Package source is root `34ea2629494470eba18ad6cf277c3aa791b9f06c`, Client
+`7edb5c3b1d50765afeca2d93c9dca6293d54606c`. The Client differs from the previously
+tested `365506fd8550b410eb1fa66da7ee439c3713ef6e` only in its README. Both
+integrations were clean fast-forwards from root `21a253a` / Client `2ed1c5f`;
+Host, protocol and dependency pins are unchanged. Later notes/runbook commits
+do not change the packaged source. See [the plan](docs/development/plans/macos-qt-session.plan).
 
-[Signed Mac run 41266907927](https://github.com/instinctual/plank/actions/runs/41266907927)
-passed the full application build, production Metal/CVPixelBuffer and
-software-plane tests, native Cocoa resize/hide/show/fullscreen/shutdown, and
-existing keyboard, Quit, clipboard, audio and permission checks. Exact package
-source is root `687e53ccc23c1b39da36ba5f2982d23299d578a2`, Client tip above.
-The renderer preserved all 1,024 ten-bit identity levels at
-4K/5K, 8-bit identity and full-range BT.709 4:2:0; crop/letterbox and 2x/16x area
-minification also passed. The fixture uses constructed decoder surfaces, not a
-real hardware-decoding session. Native command-buffer access is captured during
-Qt's afterRendering callback, before Qt clears that resource and commits the
-submission. No private Qt API or dependency patch is required.
-Native fullscreen now restores the previous window frame after Cocoa's completed
-transition, and the unchanged round-trip test passed. The toolbar fixture was
-visually inspected: the labels, values, icons and slider fit the shared layout.
+Main now selects the shared Qt scene/controls and a worker-driven native Metal
+window on Mac, with retained VideoToolbox imports, Mac key/Wacom/clipboard
+adapters and asynchronous rendering teardown. Mac playback remains
+SDL/CoreAudio; PipeWire is Linux-only. Ubuntu includes the shared Qt window/frame
+refactoring, so do not call all source changes Mac-only. Its Linux decoding,
+GPU presentation and PipeWire paths remain in use without intended behavior changes.
 
-Mac artifact `13067917586` passed Developer ID signing, notarization, stapling,
-Gatekeeper, minimum-OS/dependency and package checks. It is checksum-verified at
-`artifacts/packages/candidates/1.2.13-macos-qt-session/macos/`:
-`plank-client_1.2.13-macos-qt-session_arm64.pkg`, 73,047,247 bytes, SHA-256
-`ac89d7c1d1ead465e86269fbd8f0f848bd8b59dd46e41fef3705622c0a8d544a`.
-The single Apple Silicon package still targets macOS15+ using SDK27.
+Both GitHub-hosted mainline builds passed using verified dependency caches:
 
-[Ubuntu run 41266230819](https://github.com/instinctual/plank/actions/runs/41266230819)
-passed the final common-code regression: full Client/DEB build and
-Qt/PipeWire/sanitizer/compositor/launcher/upgrade gates, from root
-`e86a04f62e55a7c0e6f61b0167d830e3cdc69686`, Client
-`6039600ac36181ea03d2342b1d8bdb9ee01b1f73`. Later changes are Mac-specific
-fullscreen handling/tests and documentation. Live GPU handoff is still unavailable
-on the hosted Linux GL driver; real hardware acceptance is not implied.
-Ubuntu's source does include the shared Qt window/frame-presentation refactoring;
-do not describe the entire branch as Mac-only. Its Linux-specific decoding,
-GPU presentation and direct PipeWire audio paths remain in use, with no intended
-behavior change. No Ubuntu Client has been remotely updated for this work.
-Artifact `13068340124` is checksum-verified and collected under
-`artifacts/packages/candidates/1.2.13-macos-qt-session/linux/`:
-`plank-client_1.2.13-macos-qt-session_amd64.deb`, 17,202,124 bytes, SHA-256
-`adf92267cea3ea38eb4a4d3522ef7560276b1354aab226b07a72034a7bf4a79c`.
-Both platforms' original manifests, full logs, run metadata, captures and Ubuntu
-qualification artifact `13068235427` are retained under
-`artifacts/qualification/macos-qt-session-1.2.13/`. Catalog checksums pass;
-download staging was removed. Both builds used GitHub-hosted workers. Exact
-branch signing access is configured in `macos-signing`; no broad policy bypass.
-Local source-policy checks passed 29 cases. The Mac candidate also adds extended
-keyboard parity, a native fullscreen round-trip test and a toolbar fixture capture.
+- [Signed Mac run 41268713184](https://github.com/instinctual/plank/actions/runs/41268713184),
+  artifact `13067739407`: full Client, Qt controls/key mapping, production
+  Metal/CVPixelBuffer and software-plane rendering, native Cocoa window lifecycle,
+  existing keyboard/Quit/clipboard/audio/permission checks, Developer ID signing,
+  notarization, stapling, Gatekeeper and package/deployment-target checks.
+- [Ubuntu run 41268712777](https://github.com/instinctual/plank/actions/runs/41268712777),
+  package artifact `13068786795`, qualification artifact `13068911318`: full
+  Client/DEB build, Qt/PipeWire/Wacom, sanitizer, compositor, two-monitor,
+  launcher and package-upgrade checks. Isolated daemon/compositor cases pass
+  in their dedicated suites. The hosted GL driver lacks external semaphores;
+  the live GPU-handoff gate remains unqualified.
 
-Next: install the Mac candidate and follow the plan's first-session checklist
-(hardware decode, 4K/5K, Retina, Spaces, Wacom, audio sync, microphone, clipboard
-and network recovery). No Host update is required. The identical package needs
-session acceptance on macOS15 and macOS27 before release.
-The old Mac pointer-confinement shortcut is not implemented in this candidate;
-document and resolve it before claiming complete feature parity.
-Mac webcam capture also remains unimplemented, as before this port; the shared
-toolbar alone does not add a capture backend. Earlier failed fullscreen runs
-`41266228677` and `41266525052` remain recorded; their correction passed in the
-signed candidate without weakening the assertion. No build remains active.
-Later documentation commits do not change the packaged source or its provenance.
-Candidate filenames and manifests retain their original branch and commits;
-rebuild from main when requested rather than relabeling these artifacts.
+Collected and checksum-verified under `artifacts/packages/releases/1.2.13/`:
+
+- `macos/plank-client_1.2.13_arm64.pkg`, 73,047,427 bytes, SHA-256
+  `97c29bb82360156d741ff6e1d013b51e72c9a4ec49154f2b554abcb33bdde03d`.
+  One Apple Silicon package, macOS15 minimum, built with SDK27.
+- `linux/plank-client_1.2.13_amd64.deb`, 17,202,264 bytes, SHA-256
+  `6d3db71e74dcd9ce9611c37d32f4bee5e50cd1ebff73eaac31bc40b08263ef4c`.
+  Ordinary Ubuntu26.04 Client identity; no separate Qt app or settings namespace.
+
+Original manifests, run metadata, complete logs, qualification reports and
+captures are in `artifacts/qualification/main-1.2.13/`. Package gates passed;
+functional acceptance remains `not-recorded`. This catalog location denotes a
+mainline build, not a published GitHub release. No package has been installed
+for this task and no Host update is required. Download staging was removed.
+
+Mac Metal fixtures preserve all 1,024 ten-bit identity levels at 4K/5K, 8-bit
+identity and full-range BT.709 4:2:0; crop/letterbox and 2x/16x minification pass.
+These are constructed decoder surfaces, not a real hardware-decoding session.
+Native command-buffer access is captured during Qt's afterRendering callback,
+before Qt clears that resource and commits submission. No private Qt API or
+dependency patch is required. The fullscreen round-trip fixture waits for native
+completion and requires the prior resized normal window; the shell restores its
+saved frame after Cocoa did-exit. The mainline toolbar capture was inspected:
+labels, values, pin/drag/window icons and slider fit the shared layout.
+
+The previous `1.2.13-macos-qt-session` packages and their exact provenance remain
+under `artifacts/packages/candidates/1.2.13-macos-qt-session/`; reports are in
+`artifacts/qualification/macos-qt-session-1.2.13/`. Successful candidate runs were
+Mac `41266907927` and Ubuntu `41266230819`. Earlier fullscreen failures
+`41266228677` and `41266525052` were fixed without weakening the size assertion.
+
+Next: install the mainline Mac package and follow the plan's first-session
+checklist: exact hardware/software decoding, 4K/5K, Retina/Spaces, Wacom, audio
+sync, microphone, clipboard and network recovery against both Host platforms.
+The identical package needs session acceptance on macOS15 and macOS27 before
+release. The old Mac pointer-confinement shortcut is not implemented; resolve it
+before claiming full parity. Mac webcam capture also remains unimplemented, as
+before this port; the shared toolbar does not add a capture backend. Preserve
+the comparison frontend until the relevant acceptance gates are resolved.
 Do not interrupt the operator's active Terminal or other Mac sessions. No
 hardware machine has been accessed for this task.
 

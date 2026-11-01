@@ -86,14 +86,17 @@ software-plane rendering passed in signed run 41266907927: 8/10-bit identity and
 BT.709 4:2:0, 4K/5K resize, overlay composition, crop/letterbox and 2x/16x
 minification. Its native Cocoa window also passed repeated resize/hide/show,
 fullscreen frame restoration and asynchronous shutdown. That run compiled the
-full application and passed the existing keyboard, Quit, clipboard and permission fixtures. These are
-constructed decoder surfaces, not an installed hardware-decoding session.
+full application and passed the existing keyboard, Quit, clipboard and permission
+fixtures. These are constructed decoder surfaces, not an installed
+hardware-decoding session.
 The native fullscreen check waits for AppKit's completion notifications and
 requires the same resized normal window after returning from fullscreen.
 The shell preserves that frame at will-enter and restores it after did-exit,
 instead of resizing during Qt's earlier requested state change.
-The signed, notarized 1.2.13-macos-qt-session installer is collected locally;
-the final Ubuntu common-code regression also passed (run 41266230819).
+The branch candidates passed, followed by mainline 1.2.13 builds from root
+`34ea262`: signed Mac run `41268713184` and Ubuntu run `41268712777` both passed.
+Their checksum-verified installers and original manifests are collected locally;
+see HANDOFF for paths and exact source provenance.
 
 Mac input reuses the existing Accessibility tap and raw-HID owner with a Qt
 queue wake, preserving its bounded queue and focus recovery. Qt Cocoa physical

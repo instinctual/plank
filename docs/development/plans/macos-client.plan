@@ -5,11 +5,16 @@ Status: source integration into main authorized September11; developed on
 `76979b90069916b593800277a24a31a03e0b778d`. Preserve Linux behavior. The remaining
 interactive qualification gates below are not implied complete by this merge.
 
+This records the original Mac Client port. The later
+[Qt session integration](macos-qt-session.plan) supersedes its SDL window/input
+details; consult that plan and HANDOFF for current implementation and acceptance
+status. The Client minimum is15.0; the separately packaged Host minimum is26.7.
+
 ## Scope
 
 September17 update: the operator authorized one SDK27-built Apple Silicon Client
 package with a macOS15.0 minimum, preserving macOS27 features with runtime API
-availability checks. The Host remains27-only. See the current
+availability checks. At that checkpoint the Host remained27-only. See the current
 Mac Client build runbook and `macos15-integration-review.md` for qualification;
 the milestones below describe the initial macOS27 implementation.
 

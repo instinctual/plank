@@ -6,7 +6,9 @@ The operator approved merging this frontend, subsequent USB Wacom recovery,
 and the independent CUDA Host candidate. Qt now replaces the ordinary Ubuntu
 Client; it is not a separate product. Preserve the existing PLANK application
 and desktop identity, bookmarks, trust, administrator policy and log locations.
-macOS keeps its current SDL/Metal implementation.
+That Ubuntu promotion retained the macOS SDL/Metal frontend. The later
+[macOS Qt session integration](macos-qt-session.plan) is now merged separately;
+Mac playback remains SDL/CoreAudio and Ubuntu playback remains PipeWire.
 
 Use the ordinary hosted `linux-client` build. It runs the Qt/PipeWire/Wacom,
 sanitizer, compositor, launcher and package-upgrade gates, builds the full
