@@ -20,7 +20,7 @@ for option in "${@:3}"; do
 done
 case $macos_host_min_os in 27.0|26.7) ;; *) exit 2;; esac
 [[ $macos_host_min_os != 27.0 || $product == macos-host ]] || exit 2
-case $product in all|linux-host|linux-client|macos-host|macos-client|macos-fullscreen-probe) ;; *) exit 2 ;; esac
+case $product in all|linux-host|linux-client|macos-host|macos-client|macos-fullscreen-probe|dependency-tests) ;; *) exit 2 ;; esac
 case $signed in
   false) ;;
   true) case $product in macos-host|macos-client|macos-fullscreen-probe) ;; *) exit 2;; esac ;;

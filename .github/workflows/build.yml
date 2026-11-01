@@ -10,7 +10,7 @@ on:
         description: Product to rebuild (all on ordinary push/PR)
         type: choice
         default: all
-        options: [all, linux-host, linux-client, macos-host, macos-client, macos-fullscreen-probe]
+        options: [all, linux-host, linux-client, macos-host, macos-client, macos-fullscreen-probe, dependency-tests]
       source_sha:
         description: Expected commit (optional in UI; required by the dispatch helper)
         type: string
@@ -43,6 +43,10 @@ env:
   REQUESTED_MACOS_HOST_MIN_OS: ${{ inputs.macos_host_min_os || '26.7' }}
 
 jobs:
+  dependency-tests:
+    if: ${{ inputs.product == 'dependency-tests' }}
+    uses: ./.github/workflows/dependency-qualification.yml
+
   policy:
     runs-on: ubuntu-26.04
     timeout-minutes: 10
