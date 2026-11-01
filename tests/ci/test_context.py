@@ -70,6 +70,17 @@ class ContextTests(unittest.TestCase):
         actions = re.findall(r'uses: ([^\s]+)', workflow)
         self.assertTrue(actions)
         for action in actions:
+            if action == './.github/workflows/dependency-qualification.yml':
+                # Same-commit reusable workflow; no signing or write authority.
+                nested_workflow = (ROOT / action).read_text()
+                for forbidden in ['pull_request_target', 'secrets.', 'contents: write', 'self-hosted']:
+                    self.assertNotIn(forbidden, nested_workflow)
+                self.assertIn('contents: read', nested_workflow)
+                for nested in re.findall(r'uses: ([^\s]+)', nested_workflow):
+                    self.assertRegex(nested, r'@([0-9a-f]{40})$')
+                self.assertEqual(nested_workflow.count('actions/checkout@'),
+                                 nested_workflow.count('persist-credentials: false'))
+                continue
             if action == './.github/actions/dependency-cache':
                 # Local code is pinned by the checked-out root commit. Its
                 # external actions must obey the same immutable-SHA policy.

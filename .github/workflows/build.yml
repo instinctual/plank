@@ -45,6 +45,7 @@ env:
 jobs:
   dependency-tests:
     if: ${{ inputs.product == 'dependency-tests' }}
+    needs: policy
     uses: ./.github/workflows/dependency-qualification.yml
 
   policy:
