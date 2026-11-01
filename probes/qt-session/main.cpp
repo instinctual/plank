@@ -67,7 +67,7 @@ int main(int argc, char** argv)
     if (parser.isSet("native-child")) shell = std::make_unique<QtSessionShell>();
     else standalone = std::make_unique<QtSessionWindow>();
     QtSessionWindow& window = shell ? shell->surface() : *standalone;
-    if (window.status() != QQuickView::Ready) return 1;
+    if (window.status() != QQmlComponent::Ready) return 1;
     QWindow* topLevel = shell ? static_cast<QWindow*>(shell.get()) : &window;
     topLevel->setScreen(app.screens().at(screen));
     // This is an illustrative letterboxed *test* canvas, not a negotiated
