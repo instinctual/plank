@@ -77,17 +77,13 @@ callers, both lockfiles and documented repairs together. Never remove that path
 override merely to make a bot PR compile. The vendored crate's own Cargo.lock
 is not the production dependency lockfile.
 
-The pinned Vulkan Loader is 1.4.362, commit
-`b8b96a2862bff1eed468e602d43f706beae89cf1`, with the required ID-filter
-allocation repair in build-deps. It returns `VK_ERROR_OUT_OF_HOST_MEMORY` and
-propagates failure through both enumeration APIs and cleanup. Bootstrap, cache
-validation and package preflight require that patch; a newer Loader must not
-silently drop it. Twelve fault-injection cases failed on the unpatched candidate
-and passed with the repair; the repaired candidate passed 713 Loader tests.
-Retain/reproduce those negative controls when upgrading the changed allocation
-code. The [qualification record](reviews/vulkan-loader-qualification.md) records
-the clean Host build and hardware checks without implying new Vulkan encoding
-support or complete interactive acceptance. The operator's current NVIDIA
+The pinned Vulkan Loader/Headers pair is 1.4.367 (Loader `aa6dee8385afe4b2cc0152d086af2184743e16fd`).
+The allocation-failure fix is now upstream. Require unmodified pinned production
+sources, retain the 24-case fault-injection test patch and reproduce its negative
+control before accepting this upgrade. The old
+[qualification record](reviews/vulkan-loader-qualification.md) records results
+for 1.4.362; do not treat them as acceptance of the new pair.
+The operator's current NVIDIA
 baseline is 595.104.02; historical qualification records retain their actual
 tested driver. CUDA 13.2 Update 2 (NVCC 13.2.86) is the separate Host toolchain
 candidate. The current NVENC headers remain SDK 13.0.19: the proposed 13.1

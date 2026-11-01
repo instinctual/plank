@@ -74,20 +74,19 @@ The Loader source copy intentionally omits its upstream `tests/` directory;
 the verifier allows only tracked deletions there, not modified tests or deleted
 production source. NUL-delimited Git paths preserve upstream Unicode filenames.
 
-Vulkan Loader 1.4.362 requires
-`patches/FFmpeg/Vulkan-Loader/01-handle-id-filter-allocation-failure.patch`.
-It propagates ID-filter allocation failure as `VK_ERROR_OUT_OF_HOST_MEMORY`
-through both physical-device enumeration APIs and their cleanup paths. It is
-applied even when optional FFmpeg patches are disabled. Bootstrap, cache and
-package preflight independently verify the generated Loader source; the separate
-upstream-framework test patch is not applied to production dependency sources.
-Run `tests/packaging/test-host-dependency-patches.py` to check that stale,
-unpatched, incompatible or unexpectedly modified prepared sources are rejected.
-See [the qualification record](../reviews/vulkan-loader-qualification.md) for
-the original clean build, fault-injection tests and hardware-check limits.
+Vulkan Loader/Headers are pinned together at 1.4.367. The Loader now includes
+upstream ID-filter allocation checks, error propagation and cleanup. The local
+production patch is removed; package preflight requires the exact unmodified
+upstream production source. The retained test patch expands fault injection to
+both allocations in each filter (24 cases), with an intentionally broken
+negative control in a disposable worktree. Run the hosted
+`dependency-qualification.yml` workflow and
+`tests/packaging/test-host-dependency-patches.py`; build checks do not replace
+hardware acceptance. The [earlier qualification record](../reviews/vulkan-loader-qualification.md)
+retains the actual results for the prior Loader, not this upgrade.
 
 The active selection is controlled by the pinned build-deps CMake options and
-therefore may include patches for FFmpeg CBS, AMF, Vulkan, x264 integration,
+therefore may include patches for FFmpeg CBS, Vulkan, x264 integration,
 NV codec headers, libva, or SVT-AV1. The PLANK Host
 bootstrap configuration is the authority for which members are selected; no
 selected member may be silently skipped.
@@ -111,8 +110,8 @@ package preflight before shipping it.
 ## Pinned dependencies without PLANK patches
 
 - Boost 1.92.0 is extracted from its SHA-256-pinned release archive and is not
-  patched. The 2026-09-02 audit compared the retained source recursively with
-  a fresh extraction and found no differences.
+  patched. Its archive hash and prepared-source version are checked during
+  bootstrap and package preflight.
 - Rust dependencies resolve from committed lockfiles and the retained Cargo
   cache with `--locked --offline`; there is no post-fetch source mutation.
 - Kymux, common-c, qmdnsengine, and Host recursive dependencies are exact Git

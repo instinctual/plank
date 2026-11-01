@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Prove the Host package preflight independently requires Loader repairs."""
+"""Prove Host preflight requires FFmpeg patches and pristine upstream Loader source."""
 from pathlib import Path
 import shutil
 import subprocess
@@ -32,6 +32,8 @@ class HostDependencyPatches(unittest.TestCase):
             # these without -z, which can hide their tests/ prefix from a parser.
             (source / 'tests/unicode-\N{SNOWMAN}.c').write_text('unicode test\n')
             subprocess.run(['git', '-C', str(source), 'add', '.'], check=True)
+            if dependency == 'Vulkan-Loader':
+                continue
             patch_dir = self.patches / dependency
             patch_dir.mkdir(parents=True)
             (patch_dir / '01-required.patch').write_text(
@@ -48,30 +50,30 @@ class HostDependencyPatches(unittest.TestCase):
         for _ in range(2):
             result = self.verify()
             self.assertEqual(result.returncode, 0, result.stdout)
-            self.assertIn('present:FFmpeg/Vulkan-Loader/01-required.patch', result.stdout)
-            self.assertIn('host_dependency_patch_count=2', result.stdout)
+            self.assertIn('host_dependency_loader_upstream_source_gate=pass', result.stdout)
+            self.assertIn('host_dependency_patch_count=1', result.stdout)
 
-    def test_unpatched_loader_is_rejected(self):
-        (self.loader / 'value.c').write_text('before\n')
+    def test_modified_loader_is_rejected(self):
+        (self.loader / 'value.c').write_text('modified allocation path\n')
         result = self.verify()
         self.assertNotEqual(result.returncode, 0)
-        self.assertIn('missing or conflicts with patch:', result.stdout)
-
-    def test_incompatible_loader_is_rejected(self):
-        (self.loader / 'value.c').write_text('incompatible\n')
-        self.assertNotEqual(self.verify().returncode, 0)
+        self.assertIn('differs from pinned upstream production source', result.stdout)
 
     def test_extra_tracked_loader_change_is_rejected(self):
         (self.loader / 'other.c').write_text('unexpected\n')
-        result = self.verify()
-        self.assertNotEqual(result.returncode, 0)
-        self.assertIn('unexpected tracked modification count', result.stdout)
+        self.assertNotEqual(self.verify().returncode, 0)
 
-    def test_missing_loader_patch_directory_is_rejected(self):
-        shutil.rmtree(self.patches / 'Vulkan-Loader')
+    def test_missing_loader_directory_is_rejected(self):
+        shutil.rmtree(self.loader)
         result = self.verify()
         self.assertNotEqual(result.returncode, 0)
-        self.assertIn('patch group is unavailable', result.stdout)
+        self.assertIn('Loader source is unavailable', result.stdout)
+
+    def test_unpatched_ffmpeg_is_rejected(self):
+        (self.build / 'FFmpeg/FFmpeg/value.c').write_text('before\n')
+        result = self.verify()
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn('missing or conflicts with patch:', result.stdout)
 
     def test_intentionally_omitted_loader_tests_are_allowed(self):
         shutil.rmtree(self.loader / 'tests')
@@ -100,9 +102,9 @@ class HostDependencyPatches(unittest.TestCase):
         self.assertNotEqual(result.returncode, 0)
         self.assertIn('patch backup or reject files', result.stdout)
 
-    def test_empty_loader_patch_directory_is_rejected(self):
-        (self.patches / 'Vulkan-Loader/01-required.patch').unlink()
-        (self.loader / 'value.c').write_text('before\n')
+    def test_empty_ffmpeg_patch_directory_is_rejected(self):
+        (self.patches / 'FFmpeg/01-required.patch').unlink()
+        (self.build / 'FFmpeg/FFmpeg/value.c').write_text('before\n')
         result = self.verify()
         self.assertNotEqual(result.returncode, 0)
         self.assertIn('patch group is empty', result.stdout)

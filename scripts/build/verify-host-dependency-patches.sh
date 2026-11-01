@@ -103,9 +103,26 @@ verify_patch_group() {
 verify_patch_group \
   "${build_dir}/FFmpeg/FFmpeg" \
   "${patch_root}/FFmpeg/FFmpeg"
-verify_patch_group \
-  "${build_dir}/FFmpeg/Vulkan-Loader" \
-  "${patch_root}/FFmpeg/Vulkan-Loader" tests
+
+# The pinned upstream Loader now includes our allocation-failure repair.
+# Require its production source byte-for-byte, allowing only the intentional
+# removal of upstream test fixtures during preparation.
+loader_source="${build_dir}/FFmpeg/Vulkan-Loader"
+[[ -d $loader_source ]] || {
+  echo 'prepared Vulkan Loader source is unavailable' >&2; exit 1;
+}
+loader_git=$(git -C "$loader_source" rev-parse --absolute-git-dir)
+while IFS= read -r -d '' status && IFS= read -r -d '' path; do
+  if [[ $status != D || $path != tests/* ]]; then
+    echo 'prepared Vulkan Loader differs from pinned upstream production source' >&2
+    exit 1
+  fi
+done < <(git --git-dir="$loader_git" --work-tree="$loader_source" diff --no-renames --name-status -z)
+if find "$loader_source" -type f \( -name '*.orig' -o -name '*.rej' \) \
+    -print -quit | grep -q .; then
+  echo 'prepared Loader contains patch backup or reject files' >&2; exit 1
+fi
+echo 'host_dependency_loader_upstream_source_gate=pass'
 
 ((patch_count > 0)) || {
   echo "no active Host dependency patches were verified" >&2
