@@ -47,6 +47,10 @@ Qt/PipeWire/sanitizer/compositor/launcher/upgrade gates, from root
 `6039600ac36181ea03d2342b1d8bdb9ee01b1f73`. Later changes are Mac-specific
 fullscreen handling/tests and documentation. Live GPU handoff is still unavailable
 on the hosted Linux GL driver; real hardware acceptance is not implied.
+Ubuntu's source does include the shared Qt window/frame-presentation refactoring;
+do not describe the entire branch as Mac-only. Its Linux-specific decoding,
+GPU presentation and direct PipeWire audio paths remain in use, with no intended
+behavior change. No Ubuntu Client has been remotely updated for this work.
 Artifact `13068340124` is checksum-verified and collected under
 `artifacts/packages/candidates/1.2.13-macos-qt-session/linux/`:
 `plank-client_1.2.13-macos-qt-session_amd64.deb`, 17,202,124 bytes, SHA-256
