@@ -69,10 +69,10 @@ See `tests/protocol/clipboard-sync-v1.json`.
 
 ## Client behavior
 
-The macOS client reads and writes `NSPasteboard` only on the SDL main thread.
-It polls every 250 ms while the stream has input focus. A copy made in another
+The macOS Client reads and writes `NSPasteboard` only on the Qt GUI thread.
+Its session timer polls every 100 ms while the stream has input focus. A copy made in another
 Mac application is sent after focus returns to the stream. Host offers are
-queued without event-owned heap payloads and carry a session epoch so events
+retained in a bounded pending value and carry a session epoch so offers
 from an earlier connection cannot apply after reconnect.
 
 The client deduplicates repeated Host text only while it still owns that
@@ -82,8 +82,9 @@ generations against its independent outbound generation. Failed transport
 sends retain the exact unsent chunk and generation for the next poll; newer
 local copies supersede unfinished offers. Oversize or embedded-NUL copies are
 not truncated, transmitted or reported as successful. One copy is bounded to
-65 input chunks. Failure to queue a Host offer on the
-SDL event loop terminates the affected session.
+65 input chunks. The Qt session timer applies pending Host text on the GUI
+thread; transport callbacks never access the pasteboard or queue per-chunk GUI
+payloads. Malformed Host offers terminate the affected session.
 
 ## Host behavior
 

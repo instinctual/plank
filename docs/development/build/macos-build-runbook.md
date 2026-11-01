@@ -1027,13 +1027,10 @@ link qualification remains separate; these are not hardware acceptance tests.
 Do not run an old Client against a new common-c header/library: service flags
 are an explicit internal struct contract, with no old-ABI inference.
 
-For an uninstalled full-GUI startup diagnostic on linux-client-builder, keep isolated
-XDG config/state/cache/runtime directories and use both
-`QT_QPA_PLATFORM=offscreen` and `SDL_VIDEODRIVER=offscreen`. The SDL `dummy`
-driver is not a substitute: both the unchanged 1.0.34 binary and the Mac-profile
-build crash at `PlVkRenderer::initialize` when its Vulkan loader is unavailable.
-The ordinary package `--version` check does not enter that renderer path.
-Bound full-GUI probes with `timeout --kill-after=2s 8s` because the application's
-SDL signal handler can consume SIGTERM without exiting its idle Qt main loop.
-This diagnostic does not qualify compositor behavior, decoder hardware, visual
-layout or session teardown; those need the actual hardware-test target.
+For an uninstalled Client startup diagnostic on a hosted Ubuntu builder, keep
+isolated XDG config/state/cache/runtime directories and use
+`QT_QPA_PLATFORM=offscreen`. The Client has no SDL runtime or SDL video-driver
+setting. The package `--version` check establishes Qt startup and runtime
+dependency closure, not streaming. Bound full-GUI probes with
+`timeout --kill-after=2s 8s`; compositor behavior, decoder hardware, visual layout
+and session teardown require the dedicated suites and hardware-test target.

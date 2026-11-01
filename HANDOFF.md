@@ -4,15 +4,26 @@ Read `AGENTS.md` and the relevant build runbook first. Machine-specific access,
 credentials, captures and operational evidence belong in the external private
 notes, never in Git.
 
-## Candidates built — SDL-free desktop Clients, version 1.3.00
+## SDL-free desktop Clients — 1.3.01 cleanup qualification
 
 The operator authorized removing SDL on `client-no-sdl`, based on dependency
 refresh root `e7f10d73c14c` and Client `7813e7b408d51ce890a926d6315530b0f678191c`.
-Both checkouts remain on the feature branch. The new baseline is **1.3.00**;
-candidate filenames and the visible version use `1.3.00-client-no-sdl`.
+Both checkouts remain on the feature branch. The new baseline began at **1.3.00**;
+the follow-up uses `1.3.01-client-no-sdl` without replacing the original packages.
 See [the plan](docs/development/plans/client-no-sdl.plan). No merge or release.
 
-Current Client implementation: `72b629d3` (this root pins the complete SHA).
+Current Client implementation: `7a9704fe` (this root pins the complete SHA).
+The 1.3.01 follow-up removes only the unused libswscale application link and
+updates the visible changelog. Package gates reject SDL and swscale runtime
+dependencies on both platforms. Prepared FFmpeg libraries/tools are unchanged;
+no rendering, buffering or timing policy changed. Protocol and build documents
+now describe Qt cursor/clipboard/reconnect ownership and native audio rather
+than retired SDL paths. Historical results remain identified as historical.
+The source gate, 115 CI-policy tests, portable Mac target/icon checks and A/V
+telemetry analyzer pass. Native Mac tests are reserved for the hosted builder.
+Refreshed Ubuntu and signed Mac package qualification is pending.
+
+The original 1.3.00 packages below use Client `72b629d3` and remain intact.
 The superseded SDL session, input, presentation, audio, dependency bootstrap,
 package linkage and SDL-only tests are removed. Qt owns both desktop session
 lifecycles. Linux keeps PipeWire; Mac playback and microphone capture use Core
@@ -57,8 +68,8 @@ remains a hardware gate; isolated daemon/compositor cases pass in their own suit
 Both catalog checksums match the original hosted manifests. Complete logs,
 run metadata, manifests and qualification artifacts are retained under
 `artifacts/qualification/client-no-sdl-1.3.00/`; duplicate download staging was
-removed. No build remains running. Later documentation commits do not change
-either package's recorded source. The Linux-only packaging correction explains
+removed. The 1.3.00 build runs are complete; the new cleanup is separate.
+Later commits do not change either package's recorded source. The Linux-only packaging correction explains
 the two root source commits; both packages use Client `72b629d3`.
 
 Only the exact `client-no-sdl` branch was added to `macos-signing`; no reviewer

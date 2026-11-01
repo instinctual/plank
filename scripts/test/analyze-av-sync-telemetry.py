@@ -33,7 +33,7 @@ class Point:
 
 
 def unwrap_ticks(raw_ticks: list[int]) -> list[int]:
-    """Expand wrapping SDL 32-bit millisecond ticks."""
+    """Expand wrapping 32-bit monotonic millisecond ticks."""
 
     output: list[int] = []
     epoch = 0
@@ -122,7 +122,7 @@ def linear_slope(series: list[tuple[float, float]]) -> float:
 def parse_log(
     lines: list[str],
 ) -> tuple[list[Point], list[Point], list[Point], list[int], int | None]:
-    """Parse audio and video samples from Moonlight log lines."""
+    """Parse audio and video samples from PLANK Client log lines."""
 
     audio_raw: list[
         tuple[int, int, int, int | None, int | None, int | None, int | None]

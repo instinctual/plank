@@ -12,7 +12,7 @@ position. Both are mandatory. A missing bit is a connection error; there is no
 embedded-video cursor fallback, compatibility mode, configuration switch, or
 migration path.
 
-The experimental macOS Host has a distinct, explicitly negotiated embedded
+The macOS Host has a distinct, explicitly negotiated embedded
 cursor contract; see `docs/architecture/macos-input.md`. It does not advertise these local
 cursor bits. This platform choice does not relax either Linux requirement or
 permit a missing Linux cursor capability to select an embedded fallback.
@@ -46,22 +46,22 @@ control peer is ready and sends a replacement whenever the X cursor serial
 changes. A fully transparent cursor is sent with visibility cleared. Cursor
 hotspots on transparent Xorg placeholder images are normalized into the image
 bounds because they have no visible semantic meaning. For ordinary mouse input,
-the Wayland compositor cursor remains authoritative. For raw-HID Wacom input,
+the Client OS cursor remains authoritative. For raw-HID Wacom input,
 the client displays the latest host-authoritative position in an
-input-transparent Wayland subsurface. This preserves the host Wacom driver's
-pressure and Tablet Margins mapping. The next physical mouse motion immediately
-restores the compositor cursor.
+input-transparent Qt scene item. This preserves the host Wacom driver's
+pressure and Tablet Margins mapping. The next physical mouse motion restores
+the OS cursor.
 
-On Wayland, the cursor is a synchronized child of a fixed, input-transparent
-1×1 anchor subsurface. The anchor is desynchronized from SDL's video surface.
-Cursor movement/image/hide changes commit that owned anchor, never SDL's
-surface, so applying cursor positions does not wait for the next video swap.
-The compositor does not clip child surfaces to the anchor's buffer bounds.
-Coordinate mapping and the Host-authoritative tablet position are unchanged.
+Qt owns the session surfaces and their native lifetime. Cursor image, position
+and visibility changes update the Qt scene independently of new decoded video;
+there is no separate application-owned Wayland cursor subsurface or anchor.
+The session's current crop, scaling and output geometry maps the Host hotspot
+and cursor image into the correct local scene.
 
 The client assembles and validates a complete generation before replacing both
-the compositor cursor image and the input-transparent Wacom cursor surface.
-Cursor construction and replacement occur on the SDL event thread. While the
-pointer belongs to the native toolbar, the toolbar uses its local arrow cursor.
+the OS cursor image and the input-transparent Wacom cursor item. Transport
+callbacks publish validated updates; Qt applies cursor images and positions on
+the GUI thread. While the pointer belongs to the toolbar or reconnect controls,
+the Client uses its local arrow cursor.
 No path warps or synthesizes local pointer motion. Buttons, wheel events, and
 motion over the toolbar remain exclusively local and never reach the host.

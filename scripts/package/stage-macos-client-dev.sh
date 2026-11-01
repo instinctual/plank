@@ -43,8 +43,8 @@ done
 /usr/libexec/PlistBuddy -c 'Add :PLANKDevelopmentBuild bool true' "$app/Contents/Info.plist"
 while IFS= read -r -d '' binary; do
     file -b "$binary" | grep -q 'Mach-O' || continue
-    if otool -L "$binary" | grep -Eiq '(libSDL|SDL[23]?(_ttf)?\.framework)'; then
-        echo 'Client package unexpectedly contains an SDL dependency' >&2; exit 1
+    if otool -L "$binary" | grep -Eiq '(libSDL|SDL[23]?(_ttf)?\.framework|libswscale)'; then
+        echo 'Client package contains a retired SDL or swscale runtime dependency' >&2; exit 1
     fi
     strip -S "$binary"
     while IFS= read -r rpath; do

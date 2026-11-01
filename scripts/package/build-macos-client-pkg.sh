@@ -57,8 +57,8 @@ done
 while IFS= read -r -d '' binary; do
     file -b "$binary" | grep -q 'Mach-O' || continue
     # Remove debug sections before distribution signing, not runtime strings.
-    if otool -L "$binary" | grep -Eiq '(libSDL|SDL[23]?(_ttf)?\.framework)'; then
-        echo 'Client package unexpectedly contains an SDL dependency' >&2; exit 1
+    if otool -L "$binary" | grep -Eiq '(libSDL|SDL[23]?(_ttf)?\.framework|libswscale)'; then
+        echo 'Client package contains a retired SDL or swscale runtime dependency' >&2; exit 1
     fi
     strip -S "$binary"
     # macdeployqt relocates linked libraries; remove developer-only search paths.
@@ -72,6 +72,7 @@ while IFS= read -r -d '' binary; do
     fi
     codesign --force --options runtime --timestamp --sign "$PLANK_MACOS_SIGNING_IDENTITY" "$binary"
 done < <(find "$app" -type f -print0)
+echo 'client_no_retired_media_runtime_gate=pass'
 while IFS= read -r -d '' framework; do
     codesign --force --options runtime --timestamp --sign "$PLANK_MACOS_SIGNING_IDENTITY" "$framework"
 done < <(find "$app" -depth -type d -name '*.framework' -print0)

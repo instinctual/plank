@@ -1,5 +1,9 @@
 # macOS Qt session parity
 
+The subsequent [SDL-removal work](client-no-sdl.plan) retains this Qt/Metal
+frontend and replaces its remaining SDL audio paths with native Core Audio.
+SDL audio requirements below describe the original integration checkpoint.
+
 ## Authorized scope
 
 Work began on `macos-qt-session`, starting from root main

@@ -3,7 +3,7 @@
 use super::*;
 use crate::microphone::{self, FRAME_SAMPLES, MAX_OPUS_BYTES, Packet};
 
-// SDL/PipeWire can deliver several 10 ms packets in one capture callback. The
+// Native audio capture can deliver several 10 ms packets in one callback. The
 // Client drains at most six per batch; accept that complete batch without
 // requiring the async sender to be scheduled between adjacent FFI calls.
 // This is capacity, not a playout delay: the sender drains immediately.

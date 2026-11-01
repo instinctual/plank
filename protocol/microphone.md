@@ -103,9 +103,11 @@ that cannot map a camera timestamp safely causes a bounded frame drop and keyfra
 request. Camera IPC separately validates receipt age so a future presentation
 timestamp cannot refresh stale frames.
 
-Ubuntu offers microphone3 then2; the macOS Client currently offers2. An older
-Host selects2 and uses the existing SDL capture path. Optional unavailable input
-does not disable desktop streaming. No native-camera transcoding is introduced.
+Ubuntu offers microphone3 then2; the macOS Client currently offers2. Both
+negotiated versions use the platform's native capture backend: PipeWire on
+Ubuntu and Core Audio on macOS. Version2 omits the version3 capture timestamp;
+it does not select a different audio backend. Optional unavailable input does
+not disable desktop streaming. No native-camera transcoding is introduced.
 The existing root coordinator admits the signed current desktop worker using
 kernel UID/PID/audit-session identity plus its current registry generation.
 A fresh shared region is allocated for each producer lease; retired producers

@@ -407,10 +407,11 @@ for soname in libavcodec.so.63 libavutil.so.61 libswresample.so.7; do
 done
 echo "client_private_runpath_gate=pass"
 dpkg-deb --field "$deb_file" Depends | rg -q 'libqt6core6'
-if rg -i 'libSDL' <<<"$unmanaged_loader_output"; then
-  echo "client must not link SDL, including indirect dependencies" >&2
+if rg -i 'lib(SDL|swscale)' <<<"$unmanaged_loader_output"; then
+  echo "client must not link retired SDL or swscale runtimes, including indirect dependencies" >&2
   exit 1
 fi
+echo "client_no_retired_media_runtime_gate=pass"
 echo "client_deb=${deb_file}"
 echo "client_deb_manifest_gate=pass"
 python3 "$repo_dir/scripts/test/check-client-qt-package.py" "$deb_file"

@@ -24,9 +24,9 @@ policy change is required.
   Existing fixed bookmarks remain fixed. Filtering does not rewrite bookmarks
   until the operator saves them.
 - At authentication, Qt screen geometry and device pixel ratio resolve the
-  native-pixel request without initializing SDL/window surfaces. The existing
+  native-pixel request before creating session windows. The existing
   authenticated display schema 2 requests that size and the selected profile.
-  Before launch, SDL's actual display modes must agree; a topology change fails
+  The session uses the selected Qt screens; a topology change fails
   clearly instead of launching mis-scaled video/input.
 - One or two horizontally arranged client monitors map to one Mac virtual
   canvas. The existing qualified resolutions and 5120x2160 maximum apply.

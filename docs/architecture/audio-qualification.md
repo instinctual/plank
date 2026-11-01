@@ -1,9 +1,23 @@
 # Audio Qualification
 
-PLANK currently streams coupled stereo Opus at 48 kHz using
+Current desktop Clients use native PipeWire playback on Ubuntu and Core Audio
+playback on macOS. Opus travels over the negotiated Kyber audio lane. The
+shared audio clock and bounded resampling controls preserve synchronization;
+there is no SDL playback queue or inherited audio Reed-Solomon transport.
+Hosted callback/lifecycle tests do not replace real-output listening, device
+switching or a long synchronized audio/video soak. See the
+[Client removal plan](../development/plans/client-no-sdl.plan) for pending gates.
+
+The dated results below describe earlier implementations. Their queue and
+transport observations remain historical evidence, not claims about the current
+Client. The telemetry command is maintained for current logs.
+
+## Historical baseline — August 2026
+
+The baseline streamed coupled stereo Opus at 48 kHz using
 `OPUS_APPLICATION_RESTRICTED_LOWDELAY`. The high-quality stereo target is
-512 kbps total for both channels, not 512 kbps per channel. Existing Moonlight
-audio Reed-Solomon recovery remains enabled independently of video FEC.
+512 kbps total for both channels, not 512 kbps per channel. At that time,
+inherited audio Reed-Solomon recovery was separate from video FEC.
 
 ## End-to-End Delivery Gate
 
@@ -44,13 +58,13 @@ path; automated host tests cover rejection and cleanup for a UID mismatch.
 Launch the client from a terminal with
 `PLANK_AV_SYNC_TELEMETRY=1 plank-client`, then begin a new
 stream. This diagnostic-only process environment switch is not an
-administrator policy. PLANK then logs audio media time with its SDL
-queue/device latency and video media time at the renderer call about once per
+administrator policy. PLANK then logs audio media time with the native playback
+queue/device latency and video media time at presentation about once per
 second. Collect the persistent client log and analyze it from the repository
 root:
 
 ```bash
-./scripts/test/analyze-av-sync-telemetry.py moonlight.log \
+./scripts/test/analyze-av-sync-telemetry.py client.log \
   --warmup-seconds 180 --min-duration-seconds 7200 \
   --max-skipped-audio-blocks 0
 ```

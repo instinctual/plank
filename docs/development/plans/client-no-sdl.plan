@@ -1,6 +1,7 @@
 # Remove SDL from the desktop Clients
 
-Status: hosted candidates built; installed acceptance pending. Implementation
+Status: 1.3.00 hosted candidates built; 1.3.01 cleanup qualification pending.
+Installed acceptance is pending. Implementation
 is on `client-no-sdl`, based on dependency-refresh
 root `e7f10d73c14c` and Client `7813e7b408d51ce890a926d6315530b0f678191c`.
 The existing 1.2.14 dependency candidates are the comparison checkpoint.
@@ -49,6 +50,13 @@ reconnect tests on supported Client OS versions. Do not interrupt active users
 or install on an end-user machine without authorization.
 
 ## Candidate checkpoint
+
+The 1.3.01 follow-up removes the leftover libswscale application link and checks
+both package closures for retired media libraries. FFmpeg's development tools
+and their prepared dependencies remain; video still scales on the GPU. Current
+protocol and build documentation is updated without rewriting dated acceptance
+evidence. No rendering or audio timing optimization is part of this cleanup;
+those require measurements on the real hardware first.
 
 Version `1.3.00-client-no-sdl` is built for both desktop platforms. Signed Mac
 run `41351081189` and Ubuntu run `41352734858` passed their hosted component and

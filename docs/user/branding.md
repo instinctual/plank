@@ -67,7 +67,7 @@ representations with Apple's Core Graphics and `iconutil`, without adding
 padding, another mask or a nested circle. Host and Client select their own
 source PNG. The Client base build creates the icon before development or
 distribution packaging, so unsigned, development and signed builds agree.
-Both Qt and SDL preserve the bundled icon on macOS. App resources are generated
+The Qt Client preserves the bundled icon on macOS. App resources are generated
 before signing; do not replace icons inside an already signed/installed app.
 
 `tests/packaging/test-macos-app-icons.py` protects the approved source hashes,

@@ -7,8 +7,10 @@ and the independent CUDA Host candidate. Qt now replaces the ordinary Ubuntu
 Client; it is not a separate product. Preserve the existing PLANK application
 and desktop identity, bookmarks, trust, administrator policy and log locations.
 That Ubuntu promotion retained the macOS SDL/Metal frontend. The later
-[macOS Qt session integration](macos-qt-session.plan) is now merged separately;
-Mac playback remains SDL/CoreAudio and Ubuntu playback remains PipeWire.
+[macOS Qt session integration](macos-qt-session.plan) is now merged separately.
+The subsequent [SDL-removal work](client-no-sdl.plan) uses native Core Audio on
+Mac while Ubuntu playback remains PipeWire. The earlier SDL references below
+record the implementation stages, not current dependency requirements.
 
 Use the ordinary hosted `linux-client` build. It runs the Qt/PipeWire/Wacom,
 sanitizer, compositor, launcher and package-upgrade gates, builds the full

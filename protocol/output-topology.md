@@ -51,8 +51,8 @@ Client accepts only a zero-length notice from the authenticated Host channel
 advertising this feature. It is consumed by the next transport close within
 five seconds, producing neutral `Opening your desktop...` text. Without the
 notice, reconnect shows neutral `Waiting for workstation...`. If the
-existing unreachable decision timeout expires, status changes to `Workstation
-is taking longer to respond...` and the existing Wait/Disconnect policy applies.
+existing unreachable timeout expires, the configured automatic-recovery or
+automatic-disconnect policy applies.
 Success clears the notice and restores the normal status color. An abrupt X
 failure can prevent delivery; it must fall back to ordinary reconnect, never
 guess from the previous screen or suppress a real timeout.
@@ -72,7 +72,7 @@ confirmation, neutral `Waiting for workstation...` status remains; neither a net
 nor a lost X server is assumed to mean logout. A greeter-to-greeter recovery
 may use the same wording. The notice is UI-only, carries no user/session
 identity, grants no access, and does not change any PAM, desktop-ownership,
-shutdown or launch checks. Rendering updates stay on the SDL event thread.
+shutdown or launch checks. Status updates are applied on the Qt GUI thread.
 The existing timeout always takes precedence, even if reauthentication finishes
 late; completion clears the pending status. Stage reporting itself introduces
 no Xlib fatal-handler work or fixed delay; the bounded replacement probe below
@@ -81,12 +81,13 @@ is separate from authenticated stage reporting.
 Reconnect status must not depend on decoded video frames. The Client pauses
 decoding and empties its frame queue during reconnect, so video-overlay text
 alone cannot reliably display these messages. On Wayland, progress and timeout
-status use the existing desynchronized local reconnect-prompt surface. Progress
-has no action buttons; the configured timeout exposes the existing decision
-buttons, Keep Waiting restores progress, and completion hides the surface.
-The parent-relative prompt geometry is retained throughout, without requiring
-a new video-frame commit. Other presentation platforms retain their existing
-overlay fallback; the qualified Wayland path never shows both at once.
+status use the Qt session scene, as on macOS. Progress does not block recovery.
+With automatic recovery, the configured timeout reveals a status dialog with
+Disconnect as its only action; recovery continues without a Keep Waiting
+decision and hides the dialog when the stream returns. The optional automatic
+disconnect policy ends the session at that timeout. Status rendering does not
+require a new decoded video frame. Authentication and security failures remain
+terminal rather than triggering endless login attempts.
 
 ### Early replacement detection
 
@@ -111,8 +112,9 @@ without waiting for QUIC idle expiry. Fresh PAM authentication, desktop-owner
 checks, topology binding and native launch remain mandatory. New video cancels
 the early waiting UI; takeover/disconnect disable recovery. The probe owns only
 address and public identity snapshots, not credentials or pointers to session
-state. Its result is applied on the SDL event thread. Normal QUIC timeouts,
-configured Wait/Disconnect policy and the safe fatal-X11 exit are unchanged.
+state. Recovery work runs outside the GUI thread and posts status changes to
+the Qt session scene. Normal QUIC timeouts, configured recovery/disconnect
+policy and the safe fatal-X11 exit are unchanged.
 
 The client sends `plankProtocolVersion=13`, `plankFeatureFlags`, `plankDisplayMode`,
 `plankHostLayout`, `plankVirtualMode1`, and `plankVirtualMode2` on `/launch`. A client negotiating `0x10`
