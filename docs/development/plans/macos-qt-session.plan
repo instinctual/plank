@@ -74,5 +74,18 @@ and the current macOS SDL/Metal frontend remain the comparison baselines.
 
 ## Current state
 
-Branch created; architecture and format feasibility are under investigation.
-No shipping frontend selection, dependency pin or Host behavior has changed.
+The initial real GPU composition gate passed on GitHub run 41262235706,
+including all ten-bit levels at 4K/5K. The branch now selects a Qt-controlled
+Mac window backed by a native RGB10A2 SDR drawable. A dedicated worker acquires
+drawables and completes GPU submissions; only scene synchronization briefly
+holds the GUI. Shared frame feedback, exact-format decoder qualification and
+a single-slot delivery mailbox are reused. Production CVPixelBuffer import,
+software-plane rendering and Mac UI/lifecycle tests are being qualified.
+
+Mac input reuses the existing Accessibility tap and raw-HID owner with a Qt
+queue wake, preserving its bounded queue and focus recovery. Qt Cocoa physical
+key mapping and normalized pen fallback are separate from Linux input. Native
+Spaces, Retina/notch geometry, clipboard and application Quit retain their
+existing policy. Audio playback remains SDL/CoreAudio. No dependency, Host or
+protocol changes, installed acceptance, merge or release have occurred.
+See HANDOFF for exact tested commits and the remaining gates.

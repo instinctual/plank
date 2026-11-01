@@ -10,13 +10,29 @@ The operator authorized `macos-qt-session` from current main: root
 `21a253aecd4ea75a88d7be6d4b375b955c8d64bd`, Client
 `2ed1c5f66e90799659002faed6d8f0961c0d4c6f`. Both canonical working checkouts are
 on that branch. See [the implementation plan](docs/development/plans/macos-qt-session.plan).
-Begin with a real Metal/Qt ten-bit SDR composition test: Qt6.10.2's ordinary
-Metal SDR swapchain is eight-bit. Preserve exact precision through the public
-custom render-target API before changing the shipping frontend. Keep current
-macOS SDL/CoreAudio playback initially, existing macOS15/SDK27 support, and all
-Ubuntu regression gates. Host, protocol and dependency pins are unchanged.
-No candidate, installation, merge or release has been made for this work.
-Do not interrupt the operator's active Terminal or other Mac sessions.
+The branch now has a shared Qt scene/frame presenter, a worker-driven native
+Metal window, retained VideoToolbox imports, Mac key/Wacom/clipboard adapters
+and asynchronous rendering teardown. Client tip is `3cff4d7a`; Host, protocol and
+dependency pins are unchanged. Mac playback remains SDL/CoreAudio; PipeWire is
+Linux-only. Mac Qt selection is enabled on this development branch, but it is
+not a qualified candidate and has not been installed, merged or released.
+
+[Run 41262235706](https://github.com/instinctual/plank/actions/runs/41262235706)
+passed the initial real Metal/Qt composition gate: all 1,024 ten-bit gray/RGB
+levels survived at 4K/5K, resize and target replacement. This was a synthetic
+plane fixture, not a decoder/window/session acceptance result. New production
+node/CVPixelBuffer tests extend that gate. The Mac UI fixture caught a redirected
+scene sizing defect (no native resize event); it now follows public window
+geometry signals. That correction and the complete app integration are awaiting
+hosted validation. The earlier Linux check is run `41262607494`; inspect its
+result before claiming regression acceptance. Do not use an old green fixture
+run as proof of the current app integration.
+
+Remaining: resolve hosted build/tests, exercise exact VideoToolbox/software
+formats and scaled presentation, audit platform lifecycle/input parity, then
+build a signed branch-qualified package and obtain installed session acceptance.
+Do not interrupt the operator's active Terminal or other Mac sessions. No
+hardware machine has been accessed for this task.
 
 ## Merged — Client ping details
 
