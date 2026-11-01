@@ -21,27 +21,34 @@ Shipping main is untouched. Keep the native dependency pins below.
 Implemented bookmark add/edit/persistence, combined width and maximum height,
 8192-pixel width rejection, dual-mode startup and retry, one-window scaled-span
 negotiation and shared aspect-fit mapping for video/cursor/pointer capture.
-The native Mac pilot explicitly retains separate-window negotiation. New pure
-checks cover bookmark persistence, geometry, mode order, limits and input edges.
-Hosted run [41275004438](https://github.com/instinctual/plank/actions/runs/41275004438)
-at root `c830ea3` / Client `46e6362b` passed Vision device/simulator and iPad
-device/simulator builds. All 62 new canvas checks and 12 bookmark-session checks
-passed, as did the existing 86 native Mac multiple-screen checks. The Mac job
-again failed the existing 2 MiB reference-image loopback assembly deadline.
-No deadline/size limit has changed. Follow-up diagnostics report only byte
-progress and sender budget state, never image data or peer identities.
+The native Mac pilot explicitly retains separate-window negotiation. The Vision
+desktop uses one named Window: Open Session reveals its existing viewport,
+avoiding another stream owner. Raw Wacom reports and desktop transport/decoder
+paths are unchanged.
 
-The combined desktop scene now uses one named Window, so Open Session reveals
-the existing viewport instead of creating another stream owner. This passed
-Vision device/simulator and iPad device/simulator compilation in
-[run 41275576219](https://github.com/instinctual/plank/actions/runs/41275576219).
-That run's Mac tests stopped earlier on a 40 ms test-only wait for a dispatch
-timer callback. The test now awaits the actual callback with a one-second
-watchdog; production grace periods and assertions are unchanged. The image
-suite runs before AppKit checks to expose its remaining blocker directly.
-Actual headset acceptance and TestFlight delivery are pending.
-The protected Vision environment now permits only this exact
-additional branch alongside the two already-approved native branches.
+Candidate root `5e6466cc8dffd3f79c9c3ab889c84fbcd1772020`, Client
+`7580c06f1104ba786ddd4e8fa778686c465f869d`, passed all five hosted native builds
+in [41276986955](https://github.com/instinctual/plank/actions/runs/41276986955).
+All 62 new canvas checks, 12 bookmark-session checks and 86 existing Mac
+multiple-screen checks passed, alongside the mandatory input, tablet, crypto,
+image, Pencil and iPad suites. The complete workflow succeeded, including
+signing/upload and internal TestFlight assignment for **PLANK Vision INS 0.1.0
+(13.1)**. The downloaded delivery receipt matches both exact commits and reports
+`VALID` / `IN_BETA_TESTING`. Actual headset acceptance remains pending. The
+protected environment permits this exact branch alongside the two already-approved
+native branches. No main merge or release is authorized.
+
+Next user test: update through TestFlight, edit a Linux Host bookmark to Two
+Virtual Displays, select independent left/right modes and start the session.
+Check both desktops, aspect ratio, cursor/pen movement across the seam, keyboard,
+reconnection, and returning to one display. Include an unequal-width layout.
+Public CI evidence and the delivery receipt are retained under
+`artifacts/qualification/avp-dual-display/` in the canonical checkout.
+
+Two older test blockers were addressed while qualifying the candidate. The
+AppKit test now awaits the actual deadline callback with a one-second watchdog
+instead of assuming a 40 ms run-loop turn delivers it. Production grace periods
+and assertions are unchanged.
 
 [Run 41276311791](https://github.com/instinctual/plank/actions/runs/41276311791)
 confirmed the image receiver kept up within one 7621-byte chunk, with no receive
@@ -50,8 +57,9 @@ The budget was configured for 2 MiB/s. A focused follow-up replaces only the
 utility queue's per-chunk asyncAfter wake with a reusable strict one-shot timer
 (100 microsecond leeway); socket completion, byte/frame caps, queue bounds and
 the three-second assembly deadline stay unchanged. Temporary inspection hooks
-are removed. The loopback test reports completion time. This change still needs
-hosted qualification; it does not modify desktop QUIC/video scheduling.
+are removed. The loopback passed with the complete 2 MiB frame in 1475 ms; its
+rate-limit, exact-content, latest-frame, callback and crypto checks passed too.
+This does not modify desktop QUIC/video scheduling.
 
 ## Imported integration baseline — October 21, 2026
 
@@ -129,29 +137,13 @@ The first run exposed missing iPad archive installation settings. Explicit
 application install and dSYM settings now match the Vision contract; the
 device archive presence and UUID gates passed on the second run.
 
-The unresolved Mac failure is a maximum-size 2 MiB reference image exceeding
-the receiver's three-second assembly deadline on loopback. Mac policy, tablet
-sharing and image crypto/wire checks passed first. Later image codec, Pencil
-and iPad component checks did not run because the socket check stops the job.
-The assertion now includes the existing bounded close reason and receiving
-state. Its deadlines, size limits and acceptance criteria are unchanged.
-
-[TCP comparison run 39725191900](https://github.com/instinctual/plank/actions/runs/39725191900)
-at parent `02f5dde8743c0e832d6ce2ac463f2810d8aef9d2` reproduced the same
-timeout with TCP_NODELAY enabled. That unproven change was withdrawn rather
-than retained as a supposed fix. Current Client `73d1f74a` has the exact same
-Git tree as tested Client `88089801`; no new complete passing build is claimed.
-The extra full shipping-product workflows triggered by these branch pushes
-were deliberately canceled; they are not hardware or ordinary Mac-worker gates.
-
-Next: measure the image sender's chunk scheduling/completion and receiver's
-assembly progress on the hosted runner, then fix the demonstrated bottleneck.
-Do not assume TCP aggregation caused it, lengthen the deadline, reduce the
-maximum-frame test or bypass the failed check to claim readiness. Once fixed,
-run the remaining Mac checks and all five applications at the same exact source.
-This is a committed review/integration checkpoint, not a TestFlight-ready build.
-No new signing, TestFlight upload, installation, release or physical device
-acceptance was performed.
+That historical failure was the maximum-size 2 MiB reference image exceeding
+its three-second assembly deadline on loopback. The same failure reproduced
+with TCP_NODELAY in [39725191900](https://github.com/instinctual/plank/actions/runs/39725191900),
+so that unproven change was withdrawn. The measured diagnosis and passing timer
+fix are recorded above. The current candidate also passes the previously blocked
+image codec, Pencil, iPad and application checks. No physical device acceptance
+is implied by those hosted checks.
 
 Hosted build/test success still does not prove streaming, latency, visual
 fidelity, pressure, OS gesture arbitration or final Host receipt of releases.
@@ -186,8 +178,9 @@ needs deterministic normal/error/cancel proof and held-input reconnect testing;
 sender submission is not a Host acknowledgment. Do not hide this with a second
 sender or an unbounded shutdown wait.
 
-Same-package macOS15/macOS27 runtime tests remain required. The Host stays
-macOS27-only. Native iPad currently targets iPadOS26 with SDK27+; Vision uses its
+Same-package macOS15/macOS27 runtime tests remain required. This native Client
+work does not change the supported Host OS policy. Native iPad targets iPadOS26
+with SDK27+; Vision uses its
 pinned deployment target. Multidisplay, Space/focus transitions, local/raw/shared
 tablet ownership, USB/network interruption, frame precision and a real audio
 soak remain device gates. No device availability or author-reported test should
@@ -202,10 +195,11 @@ initial compliance failure was subsequently resolved on the existing build;
 Apple reported `VALID` / `IN_BETA_TESTING`. Do not rebuild it solely because that
 historical Actions run remains red. Physical headset acceptance was not recorded.
 
-The new ordinary builds are unsigned inspection archives/ZIPs, not installable
-TestFlight packages. iPad has no distribution setup in our workflow. Existing
-Vision-only signing remains protected and manual. Do not reuse Developer ID or
-notarization credentials for App Store distribution.
+Ordinary builds remain unsigned inspection archives/ZIPs. The new manually
+dispatched Vision 0.1.0 (13.1) delivery above is installable through TestFlight.
+iPad has no distribution setup in our workflow. Vision-only signing remains
+protected and manual. Do not reuse Developer ID or notarization credentials for
+App Store distribution.
 
 For current shipping packages, releases and runtime state, use the canonical
 `main` checkout's HANDOFF. This native worktree's old release and device-session

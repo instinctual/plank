@@ -34,6 +34,18 @@ Validation:
   custom cursor, keyboard, pen pressure, display-seam movement, reconnect and
   returning to one display. Hosted checks do not establish hardware acceptance.
 
-The native baseline has an unresolved reference-image loopback timeout. Retain
-that gate and its original deadline/maximum frame size; do not claim a new
-TestFlight build until every required native job passes.
+Hosted qualification passed all five native builds in run 41276986955 at root
+5e6466cc8dffd3f79c9c3ab889c84fbcd1772020 / Client
+7580c06f1104ba786ddd4e8fa778686c465f869d. This includes 62 new canvas checks and
+the existing single/multiple-screen, input, tablet and media checks.
+
+The older reference-image loopback blocker was isolated to slow sender progress,
+with the receiver keeping up. A strict one-shot timer for the existing byte
+budget restores bounded delivery: the 2 MiB transfer passed in 1475 ms. No
+assembly deadline, frame/byte limit, queue bound or desktop transport changed.
+Actual headset acceptance remains required before merging this feature.
+
+Vision 0.1.0 (13.1) was signed, uploaded and assigned to the existing internal
+TestFlight group by that same successful workflow. Apple's delivery state is
+VALID / IN_BETA_TESTING. Install through PLANK Vision INS in TestFlight and run
+the headset checks above; no installed session acceptance is yet recorded.
