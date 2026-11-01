@@ -21,7 +21,7 @@ fi
 mkdir -p "$preview_build"
 [[ -z $(ls -A "$preview_build") ]]
 cd "$source_root"
-common=(-mmacosx-version-min="$MACOSX_DEPLOYMENT_TARGET" -fobjc-arc -Wall -Wextra -Werror -Werror=unguarded-availability -Werror=unguarded-availability-new
+common=(-O2 -mmacosx-version-min="$MACOSX_DEPLOYMENT_TARGET" -fobjc-arc -Wall -Wextra -Werror -Werror=unguarded-availability -Werror=unguarded-availability-new
     -Iapps/host/macos/auth -Iapps/host/macos/control -Iapps/host/macos/media -Iapps/host/macos/input -Iapps/host/macos/session -Itests/input -Iprotocol/plank-transport/include
     -framework Foundation -framework Security -framework SystemConfiguration -framework CoreFoundation
     -framework CoreGraphics -framework AppKit -framework Network -framework CoreMedia

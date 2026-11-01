@@ -146,7 +146,7 @@ xcrun clang -mmacosx-version-min="$MACOSX_DEPLOYMENT_TARGET" -Wall -Wextra -Werr
 xcrun clang -mmacosx-version-min="$MACOSX_DEPLOYMENT_TARGET" -Wall -Wextra -Werror -Werror=unguarded-availability -Werror=unguarded-availability-new \
     -Iapps/host/macos/media tests/video/macos-video-recovery.c -o "$output/video-recovery-test"
 "$output/video-recovery-test"
-common=("${PLANK_FILE_FLAGS[@]}" -mmacosx-version-min="$MACOSX_DEPLOYMENT_TARGET" -fobjc-arc -Wall -Wextra -Werror -Werror=unguarded-availability -Werror=unguarded-availability-new
+common=("${PLANK_FILE_FLAGS[@]}" -O2 -mmacosx-version-min="$MACOSX_DEPLOYMENT_TARGET" -fobjc-arc -Wall -Wextra -Werror -Werror=unguarded-availability -Werror=unguarded-availability-new
     -Iapps/host/macos/auth -Iapps/host/macos/control -Iapps/host/macos/media -Iapps/host/macos/input
     -Iapps/host/macos/session -Iprotocol/plank-transport/include
     -framework Foundation -framework Security -framework SystemConfiguration -framework CoreFoundation

@@ -8,7 +8,7 @@ fi
 source_root=$1
 control_output=$2
 bash "$source_root/scripts/test/build-macos-auth.sh" "$source_root" "$control_output"
-common=(-mmacosx-version-min=27.0 -fobjc-arc -Wall -Wextra -Werror
+common=(-mmacosx-version-min=27.0 -O2 -fobjc-arc -Wall -Wextra -Werror
     -I"$source_root/apps/host/macos/auth" -I"$source_root/apps/host/macos/control"
     -framework Foundation -framework Security -framework AppKit -framework CoreGraphics
     -framework SystemConfiguration -framework Network)
