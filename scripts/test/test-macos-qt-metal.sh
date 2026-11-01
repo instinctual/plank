@@ -13,7 +13,9 @@ qmake "$source_root/apps/client/tests/macqtmetal/macqtmetal.pro" \
     QMAKE_APPLE_DEVICE_ARCHS=arm64 "QMAKE_CXXFLAGS+=-include arm_acle.h"
 make -j"${PLANK_BUILD_JOBS:-3}"
 status=0
-QT_QPA_PLATFORM=offscreen QSG_RHI_BACKEND=metal ./macqtmetal \
+# The offscreen platform advertises no native RHI windows. Explicitly retain
+# the normal scene graph: this fixture supplies its own Metal device/target.
+QT_QPA_PLATFORM=offscreen QT_QUICK_BACKEND=rhi QSG_RHI_BACKEND=metal ./macqtmetal \
     "$source_root/apps/client/app/shaders/vt_renderer.metal" >result.log 2>&1 || status=$?
 cat result.log
 if [[ $status == 77 ]]; then
