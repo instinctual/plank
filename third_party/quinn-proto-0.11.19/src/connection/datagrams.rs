@@ -267,6 +267,7 @@ impl DatagramBuffer {
             .saturating_add(self.queue.len() * size_of::<Datagram>())
     }
 
+    #[cfg(any(test, feature = "plank-telemetry"))]
     pub(super) fn telemetry(&self) -> DatagramBufferTelemetry {
         DatagramBufferTelemetry {
             datagrams: self.queue.len() as u64,
@@ -363,6 +364,7 @@ mod tests {
     }
 }
 
+#[cfg(any(test, feature = "plank-telemetry"))]
 #[derive(Debug, Default, Copy, Clone, Eq, PartialEq)]
 pub(super) struct DatagramBufferTelemetry {
     pub(super) datagrams: u64,

@@ -21,6 +21,8 @@ jobs:
           cargo test --locked --release --manifest-path protocol/plank-transport/Cargo.toml
           cargo test --locked --release --manifest-path third_party/quinn-proto-0.11.19/Cargo.toml --lib connection::datagrams::
           cargo test --locked --release --manifest-path probes/network/plank-transport/Cargo.toml
+          PLANK_TRANSPORT_CARGO_FEATURES=quinn-telemetry bash scripts/test/run-plank-transport-native-loopback.sh
+          PLANK_TRANSPORT_CARGO_FEATURES=quinn-telemetry,macos-source-first bash scripts/test/run-plank-transport-native-loopback.sh
 
   vulkan:
     runs-on: ubuntu-26.04
