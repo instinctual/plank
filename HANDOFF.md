@@ -7,7 +7,7 @@ notes, never in Git.
 ## Host cleanup candidates — in progress
 
 Current root and Linux Host branch: `host-cleanup`, based on root `be30580`.
-Linux Host pin `e3a8b093` removes unreferenced GameStream crypto, bypassed Linux
+Linux Host pin `bd443255` removes unreferenced GameStream crypto, bypassed Linux
 encoder registrations/options, the superseded macOS implementation, and old
 CPack/AppImage/Flatpak/Homebrew packaging and distribution build scripts. The
 HTTPS certificate generator remains, with a direct certificate/key regression
@@ -23,8 +23,18 @@ changes are separate commits. No live performance result is claimed yet.
 
 Candidate version: **1.3.02-host-cleanup**, Host packages only. Local policy
 checks (115), encoder-probe checks (2), Python lock consistency, shell syntax
-and privacy/diff checks pass. Hosted Rocky RPM and signed SDK27/26.7 Mac PKG
-builds are next. No merge, deployment or release. Installed Linux capture,
+and privacy/diff checks pass. Signed Mac run `41359912649` passed at root
+`ffec346936d20c610b1cd3fbfef538a51e971e40`: synthetic capture lifecycle,
+configuration, input, audio/camera, session/transport, package, signing,
+notarization and Gatekeeper checks. The lifecycle test reported 1,000 cached
+reads with no additional mode queries; expiry and notification cases passed.
+Package: `artifacts/packages/candidates/1.3.02-host-cleanup-macos26.7/macos/plank-host_1.3.02-host-cleanup-macos26.7_arm64.pkg`,
+SHA256 `ce5c27eedd470f59ed14e06ed6dfd1ac25e3581bc38bdea2da13209c7757e145`.
+Downloaded and verified against the hosted manifest. Linux run `41359909949`
+compiled the application and passed transport/loss and RPM gates, but failed to
+link the full unit suite because inherited tests still named deleted encoders.
+The header/test registry now names the two retained Linux backends; a new Linux
+build is required. The Mac package is unaffected by this Linux-only test fix. No merge, deployment or release. Installed Linux capture,
 color, input/Wacom and Mac login/logout/display/audio/video acceptance remain
 pending, including the same Mac package on 26.7 and 27.
 
