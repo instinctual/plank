@@ -23,8 +23,19 @@ Implemented bookmark add/edit/persistence, combined width and maximum height,
 negotiation and shared aspect-fit mapping for video/cursor/pointer capture.
 The native Mac pilot explicitly retains separate-window negotiation. New pure
 checks cover bookmark persistence, geometry, mode order, limits and input edges.
-Required hosted compilation and headset acceptance are pending. The existing
-reference-image socket test remains a gate, with its known failure below.
+Hosted run [41275004438](https://github.com/instinctual/plank/actions/runs/41275004438)
+at root `c830ea3` / Client `46e6362b` passed Vision device/simulator and iPad
+device/simulator builds. All 62 new canvas checks and 12 bookmark-session checks
+passed, as did the existing 86 native Mac multiple-screen checks. The Mac job
+again failed the existing 2 MiB reference-image loopback assembly deadline.
+No deadline/size limit has changed. Follow-up diagnostics report only byte
+progress and sender budget state, never image data or peer identities.
+
+The combined desktop scene now uses one named Window, so Open Session reveals
+the existing viewport instead of creating another stream owner. This follow-up
+still needs its hosted build. Actual headset acceptance and TestFlight delivery
+are pending. The protected Vision environment now permits only this exact
+additional branch alongside the two already-approved native branches.
 
 ## Imported integration baseline — October 21, 2026
 
