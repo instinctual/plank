@@ -4,31 +4,50 @@ Read `AGENTS.md` and the relevant build runbook first. Machine-specific access,
 credentials, captures and operational evidence belong in the external private
 notes, never in Git.
 
-## Active — remove SDL from desktop Clients
+## Active — SDL-free desktop Clients, version 1.3.00
 
-The operator authorized replacing the remaining desktop Client SDL components
-on `client-no-sdl`, based on dependency-refresh root `e7f10d73c14c` and Client
-`7813e7b408d51ce890a926d6315530b0f678191c`. Both checkouts are on that branch.
-The new baseline is **1.3.00**, with the branch qualifier in candidate filenames
-and the visible version. See [the plan](docs/development/plans/client-no-sdl.plan).
-The first implementation is pushed on the feature branch. Removed the retired
-session/input/presentation backends, SDL APIs/build/package inputs and SDL-only
-tests. Mac playback/capture now use native Core Audio with bounded callback
-buffers and device-change recovery. Shared clocks, native keyboard capture,
-codec/color probes, Linux PipeWire and raw Wacom policy remain. Source/CI-policy
-checks pass; no SDL-free package has compiled or received installed acceptance.
-The first clean Linux and Mac dependency bootstraps passed at root
-`f9c364ef91e980b48ab9183fce5890c9aedf6ada` / Client `e583dfc3`.
-Ubuntu run `41345293227` passed raw Wacom recovery and sanitizer tests, then
-found a missing explicit D-Bus development prerequisite in its audio fixtures.
-Mac run `41345295955` found a timer-count assumption in the connectivity fixture.
-The subsequent source adds that prerequisite and checks a pending event-loop
-turn instead of counting coalesced timer callbacks. Core Audio also uses the
-documented AUHAL callback element and permits large output quanta to refill
-within the bounded queue. Continue with hosted builds of the current pushed tip.
-Native audio callbacks, microphone generation recovery and packaging linkage
-have new regression gates; these do not replace live A/V listening/device tests. Host/protocol changes are out of
-scope. Continue on GitHub-hosted builders; do not merge or publish a release.
+The operator authorized removing SDL on `client-no-sdl`, based on dependency
+refresh root `e7f10d73c14c` and Client `7813e7b408d51ce890a926d6315530b0f678191c`.
+Both checkouts remain on the feature branch. The new baseline is **1.3.00**;
+candidate filenames and the visible version use `1.3.00-client-no-sdl`.
+See [the plan](docs/development/plans/client-no-sdl.plan). No merge or release.
+
+Current Client implementation: `36a025b2` (this root pins the complete SHA).
+The superseded SDL session, input, presentation, audio, dependency bootstrap,
+package linkage and SDL-only tests are removed. Qt owns both desktop session
+lifecycles. Linux keeps PipeWire; Mac playback and microphone capture use Core
+Audio with bounded realtime buffers and device-change recovery. Shared audio
+correction, exact codec/color qualification, native keyboard/Wacom, clipboard,
+permissions and recovery policy remain. Host/protocol changes are out of scope.
+
+Both clean dependency bootstraps passed. Source and CI-policy checks passed
+(115 policy cases). Both full applications now compile, including the Qt
+component/compositor, native audio/microphone, A/V phase, input/Wacom,
+keyboard/clipboard, takeover and Host-trust checks. Earlier failures exposed
+explicit D-Bus/header prerequisites, a retired compositor-probe SDL link and a
+timer-count test assumption; those are fixed without weakening production gates.
+Core Audio retains rear/side surround channel order and accounts for output
+stream latency.
+
+The latest completed package attempts stopped at these final gates:
+
+- Ubuntu `41348547610`, root `dbdceb74b3f6e99c6c30c20279c0f97cf69a565c`:
+  the compiled-binary check still searched for retired SDL renderer messages.
+  It now requires the linked Qt VA-API validator, EGL importer and packed
+  identity/BT.709 blitter. Component shader/format tests remain required.
+- Signed Mac `41348863334`, root `46f7f7e46b514986982b66fda42d0f0a9ebec885`:
+  all component tests passed, but the assembled application lacked Opus.
+  The Client now exposes the prepared native library directory as a build
+  RPATH so macdeployqt can collect the closure; packaging removes that
+  development path before signing. The packaged launch gate remains required.
+
+Rebuild both corrected candidates through the hosted dispatch helper. Only the
+exact `client-no-sdl` branch was added to `macos-signing`; no reviewer policy or
+wildcard was changed. No candidate package has been collected or installed.
+Live A/V listening, device switching, hardware color/decoding, Wacom and recovery
+acceptance remain required, including Mac 15 and 27. No hardware runtime was
+changed for the SDL-removal work; the separate Host diagnostic evidence is
+retained only in the external private audit directory.
 
 ## Candidates built — dependency refresh
 

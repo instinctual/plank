@@ -1762,18 +1762,18 @@ timeout 30 "$build_dir/tests/native-input-backpressure"
 bash "$repo_dir/scripts/test/test-linux-wacom.sh" "$source_dir" "$build_dir/tests/wacom-recovery"
 bash "$repo_dir/scripts/test/test-audio-timestamps.sh" "$source_dir" \
   "$build_dir/tests/audio-timestamps" "$build_dir/moonlight-common-c/libmoonlight-common-c.a"
-rg -a -Fq 'Packed 4:4:4 requires composed VAAPI layers' \
-  "$client_binary" || {
-  echo "client binary is missing the exact VAAPI EGL identity frontend" >&2
-  exit 1
-}
-echo "client_vaapi_egl_identity_binary_gate=pass"
-rg -a -Fq 'Enabling 10-bit packed BT.709 full-range GPU presentation (Y410/XR30)' \
-  "$client_binary" || {
-  echo "client binary is missing the VAAPI EGL BT.709 frontend" >&2
-  exit 1
-}
-echo "client_vaapi_egl_bt709_binary_gate=pass"
+# Require the actual Qt surface validator, EGL importer and shared packed
+# identity/BT.709 blitter, not messages from the retired SDL renderer. Their
+# format, range and shader behavior is exercised by the Qt component gates.
+nm -C "$client_binary" > "$build_dir/tests/client-symbols.txt"
+for symbol in 'QtVaapiVideoFrame::create(' 'QtVaapiVideoFrame::validate(' \
+              'QtEglVideoItem::updatePaintNode(' 'QtPackedVideoBlitter::draw('; do
+  rg ' [Tt] ' "$build_dir/tests/client-symbols.txt" | rg -F "$symbol" >/dev/null || {
+    echo "client binary is missing the Qt VAAPI/EGL frontend: $symbol" >&2
+    exit 1
+  }
+done
+echo "client_qt_vaapi_egl_binary_gate=pass"
 nm -C "$client_binary" | rg ' [Tt] plank_transport_abi_version$' >/dev/null || {
   echo "client binary does not link the PLANK transport ABI" >&2
   exit 1
