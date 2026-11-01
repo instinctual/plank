@@ -4,19 +4,24 @@ Read `AGENTS.md` and the relevant build runbook first. Machine-specific access,
 credentials, captures and operational evidence belong in the external private
 notes, never in Git.
 
-## Ready for installed testing — macOS Qt session candidate
+## Merged — macOS Qt session; installed validation pending
 
 The operator authorized `macos-qt-session` from current main: root
 `21a253aecd4ea75a88d7be6d4b375b955c8d64bd`, Client
-`2ed1c5f66e90799659002faed6d8f0961c0d4c6f`. Both canonical working checkouts are
-on that branch. See [the implementation plan](docs/development/plans/macos-qt-session.plan).
+`2ed1c5f66e90799659002faed6d8f0961c0d4c6f`. The operator then explicitly
+authorized merging the current integration. Both canonical working checkouts
+are back on main. See [the implementation plan](docs/development/plans/macos-qt-session.plan).
 The branch now has a shared Qt scene/frame presenter, a worker-driven native
 Metal window, retained VideoToolbox imports, Mac key/Wacom/clipboard adapters
-and asynchronous rendering teardown. Client tip is
+and asynchronous rendering teardown. Tested Client source is
 `365506fd8550b410eb1fa66da7ee439c3713ef6e`; candidate version is
 **1.2.13-macos-qt-session**. Host, protocol and dependency pins are unchanged.
 Mac playback remains SDL/CoreAudio; PipeWire is Linux-only. Mac Qt selection is
-enabled on this development branch, but has not been installed, merged or released.
+now enabled on main. The root integration includes branch tip
+`b8efef8060981920bce76a1d026d61fc70e0e459`, and the Client integration includes
+the tested source above. Both were clean fast-forwards; follow-up documentation
+and the corresponding Client gitlink update do not alter the tested code.
+No installed acceptance, new mainline package or release is implied by the merge.
 
 [Signed Mac run 41266907927](https://github.com/instinctual/plank/actions/runs/41266907927)
 passed the full application build, production Metal/CVPixelBuffer and
@@ -74,6 +79,8 @@ toolbar alone does not add a capture backend. Earlier failed fullscreen runs
 `41266228677` and `41266525052` remain recorded; their correction passed in the
 signed candidate without weakening the assertion. No build remains active.
 Later documentation commits do not change the packaged source or its provenance.
+Candidate filenames and manifests retain their original branch and commits;
+rebuild from main when requested rather than relabeling these artifacts.
 Do not interrupt the operator's active Terminal or other Mac sessions. No
 hardware machine has been accessed for this task.
 

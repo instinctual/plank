@@ -2,7 +2,7 @@
 
 ## Authorized scope
 
-Develop on `macos-qt-session`, starting from root main
+Work began on `macos-qt-session`, starting from root main
 `21a253aecd4ea75a88d7be6d4b375b955c8d64bd` and Client main
 `2ed1c5f66e90799659002faed6d8f0961c0d4c6f`. Bring the macOS streaming window
 and controls to the shared Qt frontend without changing the Host or protocol.
@@ -11,8 +11,10 @@ Do not integrate the separate, unfinished Apple-native frontend.
 Retain one Apple Silicon Client package for macOS15 and newer, compiled with
 SDK27 or newer and the existing pinned dependencies. Hosted Actions perform
 builds and automated checks; installed session acceptance is a separate gate.
-Do not publish or merge an incomplete port. Ubuntu's accepted Qt/PipeWire path
-and the current macOS SDL/Metal frontend remain the comparison baselines.
+The operator subsequently authorized merging the current integration into main.
+That source integration does not establish installed acceptance or authorize a
+release. Ubuntu's accepted Qt/PipeWire path and the preceding macOS SDL/Metal
+frontend remain the comparison baselines.
 
 ## Implementation order
 
@@ -75,7 +77,7 @@ and the current macOS SDL/Metal frontend remain the comparison baselines.
 ## Current state
 
 The initial real GPU composition gate passed on GitHub run 41262235706,
-including all ten-bit levels at 4K/5K. The branch now selects a Qt-controlled
+including all ten-bit levels at 4K/5K. Main now selects a Qt-controlled
 Mac window backed by a native RGB10A2 SDR drawable. A dedicated worker acquires
 drawables and completes GPU submissions; only scene synchronization briefly
 holds the GUI. Shared frame feedback, exact-format decoder qualification and
@@ -83,8 +85,8 @@ a single-slot delivery mailbox are reused. Production CVPixelBuffer import,
 software-plane rendering passed in signed run 41266907927: 8/10-bit identity and
 BT.709 4:2:0, 4K/5K resize, overlay composition, crop/letterbox and 2x/16x
 minification. Its native Cocoa window also passed repeated resize/hide/show,
-fullscreen frame restoration and asynchronous shutdown. That run compiled the full application and passed
-the existing keyboard, Quit, clipboard and permission fixtures. These are
+fullscreen frame restoration and asynchronous shutdown. That run compiled the
+full application and passed the existing keyboard, Quit, clipboard and permission fixtures. These are
 constructed decoder surfaces, not an installed hardware-decoding session.
 The native fullscreen check waits for AppKit's completion notifications and
 requires the same resized normal window after returning from fullscreen.
@@ -97,8 +99,9 @@ Mac input reuses the existing Accessibility tap and raw-HID owner with a Qt
 queue wake, preserving its bounded queue and focus recovery. Qt Cocoa physical
 key mapping and normalized pen fallback are separate from Linux input. Native
 Spaces, Retina/notch geometry, clipboard and application Quit retain their
-existing policy. Audio playback remains SDL/CoreAudio. No dependency, Host or
-protocol changes, installed acceptance, merge or release have occurred.
+existing policy. Audio playback remains SDL/CoreAudio. The operator authorized
+merging this implementation without further code changes. No dependency, Host
+or protocol changes, installed acceptance or release have occurred.
 See HANDOFF for exact tested commits and the remaining gates.
 
 The current candidate does not implement the old Mac pointer-confinement
