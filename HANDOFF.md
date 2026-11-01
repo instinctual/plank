@@ -4,7 +4,7 @@ Read `AGENTS.md` and the relevant build runbook first. Machine-specific access,
 credentials, captures and operational evidence belong in the external private
 notes, never in Git.
 
-## SDL-free desktop Clients — 1.3.01 cleanup qualification
+## Candidates built — SDL-free desktop Clients, version 1.3.01
 
 The operator authorized removing SDL on `client-no-sdl`, based on dependency
 refresh root `e7f10d73c14c` and Client `7813e7b408d51ce890a926d6315530b0f678191c`.
@@ -20,8 +20,27 @@ no rendering, buffering or timing policy changed. Protocol and build documents
 now describe Qt cursor/clipboard/reconnect ownership and native audio rather
 than retired SDL paths. Historical results remain identified as historical.
 The source gate, 115 CI-policy tests, portable Mac target/icon checks and A/V
-telemetry analyzer pass. Native Mac tests are reserved for the hosted builder.
-Refreshed Ubuntu and signed Mac package qualification is pending.
+telemetry analyzer pass. Both full hosted Client builds passed at root
+`f5304a106af8e4e23b9be429d622c6e5d460ef19`, Client
+`7a9704febb24015cb1dac3eb98eb184dffc88353`:
+
+- Ubuntu run `41356244348`: component, sanitizer, compositor, input/Wacom,
+  native PipeWire, A/V timing, launcher, dependency closure and DEB checks.
+  Package: `artifacts/packages/candidates/1.3.01-client-no-sdl/linux/plank-client_1.3.01-client-no-sdl_amd64.deb`,
+  SHA256 `f7bc6703959563a7a056df78b9d0acd7a2b2c3a6124e2095c4a44b80fdc92dab`.
+- Signed Mac run `41356253597`: Qt/Metal/Cocoa, native audio/microphone,
+  input/clipboard, package closure/launch, Developer ID signing, notarization,
+  stapling, Gatekeeper and macOS15 deployment-floor checks.
+  Package: `artifacts/packages/candidates/1.3.01-client-no-sdl/macos/plank-client_1.3.01-client-no-sdl_arm64.pkg`,
+  SHA256 `f2c87363738cb57b47f07f8bbfe7ff44a0839c69151187079fc72591421ef628`.
+
+Both finished-package checks require no SDL or libswscale linkage, including
+indirect dependencies. Original manifests, logs, run metadata and qualification
+reports are retained under `artifacts/qualification/client-no-sdl-1.3.01/`.
+Downloads were checksum-verified and collected; duplicate staging was removed.
+No build remains running. No package was installed, merged or released.
+Real GPU/color, Wacom, device-change and long A/V listening acceptance remain
+pending, including the identical Mac package on both macOS15 and macOS27.
 
 The original 1.3.00 packages below use Client `72b629d3` and remain intact.
 The superseded SDL session, input, presentation, audio, dependency bootstrap,
