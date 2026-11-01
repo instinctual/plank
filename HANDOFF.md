@@ -4,26 +4,65 @@ Read `AGENTS.md` and the relevant build runbook first. Machine-specific access,
 credentials, captures and operational evidence belong in the external private
 notes, never in Git.
 
-## In progress — Client ping details
+## Built — Client ping details candidate
 
 The operator approved making the Internet indicator open a compact summary of
 every configured IPv4 ping target. Root and Client branch `client-ping-details`
-start from main `5d8aaa8` / Client `94f36ce0`; candidate version is **1.2.12**.
+start from main `5d8aaa8` / Client `94f36ce0`; candidate version is
+**1.2.12-client-ping-details**. Both GitHub-hosted packages were built from root
+`ecc3aa2dd5edf42c745b78d2575f5f54b677bf1d` and Client
+`2ed1c5f66e90799659002faed6d8f0961c0d4c6f`. The unchanged Client dependencies are
+common-C `437be9a0a4d164efdf9ed20dc6dd5a2b7b9edc90` and qmdnsengine
+`920c097ffa742e2968290f15d4dde6693aec02e5`; Linux Host and Kymux pins remain
+`65dc0f1be60fe78d0457364f83813118c70bc8a8` and
+`3f7a9d8618978287186e5d6ce0eaa067743cb06c`.
+
 Opening/refreshing checks all targets concurrently using the same fixed OS ping
-utility, configuration validation and bounded asynchronous process mechanism as
-the existing background check. Results retain configured order, distinguish
-timeout/no-route from unavailable utility/permissions, and parse actual ICMP RTT
-from the normalized Linux/macOS summary. No subprocess elapsed time is displayed
-as network RTT. The UI keeps colored text, local completion time, keyboard
-access, Refresh and Close; close/reopen cancels and reaps old children first.
-The background first-success check remains independent. No Host, transport,
+utility, validation and bounded asynchronous process mechanism as the background
+check. Rows retain configured order, distinguish timeout/no-route from unavailable
+utility/permissions, and show actual ICMP RTT in whole milliseconds (`<1 ms` for
+faster replies). No subprocess elapsed time is displayed as RTT. The dialog has
+colored statuses, local completion time, keyboard access, Refresh and Close.
+Close/reopen cancels and reaps old children before starting a new round. The
+background first-success check remains independent. No Host, transport,
 configuration schema or dependency change is required.
 
-Focused regression coverage extends the existing connectivity suite for summary
-results, timing formats, failed startup, deadlines, cancellation/reopening,
-disabled/invalid policy, actual loopback RTT and the three/eight-target dialog.
-Hosted Client builds, screenshot review and exact package validation are pending.
-No installation or release is authorized by this follow-up.
+Successful builds and checksum-verified packages under
+`artifacts/packages/candidates/1.2.12-client-ping-details/`:
+
+- [Ubuntu Client run 41259458222](https://github.com/instinctual/plank/actions/runs/41259458222),
+  artifact `13064259415`: `linux/plank-client_1.2.12-client-ping-details_amd64.deb`,
+  17,198,800 bytes; SHA-256
+  `b1e7d65d4c916f352a9e34b6fa5691156458cab234abd2e86def4d786fcab453`.
+- [macOS Client run 41259455738](https://github.com/instinctual/plank/actions/runs/41259455738),
+  artifact `13064651929`: `macos/plank-client_1.2.12-client-ping-details_arm64.pkg`,
+  72,930,416 bytes; SHA-256
+  `8250b681ec48948a1caca78b47a1cf3a08be48812574fdff40eb5926da9f9d01`.
+
+Both Clients passed all 45 connectivity cases, including 16 real IPv4 loopback
+summary checks, concurrent targets, timing formats, startup errors, deadlines,
+cancellation/reopening, disabled/invalid policy, mouse/keyboard interaction and
+three/eight-target QML layouts. Both platforms' screenshots were inspected: all
+configured rows, columns, timestamps and buttons fit the tested layout. Early
+attempts corrected a test's lookup of visual Repeater children and a timing
+parser that unnecessarily required numeric standard deviation; the latter now
+reads only average RTT, with regression coverage for macOS's NaN deviation.
+No test or package gate was bypassed.
+
+Ubuntu also passed its existing Qt, PipeWire, sanitizer, compositor, launcher and
+package/upgrade gates. The Mac installer passed Developer ID signing,
+notarization, stapling and Gatekeeper; its target remains macOS15+ with SDK27.
+Original manifests, run metadata, logs, screenshots and Ubuntu qualification
+artifact `13064488859` are retained under
+`artifacts/qualification/client-ping-details-1.2.12/`. The local collector verified
+original checksums/provenance and removed download staging.
+
+Root and Client are pushed on the candidate branch; this work is not merged or
+published. No build remains active and no package was installed. The next step
+is installed UI/network acceptance: click Internet, review all configured IPv4
+rows, Refresh and close/reopen. Supported macOS version qualification remains
+separate from hosted tests. No installation or release is authorized by this
+follow-up; later documentation commits do not change the built source.
 
 ## Built — mainline 1.2.11 Host and Clients
 
