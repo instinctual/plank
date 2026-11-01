@@ -100,3 +100,29 @@ The current candidate does not implement the old Mac pointer-confinement
 shortcut. Native fullscreen/Spaces and ordinary pointer movement remain
 available; do not claim complete installed parity or delete the comparison
 frontend until this and the real-session gates have been resolved.
+The existing webcam sender is Linux-only (`camera.cpp`); sharing its toolbar
+does not add Mac camera capture. A native Mac capture/encoding adapter and its
+startup permission flow remain separate parity work. Microphone forwarding
+and Mac playback keep their existing implementations.
+
+## First installed candidate check
+
+Use the normal Client installer and existing bookmarks. No Host update is
+required. Keep a known-good installer for comparison; do not publish this
+candidate or substitute fixture results for these checks.
+
+1. Connect to both a Linux and a Mac Host. Check the exact negotiated codec,
+   hardware/software decode, full range, identity colors and 4K/5K output.
+2. Exercise toolbar reveal/pin/drag, display selection, window resize and
+   fullscreen round trips. Check Retina/notch geometry and mouse alignment.
+3. Switch fullscreen Spaces away/back, then check remote Command-Tab,
+   Command-Space and Command-Q. Menu/Dock Quit must end the Client cleanly.
+4. Check pen tip, eraser, pressure, buttons and custom cursor; change focus,
+   unplug/reconnect the tablet, then test again. Check clipboard and microphone.
+5. Interrupt networking, leave the recovery dialog untouched, then restore
+   connectivity. Verify video, audio and input recover automatically.
+6. Run a real A/V session long enough to check drift, crackles and memory;
+   repeat disconnect/reconnect and confirm no orphaned Client process.
+
+The identical Apple Silicon installer still needs macOS15 and macOS27 session
+qualification before replacing the supported Mac frontend.

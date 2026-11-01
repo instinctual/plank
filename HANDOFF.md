@@ -13,7 +13,7 @@ on that branch. See [the implementation plan](docs/development/plans/macos-qt-se
 The branch now has a shared Qt scene/frame presenter, a worker-driven native
 Metal window, retained VideoToolbox imports, Mac key/Wacom/clipboard adapters
 and asynchronous rendering teardown. Client tip is
-`6039600ac36181ea03d2342b1d8bdb9ee01b1f73`; candidate version is
+`6039600a` plus the subsequent Cocoa fullscreen correction; candidate version is
 **1.2.13-macos-qt-session**. Host, protocol and dependency pins are unchanged.
 Mac playback remains SDL/CoreAudio; PipeWire is Linux-only. Mac Qt selection is
 enabled on this development branch, but has not been installed, merged or released.
@@ -42,6 +42,11 @@ then obtain installed Mac session acceptance (hardware decode, 4K/5K, Retina,
 Spaces, Wacom, audio sync, microphone/camera, clipboard and network recovery).
 The old Mac pointer-confinement shortcut is not implemented in this candidate;
 document and resolve it before claiming complete feature parity.
+Mac webcam capture also remains unimplemented, as before this port; the shared
+toolbar alone does not add a capture backend. Run `41266228677` stopped at the
+new fullscreen test before packaging. Cocoa now owns normal-frame restoration,
+and that fixture waits for native transition completion rather than the earlier
+requested Qt state. The replacement signed run must pass it; do not bypass it.
 Do not interrupt the operator's active Terminal or other Mac sessions. No
 hardware machine has been accessed for this task.
 
