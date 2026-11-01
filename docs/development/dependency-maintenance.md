@@ -12,7 +12,7 @@ the source of truth, not a dependency repository's newest branch tip.
 | `instinctual/plank-host-linux` | `main` | Allowlisted build/runtime submodules; no inherited Windows/gamepad/Flatpak updates |
 | `instinctual/plank-client` | `main` | Common-C and qmdnsengine submodules |
 | `instinctual/plank-kymux` | `main` | Cargo workspace |
-| `instinctual/plank-build-deps` | `plank/main` | FFmpeg release/8.1, x264/x265, NV headers, AMF, paired Vulkan Headers/Loader |
+| `instinctual/plank-build-deps` | `plank/main` | FFmpeg release/8.1, x264, NV headers, AMF, paired Vulkan Headers/Loader |
 | `instinctual/plank-libvirtualhid` | `plank/main` | Build/documentation submodules |
 | `instinctual/plank-common-c` | `plank/client`, `plank/host` | Source review only: no dependency manifests/recursive dependencies on either maintained branch |
 

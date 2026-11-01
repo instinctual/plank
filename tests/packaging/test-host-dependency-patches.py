@@ -20,7 +20,7 @@ class HostDependencyPatches(unittest.TestCase):
         shutil.copy2(ROOT / 'scripts/build/verify-host-dependency-patches.sh', self.script)
         self.build = self.root / 'prepared'
         self.patches = self.root / 'apps/host/linux/third-party/build-deps/patches/FFmpeg'
-        for dependency in ('FFmpeg', 'x265_git', 'Vulkan-Loader'):
+        for dependency in ('FFmpeg', 'Vulkan-Loader'):
             source = self.build / 'FFmpeg' / dependency
             source.mkdir(parents=True)
             subprocess.run(['git', 'init', '--quiet', str(source)], check=True)
@@ -49,7 +49,7 @@ class HostDependencyPatches(unittest.TestCase):
             result = self.verify()
             self.assertEqual(result.returncode, 0, result.stdout)
             self.assertIn('present:FFmpeg/Vulkan-Loader/01-required.patch', result.stdout)
-            self.assertIn('host_dependency_patch_count=3', result.stdout)
+            self.assertIn('host_dependency_patch_count=2', result.stdout)
 
     def test_unpatched_loader_is_rejected(self):
         (self.loader / 'value.c').write_text('before\n')

@@ -292,7 +292,7 @@ FFmpeg or Boost, and a Mac FFmpeg patch must not redownload Qt.
 | macOS Host | Rust toolchain; Cargo downloads (capture/encoding/audio use Apple frameworks) |
 | macOS Client | Rust toolchain; Cargo downloads; native-library install/source/download tree; Qt |
 
-The Linux Host FFmpeg/x264/x265 build tree is one coupled cache.
+The Linux Host FFmpeg/x264 build tree is one coupled cache.
 Ubuntu's patched SDL has a separate native-library cache, keyed to its pinned
 archive, repair, verifier, regression test and build recipe. Restore verifies
 the patched source tree and installed bytes; application/package preflight

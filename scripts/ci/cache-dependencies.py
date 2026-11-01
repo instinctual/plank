@@ -72,7 +72,7 @@ def dependency_inputs(root, product, component):
     else:
         paths.update((RECIPES + 'host-ffmpeg.sh',
                       'scripts/build/verify-host-dependency-patches.sh'))
-        # FFmpeg/x264/x265 are one jointly-built source/install tree.
+        # FFmpeg/x264 are one jointly-built source/install tree.
         pins['host-build-deps'] = output(['git', '-C', str(root / HOST_DEPS), 'rev-parse', 'HEAD'])
         for entry in output(['git', '-C', str(root / HOST_DEPS), 'ls-files', '--stage']).splitlines():
             metadata, name = entry.split('\t', 1)

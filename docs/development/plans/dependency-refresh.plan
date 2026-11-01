@@ -1,0 +1,54 @@
+# Dependency refresh
+
+Status: authorized; implementation in `dependency-refresh`, based on main
+`b3d3235c78e513c3202b9524f1fea8ae420787bd`. No release or installation is
+authorized by this plan. SDL remains an active dependency.
+
+## Scope and order
+
+1. Remove unused x265 encoder/build/link/patch inputs. Retain x264, NVENC,
+   VideoToolbox, HEVC decoding and the existing encoded decoder test vectors.
+2. Upgrade Quinn 0.11.12 / quinn-proto 0.11.19 / quinn-udp 0.5.16,
+   Rustls 0.23.46, webpki 0.103.16 and Tokio 1.54.1. Production and probe
+   lockfiles must resolve the same transport versions. Retire local fixes only
+   when upstream behavior and regression tests prove equivalence.
+3. Reconcile Kyber 0.29.0 with the maintained Kymux/Kyproto fork. Keep RaptorQ
+   2.0.1, `plank-native/2`, bounded parsers/queues, cancellation, completed-FEC
+   draining, telemetry, fixed-MTU policy and the accepted rate controller.
+   Do not restore application datagram pacing or upstream RaptorQ 1.x.
+4. Upgrade FFmpeg to 9.0.2 on Linux Host and desktop Clients; SDL to 3.4.18;
+   Mac bundled Opus to 1.6.1, OpenSSL to 3.5.9 LTS and FreeType to 2.15.0.
+   Preserve exact identity-GBR decoding and independently verified patches.
+5. Evaluate Boost 1.92.0, Rust 1.99.1, paired Vulkan 1.4.367 and JSON 3.12.0
+   as separate commits/checkpoints. Preserve the Vulkan allocation-failure
+   repair and negative-control regression coverage.
+6. Qt 6.12 and the Intel media stack require separate packaging/hardware
+   qualification. Ubuntu currently uses distribution Qt 6.10.2 and VA-API;
+   adding oneVPL/QSV is not a dependency refresh. Do not replace system graphics
+   or audio packages incidentally. Native Apple/AVP inputs are a separate
+   integration and must receive relevant security/media fixes without merging
+   unfinished product features into main.
+
+## Fixed contracts
+
+- NVIDIA 595.104.02, CUDA 13.2 Update 2, NVENC SDK 13.0 remain; SDK 13.1
+  requires a newer driver outside the approved baseline.
+- macOS Client 15+ and Host 26.7+, built with SDK27+; Rocky9.7 / Ubuntu26.04.
+- No codec/chroma/precision/range substitutions or transport wire downgrade.
+- Keep all required dependency patches reproducible and fail closed on drift.
+- Build candidates on GitHub-hosted Actions with exact pins and provenance.
+  Do not publish a release, merge, deploy or claim hardware acceptance.
+
+## Validation
+
+Run focused source/component tests for each stage, then clean-bootstrap hosted
+packages for all affected products. Verify package dependency closure, source
+hashes, platform floors, cache fingerprints and branch-qualified versions.
+Transport gates cover queue/MTU bounds, malformed traffic, cancellation,
+reconnect and intentional loss. Media gates cover exact 8/10-bit identity,
+hardware/software decoding and presentation, 4K/5K and two-display canvases.
+Actual hardware sessions, listening/A/V soak, Wacom recovery and macOS15/26.7/27
+acceptance remain explicit installed-package gates, not compiler results.
+
+Record stage commits, upstream provenance, replaced/retained patches, results
+and remaining gates in HANDOFF; retain final packages in the versioned catalog.

@@ -46,7 +46,7 @@ for command_name in cargo cmake git nm realpath rg rustc; do
   }
 done
 
-# The retained Host FFmpeg/x264/x265 source is patched by build-deps. This
+# The retained Host FFmpeg/x264 source is patched by build-deps. This
 # helper must fail closed: a failed forward check is acceptable only when the
 # exact patch reverses cleanly (already applied). Otherwise a clean bootstrap
 # could silently build incompatible upstream source.

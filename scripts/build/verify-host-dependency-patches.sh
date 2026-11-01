@@ -104,9 +104,6 @@ verify_patch_group \
   "${build_dir}/FFmpeg/FFmpeg" \
   "${patch_root}/FFmpeg/FFmpeg"
 verify_patch_group \
-  "${build_dir}/FFmpeg/x265_git" \
-  "${patch_root}/FFmpeg/x265_git"
-verify_patch_group \
   "${build_dir}/FFmpeg/Vulkan-Loader" \
   "${patch_root}/FFmpeg/Vulkan-Loader" tests
 
