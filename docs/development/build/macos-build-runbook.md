@@ -9,6 +9,8 @@ Probe signing/installation remains documented in `probes/macos/README.md`.
 
 The standard Host package supports macOS26.7 and newer, with
 `PLANK_MACOS_HOST_MIN_OS=26.7` selected by default.
+Standard package filenames and visible versions omit a `macos26.7` suffix;
+the minimum OS remains in the app/installer metadata and artifact manifest.
 SDK 27, Rust 1.89 and the exact transport/dependency pins remain required. The
 same setting must be used for the transport archive, Host, component tests and
 PKG. Application, camera extension, audio-driver and installer minimums follow

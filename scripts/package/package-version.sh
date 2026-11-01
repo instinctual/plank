@@ -47,8 +47,8 @@ plank_load_package_version() {
   fi
 }
 
-# Mac Host candidates built from one branch must coexist across runtime floors.
-# Keep ordinary mainline versions and all other products' identities unchanged.
+# Standard Mac Host packages use the ordinary version and branch qualifier.
+# Only explicit 27.0 regression comparisons need a distinct artifact identity.
 plank_load_macos_host_package_version() {
   plank_load_package_version "$@" || return
   local target=${PLANK_MACOS_HOST_MIN_OS:-26.7}
@@ -61,8 +61,8 @@ plank_load_macos_host_package_version() {
       echo 'macOS Host 27.0 comparison requires a candidate branch' >&2
       return 1
     }
-  else
-    PLANK_PACKAGE_VERSION+="-macos${target}"
+  elif [[ $target = 27.0 ]]; then
+    PLANK_PACKAGE_VERSION+='-macos27.0'
   fi
 }
 

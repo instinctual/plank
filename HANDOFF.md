@@ -55,6 +55,13 @@ The branch also contains the dependency refresh and SDL-free Client work
 below; Client source remains `7a9704febb24015cb1dac3eb98eb184dffc88353`.
 See [the cleanup plan](docs/development/plans/host-cleanup.plan).
 
+Future standard Mac Host builds omit `macos26.7` from filenames and visible
+versions. The minimum remains 26.7 in application/installer metadata and the
+manifest. Explicit 27.0 regression comparisons retain their separate suffix.
+The already-built candidates above keep their original names and provenance.
+The filename change passed 16 catalog tests, five build-routing tests and shell
+syntax checks; no package rebuild was needed for this future naming policy.
+
 ## Candidates built — SDL-free desktop Clients, version 1.3.01
 
 The operator authorized removing SDL on `client-no-sdl`, based on dependency

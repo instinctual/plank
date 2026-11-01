@@ -173,10 +173,11 @@ Path(os.environ['TEST_ARGS']).write_text(json.dumps(sys.argv[1:]))
                     result = subprocess.run(['bash', str(ROOT / 'scripts/ci/build.sh'), 'macos-host'],
                                             env=env, capture_output=True, text=True)
                     self.assertEqual(result.returncode, 0, result.stderr)
+                    version = '1.2.02-test-host' + ('-macos27.0' if target == '27.0' else '')
                     self.assertEqual(record.read_text().splitlines(),
                                      ['transport:' + target,
                                       ('package:' if signed == 'true' else 'assembly:') + target +
-                                      ':1.2.02-test-host-macos' + target])
+                                      ':' + version])
 
 
 if __name__ == '__main__':

@@ -53,8 +53,8 @@ def collect(args):
         # Mainline now targets 26.7; retain original target metadata when
         # transferring historical 27-only packages. Conflicting provenance
         # remains an error, even if the package bytes are identical.
-        if args.branch != 'main' and args.target_os != 'macos-27':
-            effective += '-' + args.target_os.replace('macos-', 'macos', 1)
+        if args.branch != 'main' and args.target_os == 'macos-27.0':
+            effective += '-macos27.0'
     source = args.package.resolve(strict=True)
     if not source.is_file():
         raise ValueError('package must be a regular file')

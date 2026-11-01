@@ -7,7 +7,7 @@ separate, explicit publication step; collecting a package does not publish it.
 packages/
   releases/<version>/<linux|macos>/<original-package-filename>
   candidates/<version>-<branch>/<linux|macos>/<original-package-filename>
-  candidates/<version>-<branch>-macos<minimum>/macos/<original-host-package-filename>
+  candidates/<version>-<branch>-macos27.0/macos/<comparison-host-package-filename>
 ```
 
 Each version directory has `manifest.json` and `SHA256SUMS`. Each package also
@@ -15,17 +15,19 @@ has a neighboring `.sha256` sidecar. Run `sha256sum -c SHA256SUMS` from the
 version directory (on macOS, `shasum -a 256 -c SHA256SUMS`). Filenames retain
 product/version/architecture and the feature branch when applicable.
 
-New macOS Host candidates also include the selected runtime floor in the
-visible app version, filename and catalog version. For example, one branch can
-retain `plank-host_1.2.02-test-host-macos26.7_arm64.pkg` and
-`plank-host_1.2.02-test-host-macos27.0_arm64.pkg` under their respective version
-directories. Their manifest `target_os` values are `macos-26.7` and `macos-27.0`;
-the manifest branch remains `test-host`. Mainline now has one Host package for
-26.7 and newer, for example `plank-host_1.2.05_arm64.pkg` under `releases/1.2.05/`,
-with `target_os=macos-26.7`. The 27.0 option is a candidate comparison only.
+Standard macOS Host candidates omit the minimum OS from the visible app version,
+filename and catalog version: `plank-host_1.3.02-host-cleanup_arm64.pkg`.
+The app/installer metadata and manifest `target_os=macos-26.7` still record the
+minimum supported OS. Mainline has one Host package for 26.7 and newer, for
+example `plank-host_1.2.05_arm64.pkg` under `releases/1.2.05/`.
+An explicit 27.0 regression comparison retains `-macos27.0` to keep it separate
+from the standard candidate built from the same branch and version; this is
+never a second release package.
 Client and Linux naming are unchanged. Historical Host artifacts recorded as
 `macos-27` or `macos-27.0` retain their original identity when re-collected. Preserve
 their original manifest rather than relabelling them with a canonical new target.
+Previously collected `-macos26.7` candidates also retain their original names;
+use their recorded source revision's collector if transferring them again.
 
 `releases` means an unqualified **mainline build**, not proof of hardware
 acceptance or a published release. Read each manifest's validation state.

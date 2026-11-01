@@ -94,7 +94,7 @@ finished-package checks remain mandatory. SDK27 and the macOS27 hosted runner
 remain unchanged. Mainline uses the normal unsuffixed package version.
 
 For a focused regression comparison, a candidate branch may explicitly select
-`--macos-host-min-os=27.0`. Both candidate floors retain their version suffix
+`--macos-host-min-os=27.0`. Only that comparison retains a `-macos27.0` version suffix
 and original manifest; only the 26.7 package is the standard release product.
 The Client 15.0 target and Linux build/qualification contracts are unchanged.
 
