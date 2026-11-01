@@ -42,8 +42,17 @@ local policy/probe, lockfile, shell and privacy checks pass. Candidate version
 `ffec346936d20c610b1cd3fbfef538a51e971e40`. Its package build now directly
 runs the synthetic capture lifecycle test: 1,000 cache reads add no mode
 queries, and expiry, callbacks, property changes and failure cases pass.
-Signing, notarization and Gatekeeper passed; the PKG is checksum-verified in
-the candidate catalog. Linux run `41359909949` passed production compilation,
-transport/loss and RPM gates but exposed stale encoder references in the unit
-test registry. The header/test registry is corrected; Linux needs a new build.
-No installed acceptance or measured hardware performance result yet.
+Signing, notarization and Gatekeeper passed. Linux run `41361778133` passed at
+root `7bce649341c45a0137b2e3afca5ea9a1b0dc6c48`: production compilation,
+transport/loss, PAM, RPM and unit-executable linkage gates. The selected
+crypto/input suite passed 46 cases on each of 25 runs; three kernel-UHID cases
+skip on hosted workers. The fake-device input lifecycle fixture passed all
+56 cases on each of 25 runs. The earlier stale encoder references in the test
+registry are corrected without restoring unused production backends.
+
+Both packages are checksum-verified in the candidate catalog; HANDOFF records
+their exact sources and paths. The Mac inputs are unchanged by the later
+Linux-only correction. Original manifests and complete logs are retained under
+`artifacts/qualification/host-cleanup-1.3.02/`; duplicate staging and task-only
+tooling were removed. No builds remain running. No merge, deployment, installed
+acceptance or measured hardware performance result yet.

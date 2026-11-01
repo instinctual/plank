@@ -4,10 +4,10 @@ Read `AGENTS.md` and the relevant build runbook first. Machine-specific access,
 credentials, captures and operational evidence belong in the external private
 notes, never in Git.
 
-## Host cleanup candidates — in progress
+## Host cleanup candidates — built and verified
 
 Current root and Linux Host branch: `host-cleanup`, based on root `be30580`.
-Linux Host pin `bd443255` removes unreferenced GameStream crypto, bypassed Linux
+Linux Host pin `bd4432550b56120efe1e63f6cb4e2aa0a11c63c3` removes unreferenced GameStream crypto, bypassed Linux
 encoder registrations/options, the superseded macOS implementation, and old
 CPack/AppImage/Flatpak/Homebrew packaging and distribution build scripts. The
 HTTPS certificate generator remains, with a direct certificate/key regression
@@ -30,13 +30,26 @@ notarization and Gatekeeper checks. The lifecycle test reported 1,000 cached
 reads with no additional mode queries; expiry and notification cases passed.
 Package: `artifacts/packages/candidates/1.3.02-host-cleanup-macos26.7/macos/plank-host_1.3.02-host-cleanup-macos26.7_arm64.pkg`,
 SHA256 `ce5c27eedd470f59ed14e06ed6dfd1ac25e3581bc38bdea2da13209c7757e145`.
-Downloaded and verified against the hosted manifest. Linux run `41359909949`
-compiled the application and passed transport/loss and RPM gates, but failed to
-link the full unit suite because inherited tests still named deleted encoders.
-The header/test registry now names the two retained Linux backends; a new Linux
-build is required. The Mac package is unaffected by this Linux-only test fix. No merge, deployment or release. Installed Linux capture,
-color, input/Wacom and Mac login/logout/display/audio/video acceptance remain
-pending, including the same Mac package on 26.7 and 27.
+Linux run `41361778133` passed at root
+`7bce649341c45a0137b2e3afca5ea9a1b0dc6c48`: production compilation,
+transport/loss, PAM, package and full unit-executable linkage checks. The selected
+crypto/input suite passed 46 tests on each of 25 runs (three kernel-UHID cases
+skip on the hosted builder); the separate fake-device input lifecycle fixture
+passed 56 tests on each of 25 runs. The encoder test registry now names the
+two retained Linux backends, correcting the previous run's stale references.
+Package: `artifacts/packages/candidates/1.3.02-host-cleanup/linux/plank-host-1.3.02-0.host_cleanup.1.el9.x86_64.rpm`,
+SHA256 `343112c9e1b7a459f21b04f92f55938970f3d1af9be957a10663ad97ba012859`.
+
+Both downloads match their original hosted manifests. Logs, run metadata and
+original manifests are retained under `artifacts/qualification/host-cleanup-1.3.02/`.
+Duplicate download staging and task-only Python tooling were removed. The two
+package root commits differ only in Linux test/header corrections and notes;
+the Mac implementation/build inputs are identical. No build remains running.
+No merge, deployment or release. Installed Linux capture, color, input/Wacom
+and Mac login/logout/display/audio/video acceptance remain pending, including
+the same Mac package on 26.7 and 27. Both packages retain Kymux
+`12af484eb307351b068aba96da12afce46f4614b`; their manifests record the complete
+top-level submodule pins and source commits for recursive provenance.
 
 The branch also contains the dependency refresh and SDL-free Client work
 below; Client source remains `7a9704febb24015cb1dac3eb98eb184dffc88353`.
