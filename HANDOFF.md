@@ -4,7 +4,7 @@ Read `AGENTS.md` and the relevant build runbook first. Machine-specific access,
 credentials, captures and operational evidence belong in the external private
 notes, never in Git.
 
-## Built — Client ping details candidate
+## Merged — Client ping details
 
 The operator approved making the Internet indicator open a compact summary of
 every configured IPv4 ping target. Root and Client branch `client-ping-details`
@@ -57,12 +57,16 @@ artifact `13064488859` are retained under
 `artifacts/qualification/client-ping-details-1.2.12/`. The local collector verified
 original checksums/provenance and removed download staging.
 
-Root and Client are pushed on the candidate branch; this work is not merged or
-published. No build remains active and no package was installed. The next step
-is installed UI/network acceptance: click Internet, review all configured IPv4
-rows, Refresh and close/reopen. Supported macOS version qualification remains
-separate from hosted tests. No installation or release is authorized by this
-follow-up; later documentation commits do not change the built source.
+The operator accepted the candidate and authorized commit, push and merge.
+Client main now includes `2ed1c5f66e90799659002faed6d8f0961c0d4c6f`; root main
+includes candidate tip `4854afd` and its exact Client pin. Both integrations are
+fast-forwards, preserving the tested code and history without conflict edits.
+The canonical root and Client checkouts are back on main. This acceptance covers
+the reported feature test, not unreported qualification across every supported
+macOS version. No new package build, installation or release was performed for
+the merge. Candidate artifacts retain their original names and provenance; a
+future mainline package must be rebuilt rather than relabeled. Later handoff
+commits do not change the tested source.
 
 ## Built — mainline 1.2.11 Host and Clients
 
