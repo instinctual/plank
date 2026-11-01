@@ -4,7 +4,7 @@ Read `AGENTS.md` and the relevant build runbook first. Machine-specific access,
 credentials, captures and operational evidence belong in the external private
 notes, never in Git.
 
-## Active — SDL-free desktop Clients, version 1.3.00
+## Candidates built — SDL-free desktop Clients, version 1.3.00
 
 The operator authorized removing SDL on `client-no-sdl`, based on dependency
 refresh root `e7f10d73c14c` and Client `7813e7b408d51ce890a926d6315530b0f678191c`.
@@ -40,17 +40,30 @@ The build RPATH lets macdeployqt collect native Opus; packaging removes that
 development path. The native-window test waits for actual video presentation,
 not merely a pending resize swap, within its existing bounded deadline.
 
-Ubuntu run `41350522035`, root `740d1abdf6056a6ea3e1e4f3ef24286b671555f8`,
-passed component, audio, Wacom, version and Qt surface/importer/blitter gates.
-Its next gate still required libswscale, whose last Linux consumer was the
-retired SDL software renderer. Linux packaging/runtime checks now require the
-three actual FFmpeg runtime libraries and no longer ship unused libswscale;
-the full dependency-closure and private-RUNPATH checks remain mandatory.
-Dispatch the corrected Ubuntu candidate through the hosted helper.
+Ubuntu run `41352734858` passed at root
+`2277df279300045671dd74fc7f4775c9de301ef5`, with the same Client commit:
+Qt/PipeWire, sanitizer, compositor/two-display, Wacom/input recovery, A/V timing,
+microphone/camera, launcher, version, dependency closure and package gates.
+The collected candidate is
+`artifacts/packages/candidates/1.3.00-client-no-sdl/linux/plank-client_1.3.00-client-no-sdl_amd64.deb`,
+SHA256 `396e80615eda9d6a6800ecf60eb21c0d27b2662c303e43a2911952a12ec8cec6`.
+Linux packaging no longer requires or ships libswscale, whose last Linux
+runtime consumer was the retired SDL software renderer. Qt imports decoded
+planes and scales on the GPU. The actual Qt validator/importer/blitter symbols,
+full dependency closure and private RUNPATH remain independently checked.
+Hosted GL lacks external memory/semaphores, so real Intel surface presentation
+remains a hardware gate; isolated daemon/compositor cases pass in their own suites.
+
+Both catalog checksums match the original hosted manifests. Complete logs,
+run metadata, manifests and qualification artifacts are retained under
+`artifacts/qualification/client-no-sdl-1.3.00/`; duplicate download staging was
+removed. No build remains running. Later documentation commits do not change
+either package's recorded source. The Linux-only packaging correction explains
+the two root source commits; both packages use Client `72b629d3`.
 
 Only the exact `client-no-sdl` branch was added to `macos-signing`; no reviewer
 policy or wildcard was changed. No candidate package has been installed.
-Live A/V listening, device switching, hardware color/decoding, Wacom and recovery
+Next: live A/V listening, device switching, hardware color/decoding, Wacom and recovery
 acceptance remain required, including Mac 15 and 27. No hardware runtime was
 changed for the SDL-removal work; the separate Host diagnostic evidence is
 retained only in the external private audit directory.

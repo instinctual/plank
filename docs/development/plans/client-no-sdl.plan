@@ -1,6 +1,7 @@
 # Remove SDL from the desktop Clients
 
-Status: authorized; implementation on `client-no-sdl`, based on dependency-refresh
+Status: hosted candidates built; installed acceptance pending. Implementation
+is on `client-no-sdl`, based on dependency-refresh
 root `e7f10d73c14c` and Client `7813e7b408d51ce890a926d6315530b0f678191c`.
 The existing 1.2.14 dependency candidates are the comparison checkpoint.
 The operator selected version 1.3.00 for this change. Candidates use
@@ -46,3 +47,14 @@ Installed acceptance still requires both Host platforms, long A/V listening
 soaks, output/input device changes, mute/permissions, Wacom, fullscreen/Spaces and
 reconnect tests on supported Client OS versions. Do not interrupt active users
 or install on an end-user machine without authorization.
+
+## Candidate checkpoint
+
+Version `1.3.00-client-no-sdl` is built for both desktop platforms. Signed Mac
+run `41351081189` and Ubuntu run `41352734858` passed their hosted component and
+package gates. Both use Client `72b629d360be29116763ea2386c591ddd84d3a07`.
+The original PKG and DEB are collected with verified checksums and package-specific
+root provenance; see HANDOFF. Mac signing, notarization, stapling and the 15.0
+deployment floor passed. Linux GPU handoff remains unqualified on actual Intel
+hardware because the hosted GL driver lacks external memory/semaphores.
+No package has been installed for this work, and no merge or release occurred.

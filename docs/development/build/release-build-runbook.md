@@ -39,6 +39,10 @@ SDL/SDL_ttf are no longer build inputs. Source and package gates reject their
 APIs/linkage. The Linux private runtime contains the qualified FFmpeg libraries;
 Mac packages retain Qt, FFmpeg, OpenSSL and Opus. Never reuse an old prepared
 Mac dependency prefix after this removal: rebuild it through the pinned bootstrap.
+Ubuntu runtime gates require libavcodec, libavutil and libswresample. The retired
+SDL software renderer was its last libswscale consumer; do not force unused
+libswscale linkage or shipping to satisfy an old gate. Qt scales decoded planes
+on the GPU and has separate importer/color qualification gates.
 
 Products live under `apps/`; packaging templates under `packaging/<product>/<os>`.
 Git submodule section names remain `host/sunshine-fork` and
