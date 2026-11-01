@@ -45,12 +45,19 @@ class NativeFullscreenTests(unittest.TestCase):
                         session.index('if (!presenter && !SDL_InitSubSystem(SDL_INIT_VIDEO))'))
         header = (client / 'app/streaming/session.h').read_text()
         self.assertIn('bool initialize(IFFmpegRendererFactory* presenter = nullptr);', header)
-        # macOS still uses the ordinary null-presenter SDL initialization;
-        # only the Linux Qt runtime supplies an external renderer factory.
+        # Keep the SDL comparison backend's native Spaces behavior. The
+        # shipping frontend now supplies a Qt renderer on both platforms.
         self.assertIn('const bool initialized = initialize();', session)
         project = (client / 'app/app.pro').read_text()
-        self.assertIn('linux: CONFIG += plank-qt-session', project)
-        self.assertIn('!linux: error("The Qt session frontend is Linux-only")', project)
+        self.assertIn('linux|macx: CONFIG += plank-qt-session', project)
+        self.assertIn('!linux:!macx: error("The Qt session frontend supports Linux and macOS")', project)
+        shell = (client / 'app/streaming/qt/metalsessionshell.mm').read_text()
+        self.assertIn('showFullScreen();', shell)
+        self.assertIn('showNormal();', shell)
+        self.assertNotIn('SDL_SetWindowFullscreen', shell)
+        runtime = (client / 'app/streaming/qt/sessionruntime.cpp').read_text()
+        self.assertIn('getMacCurrentDisplayModeForBounds', runtime)
+        self.assertIn('display.nativeSize = display.macBackingSize', runtime)
         self.assertIn('MacWindow::activeDisplayCount()', session)
         self.assertIn('m_ClientDisplays.size() != macDisplayCount', session)
         self.assertNotIn('PLANK_MAC_FULLSCREEN_FULL_DISPLAY', session)

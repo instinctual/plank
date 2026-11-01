@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Require Qt as the default Linux session, without changing macOS selection."""
+"""Require the shared Qt session and retain the Linux package/linkage gates."""
 import argparse
 from pathlib import Path
 import re
@@ -9,13 +9,13 @@ import subprocess
 def check_source(source):
     app = source / 'app'
     project = (app / 'app.pro').read_text()
-    for token in ('linux: CONFIG += plank-qt-session', 'TARGET = plank-client',
-                  '!linux: error(', 'DEFINES += PLANK_QT_SESSION', 'streaming/qt/sessionruntime.cpp',
+    for token in ('linux|macx: CONFIG += plank-qt-session', 'TARGET = plank-client',
+                  '!linux:!macx: error(', 'DEFINES += PLANK_QT_SESSION', 'streaming/qt/sessionruntime.cpp',
                   'streaming/qt/sessioninput.cpp', 'streaming/qt/decodedvideorenderer.cpp'):
         if token not in project:
             raise ValueError('Qt runtime build input is missing: ' + token)
     session = (app / 'streaming/session.cpp').read_text()
-    entry = session.split('void Session::exec(QWindow* qtWindow)', 1)[1].split('#endif', 1)[0]
+    entry = session.split('void Session::exec(QWindow* qtWindow)', 1)[1].split('void Session::execInternal()', 1)[0]
     if not re.search(r'#ifdef PLANK_QT_SESSION.*new QtSessionRuntime\(this\);\s*'
                      r'runtime->start\(qtWindow\);\s*return;', entry, re.S):
         raise ValueError('Qt Client still enters the ordinary session loop')
