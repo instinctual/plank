@@ -1,0 +1,40 @@
+# Host cleanup and measured optimization
+
+Branch: `host-cleanup`, based on root `be30580` and Linux Host `b735ec86`.
+Includes the pending dependency refresh and SDL-free Client work. No merge,
+release or deployment is implied by candidate builds.
+
+## Scope
+
+1. Remove unreferenced Linux GameStream crypto helpers; preserve the HTTPS
+   certificate generator and verify the generated certificate/key directly.
+2. Remove the superseded macOS backend in the Linux fork and unused upstream
+   packaging. Preserve attribution, supported RPM integration and shared code
+   used by x264/NVENC, capture, display restoration and input.
+3. Restrict the product encoder registry to the two exact supported backends;
+   remove misleading unused build switches. Do not remove shared graphics/DRM
+   helpers merely because KMS capture is not an offered bookmark source.
+4. Compile the native macOS Host with `-O2`, without fast-math or color changes.
+5. Cache stable macOS display snapshots for at most 20 ms. Invalidate
+   immediately on display notifications, selection/profile changes or failed
+   validation. Retain the stable double-read on refresh and the bounded refresh
+   for missed notifications. Authentication and graphical ownership checks
+   remain independent and uncached by this change.
+
+## Validation
+
+- Focused crypto/source/build-policy checks and existing Linux Host gates.
+- macOS synthetic display lifecycle: unchanged fast reads, immediate notified
+  invalidation, missed-event expiry, property changes, failed reads and changes
+  during refresh. Compare query counts without claiming a hardware speedup.
+- Hosted Rocky 9.7 RPM and SDK27/26.7 signed Host PKG builds, exact source and
+  checksum collection. Reuse verified dependency caches; do not compile on
+  hardware test machines.
+- Installed acceptance remains required: login/logout, headless/display changes,
+  audio/video soak, input/Wacom and both macOS 26.7/27. No production session
+  interruption or automatic deployment in this task.
+
+## Status
+
+Implementation in progress. Preserve focused commits so cleanup and macOS
+runtime changes can be reviewed or reverted independently.

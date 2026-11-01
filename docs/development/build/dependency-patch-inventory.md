@@ -67,9 +67,6 @@ selected member may be silently skipped.
 - `apps/client/app/deploy/linux/appimage/` contains an AppImage
   libplacebo patch. PLANK does not build or publish AppImages; the Ubuntu DEB
   uses its qualified system libplacebo.
-- `apps/host/linux/packaging/linux/patches/{aarch64,x86_64}/` contains CUDA
-  compatibility patches for inherited generic/COPR packaging. The canonical
-  PLANK RPM build does not invoke those packaging paths.
 - Patch files embedded inside third-party source repositories, such as
   SVT-AV1's own CI/plugin examples, are upstream project content and are not
   PLANK build inputs unless the pinned build-deps configuration selects them.
