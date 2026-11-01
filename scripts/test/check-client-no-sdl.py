@@ -5,16 +5,19 @@ import re
 import sys
 
 
-def check(source):
+def check(source, probe=None):
     app = source / 'app'
-    for path in list(app.rglob('*')) + list((source / 'tests').rglob('*')):
-        if path.suffix not in ('.cpp', '.h', '.mm', '.c', '.pro', '.pri'):
-            continue
-        text = path.read_text()
-        # Historical attribution/prose is fine; live API names and links are not.
-        text = re.sub(r'//[^\n]*|/\*[\s\S]*?\*/', '', text)
-        if re.search(r'\bSDL_[A-Za-z0-9_]+|#\s*include\s*[<"]SDL|\b(?:sdl3|sdl3-ttf)\b|-lSDL', text):
-            raise ValueError('Retired SDL dependency in ' + str(path.relative_to(source)))
+    if probe is None:
+        probe = pathlib.Path(__file__).resolve().parents[2] / 'probes/qt-session'
+    for directory in (app, source / 'tests', probe):
+        for path in directory.rglob('*'):
+            if path.suffix not in ('.cpp', '.h', '.mm', '.c', '.pro', '.pri'):
+                continue
+            text = path.read_text()
+            # Historical attribution/prose is fine; live API names and links are not.
+            text = re.sub(r'//[^\n]*|/\*[\s\S]*?\*/', '', text)
+            if re.search(r'\bSDL_[A-Za-z0-9_]+|#\s*include\s*[<"]SDL|\b(?:sdl3|sdl3-ttf)\b|-lSDL', text):
+                raise ValueError('Retired SDL dependency in ' + directory.name + '/' + str(path.relative_to(directory)))
     for name in ('streaming/input/input.cpp', 'streaming/planktoolbar.cpp',
                  'streaming/video/ffmpeg-renderers/pacer/pacer.cpp',
                  'streaming/audio/renderers/sdlaud.cpp'):

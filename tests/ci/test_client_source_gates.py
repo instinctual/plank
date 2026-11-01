@@ -1,6 +1,7 @@
 """Exercise source gates without compiling a client or preparing dependencies."""
 from pathlib import Path
 import shutil
+import importlib.util
 import subprocess
 import tempfile
 import unittest
@@ -9,6 +10,20 @@ ROOT = Path(__file__).resolve().parents[2]
 
 
 class ClientSourceGateTests(unittest.TestCase):
+    def test_source_gate_covers_the_root_compositor_probe(self):
+        spec = importlib.util.spec_from_file_location('no_sdl_gate', ROOT / 'scripts/test/check-client-no-sdl.py')
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        with tempfile.TemporaryDirectory() as tmp:
+            source = Path(tmp) / 'client'
+            probe = Path(tmp) / 'qt-session'
+            probe.mkdir()
+            (probe / 'qt-session.pro').write_text('PKGCONFIG += libavcodec sdl3\n')
+            with self.assertRaisesRegex(ValueError, 'qt-session/qt-session.pro'):
+                module.check(source, probe)
+            (probe / 'qt-session.pro').write_text('PKGCONFIG += libavcodec\n')
+            module.check(source, probe)
+
     def test_source_gate_rejects_sdl_api_and_link_inputs(self):
         for filename, content in (('code.cpp', 'SDL_GetTicks();'),
                                   ('app.pro', 'PKGCONFIG += sdl3'),
