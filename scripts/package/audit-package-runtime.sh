@@ -41,7 +41,7 @@ if rg -q '=> not found|^[[:space:]]*not found' <<<"$loader_output"; then
 fi
 
 if [[ -n ${private_libdir} ]]; then
-  for soname in libavcodec.so.63 libavutil.so.61 libswscale.so.10 libswresample.so.7; do
+  for soname in libavcodec.so.63 libavutil.so.61 libswresample.so.7; do
     resolved=$(awk -v name="$soname" '$1 == name && $2 == "=>" {print $3}' <<<"$loader_output")
     if [[ -z ${resolved} ]]; then
       echo "required private FFmpeg library is absent from the runtime closure: ${soname}" >&2

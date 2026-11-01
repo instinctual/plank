@@ -1794,9 +1794,11 @@ rg -a -Fq "$package_version" "$client_binary" || {
 echo "plank_client_version=${package_version}"
 echo "client_version_banner_gate=pass"
 dynamic_section=$(readelf -d "$client_binary")
-for soname in libavcodec.so.63 libavutil.so.61 libswscale.so.10 libswresample.so.7; do
+# Qt imports decoded planes directly and scales on the GPU. The retired SDL
+# software renderer was the last Linux runtime consumer of libswscale.
+for soname in libavcodec.so.63 libavutil.so.61 libswresample.so.7; do
   rg -q "Shared library: \[${soname//./\\.}\]" <<<"$dynamic_section" || {
-    echo "Moonlight did not link the required FFmpeg 9 SONAME: ${soname}" >&2
+    echo "PLANK did not link the required FFmpeg 9 SONAME: ${soname}" >&2
     exit 1
   }
 done

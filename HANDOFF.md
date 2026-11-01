@@ -12,7 +12,7 @@ Both checkouts remain on the feature branch. The new baseline is **1.3.00**;
 candidate filenames and the visible version use `1.3.00-client-no-sdl`.
 See [the plan](docs/development/plans/client-no-sdl.plan). No merge or release.
 
-Current Client implementation: `36a025b2` (this root pins the complete SHA).
+Current Client implementation: `72b629d3` (this root pins the complete SHA).
 The superseded SDL session, input, presentation, audio, dependency bootstrap,
 package linkage and SDL-only tests are removed. Qt owns both desktop session
 lifecycles. Linux keeps PipeWire; Mac playback and microphone capture use Core
@@ -29,21 +29,27 @@ timer-count test assumption; those are fixed without weakening production gates.
 Core Audio retains rear/side surround channel order and accounts for output
 stream latency.
 
-The latest completed package attempts stopped at these final gates:
+Signed Mac run `41351081189` passed at root
+`a7bea440b852a3a0acfc86ece7fdc6c6fb2de844`, Client
+`72b629d360be29116763ea2386c591ddd84d3a07`: component, native audio/microphone,
+Qt/Metal/Cocoa, packaged launch, dependency closure, signing, notarization,
+stapling and OS-floor gates. The collected candidate is
+`artifacts/packages/candidates/1.3.00-client-no-sdl/macos/plank-client_1.3.00-client-no-sdl_arm64.pkg`,
+SHA256 `378c5b39d4dd1a7d8b3961f2812efe354d5172a9736f4e4601dd75ef4c5f8aff`.
+The build RPATH lets macdeployqt collect native Opus; packaging removes that
+development path. The native-window test waits for actual video presentation,
+not merely a pending resize swap, within its existing bounded deadline.
 
-- Ubuntu `41348547610`, root `dbdceb74b3f6e99c6c30c20279c0f97cf69a565c`:
-  the compiled-binary check still searched for retired SDL renderer messages.
-  It now requires the linked Qt VA-API validator, EGL importer and packed
-  identity/BT.709 blitter. Component shader/format tests remain required.
-- Signed Mac `41348863334`, root `46f7f7e46b514986982b66fda42d0f0a9ebec885`:
-  all component tests passed, but the assembled application lacked Opus.
-  The Client now exposes the prepared native library directory as a build
-  RPATH so macdeployqt can collect the closure; packaging removes that
-  development path before signing. The packaged launch gate remains required.
+Ubuntu run `41350522035`, root `740d1abdf6056a6ea3e1e4f3ef24286b671555f8`,
+passed component, audio, Wacom, version and Qt surface/importer/blitter gates.
+Its next gate still required libswscale, whose last Linux consumer was the
+retired SDL software renderer. Linux packaging/runtime checks now require the
+three actual FFmpeg runtime libraries and no longer ship unused libswscale;
+the full dependency-closure and private-RUNPATH checks remain mandatory.
+Dispatch the corrected Ubuntu candidate through the hosted helper.
 
-Rebuild both corrected candidates through the hosted dispatch helper. Only the
-exact `client-no-sdl` branch was added to `macos-signing`; no reviewer policy or
-wildcard was changed. No candidate package has been collected or installed.
+Only the exact `client-no-sdl` branch was added to `macos-signing`; no reviewer
+policy or wildcard was changed. No candidate package has been installed.
 Live A/V listening, device switching, hardware color/decoding, Wacom and recovery
 acceptance remain required, including Mac 15 and 27. No hardware runtime was
 changed for the SDL-removal work; the separate Host diagnostic evidence is

@@ -78,7 +78,7 @@ if [[ -n $(git -C "$moonlight_source_dir" status --porcelain) ]]; then
 fi
 
 for library in \
-  libavcodec.so.63 libavutil.so.61 libswscale.so.10 libswresample.so.7; do
+  libavcodec.so.63 libavutil.so.61 libswresample.so.7; do
   [[ -e ${ffmpeg_lib_dir}/${library} ]] || {
     echo "required FFmpeg ${ffmpeg_version} library is unavailable: ${library}" >&2
     exit 1
@@ -161,7 +161,7 @@ install -D -m 0644 "$ffmpeg_source_dir/COPYING.LGPLv2.1" \
 install -D -m 0644 "$ffmpeg_source_dir/COPYING.LGPLv3" \
   "$stage_dir/usr/share/doc/$client_package/COPYING.FFmpeg.LGPLv3"
 
-for library in libavcodec libavutil libswscale libswresample; do
+for library in libavcodec libavutil libswresample; do
   cp -a "${ffmpeg_lib_dir}/${library}.so."* "$private_lib_dir/"
 done
 cmp --silent "$moonlight_source_dir/app/res/plank-logo.png" \
@@ -195,7 +195,6 @@ EOF
 cat >"$work_dir/shlibs.local" <<EOF
 libavcodec 63 ${client_package}
 libavutil 61 ${client_package}
-libswscale 10 ${client_package}
 libswresample 7 ${client_package}
 EOF
 
@@ -396,7 +395,7 @@ rg -Fq "\$ORIGIN/../lib/$client_lib_name" <<<"$packaged_dynamic_section" || {
 }
 unmanaged_loader_output=$(env -u LD_LIBRARY_PATH \
   ldd "$stage_dir/usr/bin/$client_package")
-for soname in libavcodec.so.63 libavutil.so.61 libswscale.so.10 libswresample.so.7; do
+for soname in libavcodec.so.63 libavutil.so.61 libswresample.so.7; do
   unmanaged_path=$(awk -v name="$soname" \
     '$1 == name && $2 == "=>" {print $3}' <<<"$unmanaged_loader_output")
   [[ -n ${unmanaged_path} ]] &&
