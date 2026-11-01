@@ -43,6 +43,16 @@ Actual headset acceptance and TestFlight delivery are pending.
 The protected Vision environment now permits only this exact
 additional branch alongside the two already-approved native branches.
 
+[Run 41276311791](https://github.com/instinctual/plank/actions/runs/41276311791)
+confirmed the image receiver kept up within one 7621-byte chunk, with no receive
+buffer backlog, while the sender reached only about 1.2 MiB in three seconds.
+The budget was configured for 2 MiB/s. A focused follow-up replaces only the
+utility queue's per-chunk asyncAfter wake with a reusable strict one-shot timer
+(100 microsecond leeway); socket completion, byte/frame caps, queue bounds and
+the three-second assembly deadline stay unchanged. Temporary inspection hooks
+are removed. The loopback test reports completion time. This change still needs
+hosted qualification; it does not modify desktop QUIC/video scheduling.
+
 ## Imported integration baseline — October 21, 2026
 
 The baseline was prepared in `build/worktrees/native-builds`, including its linked Client at
