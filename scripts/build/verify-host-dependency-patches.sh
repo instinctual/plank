@@ -112,12 +112,14 @@ loader_source="${build_dir}/FFmpeg/Vulkan-Loader"
   echo 'prepared Vulkan Loader source is unavailable' >&2; exit 1;
 }
 loader_git=$(git -C "$loader_source" rev-parse --absolute-git-dir)
+git --git-dir="$loader_git" --work-tree="$loader_source" \
+  diff --no-ext-diff --no-renames --name-status -z HEAD | \
 while IFS= read -r -d '' status && IFS= read -r -d '' path; do
   if [[ $status != D || $path != tests/* ]]; then
     echo 'prepared Vulkan Loader differs from pinned upstream production source' >&2
     exit 1
   fi
-done < <(git --git-dir="$loader_git" --work-tree="$loader_source" diff --no-renames --name-status -z)
+done
 if find "$loader_source" -type f \( -name '*.orig' -o -name '*.rej' \) \
     -print -quit | grep -q .; then
   echo 'prepared Loader contains patch backup or reject files' >&2; exit 1

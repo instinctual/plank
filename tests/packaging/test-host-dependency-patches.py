@@ -32,6 +32,10 @@ class HostDependencyPatches(unittest.TestCase):
             # these without -z, which can hide their tests/ prefix from a parser.
             (source / 'tests/unicode-\N{SNOWMAN}.c').write_text('unicode test\n')
             subprocess.run(['git', '-C', str(source), 'add', '.'], check=True)
+            subprocess.run(['git', '-C', str(source), '-c', 'user.name=PLANK Tests',
+                            '-c', 'user.email=tests@example.invalid',
+                            '-c', 'commit.gpgsign=false', 'commit', '--quiet',
+                            '-m', 'Fixture baseline'], check=True)
             if dependency == 'Vulkan-Loader':
                 continue
             patch_dir = self.patches / dependency
@@ -61,6 +65,16 @@ class HostDependencyPatches(unittest.TestCase):
 
     def test_extra_tracked_loader_change_is_rejected(self):
         (self.loader / 'other.c').write_text('unexpected\n')
+        self.assertNotEqual(self.verify().returncode, 0)
+
+    def test_staged_loader_change_is_rejected(self):
+        (self.loader / 'other.c').write_text('unexpected\n')
+        subprocess.run(['git', '-C', str(self.loader), 'add', 'other.c'], check=True)
+        self.assertNotEqual(self.verify().returncode, 0)
+
+    def test_loader_missing_commit_is_rejected(self):
+        subprocess.run(['git', '-C', str(self.loader), 'update-ref', '-d', 'HEAD'],
+                       check=True)
         self.assertNotEqual(self.verify().returncode, 0)
 
     def test_missing_loader_directory_is_rejected(self):
