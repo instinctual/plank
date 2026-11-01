@@ -38,7 +38,7 @@ PY
 cmake --build "$work/loader-build" --parallel 4
 ulimit -c 0
 if ctest --test-dir "$work/loader-build" --output-on-failure --timeout 60 \
-    --no-tests=error -R 'IdFilterAllocationFailure.*/1$' > "$work/negative.log" 2>&1; then
+    --no-tests=error -R 'IdFilterAllocationFailure.*false, 0, false, true' > "$work/negative.log" 2>&1; then
   echo 'Negative control unexpectedly passed' >&2; exit 1
 fi
 grep -Eq 'SEGFAULT|SegFault|Failed' "$work/negative.log"

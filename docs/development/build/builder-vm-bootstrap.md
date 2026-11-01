@@ -200,7 +200,7 @@ sudo apt-get install -y \
   libvdpau-dev libwayland-dev libx11-dev zlib1g-dev
 ```
 
-After installing those prerequisites, prepare the private SDL 3.4.2 runtime
+After installing those prerequisites, prepare the private SDL 3.4.18 runtime
 with the tracked Wayland tablet-cursor retirement repair. This does not replace
 the distribution's SDL installation:
 

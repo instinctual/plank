@@ -10,7 +10,7 @@ independently proves that the prepared source contains it.
 ### Client private SDL
 
 `apps/client/app/deploy/linux/sdl-patches/0001-wayland-detach-the-tablet-cursor-surface.patch`
-repairs cursor retirement in SDL 3.4.2's Wayland backend. When a tablet tool
+repairs cursor retirement in SDL 3.4.18's Wayland backend. When a tablet tool
 uses the retiring cursor, detach that tool's surface, not the independent
 mouse surface, which may be null or belong to another cursor.
 

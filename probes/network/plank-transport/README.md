@@ -5,7 +5,7 @@ exact commit pinned by the root repository. It does not link into or alter the
 PLANK Host or Client transport.
 
 The probe overrides `quinn-proto 0.11.19` with the exact vendored source plus
-a documented DATAGRAM send-buffer accounting backport. See
+PLANK telemetry. The DATAGRAM queue/MTU fixes are now upstream. See
 `third_party/quinn-proto-0.11.19/PLANK-PATCH.md` for upstream commit provenance
 and removal criteria.
 
