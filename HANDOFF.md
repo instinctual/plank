@@ -32,9 +32,15 @@ No deadline/size limit has changed. Follow-up diagnostics report only byte
 progress and sender budget state, never image data or peer identities.
 
 The combined desktop scene now uses one named Window, so Open Session reveals
-the existing viewport instead of creating another stream owner. This follow-up
-still needs its hosted build. Actual headset acceptance and TestFlight delivery
-are pending. The protected Vision environment now permits only this exact
+the existing viewport instead of creating another stream owner. This passed
+Vision device/simulator and iPad device/simulator compilation in
+[run 41275576219](https://github.com/instinctual/plank/actions/runs/41275576219).
+That run's Mac tests stopped earlier on a 40 ms test-only wait for a dispatch
+timer callback. The test now awaits the actual callback with a one-second
+watchdog; production grace periods and assertions are unchanged. The image
+suite runs before AppKit checks to expose its remaining blocker directly.
+Actual headset acceptance and TestFlight delivery are pending.
+The protected Vision environment now permits only this exact
 additional branch alongside the two already-approved native branches.
 
 ## Imported integration baseline — October 21, 2026

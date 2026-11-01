@@ -124,13 +124,13 @@ def dependencies(target):
     recipe("deps", target)
     run(["bash", CLIENT / "scripts/apple-native/test.sh", work / "policy-tests"])
     if target == "macos":
+        run(["bash", CLIENT / "apple-native/Tests/run-pencil-image-checks.sh",
+             work, work / "image-tests"])
         run(["bash", CLIENT / "scripts/test-macos-native.sh", work / "mac-tests"])
         env = dict(os.environ, PLANK_RELAY_SOURCE_DIR=str(work / "git/raw"),
                    PLANK_MANAGED_RELAY_SOURCE_DIR=str(work / "git/managed"),
                    PLANK_RELAY_SODIUM_PREFIX=str(work / "install"))
         run(["bash", CLIENT / "scripts/test-macos-relay.sh", work / "relay-tests"], env=env)
-        run(["bash", CLIENT / "apple-native/Tests/run-pencil-image-checks.sh",
-             work, work / "image-tests"])
         run(["bash", CLIENT / "scripts/test-apple-pencil.sh", work, work / "pencil-tests"])
         for directory, name in (
             ("ios-native", "zoom-policy"), ("ios-native", "zoom-input-integration"),
