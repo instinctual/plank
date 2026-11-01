@@ -4,9 +4,9 @@ This standalone AGPL-3.0-or-later probe exercises Kyber `kynet`/Quinn at the
 exact commit pinned by the root repository. It does not link into or alter the
 PLANK Host or Client transport.
 
-The probe overrides `quinn-proto 0.11.17` with the exact vendored source plus
+The probe overrides `quinn-proto 0.11.19` with the exact vendored source plus
 a documented DATAGRAM send-buffer accounting backport. See
-`third_party/quinn-proto-0.11.17/PLANK-PATCH.md` for upstream commit provenance
+`third_party/quinn-proto-0.11.19/PLANK-PATCH.md` for upstream commit provenance
 and removal criteria.
 
 The default `quinn-bbr` feature explicitly selects Quinn's experimental BBR

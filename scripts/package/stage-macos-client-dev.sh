@@ -34,7 +34,7 @@ for plugin in "$app/Contents/PlugIns/sqldrivers/"*.dylib; do
 done
 mkdir -p "$app/Contents/Resources/licenses"
 cp "$source_root/apps/client/LICENSE" "$app/Contents/Resources/licenses/client.txt"
-for name in SDL3-3.4.2 SDL3_ttf-3.2.2 opus-1.5.2 openssl-3.5.5 freetype-2.14.1 ffmpeg-9.0.1; do
+for name in SDL3-3.4.18 SDL3_ttf-3.2.2 opus-1.6.1 openssl-3.5.9 freetype-2.15.0 ffmpeg-9.0.2; do
     mkdir "$app/Contents/Resources/licenses/$name"
     find "$PLANK_MAC_CLIENT_DEPS/src/$name" -maxdepth 1 -type f \
         \( -name 'COPYING*' -o -name 'LICENSE*' \) \

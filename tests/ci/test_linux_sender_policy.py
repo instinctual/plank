@@ -54,9 +54,9 @@ class LinuxSenderPolicyTests(unittest.TestCase):
 
     def test_datagram_regressions_and_repetitions_are_required(self):
         host = (ROOT / 'scripts/build/build-host-package-binaries.sh').read_text()
-        self.assertIn('--lib connection::datagrams::plank_tests', host)
+        self.assertIn('--lib connection::datagrams::', host)
         bootstrap = (ROOT / 'scripts/ci/dependencies/cargo.sh').read_text()
-        self.assertIn('third_party/quinn-proto-0.11.17/Cargo.toml', bootstrap)
+        self.assertIn('third_party/quinn-proto-0.11.19/Cargo.toml', bootstrap)
         script = (ROOT / 'scripts/test/run-plank-transport-native-loopback.sh').read_text()
         self.assertIn('for loss_trial in 1 2 3;', script)
         self.assertIn('set -euo pipefail', script)

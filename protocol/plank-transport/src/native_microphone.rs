@@ -121,7 +121,6 @@ async fn source(shared: &NativeShared, connection: &kyproto::Connection) -> Resu
         .await
         .context("microphone source readiness timed out")??;
     protocol
-        .send
         .send(AVPacket::Codec(CodecPacket {
             header: CodecPacketHeader {
                 codec: AUDIO_CODEC_OPUS,
@@ -131,7 +130,6 @@ async fn source(shared: &NativeShared, connection: &kyproto::Connection) -> Resu
         }))
         .await?;
     protocol
-        .send
         .send(AVPacket::Media(MediaPacket {
             header: MediaPacketHeader {
                 is_config: true,
@@ -151,7 +149,6 @@ async fn source(shared: &NativeShared, connection: &kyproto::Connection) -> Resu
             anyhow::ensure!(pts < (1u64 << 61), "invalid microphone timestamp");
             let payload = packet.encode()?;
             protocol
-                .send
                 .send(AVPacket::Media(MediaPacket {
                     header: MediaPacketHeader {
                         is_config: false,
@@ -172,7 +169,7 @@ async fn sink(shared: &NativeShared, connection: &kyproto::Connection) -> Result
     let mut protocol = microphone::open_sink(connection, Duration::from_secs(3)).await?;
     shared.microphone.state.lock().unwrap().status = 2;
     let mut format_valid = false;
-    while let Some(packet) = protocol.recv.recv().await? {
+    while let Some(packet) = protocol.recv().await? {
         match packet {
             AVPacket::Codec(packet) => {
                 anyhow::ensure!(

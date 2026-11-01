@@ -4,6 +4,33 @@ Read `AGENTS.md` and the relevant build runbook first. Machine-specific access,
 credentials, captures and operational evidence belong in the external private
 notes, never in Git.
 
+## In progress — dependency refresh
+
+The operator authorized the updates on `dependency-refresh`, preserving SDL.
+Baseline main is `b3d3235c78e513c3202b9524f1fea8ae420787bd`; candidate version
+is 1.2.14-dependency-refresh. See
+[the staged plan](docs/development/plans/dependency-refresh.plan).
+
+Implemented: remove unused x265, reconcile Kyber 0.29 with PLANK's bounded
+parsers/FEC draining/cancellation and native protocol, Quinn 0.11.12 with
+quinn-proto 0.11.19 and quinn-udp 0.5.16, Rustls 0.23.46/webpki 0.103.16,
+Tokio 1.54.1, FFmpeg 9.0.2, SDL 3.4.18, Mac Opus 1.6.1/OpenSSL 3.5.9/
+FreeType 2.15.0, Boost 1.92.0, JSON 3.12.0 and Rust 1.99.1/rustup 1.29.2.
+Client FFmpeg's exact identity-GBR patch was rebased; SDL's Wayland cursor
+retirement patch remains required. Quinn's queue accounting/MTU repairs are
+upstream; local telemetry and regression tests remain. FFmpeg's AMF range fix
+is upstream, so its duplicate patch was removed. NVIDIA/CUDA/NVENC remain at
+the approved baseline. Vulkan 1.4.367 is being evaluated separately; the
+first checkpoint retains the existing 1.4.362 pair and allocation repair.
+
+Local policy checks: 114 CI source/cache tests, 12 dependency patch checks and
+three bootstrap-input checks passed. No package has yet passed hosted builds,
+been installed or released for this task. Next: run clean-bootstrap GitHub
+builds, fix integration failures, finish Vulkan qualification and record exact
+package provenance. Installed GPU/color, input, audio soak and OS-floor gates
+remain pending. Native Apple/AVP and Qt/Intel stack updates are separate scope;
+do not merge unfinished native features or add a QSV backend in this refresh.
+
 ## Merged — macOS Qt session; mainline 1.2.13 built
 
 The operator authorized `macos-qt-session`, then explicitly approved merging the

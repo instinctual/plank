@@ -17,13 +17,10 @@ anyhow = "1.0"
 bytes = "1.10"
 hex = "0.4"
 kynet = { path = "../../../third_party/kyber-kymux/kynet", features = ["kynet-quinn"] }
-quinn-proto = { version = "=0.11.17", default-features = false }
+quinn-proto = { version = "=0.11.19", default-features = false }
 plank-transport = { path = "../../../protocol/plank-transport", default-features = false }
-tokio = { version = "1.47", features = ["io-util", "macros", "net", "rt-multi-thread", "sync", "time"] }
+tokio = { version = "1.54.1", features = ["io-util", "macros", "net", "rt-multi-thread", "sync", "time"] }
 
 [patch.crates-io]
-# quinn-proto 0.11.17 has two DATAGRAM send-buffer accounting defects that can
-# abort a saturated connection under loss. Keep Kyber on its Quinn 0.11 API and
-# use the narrow, documented shared backport until an upstream release contains
-# the fixes.
-quinn-proto = { path = "../../../third_party/quinn-proto-0.11.17" }
+# Share production Quinn and PLANK telemetry; see the vendored PLANK-PATCH.md.
+quinn-proto = { path = "../../../third_party/quinn-proto-0.11.19" }

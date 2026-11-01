@@ -65,12 +65,12 @@ for required_patch_helper_token in \
 done
 echo "host_dependency_patch_fail_closed_gate=pass"
 "${repo_dir}/scripts/build/verify-host-dependency-patches.sh"
-[[ $(rustc --version) == "rustc 1.89.0 "* ]] || {
-  echo "PLANK transport requires rustc 1.89.0" >&2
+[[ $(rustc --version) == "rustc 1.99.1 "* ]] || {
+  echo "PLANK transport requires rustc 1.99.1" >&2
   exit 1
 }
-[[ $(cargo --version) == "cargo 1.89.0 "* ]] || {
-  echo "PLANK transport requires cargo 1.89.0" >&2
+[[ $(cargo --version) == "cargo 1.99.1 "* ]] || {
+  echo "PLANK transport requires cargo 1.99.1" >&2
   exit 1
 }
 plank_transport_dir="${repo_dir}/protocol/plank-transport"
@@ -94,10 +94,10 @@ cargo metadata --locked --offline --no-deps \
 # Run the vendored boundary/accounting and telemetry regressions before the Host.
 # This separate test archive is never linked into the product.
 CARGO_TARGET_DIR="$build_dir/quinn-tests" cargo test --release --locked --offline \
-  --manifest-path "$repo_dir/third_party/quinn-proto-0.11.17/Cargo.toml" \
-  --lib connection::datagrams::plank_tests
+  --manifest-path "$repo_dir/third_party/quinn-proto-0.11.19/Cargo.toml" \
+  --lib connection::datagrams::
 CARGO_TARGET_DIR="$build_dir/quinn-tests" cargo test --release --locked --offline \
-  --manifest-path "$repo_dir/third_party/quinn-proto-0.11.17/Cargo.toml" \
+  --manifest-path "$repo_dir/third_party/quinn-proto-0.11.19/Cargo.toml" \
   --features plank-telemetry \
   --lib tests::plank_telemetry_snapshot_is_owned_and_preserves_queue_counters -- --exact
 rg -q '^#define PLANK_TRANSPORT_ABI_VERSION 13u$' \
@@ -289,9 +289,9 @@ done
   exit 1
 }
 [[ -f ${boost_source_dir}/CMakeLists.txt ]] &&
-  rg -Fxq 'project(Boost VERSION 1.89.0 LANGUAGES CXX)' \
+  rg -Fxq 'project(Boost VERSION 1.92.0 LANGUAGES CXX)' \
     "$boost_source_dir/CMakeLists.txt" || {
-  echo "prepared Boost source is not exact version 1.89.0: ${boost_source_dir}" >&2
+  echo "prepared Boost source is not exact version 1.92.0: ${boost_source_dir}" >&2
   exit 1
 }
 echo "host_prepared_boost_gate=pass"

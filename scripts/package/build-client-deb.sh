@@ -19,8 +19,8 @@ common_source_dir="${moonlight_source_dir}/moonlight-common-c/moonlight-common-c
 kyber_source_dir="${repo_dir}/third_party/kyber-kymux"
 approved_client_logo="${repo_dir}/branding/assets/plank-logo.png"
 runtime_client_logo="${moonlight_source_dir}/app/res/plank-logo.png"
-ffmpeg_version=9.0.1
-ffmpeg_sha256=cf38e0e28c7e5605942c4a77755349b0145804a397af37eb1fb4c77cb237f635
+ffmpeg_version=9.0.2
+ffmpeg_sha256=8c3850283eb25fa026482078a04051e0be17347b09ef81a0849bec15a96e002e
 ffmpeg_lib_dir="${ffmpeg_work_dir}/install/lib"
 client_sdl_work=${PLANK_CLIENT_SDL_WORK:?prepare patched Client SDL and set PLANK_CLIENT_SDL_WORK}
 source "$repo_dir/scripts/build/client-sdl.sh"

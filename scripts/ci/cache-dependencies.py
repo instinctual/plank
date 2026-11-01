@@ -42,8 +42,8 @@ def dependency_inputs(root, product, component):
         paths.update((RECIPES + 'cargo.sh', 'protocol/plank-transport/Cargo.lock',
                       'protocol/plank-transport/Cargo.toml'))
         if product == 'linux-host':
-            paths.update(('third_party/quinn-proto-0.11.17/Cargo.toml',
-                          'third_party/quinn-proto-0.11.17/Cargo.lock'))
+            paths.update(('third_party/quinn-proto-0.11.19/Cargo.toml',
+                          'third_party/quinn-proto-0.11.19/Cargo.lock'))
     elif component == 'boost':
         paths.add(RECIPES + 'boost.sh')
     elif component == 'qt':
@@ -119,19 +119,19 @@ def cache_paths(root, deps, product, component):
         paths = [deps / name for name in ('cargo/registry/cache', 'cargo/registry/index',
                  'cargo/registry/src', 'cargo/git/db', 'cargo/git/checkouts')]
     elif component == 'boost':
-        paths = [deps / 'boost-1.89.0']
+        paths = [deps / 'boost-1.92.0']
     elif component == 'qt':
         paths = [deps / 'qt']
     elif component == 'native' and product == 'linux-client':
         paths = [deps / 'client-sdl' / name for name in
-                 ('install', 'SDL3-3.4.2', 'SDL3-3.4.2.tar.gz', 'prepared.sha256', 'patch.sha256')]
+                 ('install', 'SDL3-3.4.18', 'SDL3-3.4.18.tar.gz', 'prepared.sha256', 'patch.sha256')]
     elif component == 'native':
         paths = [deps / 'macos-client' / name for name in ('install', 'src', 'downloads')]
     elif product == 'linux-host':
         paths = [deps / 'host-ffmpeg', root / HOST_DEPS / 'build']
     else:
         paths = [deps / 'client-ffmpeg' / name for name in
-                 ('install', 'ffmpeg-9.0.1', 'ffmpeg-9.0.1.tar.xz')]
+                 ('install', 'ffmpeg-9.0.2', 'ffmpeg-9.0.2.tar.xz')]
     paths.append(deps / 'cache-receipts' / f'{product}-{component}.json')
     return paths
 
@@ -156,7 +156,7 @@ def check_prepared(root, deps, product, component):
     required = {
         'rust': ['cargo/bin/rustup', 'rustup/settings.toml'],
         'cargo': [],  # Locked fetch always runs; registry/Git sources may be absent.
-        'boost': ['boost-1.89.0/CMakeLists.txt'],
+        'boost': ['boost-1.92.0/CMakeLists.txt'],
         'qt': ['qt/6.10.2/macos/bin/qmake'],
         'native': (['client-sdl/prepared.sha256', 'client-sdl/install/lib/libSDL3.so.0']
                    if product == 'linux-client' else
@@ -165,7 +165,7 @@ def check_prepared(root, deps, product, component):
                     'libssl', 'libcrypto', 'libSDL3', 'libSDL3_ttf', 'libopus', 'libfreetype')]),
         'ffmpeg': (['host-ffmpeg/lib/libavcodec.a', 'host-ffmpeg/lib/libavutil.a']
                    if product == 'linux-host' else
-                   ['client-ffmpeg/ffmpeg-9.0.1.tar.xz'] +
+                   ['client-ffmpeg/ffmpeg-9.0.2.tar.xz'] +
                    ['client-ffmpeg/install/lib/' + name + '.so' for name in
                     ('libavcodec', 'libavutil', 'libswscale', 'libswresample')]),
     }[component]
@@ -179,8 +179,8 @@ def check_prepared(root, deps, product, component):
                         'source "$1/scripts/build/client-sdl.sh"; plank_verify_client_sdl "$1" "$2"',
                         'verify-sdl', str(root), str(deps / 'client-sdl')], check=True)
     elif component == 'native' or (component == 'ffmpeg' and product == 'linux-client'):
-        source = ('macos-client/src/ffmpeg-9.0.1' if component == 'native'
-                  else 'client-ffmpeg/ffmpeg-9.0.1')
+        source = ('macos-client/src/ffmpeg-9.0.2' if component == 'native'
+                  else 'client-ffmpeg/ffmpeg-9.0.2')
         with (root / IDENTITY_PATCH).open('rb') as patch:
             subprocess.run(['patch', '--batch', '--reverse', '--dry-run', '-p1',
                             '-d', str(deps / source)], stdin=patch, check=True)

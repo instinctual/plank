@@ -21,7 +21,7 @@ class ClientSourceGateTests(unittest.TestCase):
                 pkgconfig = Path(tmp) / 'install/lib/pkgconfig'
                 pkgconfig.mkdir(parents=True)
                 (pkgconfig / 'sdl3.pc').write_text(
-                    'Name: SDL fixture\nDescription: Test only\nVersion: 3.4.2\nLibs: -lSDL3' +
+                    'Name: SDL fixture\nDescription: Test only\nVersion: 3.4.18\nLibs: -lSDL3' +
                     (' -Wl,-rpath,/build/fixture/install/lib' if inject else '') + '\n')
                 script = ('function check_metadata() { local work=$1 link_flags\n'
                           '    link_flags=$(' + gate + '\n}\ncheck_metadata "$1"')

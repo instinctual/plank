@@ -27,7 +27,7 @@ plank_load_package_version "$source_root"
 version=$PLANK_PACKAGE_VERSION
 client="$source_root/apps/client"
 test "$(qmake -query QT_VERSION)" = 6.10.2
-test "$(rustc --version | awk '{print $2}')" = 1.89.0
+test "$(rustc --version | awk '{print $2}')" = 1.99.1
 python3 "$source_root/tests/packaging/test-macos-client-target.py"
 python3 "$source_root/tests/packaging/test-macos-app-icons.py"
 bash "$source_root/tests/packaging/macos-client-uninstall.sh"
@@ -76,8 +76,8 @@ xcrun clang++ -std=c++17 -fobjc-arc -mmacosx-version-min="$MACOSX_DEPLOYMENT_TAR
     -o "$build/tests/microphone-permission-test"
 "$build/tests/microphone-permission-test"
 patch_file="$client/app/deploy/linux/ffmpeg-patches/0001-hevc-enable-hwaccel-for-identity-gbr.patch"
-printf '%s  %s\n' 059cc9c0d585d71e292cd7421a43f239b1e7ce94e8598d0a7427dfe48e55847e "$patch_file" | shasum -a 256 -c -
-patch --batch --reverse --dry-run -d "$PLANK_MAC_CLIENT_DEPS/src/ffmpeg-9.0.1" -p1 < "$patch_file"
+printf '%s  %s\n' d8514ed9db3fc2c1aba43cfad0b06f8be3670759bdb173b6fd0a6dc1cffa0bf4 "$patch_file" | shasum -a 256 -c -
+patch --batch --reverse --dry-run -d "$PLANK_MAC_CLIENT_DEPS/src/ffmpeg-9.0.2" -p1 < "$patch_file"
 pkg-config --modversion sdl3 sdl3-ttf openssl opus libavcodec libavutil
 mkdir -p "$build"
 python3 "$source_root/scripts/test/check-macos-client-target.py" \

@@ -587,7 +587,6 @@ mod tests {
         };
         let microphone_payload = microphone_packet.encode().unwrap();
         microphone_source
-            .send
             .send(AVPacket::Codec(CodecPacket {
                 header: CodecPacketHeader {
                     codec: u32::from_be_bytes(*b"OPUS"),
@@ -598,7 +597,6 @@ mod tests {
             .await
             .unwrap();
         microphone_source
-            .send
             .send(AVPacket::Media(MediaPacket {
                 header: MediaPacketHeader {
                     is_config: true,
@@ -611,7 +609,6 @@ mod tests {
             .await
             .unwrap();
         microphone_source
-            .send
             .send(AVPacket::Media(MediaPacket {
                 header: MediaPacketHeader {
                     is_config: false,
@@ -625,14 +622,14 @@ mod tests {
             .unwrap();
         tokio::time::timeout(options.handshake_timeout, async {
             assert!(matches!(
-                microphone_sink.recv.recv().await.unwrap(),
+                microphone_sink.recv().await.unwrap(),
                 Some(AVPacket::Codec(_))
             ));
             assert!(matches!(
-                microphone_sink.recv.recv().await.unwrap(),
+                microphone_sink.recv().await.unwrap(),
                 Some(AVPacket::Media(packet)) if packet.header.is_config
             ));
-            let Some(AVPacket::Media(packet)) = microphone_sink.recv.recv().await.unwrap() else {
+            let Some(AVPacket::Media(packet)) = microphone_sink.recv().await.unwrap() else {
                 panic!("missing reverse audio packet");
             };
             assert_eq!(
@@ -644,7 +641,6 @@ mod tests {
         .expect("reverse audio delivery timeout");
 
         server_video
-            .send
             .send(AVPacket::Codec(CodecPacket {
                 header: CodecPacketHeader {
                     codec: u32::from_be_bytes(*b"HEVC"),
@@ -656,7 +652,6 @@ mod tests {
             .expect("failed to send native video codec packet");
         let video_config_payload = Bytes::from_static(b"annex-b-vps-sps-pps");
         server_video
-            .send
             .send(AVPacket::Media(MediaPacket {
                 header: MediaPacketHeader {
                     is_config: true,
@@ -674,7 +669,6 @@ mod tests {
                 .collect::<Vec<_>>(),
         );
         server_video
-            .send
             .send(AVPacket::Media(MediaPacket {
                 header: MediaPacketHeader {
                     is_config: false,
@@ -688,14 +682,14 @@ mod tests {
             .expect("failed to send native RaptorQ video frame");
 
         let received_video_codec =
-            tokio::time::timeout(Duration::from_secs(5), client_video.recv.recv())
+            tokio::time::timeout(Duration::from_secs(5), client_video.recv())
                 .await
                 .expect("native video codec receive timed out")
                 .expect("native video codec receive failed")
                 .expect("native video codec endpoint closed");
         assert!(matches!(received_video_codec, AVPacket::Codec(_)));
         let received_video_config =
-            tokio::time::timeout(Duration::from_secs(5), client_video.recv.recv())
+            tokio::time::timeout(Duration::from_secs(5), client_video.recv())
                 .await
                 .expect("native video configuration receive timed out")
                 .expect("native video configuration receive failed")
@@ -705,7 +699,7 @@ mod tests {
         };
         assert!(received_video_config.header.is_config);
         assert_eq!(received_video_config.payload, video_config_payload);
-        let received_video = tokio::time::timeout(Duration::from_secs(5), client_video.recv.recv())
+        let received_video = tokio::time::timeout(Duration::from_secs(5), client_video.recv())
             .await
             .expect("native video frame receive timed out")
             .expect("native video frame receive failed")
@@ -731,7 +725,6 @@ mod tests {
         );
 
         server_audio
-            .send
             .send(AVPacket::Codec(CodecPacket {
                 header: CodecPacketHeader {
                     codec: u32::from_be_bytes(*b"OPUS"),
@@ -743,7 +736,6 @@ mod tests {
             .expect("failed to send native audio codec packet");
         let audio_config_payload = Bytes::from_static(b"OpusHead");
         server_audio
-            .send
             .send(AVPacket::Media(MediaPacket {
                 header: MediaPacketHeader {
                     is_config: true,
@@ -757,7 +749,6 @@ mod tests {
             .expect("failed to send native audio configuration packet");
         let audio_payload = Bytes::from_static(b"plank-opus-packet");
         server_audio
-            .send
             .send(AVPacket::Media(MediaPacket {
                 header: MediaPacketHeader {
                     is_config: false,
@@ -770,7 +761,7 @@ mod tests {
             .await
             .expect("failed to send native RaptorQ audio packet");
         assert!(matches!(
-            tokio::time::timeout(Duration::from_secs(5), client_audio.recv.recv())
+            tokio::time::timeout(Duration::from_secs(5), client_audio.recv())
                 .await
                 .expect("native audio codec receive timed out")
                 .expect("native audio codec receive failed")
@@ -778,7 +769,7 @@ mod tests {
             AVPacket::Codec(_)
         ));
         let received_audio_config =
-            tokio::time::timeout(Duration::from_secs(5), client_audio.recv.recv())
+            tokio::time::timeout(Duration::from_secs(5), client_audio.recv())
                 .await
                 .expect("native audio configuration receive timed out")
                 .expect("native audio configuration receive failed")
@@ -788,7 +779,7 @@ mod tests {
         };
         assert!(received_audio_config.header.is_config);
         assert_eq!(received_audio_config.payload, audio_config_payload);
-        let received_audio = tokio::time::timeout(Duration::from_secs(5), client_audio.recv.recv())
+        let received_audio = tokio::time::timeout(Duration::from_secs(5), client_audio.recv())
             .await
             .expect("native audio packet receive timed out")
             .expect("native audio packet receive failed")
@@ -799,15 +790,14 @@ mod tests {
         assert_eq!(received_audio.payload, audio_payload);
 
         let input_payload = Bytes::from_static(b"wacom-state-transition");
-        client_input
-            .send
+        client_input.0
             .send(InputPacket {
                 type_: 7,
                 payload: input_payload.clone(),
             })
             .await
             .expect("failed to send native input packet");
-        let received_input = tokio::time::timeout(Duration::from_secs(5), server_input.recv.recv())
+        let received_input = tokio::time::timeout(Duration::from_secs(5), server_input.1.recv())
             .await
             .expect("native input receive timed out")
             .expect("native input receive failed")
@@ -816,15 +806,14 @@ mod tests {
         assert_eq!(received_input.payload, input_payload);
 
         let client_data_payload = Bytes::from_static(b"client-control");
-        client_data
-            .send
+        client_data.0
             .send(DataPacket {
                 payload: client_data_payload.clone(),
             })
             .await
             .expect("failed to send native client data packet");
         let received_client_data =
-            tokio::time::timeout(Duration::from_secs(5), server_data.recv.recv())
+            tokio::time::timeout(Duration::from_secs(5), server_data.1.recv())
                 .await
                 .expect("native client data receive timed out")
                 .expect("native client data receive failed")
@@ -832,15 +821,14 @@ mod tests {
         assert_eq!(received_client_data.payload, client_data_payload);
 
         let server_data_payload = Bytes::from_static(b"server-control");
-        server_data
-            .send
+        server_data.0
             .send(DataPacket {
                 payload: server_data_payload.clone(),
             })
             .await
             .expect("failed to send native server data packet");
         let received_server_data =
-            tokio::time::timeout(Duration::from_secs(5), client_data.recv.recv())
+            tokio::time::timeout(Duration::from_secs(5), client_data.1.recv())
                 .await
                 .expect("native server data receive timed out")
                 .expect("native server data receive failed")
@@ -927,7 +915,6 @@ mod tests {
         } = client_protocols.expect("loss-test client handshake failed");
 
         server_video
-            .send
             .send(AVPacket::Codec(CodecPacket {
                 header: CodecPacketHeader {
                     codec: u32::from_be_bytes(*b"HEVC"),
@@ -938,7 +925,6 @@ mod tests {
             .await
             .expect("failed to send loss-test codec packet");
         server_video
-            .send
             .send(AVPacket::Media(MediaPacket {
                 header: MediaPacketHeader {
                     is_config: true,
@@ -965,7 +951,7 @@ mod tests {
             while received.len() < TOTAL_FRAMES {
                 let frame = received.len();
                 let deadline = matrix_start + frame_offset(frame) + FRAME_DEADLINE;
-                let packet = tokio::time::timeout_at(deadline, client_video.recv.recv())
+                let packet = tokio::time::timeout_at(deadline, client_video.recv())
                     .await
                     .unwrap_or_else(|_| {
                         panic!("loss-test receiver missed 100 ms scheduled deadline for frame {frame}")
@@ -995,7 +981,7 @@ mod tests {
                 tokio::time::sleep_until(due).await;
                 tokio::time::timeout_at(
                     due + FRAME_DEADLINE,
-                    server_video.send.send(AVPacket::Media(MediaPacket {
+                    server_video.send(AVPacket::Media(MediaPacket {
                         header: MediaPacketHeader {
                             is_config: false,
                             is_key: frame_number == 0,

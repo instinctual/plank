@@ -164,7 +164,7 @@ rg -Fq 'plank-host-certificate' "$builder"
 rg -Fq 'plank-host-state' "$builder"
 rg -Fq 'PLANK_BOOST_SOURCE_DIR' \
   "$repo_dir/scripts/build/build-host-package-binaries.sh"
-rg -Fq 'project(Boost VERSION 1.89.0 LANGUAGES CXX)' \
+rg -Fq 'project(Boost VERSION 1.92.0 LANGUAGES CXX)' \
   "$repo_dir/scripts/build/build-host-package-binaries.sh"
 rg -Fq 'FETCHCONTENT_SOURCE_DIR_BOOST' \
   "$repo_dir/scripts/build/build-host-package-binaries.sh"

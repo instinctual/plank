@@ -88,7 +88,7 @@ the original clean build, fault-injection tests and hardware-check limits.
 
 The active selection is controlled by the pinned build-deps CMake options and
 therefore may include patches for FFmpeg CBS, AMF, Vulkan, x264 integration,
-x265 integration/source, NV codec headers, libva, or SVT-AV1. The PLANK Host
+NV codec headers, libva, or SVT-AV1. The PLANK Host
 bootstrap configuration is the authority for which members are selected; no
 selected member may be silently skipped.
 
@@ -110,7 +110,7 @@ package preflight before shipping it.
 
 ## Pinned dependencies without PLANK patches
 
-- Boost 1.89.0 is extracted from its SHA-256-pinned release archive and is not
+- Boost 1.92.0 is extracted from its SHA-256-pinned release archive and is not
   patched. The 2026-09-02 audit compared the retained source recursively with
   a fresh extraction and found no differences.
 - Rust dependencies resolve from committed lockfiles and the retained Cargo

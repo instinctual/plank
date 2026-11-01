@@ -177,7 +177,7 @@ Distinguish `/usr/bin/plank-host` (launcher script) from
 
 The Linux Host build runs the vendored Quinn DATAGRAM boundary/accounting tests
 before compilation. Prepare its test-only dependencies with
-`cargo fetch --locked --target x86_64-unknown-linux-gnu --manifest-path third_party/quinn-proto-0.11.17/Cargo.toml`
+`cargo fetch --locked --target x86_64-unknown-linux-gnu --manifest-path third_party/quinn-proto-0.11.19/Cargo.toml`
 alongside the production transport fetch. Hosted bootstrap does this
 automatically. These use the vendor's separate lockfile and test archive, never
 the production link inputs.
@@ -416,7 +416,7 @@ Existing AVFrame presentation timestamps have millisecond precision, so render
 joins use that precision and flag duplicate receive timestamps as ambiguous.
 
 Canonical build machine: `linux-client-builder` (`192.0.2.42`). Its qualified
-toolchain is Qt 6.10.2 and the prepared private FFmpeg 9.0.1 work directory at
+toolchain is Qt 6.10.2 and the prepared private FFmpeg 9.0.2 work directory at
 `$PLANK_CLIENT_FFMPEG_WORK`. `client-test-machine` is the separate
 install/functional-test target; never compile a release candidate there.
 The prepared FFmpeg source must contain the tracked identity-GBR hardware
@@ -426,7 +426,7 @@ preflight verifies the patch and fails before qmake if it is missing. Do not
 recreate the prepared FFmpeg tree from the upstream archive without running
 `scripts/build/build-client-ffmpeg.sh` to apply that product patch.
 
-The PLANK native transport additionally requires exact Rust 1.89.0 and the
+The PLANK native transport additionally requires exact Rust 1.99.1 and the
 retained Cargo source cache. That cache includes the exact `kywasmtime` Git
 database/checkout and every registry crate resolved by the pinned KyProto
 lockfile. Export these paths before qmake or either package script; do not let
@@ -436,8 +436,8 @@ a clean worktree download a toolchain or crate:
 export RUSTUP_HOME="$PLANK_RUSTUP_ROOT"
 export CARGO_HOME="$PLANK_CARGO_ROOT"
 export PATH="$CARGO_HOME/bin:$PATH"
-test "$(rustc --version)" = "rustc 1.89.0 (29483883e 2025-08-04)"
-test "$(cargo --version)" = "cargo 1.89.0 (c24e10642 2025-06-23)"
+test "$(rustc --version)" = "rustc 1.99.1 (58cf8f9c3 2026-10-13)"
+test "$(cargo --version)" = "cargo 1.99.1 (5f94df478 2026-08-27)"
 ```
 
 Before the first qmake invocation in a clean candidate, prove the retained
@@ -494,7 +494,7 @@ The bootstrap may retain the checksum-verified release archive under the
 dependency root. Do not redownload FFmpeg during an ordinary candidate build.
 Packaging checks
 the prepared source's `VERSION` and `RELEASE` identity and requires exactly
-9.0.1 before reusing its installed libraries.
+9.0.2 before reusing its installed libraries.
 
 The prepared tree's pkg-config metadata must name its current PLANK path. A
 directory rename does not relocate the absolute prefix embedded by FFmpeg's
@@ -788,7 +788,7 @@ qualification uses eight. Keep the complete CUDA architecture set; do not
 trade future hardware coverage for a shorter candidate build.
 
 Reuse the prepared, Git-ignored Sunshine FFmpeg tree and the persistent,
-root-owned local Boost 1.89.0 source at `$PLANK_HOST_BOOST_ROOT`. Both are
+root-owned local Boost 1.92.0 source at `$PLANK_HOST_BOOST_ROOT`. Both are
 recreated once by `docs/development/build/builder-vm-bootstrap.md` and verified before reuse; do
 not copy them from an old builder, compile from NFS, or make an ordinary clean
 candidate download them again. A build spending many minutes with compiler
@@ -798,7 +798,7 @@ build-deps patch against the generated source at `$PLANK_HOST_FFMPEG_BUILD`.
 Missing, partly applied, or source-incompatible patches are package-stopping
 errors; installed static libraries alone are not sufficient provenance.
 
-The PLANK native transport also uses the builder-retained Rust 1.89.0
+The PLANK native transport also uses the builder-retained Rust 1.99.1
 toolchain and Cargo cache. Export them before configuration so CMake records a
 stable Cargo path rather than a disposable `/tmp` shim:
 
@@ -806,8 +806,8 @@ stable Cargo path rather than a disposable `/tmp` shim:
 export RUSTUP_HOME="$PLANK_RUSTUP_ROOT"
 export CARGO_HOME="$PLANK_CARGO_ROOT"
 export PATH="$CARGO_HOME/bin:$PATH"
-test "$(rustc --version)" = "rustc 1.89.0 (29483883e 2025-08-04)"
-test "$(cargo --version)" = "cargo 1.89.0 (c24e10642 2025-06-23)"
+test "$(rustc --version)" = "rustc 1.99.1 (58cf8f9c3 2026-10-13)"
+test "$(cargo --version)" = "cargo 1.99.1 (5f94df478 2026-08-27)"
 ```
 
 The host package script pins both `CMAKE_CXX_COMPILER` and
@@ -960,7 +960,7 @@ boost_source="$PLANK_HOST_BOOST_ROOT"
 
 test -z "$(git -C "$root_worktree" status --porcelain)"
 test -f "$boost_source/CMakeLists.txt"
-rg -Fxq 'project(Boost VERSION 1.89.0 LANGUAGES CXX)' \
+rg -Fxq 'project(Boost VERSION 1.92.0 LANGUAGES CXX)' \
   "$boost_source/CMakeLists.txt"
 mkdir -p "$host_tmp"
 TMPDIR="$host_tmp" \

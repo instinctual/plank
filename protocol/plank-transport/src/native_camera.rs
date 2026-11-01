@@ -159,7 +159,6 @@ async fn source(shared: &NativeShared, connection: &kyproto::Connection) -> Resu
     .await
     .context("camera allocation/readiness timed out")??;
     protocol
-        .send
         .send(AVPacket::Codec(CodecPacket {
             header: CodecPacketHeader {
                 codec: camera::LANE_CODEC,
@@ -169,7 +168,6 @@ async fn source(shared: &NativeShared, connection: &kyproto::Connection) -> Resu
         }))
         .await?;
     protocol
-        .send
         .send(AVPacket::Media(MediaPacket {
             header: MediaPacketHeader {
                 is_config: true,
@@ -186,7 +184,6 @@ async fn source(shared: &NativeShared, connection: &kyproto::Connection) -> Resu
         if let Some(packet) = shared.camera.pop() {
             let payload = packet.encode()?;
             protocol
-                .send
                 .send(AVPacket::Media(MediaPacket {
                     header: MediaPacketHeader {
                         is_config: false,
@@ -207,7 +204,7 @@ async fn sink(shared: &NativeShared, connection: &kyproto::Connection) -> Result
     let mut protocol = camera::open_sink(connection, microphone, Duration::from_secs(3)).await?;
     shared.camera.state.lock().unwrap().status = 2;
     let mut format_valid = false;
-    while let Some(packet) = protocol.recv.recv().await? {
+    while let Some(packet) = protocol.recv().await? {
         match packet {
             AVPacket::Codec(packet) => {
                 anyhow::ensure!(

@@ -26,9 +26,9 @@ class BootstrapInputs(unittest.TestCase):
                 destination.parent.mkdir(parents=True)
                 shutil.copyfile(ROOT / PATCH, destination)
             work = base / 'deps'
-            source = work / 'ffmpeg-9.0.1'
+            source = work / 'ffmpeg-9.0.2'
             source.mkdir(parents=True)
-            (work / 'ffmpeg-9.0.1.tar.xz').touch()
+            (work / 'ffmpeg-9.0.2.tar.xz').touch()
             configure = source / 'configure'
             configure.write_text('#!/bin/sh\nexit 37\n')
             configure.chmod(0o755)
@@ -47,7 +47,7 @@ class BootstrapInputs(unittest.TestCase):
                     'print(Path(sys.argv[3]).resolve())\n',
                 'patch': '#!/bin/sh\ncat >/dev/null\nexit 0\n',
                 'sha256sum': '#!/usr/bin/env python3\nimport hashlib,pathlib,sys\ns=sys.stdin.read()\n'
-                    'if "ffmpeg-9.0.1.tar.xz" not in s:\n'
+                    'if "ffmpeg-9.0.2.tar.xz" not in s:\n'
                     ' expected, name = s.strip().split(maxsplit=1)\n'
                     ' actual = hashlib.sha256(pathlib.Path(name.lstrip(" *")).read_bytes()).hexdigest()\n'
                     ' sys.exit(0 if actual == expected else 1)\n',

@@ -25,8 +25,8 @@ class ProductDependencyCacheTests(unittest.TestCase):
         inputs = (
             'scripts/ci/cache-dependencies.py', 'rust-toolchain.toml',
             'protocol/plank-transport/Cargo.toml', 'protocol/plank-transport/Cargo.lock',
-            'third_party/quinn-proto-0.11.17/Cargo.toml',
-            'third_party/quinn-proto-0.11.17/Cargo.lock',
+            'third_party/quinn-proto-0.11.19/Cargo.toml',
+            'third_party/quinn-proto-0.11.19/Cargo.lock',
             'scripts/build/build-paths.sh', 'scripts/build/build-client-ffmpeg.sh',
             'scripts/build/bootstrap-macos-client-deps.sh', 'scripts/build/macos-client-target.sh',
             'scripts/build/relocate-openssl-pc.py', 'scripts/build/sanitize-ffmpeg-build-info.py',
@@ -77,7 +77,7 @@ class ProductDependencyCacheTests(unittest.TestCase):
 
     def test_vendor_test_inputs_only_invalidate_host_cargo(self):
         for name in ('Cargo.lock', 'Cargo.toml'):
-            self.assert_changes_only('third_party/quinn-proto-0.11.17/' + name,
+            self.assert_changes_only('third_party/quinn-proto-0.11.19/' + name,
                                      {('linux-host', 'cargo')})
 
     def test_rust_toolchain_invalidates_rust_and_cargo_not_libraries(self):
@@ -244,7 +244,7 @@ class ProductDependencyCacheTests(unittest.TestCase):
             self.assertNotIn(cache.hits_path(self.deps, product), paths)
         self.assertEqual(cache.cache_paths(self.root, self.deps, 'linux-client', 'rust')[:-1],
                          [self.deps / 'rustup', self.deps / 'cargo/bin'])
-        self.assertIn(self.deps / 'client-ffmpeg/ffmpeg-9.0.1.tar.xz',
+        self.assertIn(self.deps / 'client-ffmpeg/ffmpeg-9.0.2.tar.xz',
                       cache.cache_paths(self.root, self.deps, 'linux-client', 'ffmpeg'))
 
     def test_receipts_reject_wrong_component_key_schema_or_missing_file(self):
@@ -281,7 +281,7 @@ class ProductDependencyCacheTests(unittest.TestCase):
     def test_prepared_source_patch_checks_remain_mandatory(self):
         for product, component, names in (
             ('linux-host', 'ffmpeg', ['host-ffmpeg/lib/libavcodec.a', 'host-ffmpeg/lib/libavutil.a']),
-            ('linux-client', 'ffmpeg', ['client-ffmpeg/ffmpeg-9.0.1.tar.xz'] +
+            ('linux-client', 'ffmpeg', ['client-ffmpeg/ffmpeg-9.0.2.tar.xz'] +
              ['client-ffmpeg/install/lib/' + name + '.so' for name in
               ('libavcodec', 'libavutil', 'libswscale', 'libswresample')]),
             ('macos-client', 'native', ['macos-client/install/lib/' + name + '.dylib' for name in
@@ -329,7 +329,7 @@ class ProductDependencyCacheTests(unittest.TestCase):
         self.assertIn('ffmpeg-hit=false', output_path.read_text())
         for name in ('cargo/bin/rustup', 'rustup/settings.toml',
                      'client-sdl/prepared.sha256', 'client-sdl/install/lib/libSDL3.so.0',
-                     'client-ffmpeg/ffmpeg-9.0.1.tar.xz',
+                     'client-ffmpeg/ffmpeg-9.0.2.tar.xz',
                      *(f'client-ffmpeg/install/lib/{name}.so' for name in
                        ('libavcodec', 'libavutil', 'libswscale', 'libswresample'))):
             self.write(self.deps / name, 'fixture')

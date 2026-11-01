@@ -7,14 +7,14 @@ if (($# < 1 || $# > 2)); then
   exit 2
 fi
 
-ffmpeg_version=9.0.1
-ffmpeg_sha256=cf38e0e28c7e5605942c4a77755349b0145804a397af37eb1fb4c77cb237f635
+ffmpeg_version=9.0.2
+ffmpeg_sha256=8c3850283eb25fa026482078a04051e0be17347b09ef81a0849bec15a96e002e
 ffmpeg_url="https://ffmpeg.org/releases/ffmpeg-${ffmpeg_version}.tar.xz"
 runtime_stage_dir=$(realpath -m -- "$1")
 repo_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd)
 work_dir=$(realpath -m -- "${2:-${repo_dir}/build/client-ffmpeg-${ffmpeg_version}}")
 identity_gbr_patch="${repo_dir}/apps/client/app/deploy/linux/ffmpeg-patches/0001-hevc-enable-hwaccel-for-identity-gbr.patch"
-identity_gbr_patch_sha256=059cc9c0d585d71e292cd7421a43f239b1e7ce94e8598d0a7427dfe48e55847e
+identity_gbr_patch_sha256=d8514ed9db3fc2c1aba43cfad0b06f8be3670759bdb173b6fd0a6dc1cffa0bf4
 archive="${work_dir}/ffmpeg-${ffmpeg_version}.tar.xz"
 source_dir="${work_dir}/ffmpeg-${ffmpeg_version}"
 build_dir="${work_dir}/build"

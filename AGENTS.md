@@ -142,7 +142,7 @@ until the hosted replacements pass their clean-build gates.
 
 - Build Host binaries and RPMs only on the Linux Host builder (Rocky Linux 9.7).
 - Build Client binaries and DEBs only on the Linux Client builder (Ubuntu
-  26.04), using Qt 6.10.2 and the pinned private FFmpeg 9.0.1 tree.
+  26.04), using Qt 6.10.2 and the pinned private FFmpeg 9.0.2 tree.
 - Install Host candidates and run NVIDIA/display/input hardware qualification
   on the authorized hardware test Host; do not compile release packages there.
 - Install Client candidates and run interactive video/audio/input/Wacom tests
@@ -229,7 +229,7 @@ Use a Host-builder-local build directory under `$PLANK_WORK_ROOT`. Host
 packaging defaults to eight build jobs; override it only with a positive
 `PLANK_BUILD_JOBS` value after
 considering local CPU, memory, and storage behavior. Pass the retained exact
-Boost 1.89.0 source through `PLANK_BOOST_SOURCE_DIR` as documented in
+Boost 1.92.0 source through `PLANK_BOOST_SOURCE_DIR` as documented in
 the release build runbook; a clean candidate must not download Boost again.
 Keep final packages in the version/platform catalog under `artifacts/packages/`.
 Use `scripts/package/collect-package.py` (called by package builders) to retain

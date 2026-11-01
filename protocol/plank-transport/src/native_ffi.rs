@@ -403,7 +403,6 @@ async fn send_video(
             let submission = async {
                 if active_codec != Some(frame.codec) {
                     protocol
-                        .send
                         .send(AVPacket::Codec(CodecPacket {
                             header: CodecPacketHeader {
                                 codec: frame.codec,
@@ -417,7 +416,6 @@ async fn send_video(
                 let key = frame.flags & VIDEO_FLAG_KEY != 0;
                 if key {
                     protocol
-                        .send
                         .send(AVPacket::Media(MediaPacket {
                             header: MediaPacketHeader {
                                 is_config: true,
@@ -437,7 +435,6 @@ async fn send_video(
                 native_payload.extend_from_slice(&frame.payload);
                 let native_payload = native_payload.freeze();
                 protocol
-                    .send
                     .send(AVPacket::Media(MediaPacket {
                         header: MediaPacketHeader {
                             is_config: false,
@@ -491,7 +488,6 @@ async fn send_audio(
         if let Some(packet) = packet {
             if active_frame_samples != Some(packet.frame_samples) {
                 protocol
-                    .send
                     .send(AVPacket::Codec(CodecPacket {
                         header: CodecPacketHeader {
                             codec: AUDIO_CODEC_OPUS,
@@ -501,7 +497,6 @@ async fn send_audio(
                     }))
                     .await?;
                 protocol
-                    .send
                     .send(AVPacket::Media(MediaPacket {
                         header: MediaPacketHeader {
                             is_config: true,
@@ -516,7 +511,6 @@ async fn send_audio(
             }
             let payload_size = packet.payload.len() as u64;
             protocol
-                .send
                 .send(AVPacket::Media(MediaPacket {
                     header: MediaPacketHeader {
                         is_config: false,
@@ -579,7 +573,7 @@ async fn receive_video(
     mut protocol: kymux_types::VideoClientProtocol,
 ) -> Result<()> {
     let mut codec = 0;
-    while let Some(packet) = protocol.recv.recv().await? {
+    while let Some(packet) = protocol.recv().await? {
         match packet {
             AVPacket::Codec(packet) => codec = packet.header.codec,
             AVPacket::Media(packet) if !packet.header.is_config => {
@@ -657,7 +651,7 @@ async fn receive_audio(
     mut protocol: kymux_types::AudioClientProtocol,
 ) -> Result<()> {
     let mut frame_samples = 0;
-    while let Some(packet) = protocol.recv.recv().await? {
+    while let Some(packet) = protocol.recv().await? {
         match packet {
             AVPacket::Codec(packet) => frame_samples = packet.header.frame_size,
             AVPacket::Media(packet) if !packet.header.is_config => push_audio_receive(
@@ -853,9 +847,9 @@ async fn hold_server(shared: Arc<NativeShared>, protocols: NativeServerProtocols
     let (connection, video, audio, input, data) = protocols.into_parts();
     let mut video = Box::pin(send_video(shared.clone(), video));
     let mut audio = Box::pin(send_audio(shared.clone(), audio));
-    let mut input = Box::pin(receive_input(shared.clone(), input.recv));
-    let mut data_send = Box::pin(send_data(shared.clone(), data.send));
-    let mut data_receive = Box::pin(receive_data(shared.clone(), data.recv));
+    let mut input = Box::pin(receive_input(shared.clone(), input.1));
+    let mut data_send = Box::pin(send_data(shared.clone(), data.0));
+    let mut data_receive = Box::pin(receive_data(shared.clone(), data.1));
     let mut stats = Box::pin(sample_stats(shared.clone(), stats_provider));
     let mut microphone = Box::pin(microphone_lane::run(shared.clone(), &connection, false));
     let mut camera = Box::pin(camera_lane::run(shared.clone(), &connection, false));
@@ -893,9 +887,9 @@ async fn hold_client(shared: Arc<NativeShared>, protocols: NativeClientProtocols
     }
     let mut video = Box::pin(receive_video(shared.clone(), video));
     let mut audio = Box::pin(receive_audio(shared.clone(), audio));
-    let mut input = Box::pin(send_input(shared.clone(), input.send));
-    let mut data_send = Box::pin(send_data(shared.clone(), data.send));
-    let mut data_receive = Box::pin(receive_data(shared.clone(), data.recv));
+    let mut input = Box::pin(send_input(shared.clone(), input.0));
+    let mut data_send = Box::pin(send_data(shared.clone(), data.0));
+    let mut data_receive = Box::pin(receive_data(shared.clone(), data.1));
     let mut stats = Box::pin(sample_stats(shared.clone(), stats_provider));
     let mut microphone = Box::pin(microphone_lane::run(shared.clone(), &connection, true));
     let mut camera = Box::pin(camera_lane::run(shared.clone(), &connection, true));
@@ -920,8 +914,8 @@ async fn hold_setup_server(
 ) -> Result<()> {
     let stats_provider = setup.connection().stats_provider();
     let (connection, data) = setup.into_parts();
-    let mut data_send = Box::pin(send_data(shared.clone(), data.send));
-    let mut data_receive = Box::pin(receive_data(shared.clone(), data.recv));
+    let mut data_send = Box::pin(send_data(shared.clone(), data.0));
+    let mut data_receive = Box::pin(receive_data(shared.clone(), data.1));
     let mut stats = Box::pin(sample_stats(shared.clone(), stats_provider));
     shared.set_state(EndpointState::SetupReady);
 
@@ -944,7 +938,7 @@ async fn hold_setup_server(
         native::promote_setup_server(&connection, native_options(options)).await?;
     let mut video = Box::pin(send_video(shared.clone(), video));
     let mut audio = Box::pin(send_audio(shared.clone(), audio));
-    let mut input = Box::pin(receive_input(shared.clone(), input.recv));
+    let mut input = Box::pin(receive_input(shared.clone(), input.1));
     let mut microphone = Box::pin(microphone_lane::run(shared.clone(), &connection, false));
     let mut camera = Box::pin(camera_lane::run(shared.clone(), &connection, false));
     shared.set_state(EndpointState::Ready);
@@ -982,8 +976,8 @@ async fn hold_setup_client(
         }
     }
 
-    let mut data_send = Box::pin(send_data(shared.clone(), data.send));
-    let mut data_receive = Box::pin(receive_data(shared.clone(), data.recv));
+    let mut data_send = Box::pin(send_data(shared.clone(), data.0));
+    let mut data_receive = Box::pin(receive_data(shared.clone(), data.1));
     let mut stats = Box::pin(sample_stats(shared.clone(), stats_provider));
     shared.set_state(EndpointState::SetupReady);
     loop {
@@ -1005,7 +999,7 @@ async fn hold_setup_client(
         native::promote_setup_client(&connection, native_options(options)).await?;
     let mut video = Box::pin(receive_video(shared.clone(), video));
     let mut audio = Box::pin(receive_audio(shared.clone(), audio));
-    let mut input = Box::pin(send_input(shared.clone(), input.send));
+    let mut input = Box::pin(send_input(shared.clone(), input.0));
     let mut microphone = Box::pin(microphone_lane::run(shared.clone(), &connection, true));
     let mut camera = Box::pin(camera_lane::run(shared.clone(), &connection, true));
     shared.set_state(EndpointState::Ready);

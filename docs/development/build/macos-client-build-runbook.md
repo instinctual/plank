@@ -29,7 +29,7 @@ Install Xcode/SDK27 and accept its license before bootstrap. Required tools are
 Apple clang/make/git, Python3 with `venv`/pip, curl, tar, patch and CMake. The
 bootstrap finds the official CMake app in `/Applications/CMake.app/Contents/bin`
 or `cmake` on PATH; install CMake separately, as Xcode does not supply it.
-Rust1.89.0 bootstrap is covered by the Host runbook. Signing certificates are
+Rust1.99.1 bootstrap is covered by the Host runbook. Signing certificates are
 not needed for these dependency/application compilation steps; see
 [building a fork](from-source.md) for the separate distribution requirements.
 
@@ -43,7 +43,7 @@ export PLANK_DEP_ROOT="$HOME/Library/Caches/plank-build"
 export PLANK_WORK_ROOT="$PLANK_DEP_ROOT/work"
 export PLANK_MAC_CLIENT_DEPS="$PLANK_DEP_ROOT/macos-client-deps"
 export PLANK_QT_ROOT="$PLANK_DEP_ROOT/qt-6.10.2/6.10.2/macos"
-export PLANK_RUSTUP_ROOT="$PLANK_DEP_ROOT/rustup-1.89.0"
+export PLANK_RUSTUP_ROOT="$PLANK_DEP_ROOT/rustup-1.99.1"
 export PLANK_CARGO_ROOT="$PLANK_DEP_ROOT/cargo"
 export PLANK_BUILD_BRANCH=macos-client
 ```
@@ -70,7 +70,7 @@ bash "$PLANK_SOURCE_ROOT/scripts/build/bootstrap-macos-client-deps.sh"
 ```
 
 The script pins archive SHA256 values and prepares private OpenSSL3.5.5,
-Opus1.5.2, SDL3.4.2, SDL_ttf3.2.2, FreeType2.14.1 and FFmpeg9.0.1. It applies
+Opus1.5.2, SDL3.4.2, SDL_ttf3.2.2, FreeType2.14.1 and FFmpeg9.0.2. It applies
 the same required HEVC identity-GBR patch as Linux (also enables VideoToolbox
 format probing). A missing Client checkout is an input-preflight error, not a
 compiler failure. `ffmpeg` as the optional argument resumes only that stage.

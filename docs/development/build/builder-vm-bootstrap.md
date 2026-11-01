@@ -52,18 +52,18 @@ export PLANK_SOURCE_ROOT=~/dev/plank
 export PLANK_DEP_ROOT=~/.cache/plank-build
 export PLANK_WORK_ROOT="$PLANK_DEP_ROOT/work"
 export PLANK_PACKAGE_ROOT="$PLANK_CANONICAL_ROOT/artifacts/packages"
-export PLANK_RUSTUP_ROOT="$PLANK_DEP_ROOT/rustup-1.89.0"
+export PLANK_RUSTUP_ROOT="$PLANK_DEP_ROOT/rustup-1.99.1"
 export PLANK_CARGO_ROOT="$PLANK_DEP_ROOT/cargo"
 
 # Client builder only
-export PLANK_CLIENT_FFMPEG_WORK="$PLANK_DEP_ROOT/client-ffmpeg-9.0.1"
+export PLANK_CLIENT_FFMPEG_WORK="$PLANK_DEP_ROOT/client-ffmpeg-9.0.2"
 export PLANK_CLIENT_SDL_WORK="$PLANK_DEP_ROOT/client-sdl"
 export PLANK_CLIENT_SUBMODULE_CACHE="$PLANK_DEP_ROOT/client-submodules"
 
 # Host builder only
 export PLANK_HOST_FFMPEG_BUILD="$PLANK_CANONICAL_ROOT/apps/host/linux/third-party/build-deps/build"
 export PLANK_HOST_FFMPEG_ROOT="$PLANK_CANONICAL_ROOT/apps/host/linux/cmake-build-ffmpeg-x264rgb-install/ffmpeg"
-export PLANK_HOST_BOOST_ROOT="$PLANK_DEP_ROOT/boost-1.89.0"
+export PLANK_HOST_BOOST_ROOT="$PLANK_DEP_ROOT/boost-1.92.0"
 ```
 
 Do not redefine `HOME`, `CODEX_HOME`, or another system variable to represent
@@ -142,7 +142,7 @@ in the root, Host, Client, or another nested repository.
 
 ## Rust 1.89 and locked Cargo cache
 
-Both builders use exactly Rust/Cargo 1.89.0. Install and populate the cache
+Both builders use exactly Rust/Cargo 1.99.1. Install and populate the cache
 once, then prove an offline build:
 
 ```bash
@@ -153,16 +153,16 @@ export PATH="$CARGO_HOME/bin:$PATH"
 rustup_bootstrap="$PLANK_WORK_ROOT/rustup-bootstrap"
 mkdir -p "$rustup_bootstrap"
 curl --fail --location --output "$rustup_bootstrap/rustup-init" \
-  https://static.rust-lang.org/rustup/archive/1.28.2/x86_64-unknown-linux-gnu/rustup-init
+  https://static.rust-lang.org/rustup/archive/1.29.2/x86_64-unknown-linux-gnu/rustup-init
 curl --fail --location --output "$rustup_bootstrap/rustup-init.sha256" \
-  https://static.rust-lang.org/rustup/archive/1.28.2/x86_64-unknown-linux-gnu/rustup-init.sha256
+  https://static.rust-lang.org/rustup/archive/1.29.2/x86_64-unknown-linux-gnu/rustup-init.sha256
 (cd "$rustup_bootstrap" && sha256sum -c rustup-init.sha256)
 chmod 0755 "$rustup_bootstrap/rustup-init"
 RUSTUP_INIT_SKIP_PATH_CHECK=yes "$rustup_bootstrap/rustup-init" \
-  -y --no-modify-path --profile minimal --default-toolchain 1.89.0
-rustup default 1.89.0
-test "$(rustc --version)" = "rustc 1.89.0 (29483883e 2025-08-04)"
-test "$(cargo --version)" = "cargo 1.89.0 (c24e10642 2025-06-23)"
+  -y --no-modify-path --profile minimal --default-toolchain 1.99.1
+rustup default 1.99.1
+test "$(rustc --version)" = "rustc 1.99.1 (58cf8f9c3 2026-10-13)"
+test "$(cargo --version)" = "cargo 1.99.1 (5f94df478 2026-08-27)"
 cargo fetch --locked --target x86_64-unknown-linux-gnu \
   --manifest-path \
   "$PLANK_CANONICAL_ROOT/protocol/plank-transport/Cargo.toml"
@@ -182,7 +182,7 @@ inputs:
 
 ```bash
 cargo fetch --locked --target x86_64-unknown-linux-gnu \
-  --manifest-path "$PLANK_CANONICAL_ROOT/third_party/quinn-proto-0.11.17/Cargo.toml"
+  --manifest-path "$PLANK_CANONICAL_ROOT/third_party/quinn-proto-0.11.19/Cargo.toml"
 ```
 
 ## linux-client-builder inputs
@@ -237,14 +237,14 @@ mkdir -p "$ffmpeg_bundle_stage"
 test -x "$PLANK_CLIENT_FFMPEG_WORK/install/bin/ffmpeg"
 test "$(LD_LIBRARY_PATH="$PLANK_CLIENT_FFMPEG_WORK/install/lib" \
   $PLANK_CLIENT_FFMPEG_WORK/install/bin/ffmpeg -version \
-  | sed -n '1s/^ffmpeg version \([^ ]*\).*/\1/p')" = 9.0.1
+  | sed -n '1s/^ffmpeg version \([^ ]*\).*/\1/p')" = 9.0.2
 test "$(PKG_CONFIG_PATH="$PLANK_CLIENT_FFMPEG_WORK/install/lib/pkgconfig" \
   pkg-config --variable=prefix libavcodec)" = \
   "$PLANK_CLIENT_FFMPEG_WORK/install"
 ```
 
-The script pins FFmpeg 9.0.1 archive SHA-256
-`cf38e0e28c7e5605942c4a77755349b0145804a397af37eb1fb4c77cb237f635`.
+The script pins FFmpeg 9.0.2 archive SHA-256
+`8c3850283eb25fa026482078a04051e0be17347b09ef81a0849bec15a96e002e`.
 It also verifies and applies the tracked identity-GBR hardware-decode patch
 from `apps/client/app/deploy/linux/ffmpeg-patches/`. This patch is
 required for HEVC Rext 8/10-bit 4:4:4 matrix-coefficient-0 streams to expose
@@ -309,16 +309,16 @@ Recreate Boost from the URL and checksum pinned in
 `Boost_Sunshine.cmake`:
 
 ```bash
-boost_archive="$PLANK_DEP_ROOT/boost-1.89.0-cmake.tar.xz"
+boost_archive="$PLANK_DEP_ROOT/boost-1.92.0-cmake.tar.xz"
 mkdir -p "$PLANK_DEP_ROOT" "$PLANK_HOST_BOOST_ROOT"
 curl --fail --location --output "$boost_archive" \
-  https://github.com/boostorg/boost/releases/download/boost-1.89.0/boost-1.89.0-cmake.tar.xz
+  https://github.com/boostorg/boost/releases/download/boost-1.92.0/boost-1.92.0-cmake.tar.xz
 printf '%s  %s\n' \
-  67acec02d0d118b5de9eb441f5fb707b3a1cdd884be00ca24b9a73c995511f74 \
+  9bed76128d4e46755dbe818487788c6fceb6f72b378f4daa49b7e1e600d9088d \
   "$boost_archive" | sha256sum --check
 tar -xJf "$boost_archive" --strip-components=1 \
   -C "$PLANK_HOST_BOOST_ROOT"
-rg -Fxq 'project(Boost VERSION 1.89.0 LANGUAGES CXX)' \
+rg -Fxq 'project(Boost VERSION 1.92.0 LANGUAGES CXX)' \
   "$PLANK_HOST_BOOST_ROOT/CMakeLists.txt"
 ```
 
@@ -341,7 +341,7 @@ cmake -S "$host_build_deps" -B "$PLANK_HOST_FFMPEG_BUILD" \
   -DPARALLEL_BUILDS=24
 cmake --build "$PLANK_HOST_FFMPEG_BUILD" --parallel 24
 cmake --install "$PLANK_HOST_FFMPEG_BUILD"
-for library in avcodec avutil cbs swscale x264 x265; do
+for library in avcodec avutil cbs swscale x264; do
   test -f "$PLANK_HOST_FFMPEG_ROOT/lib/lib${library}.a"
 done
 ```
@@ -356,7 +356,7 @@ relative paths; an arbitrary external build directory breaks those paths and
 can silently skip the required PLANK patches. `CMAKE_INSTALL_LIBDIR=lib` keeps
 the prepared static libraries and pkg-config metadata in the exact prefix
 layout consumed by the Host build. A candidate is invalid if its configure
-output does not show the FFmpeg, x265, and other enabled patches being
+output does not show the FFmpeg and other enabled patches being
 applied.
 
 The patch helper must either apply every selected patch or prove that the
@@ -370,11 +370,11 @@ libraries:
 ```
 
 That gate reverse-checks every tracked Host build-deps product patch against
-the generated FFmpeg/x265 source. Do not preserve a dependency build that
+the generated FFmpeg source. Do not preserve a dependency build that
 cannot pass it.
 
-The retained gitlink currently resolves FFmpeg `38b88335` (8.1.2), NV codec
-headers `e844e5b2` (13.0.19.0), x264 `b35605ac`, and x265 `1d117bed` (4.1).
+The retained gitlink currently resolves FFmpeg `946fcce0` (9.0.2), NV codec
+headers `e844e5b2` (13.0.19.0), x264 `0480cb05`; x265 is not built.
 Recursive gitlinks, rather than this prose, are authoritative after an
 intentional update.
 

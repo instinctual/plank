@@ -557,7 +557,7 @@ Run the feature's bounded-window/context-isolation tests plus both C loopbacks,
 and check the feature-disabled build. See HANDOFF for exact diagnostic artifacts.
 
 The first integration build reuses `protocol/plank-transport` and its exact
-Kymux/Quinn sources, Cargo lockfile and Rust 1.89.0. No networking policy change
+Kymux/Quinn sources, Cargo lockfile and Rust 1.99.1. No networking policy change
 or macOS-specific transport replacement is implied. Passing this build is not
 proof of an authenticated Client connection or media playback.
 
@@ -578,12 +578,12 @@ export PLANK_CANONICAL_ROOT="$HOME/dev/plank"
 export PLANK_DEP_ROOT="$HOME/Library/Caches/plank-build"
 export PLANK_WORK_ROOT="$PLANK_DEP_ROOT/work"
 export PLANK_CARGO_ROOT="$PLANK_DEP_ROOT/cargo"
-export PLANK_RUSTUP_ROOT="$PLANK_DEP_ROOT/rustup-1.89.0"
+export PLANK_RUSTUP_ROOT="$PLANK_DEP_ROOT/rustup-1.99.1"
 ```
 
 Bootstrap Rust once using the official `rustup-init` Apple Silicon binary and
-its SHA-256 file, verifying the digest before execution. Use rustup 1.28.2,
-`--profile minimal --default-toolchain 1.89.0 --no-modify-path -y` with the above
+its SHA-256 file, verifying the digest before execution. Use rustup 1.29.2,
+`--profile minimal --default-toolchain 1.99.1 --no-modify-path -y` with the above
 Cargo/Rustup directories. Do not edit shell startup files or install as root.
 Official source/verification procedure:
 [Rustup manual installation](https://rust-lang.github.io/rustup/installation/other.html).

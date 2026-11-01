@@ -62,11 +62,11 @@ pkg-config --exists sdl3 egl || {
 echo "client_egl_build_input_gate=pass"
 
 identity_gbr_patch="$source_dir/app/deploy/linux/ffmpeg-patches/0001-hevc-enable-hwaccel-for-identity-gbr.patch"
-identity_gbr_patch_sha256=059cc9c0d585d71e292cd7421a43f239b1e7ce94e8598d0a7427dfe48e55847e
-ffmpeg_archive_sha256=cf38e0e28c7e5605942c4a77755349b0145804a397af37eb1fb4c77cb237f635
-ffmpeg_identity_source_sha256=f3e5ce5ab334c0bc39661dccd68dcc91f90c47fcaae72d3c20511088f71387e8
-ffmpeg_archive="$ffmpeg_work_dir/ffmpeg-9.0.1.tar.xz"
-ffmpeg_identity_source="$ffmpeg_work_dir/ffmpeg-9.0.1/libavcodec/hevc/hevcdec.c"
+identity_gbr_patch_sha256=d8514ed9db3fc2c1aba43cfad0b06f8be3670759bdb173b6fd0a6dc1cffa0bf4
+ffmpeg_archive_sha256=8c3850283eb25fa026482078a04051e0be17347b09ef81a0849bec15a96e002e
+ffmpeg_identity_source_sha256=9803af49884faaf2ed92ab4a1542099db235b5a4da06047be4bfeb885360714a
+ffmpeg_archive="$ffmpeg_work_dir/ffmpeg-9.0.2.tar.xz"
+ffmpeg_identity_source="$ffmpeg_work_dir/ffmpeg-9.0.2/libavcodec/hevc/hevcdec.c"
 [[ -f ${identity_gbr_patch} && -f ${ffmpeg_archive} && -f ${ffmpeg_identity_source} ]] || {
   echo "client identity-GBR FFmpeg source inputs are unavailable" >&2
   exit 1
@@ -74,12 +74,12 @@ ffmpeg_identity_source="$ffmpeg_work_dir/ffmpeg-9.0.1/libavcodec/hevc/hevcdec.c"
 printf '%s  %s\n' "$identity_gbr_patch_sha256" "$identity_gbr_patch" |
   sha256sum --check --status
 patch --batch --reverse --no-backup-if-mismatch --dry-run \
-  -d "$ffmpeg_work_dir/ffmpeg-9.0.1" -p1 \
+  -d "$ffmpeg_work_dir/ffmpeg-9.0.2" -p1 \
   < "$identity_gbr_patch" >/dev/null 2>&1 || {
   echo "prepared Client FFmpeg is missing the identity-GBR hardware-decode patch" >&2
   exit 1
 }
-if find "$ffmpeg_work_dir/ffmpeg-9.0.1" -type f \
+if find "$ffmpeg_work_dir/ffmpeg-9.0.2" -type f \
     \( -name '*.orig' -o -name '*.rej' \) -print -quit | grep -q .; then
   echo "prepared Client FFmpeg contains patch backup or reject files" >&2
   exit 1
@@ -97,8 +97,8 @@ cleanup_ffmpeg_source_audit() {
 trap cleanup_ffmpeg_source_audit EXIT
 tar -xJf "$ffmpeg_archive" -C "$ffmpeg_source_audit_dir"
 if ! diff -qr --exclude=hevcdec.c \
-    "$ffmpeg_source_audit_dir/ffmpeg-9.0.1" \
-    "$ffmpeg_work_dir/ffmpeg-9.0.1"; then
+    "$ffmpeg_source_audit_dir/ffmpeg-9.0.2" \
+    "$ffmpeg_work_dir/ffmpeg-9.0.2"; then
   echo "prepared Client FFmpeg contains changes beyond the tracked identity-GBR patch" >&2
   exit 1
 fi
@@ -107,12 +107,12 @@ trap - EXIT
 echo "client_ffmpeg_pristine_source_gate=pass"
 echo "client_ffmpeg_identity_gbr_patch_gate=pass"
 
-[[ $(rustc --version) == "rustc 1.89.0 "* ]] || {
-  echo "PLANK transport requires rustc 1.89.0" >&2
+[[ $(rustc --version) == "rustc 1.99.1 "* ]] || {
+  echo "PLANK transport requires rustc 1.99.1" >&2
   exit 1
 }
-[[ $(cargo --version) == "cargo 1.89.0 "* ]] || {
-  echo "PLANK transport requires cargo 1.89.0" >&2
+[[ $(cargo --version) == "cargo 1.99.1 "* ]] || {
+  echo "PLANK transport requires cargo 1.99.1" >&2
   exit 1
 }
 plank_transport_dir="${repo_dir}/protocol/plank-transport"

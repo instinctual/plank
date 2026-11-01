@@ -54,11 +54,11 @@ together; do not treat this table as another build manifest.
 
 | Input / baseline | Owning source and required related checks |
 | --- | --- |
-| Rust/Cargo 1.89.0; rustup 1.28.2 | `rust-toolchain.toml`, `scripts/ci/bootstrap.sh`, Host/Client package builders and Mac transport builder; update exact-toolchain assertions together |
+| Rust/Cargo 1.99.1; rustup 1.29.2 | `rust-toolchain.toml`, `scripts/ci/bootstrap.sh`, Host/Client package builders and Mac transport builder; update exact-toolchain assertions together |
 | Qt 6.10.2; aqtinstall 3.3.0 | `scripts/ci/bootstrap.sh`, `scripts/ci/install-linux-deps.sh`, Mac Client builder and dependency-cache scripts; Ubuntu's Qt is distribution-provided |
-| Boost 1.89.0 | `scripts/ci/bootstrap.sh` URL/checksum, Host `cmake/dependencies/Boost_Sunshine.cmake`, Host package preflight and cache paths |
-| Client FFmpeg 9.0.1 | `scripts/build/build-client-ffmpeg.sh`, `scripts/build/bootstrap-macos-client-deps.sh`, `apps/client/app/deploy/linux/ffmpeg-patches/`, package preflight and cache verification; mandatory identity patches must apply or be proven applied |
-| Mac Client OpenSSL 3.5.5, Opus 1.5.2, SDL 3.4.2, SDL_ttf 3.2.2, FreeType 2.14.1 | URLs and SHA256 values in `scripts/build/bootstrap-macos-client-deps.sh`; Linux variants come from its distribution packages |
+| Boost 1.92.0 | `scripts/ci/bootstrap.sh` URL/checksum, Host `cmake/dependencies/Boost_Sunshine.cmake`, Host package preflight and cache paths |
+| Client FFmpeg 9.0.2 | `scripts/build/build-client-ffmpeg.sh`, `scripts/build/bootstrap-macos-client-deps.sh`, `apps/client/app/deploy/linux/ffmpeg-patches/`, package preflight and cache verification; mandatory identity patches must apply or be proven applied |
+| Mac Client OpenSSL 3.5.9, Opus 1.6.1, SDL 3.4.18, SDL_ttf 3.2.2, FreeType 2.15.0 | URLs and SHA256 values in `scripts/build/bootstrap-macos-client-deps.sh`; Linux SDL is also privately pinned; its other variants come from distribution packages |
 | Host libva 2.24.1 and CMake-fetched dependencies | Build-deps `package-lock.cmake`; Host dependency CMake files and package lock; inspect fetched tags/URLs/checksums, including test-only inputs |
 | Qualified OS, compiler, CUDA and Apple SDK | `.github/workflows/build.yml`, `scripts/ci/install-linux-deps.sh`, bootstrap and runbooks; do not silently change the platform support contract |
 | OS libraries and build tools | Distribution installs in `scripts/ci/install-linux-deps.sh` and macOS workflow setup; keep package inventories from builds, and verify runtime dependency closure |
@@ -71,7 +71,7 @@ Quinn/Quinn-proto automatic PRs are intentionally excluded from the root and
 Kymux schedules, including automatic security fixes. Security alerts remain
 enabled; these dependencies require manual advisory triage and repairs.
 Production and probes share the repaired
-`third_party/quinn-proto-0.11.17` source via Cargo patches. Review upstream
+`third_party/quinn-proto-0.11.19` source via Cargo patches. Review upstream
 security advisories manually, including RustSec reports, and upgrade the fork,
 callers, both lockfiles and documented repairs together. Never remove that path
 override merely to make a bot PR compile. The vendored crate's own Cargo.lock

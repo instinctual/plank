@@ -110,7 +110,7 @@ class DependencyCacheTests(unittest.TestCase):
             self.assertNotIn(forbidden, source)
         cargo = (ROOT / 'scripts/ci/dependencies/cargo.sh').read_text()
         self.assertEqual(cargo.count('cargo fetch --locked'), 2)
-        self.assertIn('third_party/quinn-proto-0.11.17/Cargo.toml', cargo)
+        self.assertIn('third_party/quinn-proto-0.11.19/Cargo.toml', cargo)
 
     def test_platform_verification_is_not_bypassed(self):
         with patch.object(cache.platform, 'system', return_value='Darwin'), \

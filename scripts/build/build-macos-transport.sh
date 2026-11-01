@@ -30,10 +30,10 @@ export SDKROOT
 SDKROOT=$(xcrun --sdk macosx --show-sdk-path)
 export CARGO_TARGET_DIR="$transport_build"
 cd "$source_root"
-test "$(rustc +1.89.0 --version | awk '{print $2}')" = 1.89.0
+test "$(rustc +1.99.1 --version | awk '{print $2}')" = 1.99.1
 test -f protocol/plank-transport/Cargo.lock
 test -f third_party/kyber-kymux/kyproto/Cargo.toml
-test -f third_party/quinn-proto-0.11.17/PLANK-PATCH.md
+test -f third_party/quinn-proto-0.11.19/PLANK-PATCH.md
 git rev-parse HEAD
 expected_kymux=$(git rev-parse HEAD:third_party/kyber-kymux)
 test "$(git -C third_party/kyber-kymux rev-parse HEAD)" = "$expected_kymux"
@@ -50,14 +50,14 @@ elif [[ ${PLANK_MACOS_SOURCE_FIRST:-0} != 0 ]]; then
     echo 'PLANK_MACOS_SOURCE_FIRST must be 0 or 1' >&2; exit 2
 fi
 # macOS ships Bash3.2, where an empty array is unbound under nounset.
-cargo +1.89.0 build --locked --release ${features[@]+"${features[@]}"} --manifest-path protocol/plank-transport/Cargo.toml
-cargo +1.89.0 test --locked --release ${features[@]+"${features[@]}"} --manifest-path protocol/plank-transport/Cargo.toml
+cargo +1.99.1 build --locked --release ${features[@]+"${features[@]}"} --manifest-path protocol/plank-transport/Cargo.toml
+cargo +1.99.1 test --locked --release ${features[@]+"${features[@]}"} --manifest-path protocol/plank-transport/Cargo.toml
 if [[ ${PLANK_MACOS_SOURCE_FIRST:-0} == 1 ]]; then
     # Dependency unit tests are not run by the root Cargo test command.
     # Compile the production helper/tests against this exact archive's rlib.
     fec_rlibs=("$transport_build"/release/deps/libraptorq-*.rlib)
     test ${#fec_rlibs[@]} -eq 1 && test -f "${fec_rlibs[0]}"
-    rustc +1.89.0 --edition=2024 --test -O tests/protocol/source-first-fec.rs \
+    rustc +1.99.1 --edition=2024 --test -O tests/protocol/source-first-fec.rs \
         -L "dependency=$transport_build/release/deps" --extern "raptorq=${fec_rlibs[0]}" \
         -o "$transport_build/source-first-test"
     "$transport_build/source-first-test" --nocapture --test-threads=1

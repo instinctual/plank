@@ -23,17 +23,17 @@ hex = "0.4"
 kynet = { path = "../../third_party/kyber-kymux/kynet", features = ["kynet-quinn"] }
 kyproto = { path = "../../third_party/kyber-kymux/kyproto" }
 kymux-types = { path = "../../third_party/kyber-kymux/kymux-types" }
-quinn-proto = { version = "=0.11.17", default-features = false }
+quinn-proto = { version = "=0.11.19", default-features = false }
 ring = "0.17"
-rustls = { version = "0.23.31", default-features = false, features = ["logging", "std", "tls12"] }
+rustls = { version = "0.23.46", default-features = false, features = ["logging", "std", "tls12"] }
 subtle = "2.6"
-tokio = { version = "1.47", features = ["io-util", "macros", "net", "rt-multi-thread", "sync", "time"] }
+tokio = { version = "1.54.1", features = ["io-util", "macros", "net", "rt-multi-thread", "sync", "time"] }
 
 [dev-dependencies]
 quinn = { version = "0.11", default-features = false, features = ["runtime-tokio", "rustls-ring"] }
 socket2 = "0.6"
 
 [patch.crates-io]
-# Keep the same narrowly repaired Quinn release shared by production and the
-# standalone probes. See third_party/quinn-proto-0.11.17/PLANK-PATCH.md.
-quinn-proto = { path = "../../third_party/quinn-proto-0.11.17" }
+# Keep the same Quinn release with PLANK telemetry shared by production and the
+# standalone probes. See third_party/quinn-proto-0.11.19/PLANK-PATCH.md.
+quinn-proto = { path = "../../third_party/quinn-proto-0.11.19" }

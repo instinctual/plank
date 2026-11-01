@@ -38,9 +38,9 @@ async fn reliable_data_overflow_fails_both_receivers() {
         let (host_connection, host_data) = host.unwrap().into_parts();
         let (client_connection, client_data, _) = client.unwrap().into_parts();
         let (mut send, recv) = if receiving_host {
-            (client_data.send, host_data.recv)
+            (client_data.0, host_data.1)
         } else {
-            (host_data.send, client_data.recv)
+            (host_data.0, client_data.1)
         };
         let shared = Arc::new(NativeShared::new(false, true, 150_000_000));
         shared.set_state(EndpointState::SetupReady);

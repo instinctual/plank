@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Source-only constants shared by bootstrap, package verification and cache.
-plank_sdl_version=3.4.2
-plank_sdl_sha256=ef39a2e3f9a8a78296c40da701967dd1b0d0d6e267e483863ce70f8a03b4050c
+plank_sdl_version=3.4.18
+plank_sdl_sha256=9c75cf16330322c217dedd2e0609f1124f1b54b8633e763467b4684d0f4334a3
 plank_sdl_patch_relative=apps/client/app/deploy/linux/sdl-patches/0001-wayland-detach-the-tablet-cursor-surface.patch
 
 plank_verify_client_sdl() {
