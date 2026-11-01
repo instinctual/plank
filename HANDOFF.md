@@ -7,7 +7,7 @@ notes, never in Git.
 ## Host cleanup candidates — in progress
 
 Current root and Linux Host branch: `host-cleanup`, based on root `be30580`.
-Linux Host pin `c9bf9f64` removes unreferenced GameStream crypto, bypassed Linux
+Linux Host pin `e3a8b093` removes unreferenced GameStream crypto, bypassed Linux
 encoder registrations/options, the superseded macOS implementation, and old
 CPack/AppImage/Flatpak/Homebrew packaging and distribution build scripts. The
 HTTPS certificate generator remains, with a direct certificate/key regression

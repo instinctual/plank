@@ -36,7 +36,7 @@ release or deployment is implied by candidate builds.
 
 ## Status
 
-Implementation is committed in focused changes. Linux Host pin `c9bf9f64`;
+Implementation is committed in focused changes. Linux Host pin `e3a8b093`;
 local policy/probe, lockfile, shell and privacy checks pass. Candidate version
 `1.3.02-host-cleanup` is awaiting hosted native build/test and package results.
 No installed acceptance or measured hardware performance result yet.

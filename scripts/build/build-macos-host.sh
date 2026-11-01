@@ -58,6 +58,11 @@ xcrun clang -mmacosx-version-min="$MACOSX_DEPLOYMENT_TARGET" -fobjc-arc -Wall -W
     -Iapps/host/macos/session tests/auth/macos-machine-identity.m \
     -framework Foundation -framework Security -o "$output/machine-identity-test"
 "$output/machine-identity-test"
+xcrun clang -O2 -mmacosx-version-min="$MACOSX_DEPLOYMENT_TARGET" -fobjc-arc -Wall -Wextra -Werror -Werror=unguarded-availability -Werror=unguarded-availability-new \
+    -Iapps/host/macos/control apps/host/macos/control/fixed-capture.m tests/auth/macos-fixed-capture-lifecycle.m \
+    -framework Foundation -framework CoreGraphics -o "$output/capture-lifecycle-test"
+"$output/capture-lifecycle-test"
+"$output/capture-lifecycle-test" --registration-failure
 bash "$source_root/scripts/test/build-macos-display-layout.sh" "$source_root" "$output/display-layout-tests"
 bash "$source_root/scripts/test/build-macos-display-recovery.sh" "$source_root" "$output/display-recovery-tests"
 bash "$source_root/scripts/test/build-macos-input.sh" "$source_root" "$output/input-tests" "$archive"
