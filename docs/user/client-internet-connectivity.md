@@ -11,6 +11,21 @@ Reachable, red for No response, amber for Unavailable, and gray for Checking.
 The text and hover explanation remain available regardless of color; No response
 means the ping targets did not reply, not proof that all Internet access is down.
 
+Click the indicator (or focus it and press Enter or Space) to open **Internet
+Connectivity**. Opening the dialog sends one ping to every configured IPv4
+address concurrently, including those skipped by the background check. Each row
+shows the address, colored status and actual ICMP round-trip time in whole
+milliseconds; replies faster than one millisecond show **<1 ms**. A dash means
+no timing is available, including a successful reply whose timing output could
+not be read. The completion time uses the Client's local clock.
+
+**Refresh** starts another complete check; it is disabled while checks are
+running. **Close** or Escape cancels outstanding dialog checks. Rapid reopening
+waits for cancelled processes to finish before starting fresh, so checks cannot
+accumulate. The dialog uses the configured timeout and has no automatic polling.
+The ordinary background check continues independently and still stops at the
+first reply; dialog results do not change Host status or connection behavior.
+
 By default, the Client sends one ICMP echo to Google's public resolver at startup.
 If it does not reply within one second, it tries Cloudflare's, then Quad9's.
 The exact addresses are in the [configuration template](../../packaging/client/config/plank-client.conf).
@@ -61,6 +76,9 @@ configuration cannot specify a program or shell command.
 Component tests cover ordered fallback, timer deadlines, responsive UI,
 periodic recovery, cancellation, disabled/invalid policy, unavailable tools,
 no-route versus permission failures, and actual IPv4 loopback pings on
-both supported build platforms. Hosted QML checks cover indicator text,
-visibility, sizing and screenshots. Installed UI/network acceptance remains
+both supported build platforms. Summary checks also cover concurrent targets,
+timing formats, bounded output, utility errors, cancellation/reopening and
+unchanged background state. Hosted QML checks cover indicator text, visibility,
+sizing, dialog mouse/keyboard interaction, eight-target layout and screenshots.
+Installed UI/network acceptance remains
 separate from those build checks.

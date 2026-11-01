@@ -4,6 +4,27 @@ Read `AGENTS.md` and the relevant build runbook first. Machine-specific access,
 credentials, captures and operational evidence belong in the external private
 notes, never in Git.
 
+## In progress — Client ping details
+
+The operator approved making the Internet indicator open a compact summary of
+every configured IPv4 ping target. Root and Client branch `client-ping-details`
+start from main `5d8aaa8` / Client `94f36ce0`; candidate version is **1.2.12**.
+Opening/refreshing checks all targets concurrently using the same fixed OS ping
+utility, configuration validation and bounded asynchronous process mechanism as
+the existing background check. Results retain configured order, distinguish
+timeout/no-route from unavailable utility/permissions, and parse actual ICMP RTT
+from the normalized Linux/macOS summary. No subprocess elapsed time is displayed
+as network RTT. The UI keeps colored text, local completion time, keyboard
+access, Refresh and Close; close/reopen cancels and reaps old children first.
+The background first-success check remains independent. No Host, transport,
+configuration schema or dependency change is required.
+
+Focused regression coverage extends the existing connectivity suite for summary
+results, timing formats, failed startup, deadlines, cancellation/reopening,
+disabled/invalid policy, actual loopback RTT and the three/eight-target dialog.
+Hosted Client builds, screenshot review and exact package validation are pending.
+No installation or release is authorized by this follow-up.
+
 ## Built — mainline 1.2.11 Host and Clients
 
 The operator requested signed mainline macOS Host packaging, then a larger,
