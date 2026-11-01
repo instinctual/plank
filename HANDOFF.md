@@ -12,25 +12,36 @@ The operator authorized `macos-qt-session` from current main: root
 on that branch. See [the implementation plan](docs/development/plans/macos-qt-session.plan).
 The branch now has a shared Qt scene/frame presenter, a worker-driven native
 Metal window, retained VideoToolbox imports, Mac key/Wacom/clipboard adapters
-and asynchronous rendering teardown. Client tip is `3cff4d7a`; Host, protocol and
-dependency pins are unchanged. Mac playback remains SDL/CoreAudio; PipeWire is
-Linux-only. Mac Qt selection is enabled on this development branch, but it is
-not a qualified candidate and has not been installed, merged or released.
+and asynchronous rendering teardown. Client tip is
+`6039600ac36181ea03d2342b1d8bdb9ee01b1f73`; candidate version is
+**1.2.13-macos-qt-session**. Host, protocol and dependency pins are unchanged.
+Mac playback remains SDL/CoreAudio; PipeWire is Linux-only. Mac Qt selection is
+enabled on this development branch, but has not been installed, merged or released.
 
-[Run 41262235706](https://github.com/instinctual/plank/actions/runs/41262235706)
-passed the initial real Metal/Qt composition gate: all 1,024 ten-bit gray/RGB
-levels survived at 4K/5K, resize and target replacement. This was a synthetic
-plane fixture, not a decoder/window/session acceptance result. New production
-node/CVPixelBuffer tests extend that gate. The Mac UI fixture caught a redirected
-scene sizing defect (no native resize event); it now follows public window
-geometry signals. That correction and the complete app integration are awaiting
-hosted validation. The earlier Linux check is run `41262607494`; inspect its
-result before claiming regression acceptance. Do not use an old green fixture
-run as proof of the current app integration.
+[Mac run 41265561521](https://github.com/instinctual/plank/actions/runs/41265561521)
+passed the full application build, production Metal/CVPixelBuffer and
+software-plane tests, native Cocoa window resize/hide/show/shutdown, and existing
+keyboard, Quit, clipboard and permission checks. Exact source: root `e15d875`,
+Client `a905edb7`. The renderer preserved all 1,024 ten-bit identity levels at
+4K/5K, 8-bit identity and full-range BT.709 4:2:0; crop/letterbox and 2x/16x area
+minification also passed. The fixture uses constructed decoder surfaces, not a
+real hardware-decoding session. Native command-buffer access is captured during
+Qt's afterRendering callback, before Qt clears that resource and commits the
+submission. No private Qt API or dependency patch is required.
 
-Remaining: resolve hosted build/tests, exercise exact VideoToolbox/software
-formats and scaled presentation, audit platform lifecycle/input parity, then
-build a signed branch-qualified package and obtain installed session acceptance.
+[Ubuntu run 41263998099](https://github.com/instinctual/plank/actions/runs/41263998099)
+passed the full Client/DEB build and Qt/PipeWire/sanitizer/compositor/launcher and
+upgrade gates from root `7979d3e`, Client `3cff4d7a`. Later Mac changes have not
+yet had the final common-code regression run. The current Client adds a native
+fullscreen round-trip test, extended Mac keyboard parity and a fixture screenshot.
+Local source-policy checks passed 29 cases. Do not confuse these earlier runs
+with the forthcoming exact signed candidate.
+
+Remaining: build/sign/collect the candidate, repeat the final Ubuntu regression,
+then obtain installed Mac session acceptance (hardware decode, 4K/5K, Retina,
+Spaces, Wacom, audio sync, microphone/camera, clipboard and network recovery).
+The old Mac pointer-confinement shortcut is not implemented in this candidate;
+document and resolve it before claiming complete feature parity.
 Do not interrupt the operator's active Terminal or other Mac sessions. No
 hardware machine has been accessed for this task.
 

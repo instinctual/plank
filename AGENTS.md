@@ -123,6 +123,9 @@ sanitizer, compositor, launcher and package-upgrade gates and the resulting DEB.
 There is no separate Qt product or experimental configuration namespace.
 Preserve existing bookmarks, Host trust, administrator policy and log paths.
 macOS retains its existing SDL/Metal frontend; Linux selection must not change it.
+The separately authorized `macos-qt-session` branch ports the Mac session to
+Qt/Metal, retaining SDL/CoreAudio playback. That candidate requires its own
+installed acceptance; see `docs/development/plans/macos-qt-session.plan`.
 Do not ask the operator to repair VM prerequisites or distribute a standalone
 probe as the Client.
 Hosted tests do not replace exact-candidate hardware/session acceptance. Read

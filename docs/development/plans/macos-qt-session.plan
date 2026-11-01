@@ -80,7 +80,13 @@ Mac window backed by a native RGB10A2 SDR drawable. A dedicated worker acquires
 drawables and completes GPU submissions; only scene synchronization briefly
 holds the GUI. Shared frame feedback, exact-format decoder qualification and
 a single-slot delivery mailbox are reused. Production CVPixelBuffer import,
-software-plane rendering and Mac UI/lifecycle tests are being qualified.
+software-plane rendering passed in run 41265561521: 8/10-bit identity and
+BT.709 4:2:0, 4K/5K resize, overlay composition, crop/letterbox and 2x/16x
+minification. Its native Cocoa window also passed repeated resize/hide/show
+and asynchronous shutdown. That run compiled the full application and passed
+the existing keyboard, Quit, clipboard and permission fixtures. These are
+constructed decoder surfaces, not an installed hardware-decoding session.
+The final candidate adds a native fullscreen round-trip check.
 
 Mac input reuses the existing Accessibility tap and raw-HID owner with a Qt
 queue wake, preserving its bounded queue and focus recovery. Qt Cocoa physical
@@ -89,3 +95,8 @@ Spaces, Retina/notch geometry, clipboard and application Quit retain their
 existing policy. Audio playback remains SDL/CoreAudio. No dependency, Host or
 protocol changes, installed acceptance, merge or release have occurred.
 See HANDOFF for exact tested commits and the remaining gates.
+
+The current candidate does not implement the old Mac pointer-confinement
+shortcut. Native fullscreen/Spaces and ordinary pointer movement remain
+available; do not claim complete installed parity or delete the comparison
+frontend until this and the real-session gates have been resolved.

@@ -45,6 +45,7 @@ run_shared_client_test() {
         make -j"${PLANK_BUILD_JOBS:-8}"
         DYLD_LIBRARY_PATH="$PLANK_MAC_CLIENT_DEPS/install/lib" \
             PLANK_CONNECTIVITY_CAPTURE_DIR="${PLANK_ARTIFACT_ROOT:-$build}/qualification/connectivity" \
+            PLANK_QT_SESSION_CAPTURE_DIR="${PLANK_ARTIFACT_ROOT:-$build}/qualification/mac-qt-session" \
             PLANK_REPO_ROOT="$source_root" QT_QPA_PLATFORM=offscreen QT_QUICK_BACKEND=software "./$suite"
     )
 }
