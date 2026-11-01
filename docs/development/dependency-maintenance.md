@@ -12,7 +12,7 @@ the source of truth, not a dependency repository's newest branch tip.
 | `instinctual/plank-host-linux` | `main` | Allowlisted build/runtime submodules; no inherited Windows/gamepad/Flatpak updates |
 | `instinctual/plank-client` | `main` | Common-C and qmdnsengine submodules |
 | `instinctual/plank-kymux` | `main` | Cargo workspace |
-| `instinctual/plank-build-deps` | `plank/main` | FFmpeg release/8.1, x264, NV headers, AMF, paired Vulkan Headers/Loader |
+| `instinctual/plank-build-deps` | `plank/main` | FFmpeg release/9.0, x264, NV headers, AMF, paired Vulkan Headers/Loader |
 | `instinctual/plank-libvirtualhid` | `plank/main` | Build/documentation submodules |
 | `instinctual/plank-common-c` | `plank/client`, `plank/host` | Source review only: no dependency manifests/recursive dependencies on either maintained branch |
 
@@ -56,7 +56,7 @@ together; do not treat this table as another build manifest.
 | --- | --- |
 | Rust/Cargo 1.99.1; rustup 1.29.2 | `rust-toolchain.toml`, `scripts/ci/bootstrap.sh`, Host/Client package builders and Mac transport builder; update exact-toolchain assertions together |
 | Qt 6.10.2; aqtinstall 3.3.0 | `scripts/ci/bootstrap.sh`, `scripts/ci/install-linux-deps.sh`, Mac Client builder and dependency-cache scripts; Ubuntu's Qt is distribution-provided |
-| Boost 1.92.0 | `scripts/ci/bootstrap.sh` URL/checksum, Host `cmake/dependencies/Boost_Sunshine.cmake`, Host package preflight and cache paths |
+| Boost 1.92.0 | `scripts/ci/dependencies/boost.sh` URL/checksum, Host `cmake/dependencies/Boost_Sunshine.cmake`, PAM/input qualification CMake, Host package preflight and cache paths |
 | Client FFmpeg 9.0.2 | `scripts/build/build-client-ffmpeg.sh`, `scripts/build/bootstrap-macos-client-deps.sh`, `apps/client/app/deploy/linux/ffmpeg-patches/`, package preflight and cache verification; mandatory identity patches must apply or be proven applied |
 | Mac Client OpenSSL 3.5.9, Opus 1.6.1, SDL 3.4.18, SDL_ttf 3.2.2, FreeType 2.15.0 | URLs and SHA256 values in `scripts/build/bootstrap-macos-client-deps.sh`; Linux SDL is also privately pinned; its other variants come from distribution packages |
 | Host libva 2.24.1 and CMake-fetched dependencies | Build-deps `package-lock.cmake`; Host dependency CMake files and package lock; inspect fetched tags/URLs/checksums, including test-only inputs |

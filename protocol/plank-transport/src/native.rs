@@ -790,7 +790,8 @@ mod tests {
         assert_eq!(received_audio.payload, audio_payload);
 
         let input_payload = Bytes::from_static(b"wacom-state-transition");
-        client_input.0
+        client_input
+            .0
             .send(InputPacket {
                 type_: 7,
                 payload: input_payload.clone(),
@@ -806,7 +807,8 @@ mod tests {
         assert_eq!(received_input.payload, input_payload);
 
         let client_data_payload = Bytes::from_static(b"client-control");
-        client_data.0
+        client_data
+            .0
             .send(DataPacket {
                 payload: client_data_payload.clone(),
             })
@@ -821,7 +823,8 @@ mod tests {
         assert_eq!(received_client_data.payload, client_data_payload);
 
         let server_data_payload = Bytes::from_static(b"server-control");
-        server_data.0
+        server_data
+            .0
             .send(DataPacket {
                 payload: server_data_payload.clone(),
             })

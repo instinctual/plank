@@ -17,19 +17,45 @@ quinn-proto 0.11.19 and quinn-udp 0.5.16, Rustls 0.23.46/webpki 0.103.16,
 Tokio 1.54.1, FFmpeg 9.0.2, SDL 3.4.18, Mac Opus 1.6.1/OpenSSL 3.5.9/
 FreeType 2.15.0, Boost 1.92.0, JSON 3.12.0 and Rust 1.99.1/rustup 1.29.2.
 Client FFmpeg's exact identity-GBR patch was rebased; SDL's Wayland cursor
-retirement patch remains required. Quinn's queue accounting/MTU repairs are
-upstream; local telemetry and regression tests remain. FFmpeg's AMF range fix
-is upstream, so its duplicate patch was removed. NVIDIA/CUDA/NVENC remain at
-the approved baseline. Vulkan 1.4.367 is being evaluated separately; the
-first checkpoint retains the existing 1.4.362 pair and allocation repair.
+retirement patch remains required. Quinn's queue accounting/MTU repairs and
+FFmpeg's AMF range fix are upstream; local telemetry/regression tests remain.
+Vulkan Loader/Headers are now 1.4.367, with upstream allocation checks and
+24 retained fault-injection cases. NVIDIA/CUDA/NVENC remain at the approved
+baseline. Native Apple/AVP and Qt/Intel stack updates are separate scope.
 
-Local policy checks: 114 CI source/cache tests, 12 dependency patch checks and
-three bootstrap-input checks passed. No package has yet passed hosted builds,
-been installed or released for this task. Next: run clean-bootstrap GitHub
-builds, fix integration failures, finish Vulkan qualification and record exact
-package provenance. Installed GPU/color, input, audio soak and OS-floor gates
-remain pending. Native Apple/AVP and Qt/Intel stack updates are separate scope;
-do not merge unfinished native features or add a QSV backend in this refresh.
+Hosted [dependency qualification 41337990153](https://github.com/instinctual/plank/actions/runs/41337990153)
+passed at `52f5215a28906173409128046030fca9b219d43a`: production/probe transport,
+reliable-wire bounds, Quinn DATAGRAM accounting/MTU and both native send paths.
+Six 150 Mbps/60 fps matrices recovered all 5,400 frames with 0/0.5/1/3/5%
+induced loss, zero additional kernel drops and all performance gates passing.
+Worst complete-frame delivery was 8.849 ms, worst receive gap 19.003 ms; these
+are hosted loopback results, not WAN or glass-to-glass measurements. Vulkan's
+52 targeted cases passed; removing the upstream check produced the required
+negative-control SIGSEGV. Local policy/source checks also passed.
+
+First clean-bootstrap product checkpoint:
+`1765331d0870947993f1f031d9989c3be776ca32`, Client
+`7813e7b408d51ce890a926d6315530b0f678191c`, Kymux
+`12af484eb307351b068aba96da12afce46f4614b`.
+Signed Mac Host [41337232211](https://github.com/instinctual/plank/actions/runs/41337232211)
+passed regression, signing/notarization and package gates. Downloaded and
+hash-verified: `artifacts/packages/candidates/1.2.14-dependency-refresh-macos26.7/macos/plank-host_1.2.14-dependency-refresh-macos26.7_arm64.pkg`,
+SHA256 `8c35c3df526485d5332297dc47afe5777ae8340726696daea5206f6fdd8b6718`.
+Ubuntu Client run41337233831 and signed Mac Client run41337235609 are still
+running; both fresh dependency bootstraps passed. Linux Host's first bootstrap
+passed, then its PAM test rejected the new Boost because the test still pinned
+1.89.0. That check is corrected. Replacement Host run41338566451 builds root
+`f53cdc90404b23b4e64cdd1182635f5f4f87f7ae`, Host
+`b735ec86e0f0cf14b1871c7524ede2cc2edcadb8`, including the qualified Vulkan update.
+
+Next: finish product builds, investigate any failures, collect exact package
+checksums/provenance and update these pending results. Do not overwrite or
+relabel already-collected packages. No candidate has been installed, merged or
+released. Installed GPU/color, input, audio soak and supported-OS gates remain
+pending. The operator reported a brief audio-noise event during this work;
+the active Host/Client and installed versions have been requested. No runtime
+was changed by this dependency task, so do not attribute that event to the
+candidate without identifying its source and logs.
 
 ## Merged — macOS Qt session; mainline 1.2.13 built
 
