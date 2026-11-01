@@ -69,8 +69,8 @@ gitlink initialized BEFORE preparing FFmpeg. Then run:
 bash "$PLANK_SOURCE_ROOT/scripts/build/bootstrap-macos-client-deps.sh"
 ```
 
-The script pins archive SHA256 values and prepares private OpenSSL3.5.5,
-Opus1.5.2, SDL3.4.2, SDL_ttf3.2.2, FreeType2.14.1 and FFmpeg9.0.2. It applies
+The script pins archive SHA256 values and prepares private OpenSSL3.5.9,
+Opus1.6.1, SDL3.4.18, SDL_ttf3.2.2, FreeType2.15.0 and FFmpeg9.0.2. It applies
 the same required HEVC identity-GBR patch as Linux (also enables VideoToolbox
 format probing). A missing Client checkout is an input-preflight error, not a
 compiler failure. `ffmpeg` as the optional argument resumes only that stage.

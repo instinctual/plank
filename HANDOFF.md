@@ -41,9 +41,16 @@ Signed Mac Host [41337232211](https://github.com/instinctual/plank/actions/runs/
 passed regression, signing/notarization and package gates. Downloaded and
 hash-verified: `artifacts/packages/candidates/1.2.14-dependency-refresh-macos26.7/macos/plank-host_1.2.14-dependency-refresh-macos26.7_arm64.pkg`,
 SHA256 `8c35c3df526485d5332297dc47afe5777ae8340726696daea5206f6fdd8b6718`.
-Ubuntu Client run41337233831 and signed Mac Client run41337235609 are still
-running; both fresh dependency bootstraps passed. Linux Host's first bootstrap
-passed, then its PAM test rejected the new Boost because the test still pinned
+Ubuntu Client [41337233831](https://github.com/instinctual/plank/actions/runs/41337233831)
+passed its full Qt/PipeWire, sanitizer, compositor, two-display, launcher and
+package/upgrade gates. The exact-format FFmpeg patch and private SDL runtime
+checks passed. Hosted GL lacks external memory/semaphores, so live Intel GPU
+presentation remains unqualified. Collected DEB:
+`artifacts/packages/candidates/1.2.14-dependency-refresh/linux/plank-client_1.2.14-dependency-refresh_amd64.deb`,
+SHA256 `3aca78fc5c62639de3e48a5dae7495eb1a78ada0a2afc40515b3af4f21c8ce36`.
+Signed Mac Client run41337235609 is still running after its fresh dependency
+bootstrap passed. Linux Host's first bootstrap passed, then its PAM test
+rejected the new Boost because the test still pinned
 1.89.0. That check is corrected. Replacement Host run41338566451 builds root
 `f53cdc90404b23b4e64cdd1182635f5f4f87f7ae`, Host
 `b735ec86e0f0cf14b1871c7524ede2cc2edcadb8`, including the qualified Vulkan update.
@@ -52,10 +59,7 @@ Next: finish product builds, investigate any failures, collect exact package
 checksums/provenance and update these pending results. Do not overwrite or
 relabel already-collected packages. No candidate has been installed, merged or
 released. Installed GPU/color, input, audio soak and supported-OS gates remain
-pending. The operator reported a brief audio-noise event during this work;
-the active Host/Client and installed versions have been requested. No runtime
-was changed by this dependency task, so do not attribute that event to the
-candidate without identifying its source and logs.
+pending. No runtime was changed by this dependency task.
 
 ## Merged — macOS Qt session; mainline 1.2.13 built
 
