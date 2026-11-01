@@ -107,8 +107,11 @@ class NativePolicyTests(unittest.TestCase):
                    "GITHUB_REF": "refs/heads/native-builds", "RUNNER_TEMP": temp}
             with patch.object(delivery.sys, "platform", "darwin"), patch.dict(os.environ, env, clear=True):
                 self.assertEqual(delivery.runner_directory().parent, Path(temp))
+                with patch.dict(os.environ, {"GITHUB_REF": "refs/heads/avp-dual-display"}):
+                    self.assertEqual(delivery.runner_directory().parent, Path(temp))
                 for key, bad in (("GITHUB_EVENT_NAME", "pull_request"), ("RUNNER_ENVIRONMENT", "self-hosted"),
-                                 ("GITHUB_REPOSITORY", "fork/plank"), ("GITHUB_REF", "refs/heads/main")):
+                                 ("GITHUB_REPOSITORY", "fork/plank"), ("GITHUB_REF", "refs/heads/main"),
+                                 ("GITHUB_REF", "refs/heads/unapproved-vision-branch")):
                     with patch.dict(os.environ, {key: bad}), self.assertRaises(delivery.DeliveryError):
                         delivery.runner_directory()
 

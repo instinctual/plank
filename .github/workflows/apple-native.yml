@@ -2,7 +2,7 @@ name: Native Apple clients
 
 on:
   push:
-    branches: [apple-native-integration, native-builds]
+    branches: [apple-native-integration, native-builds, avp-dual-display]
     paths: ['apps/client', '.github/workflows/apple-native.yml', 'scripts/ci/apple-native*', 'tests/ci/test_apple_native.py']
   pull_request:
     branches: [apple-native-integration]

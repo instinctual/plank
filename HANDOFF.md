@@ -4,10 +4,32 @@ Read `AGENTS.md` and the [native build runbook](docs/development/build/apple-nat
 first. Private deployment details remain outside Git. This handoff describes
 the isolated native integration branch, not the shipping checkout.
 
-## Current work — October 21, 2026
+## Current work — Vision dual displays, October 31, 2026
 
-Continue in `build/worktrees/native-builds`, including its linked Client at
-`apps/client`. Both branches are named `native-builds`. The canonical root and
+The operator selected Vision Pro and approved two independently configured
+virtual Host displays presented in one spatial window. Display 1 is left,
+Display 2 is right, top-aligned. Separate Vision windows are deferred. This
+uses the existing Linux Host topology protocol; macOS Host multidisplay is
+outside the task. See [the plan](docs/development/plans/vision-dual-display.plan).
+
+Both root and Client are now on `avp-dual-display`, branched from the clean
+`native-builds` checkpoints root `8325c113b25d02a7316691a30bc186f62c3d431f`
+and Client `73d1f74a8c67037bd5e35c849e543e1440b9a7fd`. The worktree directory
+is still `build/worktrees/native-builds`; its directory name is not its branch.
+Shipping main is untouched. Keep the native dependency pins below.
+
+Implemented bookmark add/edit/persistence, combined width and maximum height,
+8192-pixel width rejection, dual-mode startup and retry, one-window scaled-span
+negotiation and shared aspect-fit mapping for video/cursor/pointer capture.
+The native Mac pilot explicitly retains separate-window negotiation. New pure
+checks cover bookmark persistence, geometry, mode order, limits and input edges.
+Required hosted compilation and headset acceptance are pending. The existing
+reference-image socket test remains a gate, with its known failure below.
+
+## Imported integration baseline — October 21, 2026
+
+The baseline was prepared in `build/worktrees/native-builds`, including its linked Client at
+`apps/client`, on branches named `native-builds`. The canonical root and
 Client stay on shipping `main`; no native pilot has replaced the shipping
 Ubuntu Qt or macOS SDL/Metal application.
 

@@ -2,7 +2,8 @@ name: Hosted builds
 
 on:
   push:
-    branches: ['**']
+    # Native-only feature work uses apple-native.yml, not shipping products.
+    branches-ignore: [avp-dual-display]
   pull_request:
   workflow_dispatch:
     inputs:

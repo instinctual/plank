@@ -1,0 +1,39 @@
+# Vision dual displays in one window
+
+Scope approved October 31, 2026. Root and Client branches: avp-dual-display,
+based on native-builds. The shipping main checkouts stay separate.
+
+Each bookmark selects one or two virtual Host displays. Both resolutions are
+independent. Display 1 is left, Display 2 is right, with top edges aligned.
+The first implementation presents the full composite in one spatial window.
+Separate spatial windows and multiple virtual displays on a macOS Host are
+outside this step; the existing Linux Host topology protocol is sufficient.
+
+Use the existing optional secondDisplaySize field and existing Host layout
+request. Reject combinations wider than 8192 pixels before saving or launching.
+Changing either mode follows the existing authenticated-session closure policy.
+Start and retry must carry both modes. Request scaled-span for Vision; retain
+separate-displays for the native Mac pilot's multiple local windows.
+
+Use combined width and maximum height for the initial window, then use the
+authenticated Host topology. Video, cursor and pointer capture share one
+aspect-fit rectangle derived from the decoded composite. Do not split the
+encoder, connection, decoder or audio path. Raw Wacom reports retain their
+existing device coordinates; do not alter them using spatial-window size.
+
+Validation:
+- Saved single and dual bookmarks, edits and return to one display.
+- Independent mode order, topology verification, stream dimensions and retry.
+- 3840x2160 + 1280x2160, two 2560x2160, two UHD, unequal heights, 8192 boundary
+  and rejected larger combinations.
+- Pointer mapping at all edges and on both sides of the display seam at
+  multiple spatial window sizes; letterbox and malformed coordinates rejected.
+- Existing native Mac multiple-screen, tablet and shared component checks.
+- Hosted SDK27 device/simulator builds with exact source provenance.
+- Actual headset session: both displays visible, readable aspect ratio,
+  custom cursor, keyboard, pen pressure, display-seam movement, reconnect and
+  returning to one display. Hosted checks do not establish hardware acceptance.
+
+The native baseline has an unresolved reference-image loopback timeout. Retain
+that gate and its original deadline/maximum frame size; do not claim a new
+TestFlight build until every required native job passes.

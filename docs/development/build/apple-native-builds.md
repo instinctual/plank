@@ -6,6 +6,11 @@ workflow on `apple-native-integration`. The temporary `native-builds` branch is
 also permitted while qualifying this automation. Do not merge the pilots into
 shipping main merely to enable CI.
 
+`avp-dual-display` is the isolated Vision two-display feature branch, based on
+`native-builds`. It uses the same five native targets and protected, explicitly
+requested Vision TestFlight delivery. Shipping Host/Qt Client push builds are
+excluded on that branch. No native compile or test gate is bypassed.
+
 All compilation runs on disposable GitHub-hosted Apple Silicon `xcode-27`
 workers. No SSH, local Mac, hardware-test machine or private infrastructure repo
 is a build input. Public PRs receive no Apple credentials. The native recipe in

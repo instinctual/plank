@@ -32,7 +32,8 @@ def runner_directory():
             and os.environ.get("RUNNER_ENVIRONMENT") == "github-hosted"
             and os.environ.get("GITHUB_EVENT_NAME") == "workflow_dispatch"
             and os.environ.get("GITHUB_REPOSITORY") == "instinctual/plank"
-            and os.environ.get("GITHUB_REF") in ("refs/heads/native-builds", "refs/heads/apple-native-integration"),
+            and os.environ.get("GITHUB_REF") in ("refs/heads/native-builds", "refs/heads/apple-native-integration",
+                                                 "refs/heads/avp-dual-display"),
             "TestFlight requires a protected manual dispatch on an approved integration branch")
     root = Path(os.environ["RUNNER_TEMP"])
     require(root.is_absolute() and root.is_dir(), "Invalid runner scratch directory")
