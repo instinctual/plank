@@ -1,6 +1,7 @@
 # Dependency refresh
 
-Status: authorized; implementation in `dependency-refresh`, based on main
+Status: implementation and hosted candidate builds complete; installed acceptance
+pending. Work is in `dependency-refresh`, based on main
 `b3d3235c78e513c3202b9524f1fea8ae420787bd`. No release or installation is
 authorized by this plan. SDL remains an active dependency.
 
@@ -33,7 +34,7 @@ authorized by this plan. SDL remains an active dependency.
 
 - NVIDIA 595.104.02, CUDA 13.2 Update 2, NVENC SDK 13.0 remain; SDK 13.1
   requires a newer driver outside the approved baseline.
-- macOS Client 15+ and Host 26.7+, built with SDK27+; Rocky9.7 / Ubuntu26.04.
+- macOS Client 15+ and Host 26.7+, built with SDK 27+; Rocky 9.7 / Ubuntu 26.04.
 - No codec/chroma/precision/range substitutions or transport wire downgrade.
 - Keep all required dependency patches reproducible and fail closed on drift.
 - Build candidates on GitHub-hosted Actions with exact pins and provenance.
@@ -47,8 +48,20 @@ hashes, platform floors, cache fingerprints and branch-qualified versions.
 Transport gates cover queue/MTU bounds, malformed traffic, cancellation,
 reconnect and intentional loss. Media gates cover exact 8/10-bit identity,
 hardware/software decoding and presentation, 4K/5K and two-display canvases.
-Actual hardware sessions, listening/A/V soak, Wacom recovery and macOS15/26.7/27
+Actual hardware sessions, listening/A/V soak, Wacom recovery and macOS 15/26.7/27
 acceptance remain explicit installed-package gates, not compiler results.
 
 Record stage commits, upstream provenance, replaced/retained patches, results
 and remaining gates in HANDOFF; retain final packages in the versioned catalog.
+
+## Qualification checkpoint — 2026-11-01
+
+All four desktop candidates are built and collected as `1.2.14-dependency-refresh`
+(the Mac Host also carries its 26.7 floor). Both Mac PKGs are signed/notarized.
+Both Clients and the Mac Host use root `1765331`; the Linux Host uses `f53cdc9`
+with the later Vulkan update and corrected Boost test pin. HANDOFF records full commits,
+package hashes, runs and pending hardware gates. Both native transport send
+paths passed three 150 Mbps loss matrices each; all 5,400 frames were recovered.
+Vulkan's 52 targeted cases and intentional-failure negative control passed.
+No candidate has been installed, merged or released. Keep Qt/Intel/oneVPL and
+native Apple/AVP work separate from this qualified dependency checkpoint.

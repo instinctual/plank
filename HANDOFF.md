@@ -4,62 +4,104 @@ Read `AGENTS.md` and the relevant build runbook first. Machine-specific access,
 credentials, captures and operational evidence belong in the external private
 notes, never in Git.
 
-## In progress — dependency refresh
+## Candidates built — dependency refresh
 
-The operator authorized the updates on `dependency-refresh`, preserving SDL.
-Baseline main is `b3d3235c78e513c3202b9524f1fea8ae420787bd`; candidate version
-is 1.2.14-dependency-refresh. See
+The operator authorized dependency updates while retaining SDL. Work is committed
+and pushed on `dependency-refresh`, based on main
+`b3d3235c78e513c3202b9524f1fea8ae420787bd`. All four GitHub-hosted candidate builds
+passed. No merge, installation or release was performed. See
 [the staged plan](docs/development/plans/dependency-refresh.plan).
 
-Implemented: remove unused x265, reconcile Kyber 0.29 with PLANK's bounded
-parsers/FEC draining/cancellation and native protocol, Quinn 0.11.12 with
-quinn-proto 0.11.19 and quinn-udp 0.5.16, Rustls 0.23.46/webpki 0.103.16,
-Tokio 1.54.1, FFmpeg 9.0.2, SDL 3.4.18, Mac Opus 1.6.1/OpenSSL 3.5.9/
-FreeType 2.15.0, Boost 1.92.0, JSON 3.12.0 and Rust 1.99.1/rustup 1.29.2.
-Client FFmpeg's exact identity-GBR patch was rebased; SDL's Wayland cursor
-retirement patch remains required. Quinn's queue accounting/MTU repairs and
-FFmpeg's AMF range fix are upstream; local telemetry/regression tests remain.
-Vulkan Loader/Headers are now 1.4.367, with upstream allocation checks and
-24 retained fault-injection cases. NVIDIA/CUDA/NVENC remain at the approved
-baseline. Native Apple/AVP and Qt/Intel stack updates are separate scope.
+Updates: Kyber/Kymux/Kyproto 0.29.0, Quinn 0.11.12 / quinn-proto 0.11.19 /
+quinn-udp 0.5.16, Rustls 0.23.46 / webpki 0.103.16, Tokio 1.54.1, FFmpeg 9.0.2,
+SDL 3.4.18, Mac Opus 1.6.1 / OpenSSL 3.5.9 / FreeType 2.15.0, Boost 1.92.0,
+JSON 3.12.0, Vulkan Loader/Headers 1.4.367 and Rust 1.99.1 / rustup 1.29.2.
+Unused x265 encoder/build/link/patch inputs are removed. x264, NVENC,
+VideoToolbox and HEVC decoding remain. NVIDIA/CUDA/NVENC keep the approved
+595.104.02 / CUDA 13.2 Update 2 / SDK 13.0.19 baseline and full CUDA architecture set.
+Qt/Intel-stack changes and native Apple/AVP integration remain separate work.
+
+PLANK's bounded parsers, FEC draining, cancellation, telemetry, fixed MTU and
+accepted rate policy remain. RaptorQ is still 2.0.1 and ALPN is still
+`plank-native/2`; this refresh does not restore application datagram pacing.
+Quinn's queue accounting/MTU repairs and FFmpeg's AMF range fix are upstream,
+so their duplicate local repairs were retired. The exact identity-GBR FFmpeg
+patch was rebased; SDL's Wayland cursor-retirement patch remains required.
+Vulkan now has upstream allocation checks, with 24 retained fault-injection
+cases and unmodified production source. The final source verifier additionally
+rejects staged changes and an unavailable Git baseline (14 local cases pass).
 
 Hosted [dependency qualification 41337990153](https://github.com/instinctual/plank/actions/runs/41337990153)
 passed at `52f5215a28906173409128046030fca9b219d43a`: production/probe transport,
-reliable-wire bounds, Quinn DATAGRAM accounting/MTU and both native send paths.
-Six 150 Mbps/60 fps matrices recovered all 5,400 frames with 0/0.5/1/3/5%
-induced loss, zero additional kernel drops and all performance gates passing.
-Worst complete-frame delivery was 8.849 ms, worst receive gap 19.003 ms; these
-are hosted loopback results, not WAN or glass-to-glass measurements. Vulkan's
-52 targeted cases passed; removing the upstream check produced the required
-negative-control SIGSEGV. Local policy/source checks also passed.
+reliable-wire bounds, malformed FEC, cancellation/reconnect and Quinn DATAGRAM
+accounting/MTU. Both send paths passed three consecutive 150 Mbps/60 fps
+matrices: all 5,400 frames recovered across 0/0.5/1/3/5% induced loss, zero
+additional kernel drops and all performance gates passing. Worst complete-frame
+delivery was 8.849 ms; worst receive gap was 19.003 ms. These are hosted loopback
+results, not WAN or glass-to-glass measurements. Vulkan's 52 targeted cases passed;
+removing the upstream allocation check produced the required negative-control
+SIGSEGV. Local CI-policy/source/bootstrap checks passed. Rustls 0.23.46 covers
+the current root repository's four advisories in each of its two lockfiles;
+alerts are not dismissed and main is unchanged. Separate inherited Host Python
+tooling alerts remain outside the qualified RPM runtime/build inputs.
 
-First clean-bootstrap product checkpoint:
-`1765331d0870947993f1f031d9989c3be776ca32`, Client
-`7813e7b408d51ce890a926d6315530b0f678191c`, Kymux
-`12af484eb307351b068aba96da12afce46f4614b`.
-Signed Mac Host [41337232211](https://github.com/instinctual/plank/actions/runs/41337232211)
-passed regression, signing/notarization and package gates. Downloaded and
-hash-verified: `artifacts/packages/candidates/1.2.14-dependency-refresh-macos26.7/macos/plank-host_1.2.14-dependency-refresh-macos26.7_arm64.pkg`,
-SHA256 `8c35c3df526485d5332297dc47afe5777ae8340726696daea5206f6fdd8b6718`.
-Ubuntu Client [41337233831](https://github.com/instinctual/plank/actions/runs/41337233831)
-passed its full Qt/PipeWire, sanitizer, compositor, two-display, launcher and
-package/upgrade gates. The exact-format FFmpeg patch and private SDL runtime
-checks passed. Hosted GL lacks external memory/semaphores, so live Intel GPU
-presentation remains unqualified. Collected DEB:
-`artifacts/packages/candidates/1.2.14-dependency-refresh/linux/plank-client_1.2.14-dependency-refresh_amd64.deb`,
-SHA256 `3aca78fc5c62639de3e48a5dae7495eb1a78ada0a2afc40515b3af4f21c8ce36`.
-Signed Mac Client run41337235609 is still running after its fresh dependency
-bootstrap passed. Linux Host's first bootstrap passed, then its PAM test
-rejected the new Boost because the test still pinned
-1.89.0. That check is corrected. Replacement Host run41338566451 builds root
-`f53cdc90404b23b4e64cdd1182635f5f4f87f7ae`, Host
-`b735ec86e0f0cf14b1871c7524ede2cc2edcadb8`, including the qualified Vulkan update.
+Package sources and builds:
 
-Next: finish product builds, investigate any failures, collect exact package
-checksums/provenance and update these pending results. Do not overwrite or
-relabel already-collected packages. No candidate has been installed, merged or
-released. Installed GPU/color, input, audio soak and supported-OS gates remain
-pending. No runtime was changed by this dependency task.
+- Both Clients and the Mac Host use root
+  `1765331d0870947993f1f031d9989c3be776ca32`, Client
+  `7813e7b408d51ce890a926d6315530b0f678191c`, Kymux
+  `12af484eb307351b068aba96da12afce46f4614b`. All three used clean-bootstrap
+  runs: [Ubuntu 41337233831](https://github.com/instinctual/plank/actions/runs/41337233831),
+  [Mac Client 41337235609](https://github.com/instinctual/plank/actions/runs/41337235609),
+  [Mac Host 41337232211](https://github.com/instinctual/plank/actions/runs/41337232211).
+- Linux Host uses root `f53cdc90404b23b4e64cdd1182635f5f4f87f7ae`, Host
+  `b735ec86e0f0cf14b1871c7524ede2cc2edcadb8`, build-deps
+  `54e3dce6f9bea41639ca62a599fd907a6239912e`, FFmpeg
+  `946fcce07b6dcd0331c8cc609192aeff5e1924f8`, Vulkan Headers
+  `9fbc2a782ee3f8a4db64e7d991e23da75e893f44`, Loader
+  `aa6dee8385afe4b2cc0152d086af2184743e16fd`. Run
+  [41338566451](https://github.com/instinctual/plank/actions/runs/41338566451)
+  passed fresh media/bootstrap, PAM/HTTPS, input lifecycle, compiler and RPM
+  gates. Its earlier clean bootstrap succeeded but the PAM test still demanded
+  old Boost 1.89.0; the corrected check now passes with 1.92.0.
+- Client common-C remains `437be9a0a4d164efdf9ed20dc6dd5a2b7b9edc90`, qmdnsengine
+  `920c097ffa742e2968290f15d4dde6693aec02e5`; Host common-C remains
+  `3a97a58f215323753cfd1180af760ec7e3253538`, libvirtualhid
+  `b793fa2f5369218c43e09c58d5b96a0cc638bf05`, x264
+  `0480cb05fa188d37ae87e8f4fd8f1aea3711f7ee`, NV headers
+  `e844e5b26f46bb77479f063029595293aa8f812d`.
+
+Verified catalog packages, version 1.2.14:
+
+| Product | Catalog path below `artifacts/packages/candidates/` | SHA256 |
+| --- | --- | --- |
+| Ubuntu Client | `1.2.14-dependency-refresh/linux/plank-client_1.2.14-dependency-refresh_amd64.deb` | `3aca78fc5c62639de3e48a5dae7495eb1a78ada0a2afc40515b3af4f21c8ce36` |
+| macOS Client | `1.2.14-dependency-refresh/macos/plank-client_1.2.14-dependency-refresh_arm64.pkg` | `7171e8abee650c4639721785c531f0de2bf87c05ec89dc975c9fe09998304002` |
+| Linux Host | `1.2.14-dependency-refresh/linux/plank-host-1.2.14-0.dependency_refresh.1.el9.x86_64.rpm` | `69ce6aceac2234fcf498744e2cd6304cb2b95e75ec4315ac7a377c3b9d2d5d27` |
+| macOS Host | `1.2.14-dependency-refresh-macos26.7/macos/plank-host_1.2.14-dependency-refresh-macos26.7_arm64.pkg` | `8c35c3df526485d5332297dc47afe5777ae8340726696daea5206f6fdd8b6718` |
+
+Both Mac installers passed Developer ID signing, notarization, stapling,
+Gatekeeper and OS-floor gates (Client 15+, Host 26.7+, SDK 27). The Mac Client
+passed Qt/Metal/Cocoa and constructed 4K/5K, 8/10-bit identity/color fixtures.
+Ubuntu passed Qt/PipeWire, sanitizer, compositor, two-display, launcher,
+package/upgrade and private FFmpeg/SDL checks. Hosted GL lacks external
+memory/semaphores; live Intel GPU presentation remains unqualified. The Linux
+Host's source/package checks include absence of x265, log-directory ownership
+and unchanged security/service identities.
+
+Original manifests, complete logs, run metadata, recursive pins, advisory
+snapshot and captures are retained under
+`artifacts/qualification/dependency-refresh-1.2.14/`; download staging was
+removed. Later root commits contain documentation, test formatting, an unused
+telemetry accessor's feature gating and source-verifier hardening; preserve
+the package-specific source checkpoints instead of claiming the packages were
+rebuilt from the final documentation tip.
+
+Next: installed GPU/color, audio/video soak, input/Wacom and recovery tests on
+the exact candidates, including both Host platforms and supported Mac OS
+floors. The package manifests correctly retain functional acceptance as
+`not-recorded`. No hardware target was accessed and no runtime changed for
+this task. Main and the unfinished native Apple/AVP branches remain separate.
 
 ## Merged — macOS Qt session; mainline 1.2.13 built
 
