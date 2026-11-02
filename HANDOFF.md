@@ -9,6 +9,12 @@ older candidate provenance remains in Git history and the artifact catalog.
 Branch: `client-bookmarks`, based on the complete `code-simplification` candidate
 below. Client-only candidate version: **1.3.14-client-bookmarks**.
 
+Resume on `client-bookmarks` in the root and Client repositories. Code and
+candidate records are pushed; the next step is operator testing, not another
+build. The preceding cleanup and this bookmark change remain unmerged to
+`main`. Continue using this branch for any bookmark follow-up so its verified
+dependency caches remain available.
+
 Add now creates an independent, permanent bookmark ID instead of replacing the
 record for the entered address. Edit accepts shared addresses and preserves the
 bookmark ID. Existing saved IDs/settings remain valid. Names, layouts, profiles,
@@ -32,6 +38,15 @@ downloaded under `artifacts/packages/candidates/1.3.14-client-bookmarks/` and
 their SHA-256 checks pass. Original builder manifests, run metadata, logs,
 recursive pins and summary are in
 `artifacts/qualification/client-bookmarks-1.3.14/`.
+
+Installers ready for manual testing:
+
+- Ubuntu: `linux/plank-client_1.3.14-client-bookmarks_amd64.deb`.
+- macOS: `macos/plank-client_1.3.14-client-bookmarks_arm64.pkg`.
+
+These paths are relative to the candidate catalog above. No new Host package
+was needed for this bookmark change; the previous four-product cleanup
+candidate is preserved below. No test-system configuration was changed.
 
 Next installed check: add two differently named bookmarks for the same Host
 with different layouts/profiles/bitrates; edit one, restart the Client and

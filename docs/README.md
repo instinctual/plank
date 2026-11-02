@@ -1,6 +1,8 @@
 # Documentation
 
 - [User documentation](user/): bookmark behavior and product configuration.
+  [Host bookmark options](user/bookmark-host-options.md) covers independent
+  configurations for the same Host and Host-specific display/profile choices.
   [Ubuntu Client displays](user/client-displays.md) covers per-bookmark fullscreen
   monitor selection and spanning.
   [macOS configuration](user/macos-configuration.md) covers Host/Client INI files,
