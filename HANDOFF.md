@@ -8,13 +8,15 @@ older candidate provenance remains in Git history and the artifact catalog.
 
 Branch: `code-simplification`. The latest follow-up implements native X11/XShm
 batching, bounded reusable CUDA SHM registration for HEVC10 identity NVENC,
-contiguous SIMD x264 unpacking and bounded capture/encode timing. It also removes
+contiguous compiler-vectorized x264 unpacking and bounded capture/encode timing. It also removes
 the unused synchronous Host pipeline/X11 cursor blending and caches Ubuntu EGL
 import capabilities per context. No wire/authentication/input or Mac rendering
 change. See the final section of the simplification plan for exact behavior,
 measurements and remaining hardware gates.
 
-Candidate 1.3.08 Host and Ubuntu builds are the next verification step.
+Ubuntu candidate1.3.08 passed run41396383942 at root0e0b1f2 (Client7d628f60).
+Host candidate1.3.09 is the remaining hosted build; the earlier Host run was
+canceled before packaging for the final CUDA rollback/vectorization refinement.
 Portable precision/request-order/registration-lifetime/budget/timing fixtures
 pass, including ASan/UBSan. GPU SHM upload qualified with exact pixel readback on
 the authorized RTX6000 Ada/595.104.02 Host: median upload improved about26–28%

@@ -11,7 +11,7 @@ thread_local int registered = 0, retained = 0, pushed = 0;
 CUcontext context = reinterpret_cast<CUcontext>(1);
 CUresult result(int step) { calls.push_back(step); return failure == step ? CUDA_ERROR_UNKNOWN : CUDA_SUCCESS; }
 CUresult CUDAAPI device(CUdevice* d, int ordinal) { assert(ordinal == 0); *d = 0; return result(1); }
-CUresult CUDAAPI retain(CUcontext* c, CUdevice) { const auto r = result(2); if (r == CUDA_SUCCESS) { *c = context; ++retained; } return r; }
+CUresult CUDAAPI retain(CUcontext* c, CUdevice) { *c = context; const auto r = result(2); if (r == CUDA_SUCCESS) ++retained; return r; }
 CUresult CUDAAPI release(CUdevice) { --retained; return result(8); }
 CUresult CUDAAPI push(CUcontext c) { assert(c == context); const auto r = result(3); if (r == CUDA_SUCCESS) ++pushed; return r; }
 CUresult CUDAAPI pop(CUcontext* c) { *c = context; --pushed; return result(5); }

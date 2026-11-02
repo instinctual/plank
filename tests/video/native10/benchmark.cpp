@@ -58,7 +58,7 @@ int main() {
         for (std::size_t i = 0; i < source.size(); ++i) {
             if (red[i] != (source[i] & 1023) || green[i] != ((source[i] >> 10) & 1023) || blue[i] != ((source[i] >> 20) & 1023)) return 1;
         }
-        const char* names[] = {"original/interleaved", "original/contiguous", "SIMD/contiguous"};
+        const char* names[] = {"original/interleaved", "original/contiguous", "nonalias/contiguous"};
         for (unsigned i = 0; i < 3; ++i) {
             auto& t = timings[i]; std::sort(t.begin(), t.end());
             std::cout << width << "x" << height << " " << names[i] << " frames=" << t.size()
