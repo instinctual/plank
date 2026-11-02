@@ -1,6 +1,10 @@
 # Standard macOS Host installer
 
 Branch: `macos-installer`, starting at main e7121a2.
+Current follow-up: `host-cleanup`, signed candidate `1.3.03-host-cleanup`.
+The standard-wizard package passed hosted component, preinstall-failure,
+finished-PKG and signing/notarization gates. Actual Installer presentation is
+pending; HANDOFF records the exact artifact, source, checksum and build run.
 
 Goal: open one signed, notarized PKG in Installer, approve administrator access,
 and install the Host without Terminal, Python, Xcode or Command Line Tools on
@@ -56,7 +60,7 @@ Reference PKG SHA-256:
 `7250bf5a3117fc2370ec9fda9d1529e64cd6499202b35c59b7b1ee7346b660cd`.
 The reference Mac was read-only; extraction was on the dedicated development Mac.
 
-Current checkpoint: the user explicitly retained signing/notarization and
+Original checkpoint: the user explicitly retained signing/notarization and
 approved replacing the first native-helper implementation with simple scripts.
 Both Developer ID identities and Keychain profile `plank-notary` are provisioned.
 Historical checkpoint: installer and uninstaller1.0.80-macos-installer were built, signed,

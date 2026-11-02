@@ -4,7 +4,7 @@ Read `AGENTS.md` and the relevant build runbook first. Machine-specific access,
 credentials, captures and operational evidence belong in the external private
 notes, never in Git.
 
-## Standard macOS Installer — candidate in progress
+## Standard macOS Installer — candidate built and verified
 
 On `host-cleanup`, the operator approved removing the custom Requirements page
 that triggers Apple's executable-preflight warning. Its plug-in, builder and
@@ -16,8 +16,23 @@ preinstall with fixture commands and reject plug-ins/missing guards in the PKG.
 Local checks pass: FileVault/package checks (three tests covering seven query
 outcomes), 25 package-script checks, 115 CI-policy tests and shell syntax.
 Candidate version is `1.3.03-host-cleanup`; standard package names omit the OS
-floor while app/installer metadata still requires macOS26.7 or newer. Signed
-GitHub build and package validation are pending. No deployment or release.
+floor while app/installer metadata still requires macOS26.7 or newer.
+Signed GitHub run `41365218759` passed at root
+`0c29479ea72cd115a6d7e45f3a8474589df031d3`: normal Host/component gates,
+finished-PKG plug-in absence and exact preinstall safeguard, Developer ID,
+notarization, stapling and Gatekeeper checks. It includes the earlier Host
+cleanup; the Client and Linux Host pins are unchanged.
+
+Verified package:
+`artifacts/packages/candidates/1.3.03-host-cleanup/macos/plank-host_1.3.03-host-cleanup_arm64.pkg`
+(6,655,736 bytes), SHA256
+`0e3cb45bc268167e98d9d2e448845703de0e915c447cf4fb4b78e7e199a20e4f`.
+Original manifest, complete build log and run metadata are retained under
+`artifacts/qualification/host-installer-1.3.03/`; duplicate staging was removed.
+No build remains running. No merge, deployment or release. Next: open the exact
+signed PKG and confirm the standard wizard appears without the extra
+executable-preflight warning. Actual Installer UI/session acceptance is pending;
+ordinary administrator authorization and privacy approvals remain applicable.
 
 ## Host cleanup candidates — built and verified
 
