@@ -7,13 +7,24 @@
 int main(void) {
     assert(PLANK_ENCODING_COUNT == 9);
     assert(!plank_encoding_profile(-1) && !plank_encoding_profile(INT_MAX));
-    assert(!plank_encoding_profile_named(NULL) && !plank_encoding_profile_named("hevc-8-420"));
+    assert(!plank_encoding_profile_named(NULL, 0) && !plank_encoding_profile_named("hevc-8-420", 10));
+    const char embeddedNul[] = "hevc-10-444-videotoolbox\0extra";
+    assert(!plank_encoding_profile_named(embeddedNul, sizeof(embeddedNul) - 1));
     assert(!plank_capture_name(-1) && !plank_capture_name(PLANK_SOURCE_COUNT));
     const int formats[] = {0x8, 0x2, 0x4, 0x10, 0x4, 0x400, 0x800, 0x200, 0x800};
     const int captures[] = {3, 1, 1, 1, 1, 1, 3, 4, 4};
     for (int id = 0; id < PLANK_ENCODING_COUNT; ++id) {
         const PlankEncodingProfile* p = plank_encoding_profile(id);
-        assert(p->id == id && plank_encoding_profile_named(p->mode) == p);
+        size_t length = strlen(p->mode);
+        assert(p->id == id && plank_encoding_profile_named(p->mode, length) == p);
+        assert(!plank_encoding_profile_named(p->mode, length - 1));
+        assert(!plank_encoding_profile_named(p->mode, length + 1));
+        char unterminated[64];
+        assert(length < sizeof(unterminated));
+        memcpy(unterminated, p->mode, length);
+        memset(unterminated + length, 'x', sizeof(unterminated) - length);
+        assert(plank_encoding_profile_named(unterminated, length) == p);
+        assert(!plank_encoding_profile_named(unterminated, length + 1));
         assert(p->video_format == formats[id]);
         for (int source = -1; source <= PLANK_SOURCE_COUNT; ++source)
             assert(!!plank_encoding_supports_capture(p, source) ==

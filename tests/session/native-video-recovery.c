@@ -161,6 +161,48 @@ static void ownership(void) {
     printf("encoded frame: one allocation, zero NAL/reassembly copies for a %d-byte delta\n", largeSize);
 }
 
+static void nalViews(int codec, const unsigned char* key, size_t size, size_t firstNalSize) {
+    NegotiatedVideoFormat = codec;
+    VideoCallbacks.capabilities = CAPABILITY_PULL_RENDERER;
+    initializeVideoFrameAssembler();
+    unsigned char input[64];
+    const bool hevcCodec = (codec & VIDEO_FORMAT_MASK_H265) != 0;
+    const unsigned char aud[] = {0, 0, 0, 1, hevcCodec ? 0x46 : 0x09, 1, 0xab};
+    const unsigned char sei[] = {0, 0, 0, 1, hevcCodec ? 0x4e : 0x06, 1, 0xab};
+    memcpy(input, aud, sizeof(aud));
+    memcpy(input + sizeof(aud), key, size);
+    CHECK(frame(input, sizeof(aud) + size, 1, true) == 0);
+    VIDEO_FRAME_HANDLE handle;
+    PDECODE_UNIT unit;
+    CHECK(LiPollNextVideoFrame(&handle, &unit));
+    // Skipping a leading AUD still permits zero-copy decoding with an offset.
+    CHECK(LiVideoFrameData(unit) == LiVideoBufferData(unit->frameBuffer) + sizeof(aud));
+    CHECK(unit->fullLength == (int)size && !memcmp(LiVideoFrameData(unit), key, size));
+    for (int i = 0; i < PLANK_VIDEO_BUFFER_PADDING; ++i)
+        CHECK(LiVideoFrameData(unit)[size + i] == 0);
+    LiCompleteVideoFrame(handle, DR_OK);
+
+    memcpy(input, key, firstNalSize);
+    memcpy(input + firstNalSize, sei, sizeof(sei));
+    memcpy(input + firstNalSize + sizeof(sei), key + firstNalSize, size - firstNalSize);
+    CHECK(frame(input, size + sizeof(sei), 2, true) == 0);
+    CHECK(LiPollNextVideoFrame(&handle, &unit));
+    // An omitted SEI between parameter sets requires the explicit copy path.
+    CHECK(!LiVideoFrameData(unit));
+    unsigned char assembled[64];
+    size_t offset = 0;
+    for (PLENTRY entry = unit->bufferList; entry; entry = entry->next) {
+        CHECK(entry->length > 0 && offset + entry->length <= size);
+        memcpy(assembled + offset, entry->data, entry->length);
+        offset += entry->length;
+    }
+    CHECK(offset == size && unit->fullLength == (int)size && !memcmp(assembled, key, size));
+    LiCompleteVideoFrame(handle, DR_OK);
+    stopVideoFrameAssembler();
+    destroyVideoFrameAssembler();
+    CHECK(liveBuffers == 0);
+}
+
 int main(void) {
     ListenerCallbacks.logMessage = quietLog;
     VideoCallbacks.capabilities = CAPABILITY_DIRECT_SUBMIT;
@@ -168,6 +210,8 @@ int main(void) {
     exercise(VIDEO_FORMAT_H264, h264, sizeof(h264), 12);
     exercise(VIDEO_FORMAT_H265_MAIN10, hevc, sizeof(hevc), 21);
     ownership();
+    nalViews(VIDEO_FORMAT_H264, h264, sizeof(h264), 6);
+    nalViews(VIDEO_FORMAT_H265_MAIN10, hevc, sizeof(hevc), 7);
     CHECK(liveBuffers == 0);
     printf("native video recovery: %u checks passed\n", checks);
     return 0;

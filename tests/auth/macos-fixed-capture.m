@@ -19,6 +19,7 @@ int main(int argc, const char *argv[]) {
         assert(![full[@"capture"][@"encoding_profile"][@"rgb_identity"] boolValue]);
         assert(!PLANKMacEncodingProfile(@"hevc-8-444-videotoolbox"));
         assert(!PLANKMacEncodingProfile(nil));
+        assert(!PLANKMacEncodingProfile(@"hevc-10-444-videotoolbox\0extra"));
         assert([fixture isEqual:PLANKMacFixedCaptureDescription(generation, @"cgdisplay:42", 3840, 2160, bounds, @"hevc-10-420-videotoolbox")]);
         for (NSNumber *bad in @[@0, @1, @3, @8193, @(SIZE_MAX)]) {
             assert(!PLANKMacFixedCaptureDescription(generation, @"id", bad.unsignedLongLongValue, 2160, bounds, @"hevc-10-420-videotoolbox"));

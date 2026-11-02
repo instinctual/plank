@@ -25,7 +25,8 @@ static void displayChanged(CGDirectDisplayID display, CGDisplayChangeSummaryFlag
 
 NSDictionary *PLANKMacEncodingProfile(NSString *mode) {
     if (![mode isKindOfClass:NSString.class]) return nil;
-    const PlankEncodingProfile *profile = plank_encoding_profile_named(mode.UTF8String);
+    const PlankEncodingProfile *profile = plank_encoding_profile_named(mode.UTF8String,
+        [mode lengthOfBytesUsingEncoding:NSUTF8StringEncoding]);
     if (!profile || profile->encoder != PLANK_ENCODER_APPLE) return nil;
     return @{@"capture_source": @"screencapturekit", @"encoder_backend": @(profile->backend),
         @"encoding_mode": @(profile->mode), @"codec": @(profile->codec), @"profile": @(profile->profile),

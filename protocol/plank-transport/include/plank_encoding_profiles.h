@@ -48,10 +48,11 @@ static PLANK_PROFILE_CONST PlankEncodingProfile plank_encoding_profiles[] = {
 static inline const PlankEncodingProfile *plank_encoding_profile(int id) {
     return id >= 0 && id < PLANK_ENCODING_COUNT ? &plank_encoding_profiles[id] : NULL;
 }
-static inline const PlankEncodingProfile *plank_encoding_profile_named(const char *mode) {
+static inline const PlankEncodingProfile *plank_encoding_profile_named(const char *mode, size_t length) {
     if (!mode) return NULL;
     for (int i = 0; i < PLANK_ENCODING_COUNT; ++i)
-        if (strcmp(mode, plank_encoding_profiles[i].mode) == 0) return &plank_encoding_profiles[i];
+        if (strlen(plank_encoding_profiles[i].mode) == length &&
+            memcmp(mode, plank_encoding_profiles[i].mode, length) == 0) return &plank_encoding_profiles[i];
     return NULL;
 }
 static inline const char *plank_capture_name(int capture) {

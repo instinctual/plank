@@ -45,6 +45,17 @@ int main(int argc, char** argv)
 #endif
     offer["features"] = offered; negotiation["features"] = chosen; featureLaunch["features"] = launchFeatures;
     CHECK(MacMediaFeatures::offer(topology.appleEncodingMode) == offer);
+    const auto invalidMode = topology.appleEncodingMode + QChar(0) + QStringLiteral("extra");
+    CHECK(!MacMediaFeatures::encodingSupported(invalidMode));
+    CHECK(MacMediaFeatures::offer(invalidMode).isEmpty());
+    auto invalidTopology = rawTopology;
+    auto invalidCapture = rawTopology.value("capture").toObject();
+    auto invalidProfile = invalidCapture.value("encoding_profile").toObject();
+    invalidProfile["encoding_mode"] = invalidMode;
+    invalidCapture["encoding_profile"] = invalidProfile;
+    invalidTopology["capture"] = invalidCapture;
+    NvOutputTopology rejected;
+    CHECK(!NvOutputTopology::fromJson(invalidTopology, rejected));
     MacMediaFeatures::Agreement agreement;
     CHECK(MacMediaFeatures::select(negotiation, topology.appleEncodingMode, agreement));
     const int bitrate = 50000;
