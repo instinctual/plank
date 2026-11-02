@@ -8,13 +8,19 @@ older candidate provenance remains in Git history and the artifact catalog.
 
 Branch: `code-simplification`. The operator approved the complete ten-item
 follow-up as one refactor. Implementation is complete; hosted validation of
-candidate **1.3.13-code-simplification** is next. No merge, release or installation
+candidate **1.3.13-code-simplification** is running. No merge, release or installation
 is authorized by this cleanup. No installed session acceptance is claimed.
 
 The previous checkpoint is root `c886880`, Host `acd7054d`, Client `7d628f60`,
-Client common-C `9838bb82` and Kymux `12af484e`. Client `ce7d0e06`, Client common-C `79846ce` and Host headers `209604a` are pushed.
-Final Host/root revisions and build results will be recorded after validation.
-Kymux itself is unchanged.
+Client common-C `9838bb82` and Kymux `12af484e`. Client and Mac Host candidate
+source is root `bc959b800ff2351db29eba95ba9a4c59c19fd167`, Client `8a989271`,
+Client common-C `0aa126f`, Host headers `209604a`. The Linux Host advances to
+`e388c979` to remove its remaining dependency on the deleted GL header's frame
+owner/type imports; its final root/build provenance will be recorded below.
+The other three products' source/build inputs are unchanged by that correction.
+All are pushed. Kymux itself is unchanged. Host headers use the dedicated
+`code-simplification-host-headers` branch; the other changes use
+`code-simplification` in their respective repositories.
 
 Completed implementation:
 
@@ -58,11 +64,17 @@ gate used the retired HDR lambda names. The decoder fixture also now drains
 normal buffered output and requires all six intact IDRs with exact timestamps,
 formats and ranges. No production profile/range check was relaxed. Native
 wire and concurrent queue-ownership tests run on both Clients; deterministic
-ELF-wrapped scheduler tests run on Linux. Candidates 1.3.10–1.3.12 were not
-accepted or installed.
+ELF-wrapped scheduler tests run on Linux. Linux compilation additionally caught
+a stale encoder declaration, a logger name collision and the declaration prefix
+left by a removed callback; all are fixed in this candidate. Candidates
+1.3.10–1.3.12 were not accepted or installed. The 1.3.12 Mac Host build/signing,
+original H.264 decoder fixtures on both Clients and Ubuntu normal/sanitizer
+rendering fixtures passed before the final corrections.
 
-Next: commit/push dependencies before parents, run all hosted products, collect
-original packages/manifests and record results here. Installed acceptance must
+Current runs: Client qualification `41497448295`, signed Mac Host `41497504932`,
+signed Mac Client `41497522046`; the corrected Linux Host uses a separate targeted
+build. Next: finish the hosted gates, collect original
+packages/manifests and record results here. Installed acceptance must
 cover exact-profile decoding/color, native X11 x264 and NVENC, NvFBC, input/Wacom,
 reconnect, audio and both supported Mac version floors. Do not deploy as part
 of this pass.
