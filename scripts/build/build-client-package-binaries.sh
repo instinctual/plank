@@ -1754,7 +1754,7 @@ cc -std=gnu11 -Wall -Wextra -Werror -Wno-unused-parameter -DNDEBUG \
   "$build_dir/moonlight-common-c/libmoonlight-common-c.a" \
   -lcrypto -lpthread -lm -o "$build_dir/tests/native-input-backpressure"
 timeout 30 "$build_dir/tests/native-input-backpressure"
-for fixture in native-input-wire native-input-replacement; do
+for fixture in native-input-wire queue-ownership; do
   cc -std=gnu11 -Wall -Wextra -Werror -Wno-unused-parameter -DNDEBUG \
     -I"$source_dir/moonlight-common-c/moonlight-common-c/src" \
     -I"$plank_transport_dir/include" \
@@ -1763,6 +1763,13 @@ for fixture in native-input-wire native-input-replacement; do
     -lpthread -lm -o "$build_dir/tests/$fixture"
   timeout 30 "$build_dir/tests/$fixture"
 done
+cc -std=gnu11 -Wall -Wextra -Werror -Wno-unused-parameter -DNDEBUG \
+  -I"$source_dir/moonlight-common-c/moonlight-common-c/src" \
+  -I"$plank_transport_dir/include" \
+  "$source_dir/moonlight-common-c/moonlight-common-c/tests/native-input-replacement.c" \
+  "$build_dir/moonlight-common-c/libmoonlight-common-c.a" \
+  -Wl,--wrap=LbqPollQueueElementIf -lpthread -lm -o "$build_dir/tests/native-input-replacement"
+timeout 30 "$build_dir/tests/native-input-replacement"
 bash "$repo_dir/scripts/test/test-linux-wacom.sh" "$source_dir" "$build_dir/tests/wacom-recovery"
 bash "$repo_dir/scripts/test/test-audio-timestamps.sh" "$source_dir" \
   "$build_dir/tests/audio-timestamps" "$build_dir/moonlight-common-c/libmoonlight-common-c.a"

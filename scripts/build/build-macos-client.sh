@@ -144,7 +144,7 @@ cc -std=gnu11 -Wall -Wextra -Werror -Wno-unused-parameter -DNDEBUG \
     "$build/moonlight-common-c/libmoonlight-common-c.a" \
     -o "$build/tests/native-input-bounds"
 "$build/tests/native-input-bounds"
-for fixture in native-input-wire native-input-replacement; do
+for fixture in native-input-wire queue-ownership; do
     xcrun clang -std=gnu11 -Wall -Wextra -Werror -Wno-unused-parameter -DNDEBUG \
         -mmacosx-version-min="$MACOSX_DEPLOYMENT_TARGET" \
         -I"$client/moonlight-common-c/moonlight-common-c/src" \

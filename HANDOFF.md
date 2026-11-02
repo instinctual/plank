@@ -8,7 +8,7 @@ older candidate provenance remains in Git history and the artifact catalog.
 
 Branch: `code-simplification`. The operator approved the complete ten-item
 follow-up as one refactor. Implementation is complete; hosted validation of
-candidate **1.3.12-code-simplification** is next. No merge, release or installation
+candidate **1.3.13-code-simplification** is next. No merge, release or installation
 is authorized by this cleanup. No installed session acceptance is claimed.
 
 The previous checkpoint is root `c886880`, Host `acd7054d`, Client `7d628f60`,
@@ -56,8 +56,10 @@ The initial hosted validation caught two stale test expectations: FFmpeg may
 report full-range 8-bit samples with YUVJ aliases, and the encoder probe source
 gate used the retired HDR lambda names. The decoder fixture also now drains
 normal buffered output and requires all six intact IDRs with exact timestamps,
-formats and ranges. No production profile/range check was relaxed. Candidates
-1.3.10 and 1.3.11 were not accepted or installed.
+formats and ranges. No production profile/range check was relaxed. Native
+wire and concurrent queue-ownership tests run on both Clients; deterministic
+ELF-wrapped scheduler tests run on Linux. Candidates 1.3.10–1.3.12 were not
+accepted or installed.
 
 Next: commit/push dependencies before parents, run all hosted products, collect
 original packages/manifests and record results here. Installed acceptance must
