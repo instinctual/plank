@@ -4,122 +4,95 @@ Read `AGENTS.md` and the relevant build runbook first. Keep machine inventory,
 credentials and private captures outside Git. This file records current work;
 older candidate provenance remains in Git history and the artifact catalog.
 
-## Active — Transport and decoder simplification follow-up
+## Active — Simplification complete; candidates ready
 
-Branch: `code-simplification`. The operator authorized all eight findings from
-this second review without intermediate stops. Pushed checkpoint before edits:
-root `0a325133698897d99358862cdb546d566a7098ca` and the 1.3.05 pins below.
-Candidate builds use **1.3.06-code-simplification**. The Mac Host alone is rebuilt
-as **1.3.07-code-simplification** after removing an unused receiver timestamp
-compiled only with its sender-timing feature. Other products' compiled paths
-are unchanged by that follow-up. Preserve the earlier 1.3.06 Host artifact.
-No merge, release
-or installation is authorized by this task.
+Branch: `code-simplification`. All eight follow-up changes are implemented and
+pushed. No merge, release or installation was performed. The previous
+scope and its candidates remain preserved; installed session acceptance is
+still required.
 
-Implemented: retired two-connection transport/probes removed; native config and
-lifecycle tests retained; one-copy Host video records; 64-MiB-plus-metadata video
-queue byte bounds and exact drop accounting; FFmpeg send/drain handling with
-packet retry and metadata reset; interruptible bookmark polling; focused Host
-input/crypto/logging builds; unused AV1/platform/KMS/wide logging code removed.
-The current native wire/ABI values, exact codec qualification and login audio
-are unchanged. Pending: complete hosted validation/package collection and record
-the final pins/results. Local transport and portable fixtures pass so far.
+Source revisions:
 
-## Previous checkpoint — Desktop code simplification
-
-Branch: `code-simplification`, starting from pushed root `94aeeee` and the
-`host-cleanup` nested commits recorded below. The operator authorized all five
-items in [the plan](docs/development/plans/code-simplification.plan): unsupported
-Windows Host removal, a shared profile catalog, owned encoded Client frames,
-Client lifecycle consolidation, and Mac Host display transactions outside the
-shared runtime lock. All five implementations, focused regression checks and
-four hosted candidate builds are complete for **1.3.05-code-simplification**.
-The packages are downloaded and checksum-verified. No merge, release or
-deployment was performed.
-
-Current implementation pins:
-
-- Client `6739eafdd19c9b1bae370c9e9a3c72001bcaaba1`.
-- Client common-C `51b084da8f5fd894bf1962690a05b7b0f1269476`.
-- Linux Host `cb4b6b49c119cca269e24d9fcfb6f120cb5dc0d2`.
+- Initial four-product snapshot: root `90cee00088be11c2e6f9b295b73e1d8e2ed6528d`.
+- Final transport cleanup: root `b13dbca` (1.3.07 Mac Host rebuild).
+- Client `b0b982db202410d6269d148280fe415f69b9fc79`.
+- Client common-C `9838bb82e2b018cf3d47f927fbf14226058ccc8b`.
+- Linux Host `0ac655da8d19bb8dff841f7f0e140cd078f7b6bc`.
 - Kymux `12af484eb307351b068aba96da12afce46f4614b` (unchanged).
 
-The Linux Host removal deletes about 19,000 lines of unsupported Windows code,
-including its platform dependencies and unused settings. Active Linux capture,
-encoding, input, NVIDIA API13 and the full CUDA architecture list are retained.
-The shared catalog preserves profile IDs, exact formats and runtime hardware
-probes; malformed or partial profile names are rejected. Encoded frames share
-one allocation through FFmpeg except when SPS rewriting or noncontiguous prefix
-removal requires assembly. The transport-to-C boundary still copies once.
-Client cancellation cannot be undone by late recovery completion. Mac display
-preparation, takeover drain and restoration run outside the runtime lock, with
-reserved admission, scope/token revalidation and asynchronous shutdown.
+Completed changes:
 
-Portable checks pass: 115 CI-policy cases, eight common-C regressions, eight
-root build/structure contracts, C/C++ catalog contracts, 1,000 lifecycle races
-and 2,039 frame/recovery assertions. The four-MiB delta fixture confirms one
-allocation and no NAL/reassembly copies. Hosted Ubuntu component tests passed
-under ASan/UBSan. Mac runtime tests passed actual TLS/QUIC admission, takeover,
-disconnect/expiry restoration and cancellation with a synthetic display provider;
-cancellation drained in 0.08 seconds. These do not prove physical-display or
-installed session behavior.
+1. Deleted the retired two-connection transport implementation and obsolete
+   standalone probes. Native configuration/lifecycle coverage remains.
+2. Replaced decoder polling with FFmpeg send/drain handling: retain the same
+   packet across EAGAIN, attach metadata after acceptance, flush both codec and
+   metadata on errors, and wake blocked input waits during cancellation.
+3. Assembled the Host's video prefix and encoded payload once, then transfer
+   ownership through the send queue without a second frame copy.
+4. Bound send/receive video queues by both count and 64 MiB plus metadata;
+   count every evicted frame. FEC and Quinn have separate bounded storage.
+5. Compiled focused Linux Host input/crypto/logging tests instead of rebuilding
+   the entire Host with coverage. Remove duplicate Qt header declarations and
+   obsolete source-string requirements where behavioral gates remain.
+6. Removed unsupported Client AV1 paths, Linux Host Apple startup and an unused KMS
+   parser.
+7. Replaced bookmark polling sleeps with a cancellation-aware timed wait.
+8. Removed unused wide logging/deprecated codecvt initialization; verified actual
+   UTF-8 logging under the C locale without that facet.
 
-Hosted candidate builds:
+Native wire/ABI values, profile IDs, exact-format hardware qualification,
+login-screen audio, input recovery and package security/ownership are unchanged.
+Default and Mac-feature transport tests passed (61/63 tests respectively;
+nine certificate/media fixtures excluded from ordinary cargo tests). Required
+native loopback and loss runners passed hosted qualification. Clippy passes
+with warnings denied for default and Mac-feature builds. Eight common-C and
+eight repository/package contracts, 115 CI-policy cases, portable catalog and
+decode controller fixtures, 1,000 lifecycle races and 2,039 frame assertions pass.
 
-| Product | Run | Root source | Result |
-| --- | --- | --- | --- |
-| Linux Host | `41378937781` | `d98e996` | Passed; RPM collected |
-| Ubuntu Client | `41379496268` | `e2f42a6` | Passed; DEB collected |
-| macOS Host | `41378048318` | `e986108` | Passed; signed/notarized PKG collected |
-| macOS Client | `41378323417` | `f1d873e` | Passed; signed/notarized PKG collected |
+Ubuntu normal/ASan/UBSan suites passed actual pinned H.264/HEVC decoder tests,
+polling cancellation, input/Wacom, compositor scaling/two-display, launcher,
+package-upgrade, identity and dependency checks. Mac Client decoder, polling,
+Qt/Metal and signed-package gates passed. Linux Host input and crypto/UTF-8
+fixtures passed 25 shuffled repetitions; three 900-frame 150-Mbit/s loss matrices
+spanning 0–5% injected loss had zero unrecovered frames. These are hosted tests,
+not installed GPU, display, audio or tablet acceptance.
 
-The Linux Host passed three 900-frame, 150-Mbit/s loss-matrix trials spanning
-0, 0.5, 1, 3 and 5 percent injected loss, with zero unrecovered frames, plus
-its input lifecycle suite. This is synthetic transport qualification, not a live
-network or NVIDIA hardware pass.
+| Product | Version | Run | Source | Status |
+| --- | --- | --- | --- | --- |
+| Linux Host | 1.3.06-code-simplification | `41384148711` | `90cee00` | Passed; collected |
+| Ubuntu Client | 1.3.06-code-simplification | `41384151783` | `90cee00` | Passed; collected |
+| macOS Client | 1.3.06-code-simplification | `41384156717` | `90cee00` | Passed; signed/notarized, collected |
+| macOS Host | 1.3.07-code-simplification | `41385319485` | `b13dbca` | Passed; signed/notarized, collected |
 
-Packages are in `artifacts/packages/candidates/1.3.05-code-simplification/`.
-Original manifests, full logs, local fixture reports and recursive pins are in
-`artifacts/qualification/code-simplification-1.3.05/`. Package manifests retain
-each exact source commit and SHA-256. The root snapshots differ only by the
-Client changelog and Linux packaging gate corrections; later changes do not
-alter either built Mac product. Initial runs found a JSON Boolean type mismatch
-in the Mac catalog adapter and stale source assertions for deleted Linux Host
-Boost.Process guards and Client profile switches. These were corrected without
-restoring retired production paths; the corrected gates remain enforced.
+The earlier Mac Host 1.3.06 also passed run `41384154127` and remains preserved.
+The 1.3.07 follow-up only removes an unused receive timestamp compiled with
+sender-timing; the other three products do not enable that feature, so their
+compiled paths are unchanged. Do not relabel or replace the earlier artifact.
+Packages live in `artifacts/packages/candidates/<version>-code-simplification/`.
+Original manifests, source pins, logs and regression evidence are retained in
+`artifacts/qualification/code-simplification-1.3.06/`; the follow-up Host has its
+own 1.3.07 evidence directory. Check each manifest for its exact source/hash.
 
-Ubuntu normal and ASan/UBSan suites, compositor checks at 100/125 percent scale,
-two-display behavior, three launcher smoke runs, package identity and dependency
-closure passed. Mac Client Qt/Metal fixtures and both Mac package/signing gates
-passed. Temporary task build/download directories were removed after preserving
-reports and packages. No hosted build remains active for this work.
+All package checksums are verified. No hosted job remains active for this work.
+Next: install candidates for the hardware/session gates below. No hosted result
+substitutes for those tests. No live performance improvement is claimed from
+copy/queue assertions alone.
 
-Next: install matching candidates for the hardware/session acceptance below,
-especially exact-profile decode, reconnect/cancel, Wacom, A/V soak and Mac
-display restoration. Fixture results do not substitute for those checks.
+## Preserved checkpoints
 
-## Previous checkpoint — Host and desktop Client cleanup
+- Root `0a32513`, candidate `1.3.05-code-simplification`: all five original
+  simplification items and four hosted builds passed. Includes shared profile
+  catalog, owned encoded frames, consolidated Client lifecycle, Mac display
+  transactions outside the runtime lock and unsupported Windows Host removal.
+  Exact pins/results remain in the plan and original package manifests.
+- Root `94aeeee`, candidate `1.3.04-host-cleanup`: all four builds passed after
+  retired crypto/socket/DNS, packaging/rendering, unused Host backends and
+  schema4–6 compatibility removal. See the cleanup inventory and prior plan.
 
-The pushed starting checkpoint is root
-`94aeeee149b75b4c851931e1138e5bedfcac5aff` on `host-cleanup`, with Client
-`48bc98df023ecddb8967edef3d6da70238b2300b`, common-C
-`7ead62a835b8eeb99aac264809153424d3c778aa`, and Linux Host
-`2fa4d389f8da059dc3bebcead95cd57c35fdcd43`.
-
-Candidate **1.3.04-host-cleanup** already passed all four hosted build/package
-gates, including signed/notarized Mac packages. It removed retired Client
-crypto/socket/DNS helpers and packaging/rendering paths; unselected Linux Host
-display/capture/encoder backends; and schema4–6 negotiation compatibility.
-Qt production shader fixtures passed full/limited BT.709 and identity mappings
-on software GLES. Those changes are included in the current candidate.
-
-Its original packages, hashes and exact build snapshots remain in
-`artifacts/packages/candidates/1.3.04-host-cleanup/`; original manifests, logs and
-regression reports remain in `artifacts/qualification/desktop-cleanup-1.3.04/`.
-See [the scope inventory](docs/development/reviews/desktop-cleanup-inventory.md)
-and [the previous plan](docs/development/plans/host-cleanup.plan). Installed
-hardware/session acceptance remains pending; no merge, release or installation
-was performed for that checkpoint.
+See [the simplification plan](docs/development/plans/code-simplification.plan)
+and [cleanup inventory](docs/development/reviews/desktop-cleanup-inventory.md).
+The original package and qualification directories remain intact. Neither
+checkpoint was merged, released, deployed or treated as hardware acceptance.
 
 ## Included prior candidates and unchanged contracts
 

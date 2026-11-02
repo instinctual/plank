@@ -187,6 +187,17 @@ RPM binaries are still built with BUILD_TESTS=OFF.
 
 ## Native transport lifecycle qualification
 
+After transport changes, check both default and Mac sender features before
+dispatching packages. A default build alone does not compile feature-only
+diagnostic fields. With the pinned dependencies prepared, run:
+
+```bash
+cargo clippy --locked --offline --manifest-path protocol/plank-transport/Cargo.toml \
+  --all-targets -- -D warnings
+cargo clippy --locked --offline --manifest-path protocol/plank-transport/Cargo.toml \
+  --all-targets --features quinn-telemetry,macos-source-first -- -D warnings
+```
+
 The Linux Host build runs the vendored Quinn DATAGRAM boundary/accounting tests
 before compilation. Prepare its test-only dependencies with
 `cargo fetch --locked --target x86_64-unknown-linux-gnu --manifest-path third_party/quinn-proto-0.11.19/Cargo.toml`

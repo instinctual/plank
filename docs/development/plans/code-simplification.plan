@@ -99,3 +99,19 @@ items on this branch, then build matching hosted candidates; no merge/release.
 
 Preserve live login-screen audio, 10-bit SDR/identity color paths, exact-format
 hardware qualification, input recovery and package ownership/security gates.
+
+All eight implementations are committed and pushed. The four 1.3.06 hosted
+builds passed and their packages were collected. Both Mac packages are signed
+and notarized. A final Mac-only sender-feature warning cleanup removes an
+unused receive timestamp; its signed/notarized 1.3.07 Host rebuild also passed
+and is collected. Other products do
+not compile that field and retain the validated 1.3.06 packages. No artifact is
+relabeled or overwritten.
+
+New production-path checks passed: H.264/HEVC send/drain decoding, bounded
+packet retry, polling stop/wait races, variable-size queue eviction accounting,
+one-allocation video-record ownership and actual UTF-8 Host logging under the
+C locale. Ubuntu ASan/UBSan, compositor, launcher and packaging gates passed.
+Host component fixtures passed 25 shuffled repetitions; three 900-frame,
+150-Mbit/s 0–5% loss matrices had zero unrecovered frames. Current pins, build
+IDs, package locations and remaining installed gates are in HANDOFF.
