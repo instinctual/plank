@@ -15,7 +15,7 @@ both Hosts and both desktop Clients, instead of repeated narrow passes described
 as complete. See [the plan](docs/development/plans/host-cleanup.plan) and
 [the scope inventory](docs/development/reviews/desktop-cleanup-inventory.md).
 
-Implemented in the working tree:
+Committed and pushed:
 
 - Client common-C crypto/socket helpers and redundant DNS/local-address setup
   are removed. QUIC already owns connection establishment. Thread/signal setup,
@@ -41,10 +41,42 @@ samples per mapping for full/limited BT.709 and 8/10-bit identity mappings on
 software GLES; maximum conversion error was one ten-bit code, identity zero.
 This is neither GPU surface-import qualification nor installed session acceptance.
 
-Next: commit and push in dependency order, then run all four hosted candidate
-builds (signed Mac PKGs), collect exact manifests/checksums, and update this
-section with results. Do not restore unused code merely to satisfy a stale test;
-update tests to exercise current behavior without weakening its requirements.
+Source pins:
+
+- Root build source for both Clients and Mac Host:
+  `8f7c713dc2495780c037a45c03cf458ad7056cfe`.
+- Linux Host build source: root `6b756cfd5c5a2b317fd15934f139572218b04be7`,
+  Host `2fa4d389f8da059dc3bebcead95cd57c35fdcd43`.
+- Client `48bc98df023ecddb8967edef3d6da70238b2300b`, its common-C
+  `7ead62a835b8eeb99aac264809153424d3c778aa`.
+- Kymux `12af484eb307351b068aba96da12afce46f4614b` (unchanged).
+
+Hosted candidate results:
+
+| Product | Run | Result |
+| --- | --- | --- |
+| Ubuntu Client | `41369564545` | Passed; DEB collected |
+| macOS Client | `41369570173` | Passed; signed/notarized PKG collected |
+| macOS Host | `41369567315` | Passed; signed/notarized PKG collected |
+| Linux Host | `41371782372` | Passed; RPM collected |
+
+The Linux Host's first two runs caught a stale capture-selector source assertion
+and an unused VA-API include. Both are fixed. Those are the only differences
+from the other three products' root snapshot; their built sources are unchanged.
+The assertions now follow the retained display-refresh call, and the removed
+VA-API dependency was not restored to hide the include error.
+
+Packages are in `artifacts/packages/candidates/1.3.04-host-cleanup/`, with original
+source commits, hashes and package checks in `manifest.json` and `SHA256SUMS`.
+Logs, original manifests, recursive pins and regression reports are under
+`artifacts/qualification/desktop-cleanup-1.3.04/`. Hosted regression suites cover
+Qt EGL/Metal, schema7 negotiation, audio/input/lifecycle and package closure;
+they do not establish installed hardware/session acceptance.
+
+The approved cleanup implementation and all four hosted package checks are
+complete. No build remains active. Installed session acceptance is still pending;
+use the matching candidates and the gates below before considering a merge or
+release. This task did not merge, deploy or publish a release.
 
 ## Included prior candidates and unchanged contracts
 
@@ -107,7 +139,7 @@ HEVC 10-bit 4:4:4 hardware decoding. Matching kernel records confirm i915 video
 engine hangs, decoder-context resets and fence timeouts. Hardware decoding
 initialized again after reconnect. The failure mechanism is established;
 the trigger is not. This does not establish a driver-only defect or a stream
-format mismatch. Version **1.2.02** below fixes idle-status warnings, not this
+format mismatch. Version **1.2.02** fixed idle-status warnings, not this
 GPU failure path.
 
 Status 38 is `VA_STATUS_ERROR_TIMEDOUT`. The Qt surface-retention path treats
@@ -131,4 +163,4 @@ no remote collector remains active. When the operator resumes this work, use
 an unoccupied test Client to correlate controlled Client-ingress burst loss,
 frame gaps/IDRs, surface ownership and GPU events. Preserve the selected codec,
 bit depth, chroma and range when evaluating bounded decoder recovery. Existing
-mainline package provenance and acceptance limits below remain unchanged.
+mainline package provenance and acceptance limits remain unchanged.
