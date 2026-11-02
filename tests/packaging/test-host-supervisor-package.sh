@@ -274,7 +274,6 @@ if rg -n '\bprocess\b' "$repo_dir/apps/host/linux/cmake/dependencies/Boost_Sunsh
 fi
 if rg -n 'apps\.json|file_apps|global_prep_cmd|Steam Big Picture|Low Res Desktop' \
   "$repo_dir/apps/host/linux/src" \
-  "$repo_dir/apps/host/linux/src_assets" \
   "$repo_dir/apps/host/linux/cmake" \
   "$repo_dir/apps/host/linux/docs"; then
   echo 'legacy host application catalog remains' >&2

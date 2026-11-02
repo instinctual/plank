@@ -1057,7 +1057,6 @@ env \
   "-DCMAKE_C_FLAGS=$PLANK_C_FILE_FLAGS" \
   "-DCMAKE_CXX_FLAGS=$PLANK_C_FILE_FLAGS" \
   -DCMAKE_INSTALL_PREFIX=/usr \
-  -DSUNSHINE_ASSETS_DIR=share/plank \
   -DCMAKE_C_COMPILER=/opt/rh/gcc-toolset-14/root/usr/bin/gcc \
   -DCMAKE_CXX_COMPILER=/opt/rh/gcc-toolset-14/root/usr/bin/g++ \
   -DCMAKE_CUDA_COMPILER=/usr/local/cuda/bin/nvcc \
@@ -1114,7 +1113,6 @@ if rg -a -q '/usr/local/assets' "$build_dir/plank-host"; then
   echo "package binary contains the development asset path" >&2
   exit 1
 fi
-rg -a -q '/usr/share/plank' "$build_dir/plank-host"
 rg -Fxq 'PLANK_PRODUCT_BUILD:BOOL=ON' "$build_dir/CMakeCache.txt" || {
   echo "host product build mode is not enabled" >&2
   exit 1
@@ -1200,7 +1198,7 @@ if rg -n '\bprocess\b' "$source_dir/cmake/dependencies/Boost_Sunshine.cmake" ||
   exit 1
 fi
 if rg -n 'apps\.json|file_apps|global_prep_cmd|Steam Big Picture|Low Res Desktop' \
-  "$source_dir/src" "$source_dir/src_assets" "$source_dir/cmake" \
+  "$source_dir/src" "$source_dir/cmake" \
   "$repo_dir/packaging/host" "$source_dir/docs"; then
   echo "legacy application catalog or command-launch configuration remains" >&2
   exit 1
@@ -1211,12 +1209,6 @@ if rg -n 'run_command|request_process_group_exit|process_group_running|open_url'
   echo "legacy Linux external-command launcher remains" >&2
   exit 1
 fi
-for removed_app_asset in box.png desktop-alt.png steam.png; do
-  if find "$source_dir/src_assets" -type f -name "$removed_app_asset" -print -quit | rg -q .; then
-    echo "legacy application artwork remains: ${removed_app_asset}" >&2
-    exit 1
-  fi
-done
 if rg -a -q 'apps\.json|Steam Big Picture|Low Res Desktop|SUNSHINE_APP_ID|SUNSHINE_APP_NAME' \
   "$build_dir/plank-host"; then
   echo "host binary still contains the legacy application catalog or launcher" >&2

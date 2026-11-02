@@ -15,8 +15,8 @@ The previous checkpoint is root `c886880`, Host `acd7054d`, Client `7d628f60`,
 Client common-C `9838bb82` and Kymux `12af484e`. Client and Mac Host candidate
 source is root `bc959b800ff2351db29eba95ba9a4c59c19fd167`, Client `8a989271`,
 Client common-C `0aa126f`, Host headers `209604a`. The Linux Host advances to
-`e388c979` to remove its remaining dependency on the deleted GL header's frame
-owner/type imports; its final root/build provenance will be recorded below.
+the final native-only Host commit to remove dependencies on the deleted GL
+header's imports and shader assets; its final root/build provenance follows below.
 The other three products' source/build inputs are unchanged by that correction.
 All are pushed. Kymux itself is unchanged. Host headers use the dedicated
 `code-simplification-host-headers` branch; the other changes use
@@ -31,7 +31,8 @@ Completed implementation:
   scroll, keyboard, ordering, bounded backpressure and persistent tablets stay.
 - Removed the unused recorder callbacks and Client startup relative-mouse wiggle.
 - Removed unselectable KMS capture, its GL/EGL conversion code and GLAD build
-  input. DRM device discovery and standalone KMS qualification probes stay.
+  input. Removed its orphaned shaders, runtime asset copier, retired installer
+  assets and localization tooling. DRM discovery and standalone KMS probes stay.
 - Simplified Linux encoding to the active x264 and direct NVENC paths; removed
   generic FFmpeg hardware-frame encoding, unused options/fallbacks and AV1
   probing. NvFBC and Native X11 still support their exact selected profiles.
@@ -73,7 +74,10 @@ rendering fixtures passed before the final corrections.
 
 Current runs: Client qualification `41497448295`, signed Mac Host `41497504932`,
 signed Mac Client `41497522046`; the corrected Linux Host uses a separate targeted
-build. Next: finish the hosted gates, collect original
+build. Run `41499694390` compiled the Host and passed transport/FEC tests,
+but exposed the obsolete binary asset-path check after shader removal. The
+asset packaging and check now follow the actual runtime requirements.
+Next: finish the hosted gates, collect original
 packages/manifests and record results here. Installed acceptance must
 cover exact-profile decoding/color, native X11 x264 and NVENC, NvFBC, input/Wacom,
 reconnect, audio and both supported Mac version floors. Do not deploy as part

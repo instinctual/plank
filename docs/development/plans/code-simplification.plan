@@ -276,3 +276,8 @@ raw-HID descriptors and session ownership remain unchanged. HDR event type 1
 is reserved. No new protocol version is needed for deletion of an unused event;
 matching rebuilt internal C APIs are required. Installed qualification remains
 separate from hosted compile/component tests.
+
+The Linux Host has no external runtime shader/UI assets after KMS removal.
+Retired asset copying, GL shaders, unused upstream installer/artwork files and
+localization tooling are removed too. The RPM still ships its independently
+generated display EDIDs and checks that retired assets are absent.

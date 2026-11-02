@@ -122,8 +122,6 @@ install -D -m 0644 "$repo_dir/third_party/kyber-kymux/COPYING.md" \
   "$payload_dir/usr/share/licenses/plank-host/LICENSE-Kyber-Notice"
 install -D -m 0644 "$repo_dir/packaging/README.md" \
   "$payload_dir/usr/share/doc/plank-host/README.md"
-mkdir -p "$payload_dir/usr/share/plank"
-cp -aL "$build_dir/assets/." "$payload_dir/usr/share/plank/"
 
 source_epoch=$(git -C "$repo_dir" log -1 --format=%ct)
 tar --sort=name --mtime="@${source_epoch}" --owner=0 --group=0 \
@@ -223,8 +221,8 @@ if rpm -qpl "$rpm_file" | rg -q '/virtual-[12]-.+\.edid$'; then
   echo "host RPM still contains preferred-mode-specific virtual EDIDs" >&2
   exit 1
 fi
-if rpm -qpl "$rpm_file" | rg -q '/etc/plank/host\.env$|/usr/share/plank/web/'; then
-  echo "host RPM still contains legacy environment configuration or Web UI assets" >&2
+if rpm -qpl "$rpm_file" | rg -q '/etc/plank/host\.env$|/usr/share/plank/(web/|shaders/|desktop\.png$)'; then
+  echo "host RPM still contains legacy configuration, Web UI or GL capture assets" >&2
   exit 1
 fi
 if rpm -qpl "$rpm_file" | rg -q '/usr/lib/systemd/user/plank-host\.service$'; then
