@@ -4,6 +4,21 @@ Read `AGENTS.md` and the relevant build runbook first. Machine-specific access,
 credentials, captures and operational evidence belong in the external private
 notes, never in Git.
 
+## Standard macOS Installer — candidate in progress
+
+On `host-cleanup`, the operator approved removing the custom Requirements page
+that triggers Apple's executable-preflight warning. Its plug-in, builder and
+native fixtures are removed. The welcome page still explains FileVault; the
+preinstall guard still checks it after authorization and before state changes
+or service shutdown. Failed queries now reject explicitly, including misleading
+off text returned with an unsuccessful exit status. Tests exercise the actual
+preinstall with fixture commands and reject plug-ins/missing guards in the PKG.
+Local checks pass: FileVault/package checks (three tests covering seven query
+outcomes), 25 package-script checks, 115 CI-policy tests and shell syntax.
+Candidate version is `1.3.03-host-cleanup`; standard package names omit the OS
+floor while app/installer metadata still requires macOS26.7 or newer. Signed
+GitHub build and package validation are pending. No deployment or release.
+
 ## Host cleanup candidates — built and verified
 
 Current root and Linux Host branch: `host-cleanup`, based on root `be30580`.
@@ -731,7 +746,11 @@ with the ordinary 27 regression gate also pending. The command does not authoriz
 release publication or installation. PR33's later commits are now integrated as
 recorded above; unfinished `native-builds` stays separate. Published 1.2.05 is unchanged.
 
-## Merged — native macOS Installer requirements
+## Historical — native macOS Installer requirements
+
+Superseded by the standard Installer work above: the native Requirements page
+caused Apple's executable-preflight consent warning. Its implementation and
+build fixtures are removed on `host-cleanup`; the preinstall safeguard remains.
 
 The operator authorized merging `macos-installer-preflight` on October 31.
 Canonical `main` fast-forwarded from `72f8132` to the branch tip `e02eee7`.
@@ -742,7 +761,7 @@ Host, Client and dependency trees match that successful candidate exactly.
 The operator requested replacing the deprecated external-JavaScript preflight
 with a non-deprecated method.
 
-The PKG now embeds a temporary native Installer Requirements pane after
+That PKG embedded a temporary native Installer Requirements pane after
 Introduction. Public AppKit/InstallerPlugins provide the UI; Foundation runs
 fixed read-only `fdesetup isactive`. Continue requires confirmed FileVault off.
 Enabled/busy, failed verification and a five-second timeout keep it disabled
@@ -758,8 +777,9 @@ passed. Native code compiled with deprecated-API diagnostics treated as errors;
 31 lifecycle assertions exercised checks, retries, timeout and cancellation with
 harmless fixture processes. Generated, signed and finished-PKG-extracted bundles
 loaded successfully. Package page-order/signature, ordinary Host/component,
-Developer ID, notarization, stapling and Gatekeeper gates passed. No deprecated
-external-script warning remained. The first attempt had a fixture-only failure:
+Developer ID, notarization, stapling and Gatekeeper gates passed. The deprecated
+external-script hook was gone, but the native plug-in still triggered Installer's
+executable-preflight consent warning. The first attempt had a fixture-only failure:
 it tried reading Installer's Continue button outside Installer. The corrected
 fixture observes the production enable/disable request while calling the framework
 setter and separately checks the actual `shouldExitPane` gate.
@@ -774,13 +794,12 @@ staging is removed. Main now contains the fix; published 1.2.05 is unchanged.
 This merge does not rebuild or relabel the candidate, publish a release, or
 mark pending installed validation as passed. No build remains active.
 
-Next: open this exact PKG in Installer on a supported Mac and confirm the early
-Requirements page, its FileVault explanation and Check Again/Continue behavior.
-An actual Installer session has not been verified. Apple acknowledged plug-in
+Historical limitation: an actual Installer session had not been verified.
+Apple acknowledged plug-in
 extraction/loading issues on 26.7/27 and suggested retesting 27.2 beta 4:
 https://developer.apple.com/forums/thread/842811 . Direct bundle loading is not
 proof of Installer's own extraction path; do not bypass signing protections.
-Chris owns the 26.7 validation. No remote installation, FileVault change or
+No remote installation, FileVault change or
 session interruption was performed. Private deployment evidence stays outside Git.
 
 The superseded 1.2.06 external-script candidate remains preserved with its original

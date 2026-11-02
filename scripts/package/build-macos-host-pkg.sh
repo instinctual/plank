@@ -30,12 +30,6 @@ shasum -a 256 "$archive"
 bash "$source_root/scripts/build/build-macos-host.sh" "$source_root" "$output/host" "$archive"
 bash "$source_root/tests/packaging/macos-pkg-scripts.sh"
 
-plugins="$output/host/installer-preflight/plugins"
-preflight_bundle="$plugins/PLANKRequirements.bundle"
-codesign --force --sign "$PLANK_MACOS_SIGNING_IDENTITY" --options runtime --timestamp "$preflight_bundle"
-codesign --verify --strict -R "=identifier \"la.instinctual.PLANK.Host.InstallerRequirements\" and anchor apple generic and certificate leaf[subject.OU] = \"$PLANK_MACOS_TEAM_ID\" and certificate leaf[field.1.2.840.113635.100.6.1.13] exists" "$preflight_bundle"
-"$output/host/installer-preflight/bundle-checker" "$preflight_bundle"
-
 mkdir -p "$output/payload/Applications" "$output/install-scripts" "$output/resources"
 app="$output/payload/Applications/PLANK Host.app"
 ditto "$output/host/PLANK Host.app" "$app"
@@ -85,14 +79,13 @@ sed -e "s/@TITLE@/PLANK Host $PLANK_PACKAGE_VERSION/g" \
   -e 's/@COMPONENT@/host-component.pkg/g' -e "s/@MIN_MACOS@/$MACOSX_DEPLOYMENT_TARGET/g" \
   "$source_root/packaging/host/macos/distribution.xml.in" > "$output/host-distribution.xml"
 productbuild --distribution "$output/host-distribution.xml" --resources "$output/resources" \
-  --plugins "$plugins" --package-path "$output" --sign "$PLANK_MACOS_INSTALLER_IDENTITY" --timestamp "$output/$name"
+  --package-path "$output" --sign "$PLANK_MACOS_INSTALLER_IDENTITY" --timestamp "$output/$name"
 pkgutil --check-signature "$output/$name"
 if [[ $(/usr/sbin/installer -query RestartAction -pkg "$output/$name") != RecommendRestart ]]; then
   echo 'Host package must recommend a restart through macOS Installer.' >&2; exit 1
 fi
 python3 "$source_root/scripts/test/check-macos-host-permissions.py" --pkg "$output/$name"
-python3 "$source_root/tests/packaging/test-macos-installer-preflight.py" --package "$output/$name" \
-  --bundle-checker "$output/host/installer-preflight/bundle-checker"
+python3 "$source_root/tests/packaging/test-macos-installer-preflight.py" --package "$output/$name"
 notary_flags=(--keychain-profile "$PLANK_NOTARY_PROFILE")
 if [[ -n ${PLANK_NOTARY_KEYCHAIN:-} ]]; then
   [[ $PLANK_NOTARY_KEYCHAIN = /* && -f $PLANK_NOTARY_KEYCHAIN ]]

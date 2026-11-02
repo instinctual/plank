@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
-"""Check native Installer page wiring; optionally inspect the actual signed PKG."""
+"""Check standard Installer packaging and FileVault rejection before changes."""
 import argparse
+import os
 from pathlib import Path
-import plistlib
+import shlex
 import subprocess
 import sys
 import tempfile
@@ -13,52 +14,108 @@ ROOT = Path(__file__).resolve().parents[2]
 PACKAGING = ROOT / "packaging/host/macos"
 
 
-class PreflightWiring(unittest.TestCase):
-    def test_no_external_installer_javascript(self):
-        distribution = ET.parse(PACKAGING / "distribution.xml.in").getroot()
-        self.assertEqual(distribution.find("options").get("require-scripts"), "false")
-        self.assertIsNone(distribution.find("options").get("allow-external-scripts"))
-        self.assertIsNone(distribution.find("script"))
-        self.assertIsNone(distribution.find("installation-check"))
-
-    def test_requirements_precede_target_and_installation(self):
-        sections = plistlib.loads((PACKAGING / "InstallerSections.plist").read_bytes())["SectionOrder"]
-        self.assertEqual(sections, ["Introduction", "PLANKRequirements.bundle", "Target",
-                                    "PackageSelection", "Install", "Summary"])
-        info = plistlib.loads((PACKAGING / "installer-preflight-Info.plist.in").read_bytes())
-        self.assertEqual(info["NSPrincipalClass"], "PLANKRequirementsSection")
-        self.assertEqual(info["CFBundlePackageType"], "BNDL")
+def check_distribution(distribution):
+    options = distribution.find("options")
+    if (options is None or options.get("require-scripts") != "false" or
+            options.get("allow-external-scripts") not in (None, "false") or
+            any(distribution.find(tag) is not None
+                for tag in ("script", "installation-check", "volume-check"))):
+        raise ValueError("Installer must not run custom code before installation")
 
 
-def check_package(package, bundle_checker):
+def check_expanded_package(expanded):
+    check_distribution(ET.parse(expanded / "Distribution").getroot())
+    if (list(expanded.rglob("InstallerSections.plist")) or
+            list(expanded.rglob("PLANKRequirements.bundle")) or
+            (expanded / "Plugins").exists()):
+        raise ValueError("Custom Installer plug-ins must not ship")
+    preinstalls = list(expanded.glob("*/Scripts/preinstall"))
+    if (len(preinstalls) != 1 or
+            preinstalls[0].read_bytes() != (PACKAGING / "pkg-preinstall").read_bytes()):
+        raise ValueError("Missing or changed FileVault preinstall safeguard")
+
+
+class InstallerPreflight(unittest.TestCase):
+    def test_no_early_custom_code(self):
+        check_distribution(ET.parse(PACKAGING / "distribution.xml.in").getroot())
+
+    def test_packaged_plugins_and_missing_guard_are_rejected(self):
+        with tempfile.TemporaryDirectory() as scratch:
+            expanded = Path(scratch)
+            (expanded / "Distribution").write_bytes((PACKAGING / "distribution.xml.in").read_bytes())
+            script = expanded / "host-component.pkg/Scripts/preinstall"
+            script.parent.mkdir(parents=True)
+            script.write_bytes((PACKAGING / "pkg-preinstall").read_bytes())
+            check_expanded_package(expanded)
+            sections = expanded / "InstallerSections.plist"
+            sections.write_text("unexpected custom page")
+            with self.assertRaisesRegex(ValueError, "plug-ins"):
+                check_expanded_package(expanded)
+            sections.unlink()
+            plugin = expanded / "Plugins"
+            plugin.mkdir()
+            with self.assertRaisesRegex(ValueError, "plug-ins"):
+                check_expanded_package(expanded)
+            plugin.rmdir()
+            script.write_text("#!/bin/bash\nexit 0\n")
+            with self.assertRaisesRegex(ValueError, "safeguard"):
+                check_expanded_package(expanded)
+
+    def test_filevault_must_be_confirmed_off_before_any_changes(self):
+        cases = (("FileVault is Off.", 0, True),
+                 ("FileVault is On.", 0, False),
+                 ("Encryption in progress: 50%", 0, False),
+                 ("Decryption in progress: 50%", 0, False),
+                 ("Unknown status", 0, False),
+                 ("", 1, False),
+                 ("FileVault is Off.", 1, False))
+        for status, exit_code, accepted in cases:
+            with self.subTest(status=status, exit_code=exit_code), tempfile.TemporaryDirectory() as scratch:
+                base = Path(scratch)
+                calls = base / "calls"
+                # Run the production preinstall with only its system-query
+                # executable and service/filesystem helpers replaced by fixtures.
+                query = base / "fdesetup"
+                query.write_text('#!/bin/bash\n[[ $1 = status ]] || exit 99\n'
+                                 'printf "%s\\n" "$FIXTURE_STATUS"\nexit "$FIXTURE_EXIT"\n')
+                query.chmod(0o755)
+                (base / "pkg-common.sh").write_text('''
+fail() { echo "PLANK: $*" >&2; exit 1; }
+record() { printf '%s\\n' "$1" >> "$FIXTURE_CALLS"; }
+preflight() { [[ $1 = / ]] || fail 'Invalid fixture volume'; record preflight; }
+initialize_state() { record initialize_state; }
+console_uid() { echo 501; }
+stop_roles() { record stop_roles; }
+''')
+                preinstall = base / "preinstall"
+                preinstall.write_text((PACKAGING / "pkg-preinstall").read_text().replace(
+                    "/usr/bin/fdesetup", shlex.quote(str(query))))
+                result = subprocess.run(["/bin/bash", str(preinstall), "fixture.pkg", "/", "/"],
+                                        env=dict(os.environ, FIXTURE_STATUS=status,
+                                                 FIXTURE_EXIT=str(exit_code), FIXTURE_CALLS=str(calls)),
+                                        capture_output=True, text=True)
+                self.assertEqual(result.returncode == 0, accepted, result.stderr)
+                self.assertEqual(calls.read_text().splitlines(),
+                                 ["preflight", "initialize_state", "stop_roles"] if accepted else ["preflight"])
+                if not accepted:
+                    self.assertIn("FileVault", result.stderr)
+                    self.assertIn("System Settings", result.stderr)
+
+
+def check_package(package):
     with tempfile.TemporaryDirectory(prefix="plank-installer-preflight-") as scratch:
         expanded = Path(scratch) / "expanded"
         subprocess.run(["/usr/sbin/pkgutil", "--expand-full", str(package), str(expanded)], check=True)
-        distribution = ET.parse(expanded / "Distribution").getroot()
-        if (distribution.find("options").get("allow-external-scripts") is not None or
-                distribution.find("script") is not None):
-            raise ValueError("External Installer JavaScript must not ship")
-        sections = list(expanded.rglob("InstallerSections.plist"))
-        if (len(sections) != 1 or plistlib.loads(sections[0].read_bytes()) !=
-                plistlib.loads((PACKAGING / "InstallerSections.plist").read_bytes())):
-            raise ValueError("Missing or incorrect native Installer page order")
-        bundle = sections[0].parent / "PLANKRequirements.bundle"
-        if not bundle.is_dir() or list(expanded.glob("*/Payload/**/PLANKRequirements.bundle")):
-            raise ValueError("Requirements bundle must be Installer-only, never an installed payload")
-        subprocess.run(["/usr/bin/codesign", "--verify", "--strict", str(bundle)], check=True)
-        subprocess.run([str(bundle_checker), str(bundle)], check=True)
-    print("macos_installer_native_preflight_package=pass installation=not-performed")
+        check_expanded_package(expanded)
+    print("macos_installer_preflight_package=pass plugins=absent filevault_guard=retained installation=not-performed")
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(add_help=False)
     parser.add_argument("--package", type=Path)
-    parser.add_argument("--bundle-checker", type=Path)
     options, remaining = parser.parse_known_args()
     result = unittest.main(argv=[sys.argv[0], *remaining], exit=False).result
     if not result.wasSuccessful():
         sys.exit(1)
     if options.package:
-        if not options.bundle_checker:
-            parser.error("--package requires --bundle-checker")
-        check_package(options.package, options.bundle_checker)
+        check_package(options.package)

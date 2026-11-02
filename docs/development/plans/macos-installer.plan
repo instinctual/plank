@@ -4,7 +4,7 @@ Branch: `macos-installer`, starting at main e7121a2.
 
 Goal: open one signed, notarized PKG in Installer, approve administrator access,
 and install the Host without Terminal, Python, Xcode or Command Line Tools on
-the destination Mac. macOS 27/Apple Silicon only. macOS privacy consent remains
+the destination Mac. Apple Silicon, SDK27 and minimum macOS26.7. macOS privacy consent remains
 explicit and cannot be granted by this installer.
 
 1. Verify Developer ID Application and Developer ID Installer private-key
@@ -39,6 +39,12 @@ explicit and cannot be granted by this installer.
    to defer; installer scripts must not reboot the Mac or restart Core Audio.
    Query the finished package's `RestartAction` before notarization. The macOS
    packaging fixture also checks this action without installing its payload.
+8. Keep the standard Installer wizard. The temporary Requirements plug-in is
+   removed to avoid Apple's extra executable-preflight consent prompt. Explain
+   the FileVault requirement in Introduction and retain its mandatory read-only
+   check in preinstall, after authorization but before state/service changes.
+   A failed or unknown query must reject installation. Verify the guard with
+   isolated commands and reject plug-ins in the finished PKG.
 
 Reference inspection: Anyware Graphics Agent26.05.3 is a Developer ID-signed,
 notarized PKG with Bash pre/postinstall scripts, payload launchd entries and a
