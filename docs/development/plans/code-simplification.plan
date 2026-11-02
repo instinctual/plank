@@ -104,8 +104,8 @@ All eight implementations are committed and pushed. The four 1.3.06 hosted
 builds passed and their packages were collected. Both Mac packages are signed
 and notarized. A final Mac-only sender-feature warning cleanup removes an
 unused receive timestamp; its signed/notarized 1.3.07 Host rebuild also passed
-and is collected. Other products do
-not compile that field and retain the validated 1.3.06 packages. No artifact is
+and is collected. Other products do not compile that field and retain the
+validated 1.3.06 packages. No artifact is
 relabeled or overwritten.
 
 New production-path checks passed: H.264/HEVC send/drain decoding, bounded
@@ -115,3 +115,9 @@ C locale. Ubuntu ASan/UBSan, compositor, launcher and packaging gates passed.
 Host component fixtures passed 25 shuffled repetitions; three 900-frame,
 150-Mbit/s 0–5% loss matrices had zero unrecovered frames. Current pins, build
 IDs, package locations and remaining installed gates are in HANDOFF.
+
+Implementation and hosted qualification are complete; installed session
+acceptance is the next step. The parent and changed submodules were confirmed
+fully pushed on `code-simplification`. Temporary build/download copies were
+cleaned after retaining the original packages and reports. No merge, release
+or deployment has been performed.

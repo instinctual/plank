@@ -11,6 +11,11 @@ pushed. No merge, release or installation was performed. The previous
 scope and its candidates remain preserved; installed session acceptance is
 still required.
 
+The final push was rechecked for the parent, Client, common-C and Linux Host;
+all were already up to date and their working trees were clean. Checkpoint
+`d4ca066` contains the completed qualification notes. Later notes-only commits
+do not change the candidate source revisions below or require another build.
+
 Source revisions:
 
 - Initial four-product snapshot: root `90cee00088be11c2e6f9b295b73e1d8e2ed6528d`.
@@ -27,12 +32,12 @@ Completed changes:
 2. Replaced decoder polling with FFmpeg send/drain handling: retain the same
    packet across EAGAIN, attach metadata after acceptance, flush both codec and
    metadata on errors, and wake blocked input waits during cancellation.
-3. Assembled the Host's video prefix and encoded payload once, then transfer
+3. Assembled the Host's video prefix and encoded payload once, transferring
    ownership through the send queue without a second frame copy.
 4. Bound send/receive video queues by both count and 64 MiB plus metadata;
    count every evicted frame. FEC and Quinn have separate bounded storage.
 5. Compiled focused Linux Host input/crypto/logging tests instead of rebuilding
-   the entire Host with coverage. Remove duplicate Qt header declarations and
+   the entire Host with coverage. Removed duplicate Qt header declarations and
    obsolete source-string requirements where behavioral gates remain.
 6. Removed unsupported Client AV1 paths, Linux Host Apple startup and an unused KMS
    parser.
@@ -74,9 +79,15 @@ Original manifests, source pins, logs and regression evidence are retained in
 own 1.3.07 evidence directory. Check each manifest for its exact source/hash.
 
 All package checksums are verified. No hosted job remains active for this work.
-Next: install candidates for the hardware/session gates below. No hosted result
-substitutes for those tests. No live performance improvement is claimed from
-copy/queue assertions alone.
+Temporary download copies and task-specific build directories were removed;
+the package catalog, qualification reports and prepared dependency caches remain.
+
+Resume with installed acceptance of the 1.3.06 Linux Host and both Clients,
+using the 1.3.07 macOS Host where applicable. Prioritize exact-profile decoding,
+static and moving desktops, startup cancellation, disconnect/reconnect, Wacom
+and an A/V soak before the broader gates below. No further implementation item
+from this pass is pending. No hosted result substitutes for installed testing,
+and no live performance improvement is claimed from copy/queue assertions alone.
 
 ## Preserved checkpoints
 
