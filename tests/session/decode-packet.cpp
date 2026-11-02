@@ -3,6 +3,9 @@
 #include "video/ffmpeg-testframes.h"
 #include <cassert>
 #include <iostream>
+extern "C" {
+#include <libavutil/pixdesc.h>
+}
 
 // This fixture isolates the encoded-buffer owner. The common-C suite exercises
 // the real assembler/queue owner; FFmpeg here is the pinned product library.
@@ -47,7 +50,22 @@ static void checkFrame(const uint8_t* bytes, int size, AVPixelFormat format)
         av_packet_unref(packet);
         assert(avcodec_receive_frame(context, output) == 0);
         assert(output->width == 1280 && output->height == 720);
-        assert(output->format == format);
+        auto decodedFormat = static_cast<AVPixelFormat>(output->format);
+        // FFmpeg's default format picker still exposes the deprecated full-
+        // range YUVJ aliases. They have the same planes/depth; range is explicit.
+        if (decodedFormat == AV_PIX_FMT_YUVJ420P || decodedFormat == AV_PIX_FMT_YUVJ422P) {
+            assert(output->color_range == AVCOL_RANGE_JPEG);
+            decodedFormat = decodedFormat == AV_PIX_FMT_YUVJ420P ? AV_PIX_FMT_YUV420P : AV_PIX_FMT_YUV422P;
+        }
+        if (decodedFormat != format)
+            std::cerr << "Decoded " << av_get_pix_fmt_name(decodedFormat)
+                      << "; expected " << av_get_pix_fmt_name(format) << std::endl;
+        assert(decodedFormat == format);
+        if (format == AV_PIX_FMT_GBRP || format == AV_PIX_FMT_GBRP10LE) {
+            assert(output->colorspace == AVCOL_SPC_RGB && output->color_range == AVCOL_RANGE_JPEG);
+        } else if (format == AV_PIX_FMT_YUV422P || format == AV_PIX_FMT_YUV422P10LE) {
+            assert(output->colorspace == AVCOL_SPC_BT709 && output->color_range == AVCOL_RANGE_JPEG);
+        }
         av_frame_unref(output);
         assert(avcodec_receive_frame(context, output) == AVERROR(EAGAIN));
     }

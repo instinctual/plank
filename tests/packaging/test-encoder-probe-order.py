@@ -20,8 +20,8 @@ class EncoderProbeOrder(unittest.TestCase):
         source = SOURCE.read_text()
         probes = {
             "test_yuv444": ("flag_map[encoder_t::PASSED]", "YUV444_SUPPORT"),
-            "test_yuv420_hdr": ("flag_map[encoder_t::PASSED]",),
-            "test_yuv444_hdr": ("flag_map[encoder_t::PASSED]", "YUV444_SUPPORT"),
+            "test_yuv420_10bit": ("flag_map[encoder_t::PASSED]",),
+            "test_yuv444_10bit": ("flag_map[encoder_t::PASSED]", "YUV444_SUPPORT"),
             "test_h264_yuv422": ("encoder.h264[encoder_t::PASSED]", "YUV422_SUPPORT"),
         }
         for name, guards in probes.items():
@@ -40,12 +40,12 @@ class EncoderProbeOrder(unittest.TestCase):
         source = SOURCE.read_text()
         for call in (
             "test_yuv444(encoder.h264, 0)",
-            "test_yuv444_hdr(encoder.h264, 0)",
+            "test_yuv444_10bit(encoder.h264, 0)",
             "test_h264_yuv422(false)", "test_h264_yuv422(true)",
             "test_yuv444(encoder.hevc, 1)",
-            "test_yuv444_hdr(encoder.hevc, 1)",
+            "test_yuv444_10bit(encoder.hevc, 1)",
         ):
-            self.assertIn(call, source)
+            self.assertTrue(call in source, f"Missing active profile probe: {call}")
         self.assertIn("validate_h264_high10_444_identity(", source)
 
 

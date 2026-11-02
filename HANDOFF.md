@@ -8,12 +8,13 @@ older candidate provenance remains in Git history and the artifact catalog.
 
 Branch: `code-simplification`. The operator approved the complete ten-item
 follow-up as one refactor. Implementation is complete; hosted validation of
-candidate **1.3.10-code-simplification** is next. No merge, release or installation
+candidate **1.3.11-code-simplification** is next. No merge, release or installation
 is authorized by this cleanup. No installed session acceptance is claimed.
 
 The previous checkpoint is root `c886880`, Host `acd7054d`, Client `7d628f60`,
-Client common-C `9838bb82` and Kymux `12af484e`. The exact new revisions will be
-recorded after commits and hosted builds finish. Kymux itself is unchanged.
+Client common-C `9838bb82` and Kymux `12af484e`. Client `ce7d0e06`, Client common-C `79846ce` and Host headers `209604a` are pushed.
+Final Host/root revisions and build results will be recorded after validation.
+Kymux itself is unchanged.
 
 Completed implementation:
 
@@ -39,7 +40,8 @@ Completed implementation:
   metadata and binds the current textures. No new GPU wait or CPU readback.
 
 Validation so far: common-C 8/8 tests (expanded native wire/tool transitions,
-backpressure, input bounds, queue ownership, audio timestamps); 261 optional
+backpressure, input bounds, queue ownership, audio timestamps), also passing
+ASan/UBSan with GCC14; 261 optional
 service checks; 115 CI policy tests; 7 Host header-only packaging tests; no-SDL
 source gate. Added real H.264 decoder/ownership fixtures, Host native input
 boundary tests and GPU cache invalidation tests for the hosted builders.
@@ -49,6 +51,11 @@ upload comparison improved median upload time by roughly 26–34%; the live
 Xorg readback comparison did not show a capture speedup. Do not turn that
 isolated upload measurement into an end-to-end performance claim. Earlier
 packages and evidence remain in their versioned catalogs.
+
+The initial hosted validation caught two stale test expectations: FFmpeg may
+report full-range 8-bit samples with YUVJ aliases, and the encoder probe source
+gate used the retired HDR lambda names. Both fixtures are corrected without
+relaxing profile/range checks. Candidate 1.3.10 was not accepted or installed.
 
 Next: commit/push dependencies before parents, run all hosted products, collect
 original packages/manifests and record results here. Installed acceptance must
