@@ -427,7 +427,6 @@ if rg -n -i 'miniupnp|upnp' \
   "$source_dir/src" \
   "$source_dir/cmake" \
   "$source_dir/scripts" \
-  "$source_dir/packaging" \
   "$source_dir/docs" \
   "$source_dir/docker" \
   "$repo_dir/packaging" \
@@ -1216,14 +1215,15 @@ for required_session_takeover_token in \
   }
 done
 echo "host_session_takeover_gate=pass"
-rg -Fq 'if(WIN32 OR APPLE)' \
-  "$source_dir/cmake/dependencies/Boost_Sunshine.cmake" || {
-  echo "Boost.Process is not gated away from the Linux host build" >&2
+test -f "$source_dir/cmake/dependencies/Boost_Sunshine.cmake"
+if rg -n '\bprocess\b' "$source_dir/cmake/dependencies/Boost_Sunshine.cmake" ||
+    rg -n 'boost/process|Boost::process' "$source_dir/src" "$source_dir/cmake"; then
+  echo "unused Boost.Process dependency remains in the Linux Host" >&2
   exit 1
-}
+fi
 if rg -n 'apps\.json|file_apps|global_prep_cmd|Steam Big Picture|Low Res Desktop' \
   "$source_dir/src" "$source_dir/src_assets" "$source_dir/cmake" \
-  "$source_dir/packaging" "$source_dir/docs"; then
+  "$repo_dir/packaging/host" "$source_dir/docs"; then
   echo "legacy application catalog or command-launch configuration remains" >&2
   exit 1
 fi

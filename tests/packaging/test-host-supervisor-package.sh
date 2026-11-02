@@ -266,8 +266,12 @@ rg -Fq 'inline constexpr int desktop_app_id = 881448767' \
   "$repo_dir/apps/host/linux/src/process.h"
 rg -Fq 'std::atomic<int> _app_id {0}' \
   "$repo_dir/apps/host/linux/src/process.h"
-rg -Fq 'if(WIN32 OR APPLE)' \
-  "$repo_dir/apps/host/linux/cmake/dependencies/Boost_Sunshine.cmake"
+test -f "$repo_dir/apps/host/linux/cmake/dependencies/Boost_Sunshine.cmake"
+if rg -n '\bprocess\b' "$repo_dir/apps/host/linux/cmake/dependencies/Boost_Sunshine.cmake" ||
+    rg -n 'boost/process|Boost::process' "$repo_dir/apps/host/linux/src" "$repo_dir/apps/host/linux/cmake"; then
+  echo "unused Boost.Process dependency remains in the Linux Host" >&2
+  exit 1
+fi
 if rg -n 'apps\.json|file_apps|global_prep_cmd|Steam Big Picture|Low Res Desktop' \
   "$repo_dir/apps/host/linux/src" \
   "$repo_dir/apps/host/linux/src_assets" \
