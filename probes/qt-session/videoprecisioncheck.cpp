@@ -31,13 +31,17 @@ public:
 
     bool import(GLuint source, QString& error)
     {
-        display = eglGetCurrentDisplay();
-        auto createImage = reinterpret_cast<PFNEGLCREATEIMAGEKHRPROC>(eglGetProcAddress("eglCreateImageKHR"));
-        destroyImage = reinterpret_cast<PFNEGLDESTROYIMAGEKHRPROC>(eglGetProcAddress("eglDestroyImageKHR"));
-        if (display == EGL_NO_DISPLAY || !createImage || !destroyImage) {
-            error = QStringLiteral("Video fixture requires EGL image support");
-            return false;
-        }
+        if (!importer.prepare(error)) return false;
+        display = importer.display();
+        const auto createImage = importer.createImage();
+        destroyImage = importer.destroyImage();
+        // Repeat prepare on the same context, then explicitly invalidate and
+        // rebuild the cache. Both must preserve the actual import behavior.
+        if (!importer.prepare(error)) return false;
+        importer.reset();
+        if (importer.display() != EGL_NO_DISPLAY || importer.createImage() ||
+                importer.destroyImage() || importer.hasDmaBufImport() || importer.hasModifiers()) return false;
+        if (!importer.prepare(error)) return false;
         auto* gl = QOpenGLContext::currentContext()->extraFunctions();
         gl->glBindTexture(GL_TEXTURE_2D, source);
         gl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
@@ -48,7 +52,7 @@ public:
             error = QStringLiteral("Video fixture EGL image creation failed: 0x%1").arg(eglGetError(), 0, 16);
             return false;
         }
-        if (!importQtEglTexture(image, texture, error)) return false;
+        if (!importer.importTexture(image, texture, error)) return false;
         GLint binding = 0;
         gl->glGetIntegerv(GL_TEXTURE_BINDING_2D, &binding);
         if (GLuint(binding) != source || texture == source) {
@@ -60,6 +64,7 @@ public:
 
     GLuint texture = 0;
 private:
+    QtEglTextureImporter importer;
     EGLDisplay display = EGL_NO_DISPLAY;
     EGLImageKHR image = EGL_NO_IMAGE_KHR;
     PFNEGLDESTROYIMAGEKHRPROC destroyImage = nullptr;
@@ -82,7 +87,9 @@ bool checkVideo()
     QtPackedVideoBlitter blitter;
     GLuint rejected = 0;
     QString rejectionError;
-    if (importQtEglTexture(EGL_NO_IMAGE_KHR, rejected, rejectionError) || rejected ||
+    QtEglTextureImporter importer;
+    if (!importer.prepare(rejectionError)) return false;
+    if (importer.importTexture(EGL_NO_IMAGE_KHR, rejected, rejectionError) || rejected ||
             rejectionError.isEmpty() || gl->glGetError() != GL_NO_ERROR) {
         qWarning("Qt EGL import did not safely reject an invalid image");
         return false;

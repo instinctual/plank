@@ -4,17 +4,26 @@ Read `AGENTS.md` and the relevant build runbook first. Keep machine inventory,
 credentials and private captures outside Git. This file records current work;
 older candidate provenance remains in Git history and the artifact catalog.
 
-## Active — Simplification complete; candidates ready
+## Active — Native X11 performance and frame-path cleanup
 
-Branch: `code-simplification`. All eight follow-up changes are implemented and
-pushed. No merge, release or installation was performed. The previous
-scope and its candidates remain preserved; installed session acceptance is
-still required.
+Branch: `code-simplification`. The latest follow-up implements native X11/XShm
+batching, bounded reusable CUDA SHM registration for HEVC10 identity NVENC,
+contiguous SIMD x264 unpacking and bounded capture/encode timing. It also removes
+the unused synchronous Host pipeline/X11 cursor blending and caches Ubuntu EGL
+import capabilities per context. No wire/authentication/input or Mac rendering
+change. See the final section of the simplification plan for exact behavior,
+measurements and remaining hardware gates.
 
-The final push was rechecked for the parent, Client, common-C and Linux Host;
-all were already up to date and their working trees were clean. Checkpoint
-`d4ca066` contains the completed qualification notes. Later notes-only commits
-do not change the candidate source revisions below or require another build.
+Candidate 1.3.08 Host and Ubuntu builds are the next verification step.
+Portable precision/request-order/registration-lifetime/budget/timing fixtures
+pass, including ASan/UBSan. GPU SHM upload qualified with exact pixel readback on
+the authorized RTX6000 Ada/595.104.02 Host: median upload improved about26–28%
+in the isolated comparison. This is not end-to-end capture/encoding acceptance.
+No package was installed and no running service/session was changed. The
+operator requested all items completed without intermediate approval pauses;
+finish hosted builds, collect provenance and record results before stopping.
+
+The prior completed pass and original candidates below remain preserved.
 
 Source revisions:
 

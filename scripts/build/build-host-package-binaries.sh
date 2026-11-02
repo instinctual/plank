@@ -260,6 +260,9 @@ for compiler in \
     exit 1
   }
 done
+CXX=/opt/rh/gcc-toolset-14/root/usr/bin/g++ \
+  bash "$repo_dir/scripts/test/test-linux-native10.sh" "$build_dir/native10-tests"
+
 [[ -f ${ffmpeg_dir}/lib/libavcodec.a ]] || {
   echo "prepared host FFmpeg tree is unavailable: ${ffmpeg_dir}" >&2
   exit 1

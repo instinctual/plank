@@ -121,3 +121,72 @@ acceptance is the next step. The parent and changed submodules were confirmed
 fully pushed on `code-simplification`. Temporary build/download copies were
 cleaned after retaining the original packages and reports. No merge, release
 or deployment has been performed.
+
+## Native X11 capture and final frame-path cleanup
+
+Continue from the pushed 1.3.06/1.3.07 checkpoint on this branch. Implement all
+reviewed items: batch X11 geometry/capture requests, register reusable SHM for
+NVENC uploads, separate bounded capture/upload/conversion/encode statistics,
+benchmark/tune CPU RGB10 unpacking, remove the unreachable synchronous Host
+capture pipeline and embedded X11 cursor blending, and cache Ubuntu EGL import
+capabilities per context. Preserve exact full-range 10-bit identity values,
+NVENC and x264, private SHM ownership, topology recovery and GPU completion
+before buffer reuse. No wire, authentication, input or macOS rendering change.
+
+Qualification requires behavioral CPU/buffer-lifetime tests, bounded timing
+and XCB request-order/error fixtures, hosted Host and Ubuntu package gates,
+and candidate provenance. Performance claims require measured comparisons;
+GPU upload throughput, Xorg depth-30 capture and actual NVENC/session acceptance
+remain hardware gates. Do not infer them from a hosted build or CPU benchmark.
+
+Implementation for candidate 1.3.08:
+
+- XCB queues root geometry, overlay geometry and checked SHM image requests
+  before collecting replies. Every reply/error is consumed, including on resize.
+  Geometry/depth and exact returned byte count remain per-frame checks.
+- Native10 NVENC registers each reusable SHM image once, with portable CUDA
+  registration and a process-wide 256 MiB cap. A registration failure or exhausted
+  cap retains the existing pageable upload. x264 never registers these buffers.
+  The image owns the registration/context until GPU reading has finished; error
+  exits drain the conversion stream before releasing the image. Unregistration
+  precedes SHM detach/unmap. SHM access stays owner-only0600.
+- Reusable CUDA events measure upload and conversion independently using the
+  existing completion wait, without adding a GPU barrier. CPU dispatch/sync,
+  XCB geometry/image waits, encode and complete frame service are also recorded.
+  Timing accumulators retain 2048 recent samples each with lifetime mean/max/
+  budget-miss counts. No session-length vectors or per-frame timing allocations.
+- CPU x264 unpacking uses contiguous worker bands and baseline SSE2 with scalar
+  tails; exact 0–1023 G/B/R values, source immutability and odd widths are tested.
+  Existing scaling mathematics and the NVENC conversion kernel are unchanged.
+- Removed the unreachable synchronous encode/capture implementation and X11
+  embedded-cursor compositing. Separate cursor transport remains unchanged.
+- Ubuntu EGL extension parsing and import entry points are cached per Qt/EGL
+  context. Reset/reinitialization and the actual import/binding/color fixtures
+  remain mandatory. Frame/image/fence ownership and queue limits are unchanged.
+
+Measured comparisons (not an end-to-end stream benchmark):
+
+| Stage | Image | Original median | Candidate median |
+| --- | --- | --- | --- |
+| CPU unpack, eight workers on build VM | 3840x2160 | 2.090ms | 2.019ms |
+| CPU unpack, eight workers on build VM | 5120x2160 | 2.034ms | 1.904ms |
+| SHM to GPU upload, RTX6000 Ada/595.104.02 | 3840x2160 | 1.685ms | 1.248ms |
+| SHM to GPU upload, RTX6000 Ada/595.104.02 | 5120x2160 | 2.296ms | 1.662ms |
+
+The upload comparison used the production registration owner, real SysV SHM
+and pitched asynchronous CUDA copies with completion waits, 100 measured frames
+per case. Readback matched every source bit. The GPU also had an existing
+workload, so tail latency is not a controlled performance result. No session,
+service, display or installed package was changed. Hardware test data contains
+synthetic pixels only. Full Xorg capture, HEVC NVENC/x264 encode and installed
+Client acceptance remain separate gates.
+
+Reproduce portable fixtures with `scripts/test/test-linux-native10.sh OUTPUT`
+using the pinned Host dependency headers. ASan/UBSan variants use
+`PLANK_NATIVE10_SANITIZERS=1` and the Host's GCC14 compiler. CPU benchmark source
+is `tests/video/native10/benchmark.cpp` (C++20, -O3, pthread); compare identical
+compiler flags. `tests/video/native10/upload.cpp` is a standalone GPU upload
+qualification fixture, built on Rocky with the pinned NV codec headers, then
+transferred and hash-verified on the hardware Host. It does not install anything
+or capture a desktop. Native precision/capture/error fixtures are also required
+by Host package preflight; Ubuntu's real EGL fixture covers its import cache.
