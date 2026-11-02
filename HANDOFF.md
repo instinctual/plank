@@ -77,6 +77,10 @@ signed Mac Client `41497522046`; the corrected Linux Host uses a separate target
 build. Run `41499694390` compiled the Host and passed transport/FEC tests,
 but exposed the obsolete binary asset-path check after shader removal. The
 asset packaging and check now follow the actual runtime requirements.
+Run `41502602117` built the RPM, then caught the remaining positive artwork
+assertion. The real finished-RPM gate is now exercised by a local fixture,
+including absent retired assets, rejected leftovers, EDID count and private
+log-directory requirements; all 119 CI policy tests pass.
 Next: finish the hosted gates, collect original
 packages/manifests and record results here. Installed acceptance must
 cover exact-profile decoding/color, native X11 x264 and NVENC, NvFBC, input/Wacom,

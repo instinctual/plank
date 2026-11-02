@@ -192,11 +192,10 @@ if rpm -qpl "$rpm_file" | rg -q '/etc/pam\.d/remote-desktop$|/usr/lib/sysusers\.
   exit 1
 fi
 if rpm -qpl "$rpm_file" | rg -q \
-  '/usr/share/plank/(apps\.json|box\.png|desktop-alt\.png|steam\.png)$'; then
+  '/usr/share/plank/(apps\.json|box\.png|desktop\.png|desktop-alt\.png|steam\.png)$'; then
   echo "host RPM still contains the removed application catalog or legacy artwork" >&2
   exit 1
 fi
-rpm -qpl "$rpm_file" | rg -q '/usr/share/plank/desktop\.png$'
 echo "host_rpm_fixed_desktop_gate=pass"
 rpm -qpl "$rpm_file" | rg -q '/usr/share/plank/display/virtual-1\.edid$'
 rpm -qpl "$rpm_file" | rg -q '/usr/share/plank/display/virtual-2\.edid$'

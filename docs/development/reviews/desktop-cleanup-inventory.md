@@ -22,7 +22,8 @@ unreferenced GameStream crypto, unused encoder registrations and old upstream
 packaging. Native Mac capture/VideoToolbox/audio/input remain in `apps/host/macos`.
 
 The subsequent `code-simplification` legacy pass removes KMS product capture,
-GLAD/GL conversion, the generic FFmpeg hardware-encoding bridge, AV1 probing,
+GLAD/GL conversion and shaders, the unused Host runtime-asset packaging and
+localization tasks, the generic FFmpeg hardware-encoding bridge, AV1 probing,
 HDR callbacks, the legacy input packet reconstruction/dispatcher, controller and
 relative-input APIs, unused recorder callbacks, H.264 SPS rewriting and its
 h264bitstream source. Client common-C remains an active queue/lifecycle/native
