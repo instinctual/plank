@@ -4,88 +4,80 @@ Read `AGENTS.md` and the relevant build runbook first. Keep machine inventory,
 credentials and private captures outside Git. This file records current work;
 older candidate provenance remains in Git history and the artifact catalog.
 
-## Active — legacy input, encoding and decoder cleanup
+## Completed candidate — native-only cleanup/refactor
 
-Branch: `code-simplification`. The operator approved the complete ten-item
-follow-up as one refactor. Implementation is complete; hosted validation of
-candidate **1.3.13-code-simplification** is running. No merge, release or installation
-is authorized by this cleanup. No installed session acceptance is claimed.
+Branch: `code-simplification`. All ten approved follow-up items are implemented
+and pushed. **1.3.13-code-simplification** has passed the four products' hosted
+build/component/package gates. Both Mac PKGs are signed, notarized and stapled.
+No merge, release, installation or installed-session acceptance was performed.
 
-The previous checkpoint is root `c886880`, Host `acd7054d`, Client `7d628f60`,
-Client common-C `9838bb82` and Kymux `12af484e`. Client and Mac Host candidate
-source is root `bc959b800ff2351db29eba95ba9a4c59c19fd167`, Client `8a989271`,
-Client common-C `0aa126f`, Host headers `209604a`. The Linux Host advances to
-the final native-only Host commit to remove dependencies on the deleted GL
-header's imports and shader assets; its final root/build provenance follows below.
-The other three products' source/build inputs are unchanged by that correction.
-All are pushed. Kymux itself is unchanged. Host headers use the dedicated
-`code-simplification-host-headers` branch; the other changes use
-`code-simplification` in their respective repositories.
+Package catalog: `artifacts/packages/candidates/1.3.13-code-simplification/`.
+All four SHA-256 checks pass. Original builder manifests, logs, exact recursive
+pins and `summary.json` are in `artifacts/qualification/code-simplification-1.3.13/`.
+
+| Product | Package-source root | Successful build/validation |
+| --- | --- | --- |
+| Linux Host | `80a192a61d66710f7d0fadffeaedbe5f0e797611` | `41505308512` |
+| Ubuntu Client | `bc959b800ff2351db29eba95ba9a4c59c19fd167` | `41497448295` Client job |
+| macOS Host | `bc959b800ff2351db29eba95ba9a4c59c19fd167` | `41497448295` Host job; signed `41497504932` |
+| macOS Client | `bc959b800ff2351db29eba95ba9a4c59c19fd167` | `41497448295` Client job; signed `41497522046` |
+
+Final pins: Linux Host `7d9b16ce`, Client `8a989271`, Client common-C `0aa126f`,
+Host common-C headers `209604a`, Kymux `12af484e` (unchanged). Host headers use
+`code-simplification-host-headers`; the maintained product/common-C changes use
+`code-simplification`. The final Linux-only code/packaging corrections do not
+change Client or Mac product inputs. Their original packages/provenance are
+retained, not relabeled. Documentation-only commits may follow these build roots.
 
 Completed implementation:
 
-- Client input queues own final native payloads; the Host parses/injects native
-  values directly. Removed the GameStream packet reconstruction, second Host
-  queue/dispatcher, relative-pointer APIs, controller/haptic APIs and generic
-  touchscreen forwarding. Raw-HID Wacom, normalized pen, absolute mouse,
-  scroll, keyboard, ordering, bounded backpressure and persistent tablets stay.
-- Removed the unused recorder callbacks and Client startup relative-mouse wiggle.
-- Removed unselectable KMS capture, its GL/EGL conversion code and GLAD build
-  input. Removed its orphaned shaders, runtime asset copier, retired installer
-  assets and localization tooling. DRM discovery and standalone KMS probes stay.
-- Simplified Linux encoding to the active x264 and direct NVENC paths; removed
-  generic FFmpeg hardware-frame encoding, unused options/fallbacks and AV1
-  probing. NvFBC and Native X11 still support their exact selected profiles.
-- Removed dormant HDR metadata/callbacks; ten-bit SDR and RGB identity stay.
-  Event type 1 and feature bit 0x02 remain reserved rather than reassigned.
-- Reduced the Client renderer/decoder interface to current Qt backends and
-  mandatory exact-profile startup testing. Removed old platform decoder tables,
-  H.264 SPS rewriting and the h264bitstream source dependency. Owned IDRs now
-  retain the original encoded buffer, like ordinary frames.
-- Cached the Ubuntu planar-conversion shader description by format, geometry,
-  plane mapping/stride orientation and range; each frame still validates its
-  metadata and binds the current textures. No new GPU wait or CPU readback.
+- Client queues own final native input payloads; the Linux Host validates and
+  injects them directly. Removed GameStream packet reconstruction, the second
+  Host queue/dispatcher, controller/haptic APIs, relative-pointer APIs and
+  generic direct-touchscreen forwarding. Raw-HID Wacom, normalized pen, absolute
+  mouse, scroll, keyboard, bounded backpressure and persistent tablets remain.
+- Removed unused recorder callbacks and the Client startup relative-mouse wiggle.
+- Removed unselectable KMS product capture, GL/EGL conversion, GLAD, orphaned
+  shaders and asset packaging/localization tasks. DRM discovery, standalone KMS
+  probes and the independently generated display EDIDs remain.
+- Simplified Linux encoding to active x264 and direct NVENC paths. Removed the
+  unused FFmpeg hardware-frame encoder bridge, unreachable variants/options,
+  generic conversion fallback and AV1 probing. NvFBC and Native X11 retain their
+  selected profiles; empty x264 preset/tune settings retain their prior meaning.
+- Removed dormant HDR metadata/callbacks; ten-bit SDR and RGB identity remain.
+  Event type 1 and feature bit 0x02 stay reserved, not reassigned.
+- Reduced Client decoder/renderer interfaces to the current Qt backends and
+  mandatory exact-profile testing. Removed old decoder tables, H.264 SPS
+  rewriting and h264bitstream. Owned IDRs retain the original encoded buffer.
+- Cached Ubuntu planar-conversion shader descriptions by format, dimensions,
+  plane mapping/stride orientation and range. Every frame still validates
+  metadata and binds its current textures; no GPU wait or CPU readback was added.
+- Updated the required build/source/package gates, tests, runbooks and inventory.
+  The finished-RPM gate now has a fast fixture that catches stale payload
+  requirements and rejects retired assets, missing EDIDs and unsafe log modes.
 
-Validation so far: common-C 8/8 tests (expanded native wire/tool transitions,
-backpressure, input bounds, queue ownership, audio timestamps), also passing
-ASan/UBSan with GCC14; 261 optional
-service checks; 115 CI policy tests; 7 Host header-only packaging tests; no-SDL
-source gate. Added real H.264 decoder/ownership fixtures, Host native input
-boundary tests and GPU cache invalidation tests for the hosted builders.
+Validation passed: 119 CI policy tests; common-C 8/8 normally and with GCC14
+ASan/UBSan; 58 Host input tests plus 2 core tests, each repeated/shuffled 25 times;
+three 900-frame 150-Mbps loss trials through 5% injected loss with zero unrecovered
+frames; original-H.264/owned-IDR decode fixtures on both Clients; Ubuntu normal,
+sanitizer and compositor tests; Mac Metal color checks (630 cases); all finished
+package gates and checksums. The optional-service and header-only packaging
+checks also passed. These are component/build results, not live session results.
 
-The prior Native X11/upload work remains included. Its standalone pinned-SHM
-upload comparison improved median upload time by roughly 26–34%; the live
-Xorg readback comparison did not show a capture speedup. Do not turn that
-isolated upload measurement into an end-to-end performance claim. Earlier
-packages and evidence remain in their versioned catalogs.
+Superseded candidate runs exposed stale fixture expectations, declarations and
+asset-path/artwork assertions after deletion. They were corrected without
+relaxing selected codec/range requirements. The final successful runs above
+supersede those failures; candidates 1.3.10–1.3.12 were not accepted or installed.
 
-The initial hosted validation caught two stale test expectations: FFmpeg may
-report full-range 8-bit samples with YUVJ aliases, and the encoder probe source
-gate used the retired HDR lambda names. The decoder fixture also now drains
-normal buffered output and requires all six intact IDRs with exact timestamps,
-formats and ranges. No production profile/range check was relaxed. Native
-wire and concurrent queue-ownership tests run on both Clients; deterministic
-ELF-wrapped scheduler tests run on Linux. Linux compilation additionally caught
-a stale encoder declaration, a logger name collision and the declaration prefix
-left by a removed callback; all are fixed in this candidate. Candidates
-1.3.10–1.3.12 were not accepted or installed. The 1.3.12 Mac Host build/signing,
-original H.264 decoder fixtures on both Clients and Ubuntu normal/sanitizer
-rendering fixtures passed before the final corrections.
+The prior Native X11/upload work remains included. Its isolated pinned-SHM
+upload test improved median upload time by roughly 26–34%; live Xorg readback
+showed no capture speedup. This is not an end-to-end performance claim.
 
-Current runs: Client qualification `41497448295`, signed Mac Host `41497504932`,
-signed Mac Client `41497522046`; the corrected Linux Host uses a separate targeted
-build. Run `41499694390` compiled the Host and passed transport/FEC tests,
-but exposed the obsolete binary asset-path check after shader removal. The
-asset packaging and check now follow the actual runtime requirements.
-Run `41502602117` built the RPM, then caught the remaining positive artwork
-assertion. The real finished-RPM gate is now exercised by a local fixture,
-including absent retired assets, rejected leftovers, EDID count and private
-log-directory requirements; all 119 CI policy tests pass.
-Next: finish the hosted gates, collect original
-packages/manifests and record results here. Installed acceptance must
-cover exact-profile decoding/color, native X11 x264 and NVENC, NvFBC, input/Wacom,
-reconnect, audio and both supported Mac version floors. Do not deploy as part
-of this pass.
+Next: installed acceptance of the exact packages for capture/encode/decode/color,
+Wacom recovery, A/V synchronization, display transitions and supported Mac
+versions, as listed below. No further implementation item from this pass is
+left pending. The preceding checkpoint is root `c886880`, Host `acd7054d`,
+Client `7d628f60` and Client common-C `9838bb82`.
 
 ## Preserved checkpoints
 

@@ -281,3 +281,19 @@ The Linux Host has no external runtime shader/UI assets after KMS removal.
 Retired asset copying, GL shaders, unused upstream installer/artwork files and
 localization tooling are removed too. The RPM still ships its independently
 generated display EDIDs and checks that retired assets are absent.
+
+Completion (2026-11-02): all ten items are implemented and pushed. Candidate
+1.3.13-code-simplification passed Linux Host run 41505308512; Ubuntu and Mac
+component jobs in 41497448295; signed/notarized Mac Host 41497504932 and Client
+41497522046. The final Host uses root 80a192a / Host 7d9b16ce. Unaffected Client
+and Mac packages retain root bc959b8 / Client 8a989271 / common-C 0aa126f.
+Host headers are 209604a; Kymux remains 12af484e. Exact hashes and per-package
+provenance are in the catalog and HANDOFF. All four payload checksums pass.
+
+The Host input/core suites passed 25 shuffled repetitions (58+2 tests), and
+three 150-Mbps progressive loss trials each delivered all 900 frames through
+5% injected loss. Both Client original-H.264/owned-IDR fixtures and normal,
+sanitizer, compositor/Metal and package checks passed. The manifest gate has
+an executable fixture for current required files and retired-asset rejection.
+No merge, release, deployment or installed acceptance is claimed. Remaining
+work is exact-package hardware/session qualification, not unfinished cleanup.
