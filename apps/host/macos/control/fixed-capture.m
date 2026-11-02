@@ -30,7 +30,7 @@ NSDictionary *PLANKMacEncodingProfile(NSString *mode) {
     return @{@"capture_source": @"screencapturekit", @"encoder_backend": @(profile->backend),
         @"encoding_mode": @(profile->mode), @"codec": @(profile->codec), @"profile": @(profile->profile),
         @"bit_depth": @(profile->bit_depth), @"chroma": @(profile->chroma), @"range": @"full",
-        @"matrix": @(profile->matrix), @"primaries": @"bt709", @"transfer": @"srgb", @"rgb_identity": @(!!profile->rgb_identity)};
+        @"matrix": @(profile->matrix), @"primaries": @"bt709", @"transfer": @"srgb", @"rgb_identity": @((BOOL)profile->rgb_identity)};
 }
 
 NSDictionary *PLANKMacFixedCaptureDescription(NSString *generation, NSString *identifier,
