@@ -886,7 +886,7 @@ fi
 for required_capture_token in \
   'session.output_name = *capture_name' \
   'config.monitor.output_name = launch_session->span_desktop ?' \
-  'config.m_device_id = session.output_name'; do
+  'refresh_displays(encoder.platform_formats->dev_type, capture_ctxs.front().config.output_name,'; do
   rg -Fq "$required_capture_token" "$source_dir/src" || {
     echo "negotiated session capture selector is missing: ${required_capture_token}" >&2
     exit 1
