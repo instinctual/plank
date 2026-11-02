@@ -173,8 +173,6 @@ fn push(lane: Lane, shared: &NativeShared, tag: u64) {
         Lane::Video => push_video_receive(
             shared,
             NativeVideoFrame {
-                #[cfg(feature = "sender-timing")]
-                enqueued_at: Instant::now(),
                 codec: VIDEO_CODEC_HEVC,
                 flags: VIDEO_FLAG_KEY,
                 frame_number: tag,

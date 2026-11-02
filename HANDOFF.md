@@ -9,7 +9,11 @@ older candidate provenance remains in Git history and the artifact catalog.
 Branch: `code-simplification`. The operator authorized all eight findings from
 this second review without intermediate stops. Pushed checkpoint before edits:
 root `0a325133698897d99358862cdb546d566a7098ca` and the 1.3.05 pins below.
-Candidate version advances to **1.3.06-code-simplification**. No merge, release
+Candidate builds use **1.3.06-code-simplification**. The Mac Host alone is rebuilt
+as **1.3.07-code-simplification** after removing an unused receiver timestamp
+compiled only with its sender-timing feature. Other products' compiled paths
+are unchanged by that follow-up. Preserve the earlier 1.3.06 Host artifact.
+No merge, release
 or installation is authorized by this task.
 
 Implemented: retired two-connection transport/probes removed; native config and

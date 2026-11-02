@@ -135,8 +135,6 @@ impl<T> VideoQueue<T> {
 }
 
 struct NativeVideoFrame {
-    #[cfg(feature = "sender-timing")]
-    enqueued_at: Instant,
     codec: u32,
     flags: u32,
     frame_number: u64,
@@ -646,8 +644,6 @@ async fn receive_video(
                 push_video_receive(
                     &shared,
                     NativeVideoFrame {
-                        #[cfg(feature = "sender-timing")]
-                        enqueued_at: Instant::now(),
                         codec,
                         flags: if packet.header.is_key {
                             VIDEO_FLAG_KEY
