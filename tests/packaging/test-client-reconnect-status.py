@@ -31,7 +31,9 @@ class ReconnectPresentation(unittest.TestCase):
         self.assertLess(ready.index("updateGeometry()"), ready.index("setInputEnabled(m_InputGrabbed)"))
         stop = between(runtime, "void QtSessionRuntime::stop()", "bool QtSessionRuntime::resetDecoder")
         self.assertIn("m_ReconnectPolicy.allowUntil(0)", stop)
-        self.assertIn("m_ReconnectCancelled.store(true)", stop)
+        self.assertIn("cancelConnectionStart()", stop)
+        cancel = between(session, "void Session::cancelConnectionStart()", "void Session::setPlankReconnectStatus")
+        self.assertIn("m_Lifecycle.stop()", cancel)
         surface = (source / "app/streaming/qt/SessionSurface.qml").read_text()
         self.assertNotIn("Keep Waiting", surface)
         self.assertNotIn("keepWaiting", runtime)
@@ -43,8 +45,7 @@ class ReconnectPresentation(unittest.TestCase):
             body = http.split(signature, 1)[1].split("{", 1)[1]
             self.assertTrue(body.lstrip().startswith("waitForRequestPermission("))
         gate = between(session, "bool Session::waitForPlankReconnectRequest", "bool Session::runPlankReconnect")
-        self.assertIn("m_ReconnectCancelled.load()", gate)
-        self.assertIn("m_ConnectionStartCancelled.load()", gate)
+        self.assertIn("m_Lifecycle.stopping()", gate)
         self.assertIn("m_ReconnectPolicy.allowsRequest(PlankClock::milliseconds())", gate)
 
     def test_readiness_retry_retains_authorization(self):
@@ -75,7 +76,8 @@ class ReconnectPresentation(unittest.TestCase):
 
     def test_duplicate_reconnect_requests_do_not_quit(self):
         callback = between(session, "void Session::clConnectionTerminated", "void Session::clLogMessage")
-        self.assertIn("m_ReconnectRequested.load() || s_ActiveSession->m_Reconnecting.load()", callback)
+        self.assertIn("m_Lifecycle.requestRecovery()", callback)
+        self.assertIn("m_Lifecycle.recoveryPending()", callback)
 
     def test_terminal_receive_failure_notifies_without_input(self):
         receive = between(session, "void Session::plankTransportDataReceiveLoop()",

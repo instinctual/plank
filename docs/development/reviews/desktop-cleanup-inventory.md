@@ -31,7 +31,8 @@ acceptance is separate.
 
 Inherited public type/file names still occur in active code. Platform-neutral
 queue/thread adapters and pinned third-party sources are not removed solely
-because they originated upstream. The Linux fork also retains unsupported
-Windows platform reference sources; they are outside the shipping target and
-this approved backend-removal list. No Windows product support is claimed.
+because they originated upstream. The subsequent approved
+[`code-simplification` pass](../plans/code-simplification.plan) removes the Linux
+fork's unsupported Windows platform sources, tools, dependencies and settings.
+No Windows product support is claimed.
 Historical release/protocol records and license attribution remain in Git.

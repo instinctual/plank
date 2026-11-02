@@ -15,7 +15,7 @@ shared runtime lock. All five implementations and local fixtures are complete;
 hosted validation and package collection remain in progress for
 **1.3.05-code-simplification**. No merge, release or deployment is requested.
 
-Client `4d2360d5` uses common-C `51b084d`; Linux Host is `f9672a68`.
+Client `4d2360d5` uses common-C `51b084d`; Linux Host is `b7382ab4`.
 The shared catalog preserves profile IDs, exact formats and runtime hardware
 probes. Encoded frames share one allocation through FFmpeg except when SPS
 rewriting or noncontiguous prefix removal requires assembly. Client cancellation
@@ -23,7 +23,7 @@ cannot be undone by late recovery completion. Mac display/takeover provider work
 runs outside the runtime lock, with reserved admission, scope/token revalidation,
 asynchronous shutdown and restoration on failure.
 
-Local checks: 115 CI-policy cases, seven common-C regressions, C/C++ catalog
+Local checks: 115 CI-policy cases, eight common-C regressions, C/C++ catalog
 contracts, 1,000 lifecycle races and 1,882 frame/recovery assertions pass.
 The four-MiB delta fixture confirms one allocation and no NAL/reassembly copies.
 Hosted sanitizer, Mac runtime race and all four package results are pending.

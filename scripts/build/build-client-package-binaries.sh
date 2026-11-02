@@ -504,7 +504,7 @@ echo "client_raw_hid_focus_suspend_gate=pass"
 for required_raw_hid_reconnect_token in \
   beginReconnect \
   finishReconnect \
-  'm_Reconnecting.load()' \
+  'm_Lifecycle.recovering()' \
   'Timed out waiting for exact Wacom host attachment; retrying'; do
   rg -Fq "$required_raw_hid_reconnect_token" \
     "$source_dir/app/streaming/session.cpp" \

@@ -26,7 +26,8 @@ class QuitLifecycle(unittest.TestCase):
         self.assertIn("Qt::QueuedConnection", registration)
         self.assertIn("application->endSession()", registration)
         self.assertIn("cancelConnectionStart()", registration)
-        self.assertIn("m_ReconnectCancelled.store(true)", registration)
+        cancellation = session.split("void Session::cancelConnectionStart()", 1)[1].split("\n}", 1)[0]
+        self.assertIn("m_Lifecycle.stop()", cancellation)
 
     def test_native_suites_are_mandatory(self):
         build = (ROOT / "scripts/build/build-macos-client.sh").read_text()
