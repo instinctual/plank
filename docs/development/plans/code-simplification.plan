@@ -40,8 +40,10 @@ claimed from hosted compilation or fixtures alone.
 
 ## Status
 
-All five production changes are implemented. Hosted validation and package
-collection are pending for candidate `1.3.05-code-simplification`.
+All five production changes, focused regressions, hosted builds and package
+collection are complete for candidate `1.3.05-code-simplification`. Root and
+nested changes are committed and pushed on `code-simplification`; no merge,
+release or installation was performed.
 
 Encoded frames have one reference-counted allocation containing the queue entry,
 NAL views and padded payload. FFmpeg retains the same allocation for ordinary
@@ -62,6 +64,16 @@ outstanding operation or failed restoration. Shutdown cancels preparation and
 waits asynchronously for restoration. Synthetic runtime tests exercise the
 actual admission lock during provider calls and cancellation during preparation.
 
-Local checks pass: catalog C/C++ contracts, 1,000 lifecycle races, 1,882 encoded
-frame/recovery checks and common-C input/queue regressions. Hosted sanitizers,
-Mac transaction regressions and all four package builds remain required.
+Local checks pass: catalog C/C++ contracts, 1,000 lifecycle races, 2,039 encoded
+frame/recovery checks and common-C input/queue regressions. Hosted Ubuntu
+ASan/UBSan component checks and Mac runtime transaction regressions pass.
+Linux Host input lifecycle and three 150-Mbit/s loss-matrix trials pass.
+Both signed/notarized Mac packages, the Linux Host RPM and Ubuntu Client DEB
+are collected and checksum-verified under
+`artifacts/packages/candidates/1.3.05-code-simplification/`.
+
+Builds: Linux Host `41378937781`, Ubuntu Client `41379496268`, Mac Host
+`41378048318`, Mac Client `41378323417`. Exact snapshots, original manifests,
+logs and local reports are retained in
+`artifacts/qualification/code-simplification-1.3.05/`; HANDOFF records the
+implementation pins. Installed hardware/session acceptance remains pending.

@@ -11,98 +11,94 @@ Branch: `code-simplification`, starting from pushed root `94aeeee` and the
 items in [the plan](docs/development/plans/code-simplification.plan): unsupported
 Windows Host removal, a shared profile catalog, owned encoded Client frames,
 Client lifecycle consolidation, and Mac Host display transactions outside the
-shared runtime lock. All five implementations and local fixtures are complete;
-hosted validation and package collection remain in progress for
-**1.3.05-code-simplification**. No merge, release or deployment is requested.
+shared runtime lock. All five implementations, focused regression checks and
+four hosted candidate builds are complete for **1.3.05-code-simplification**.
+The packages are downloaded and checksum-verified. No merge, release or
+deployment was performed.
 
-Client `4d2360d5` uses common-C `51b084d`; Linux Host is `b7382ab4`.
-The shared catalog preserves profile IDs, exact formats and runtime hardware
-probes. Encoded frames share one allocation through FFmpeg except when SPS
-rewriting or noncontiguous prefix removal requires assembly. Client cancellation
-cannot be undone by late recovery completion. Mac display/takeover provider work
-runs outside the runtime lock, with reserved admission, scope/token revalidation,
-asynchronous shutdown and restoration on failure.
+Current implementation pins:
 
-Local checks: 115 CI-policy cases, eight common-C regressions, C/C++ catalog
-contracts, 1,000 lifecycle races and 1,882 frame/recovery assertions pass.
-The four-MiB delta fixture confirms one allocation and no NAL/reassembly copies.
-Hosted sanitizer, Mac runtime race and all four package results are pending.
-Installed acceptance remains separate; do not claim live performance or hardware
-qualification from these fixtures.
-
-## Checkpoint — Host and desktop Client cleanup
-
-Branch: `host-cleanup`, based on the pending dependency refresh and SDL-free
-Clients. Candidate version: **1.3.04-host-cleanup**. No merge, release or
-installation is authorized by the current cleanup/build task.
-
-The operator asked for a complete pass over the approved cleanup list, including
-both Hosts and both desktop Clients, instead of repeated narrow passes described
-as complete. See [the plan](docs/development/plans/host-cleanup.plan) and
-[the scope inventory](docs/development/reviews/desktop-cleanup-inventory.md).
-
-Committed and pushed:
-
-- Client common-C crypto/socket helpers and redundant DNS/local-address setup
-  are removed. QUIC already owns connection establishment. Thread/signal setup,
-  input/media queues and callback lifetimes remain.
-- Retired Client shaders/font, inherited packaging/prebuilt/Qt5/embedded paths,
-  unused controller launch arguments and GFE-only error translation are removed.
-  The packed-color fixture now compiles the production Qt shader.
-- Linux Host no-op libdisplaydevice and unselected Wayland/KWin/portal/PipeWire,
-  VA-API/Vulkan backends are removed, including their submodules/build switches.
-  DRM/CUDA/EGL/X11, PLANK display leases/restoration, x264 and direct NVENC remain.
-- Host FFmpeg explicitly disables unused SVT-AV1/AMF/VA-API/Vulkan builds and
-  requires an exact prepared prefix. Old automatic release-download fallback is
-  removed. The preflight verifies selected CBS patches and rejects stale backend
-  selections; retained Client Vulkan decoding is separate.
-- Mac Host and desktop Client require schema7 media negotiation. Schemas4–6 and
-  version-string adapters are removed. Shared request/reply vectors and failure
-  tests are updated; independent optional-feature negotiation remains.
-
-Local validation: 115 CI-policy cases, ten prepared-source/patch cases, eight
-common-C regressions, 276 native-session lifecycle checks, Host supervisor source
-checks and shell/Python/diff checks pass. The production Qt GLSL passed 1,465
-samples per mapping for full/limited BT.709 and 8/10-bit identity mappings on
-software GLES; maximum conversion error was one ten-bit code, identity zero.
-This is neither GPU surface-import qualification nor installed session acceptance.
-
-Source pins:
-
-- Root build source for both Clients and Mac Host:
-  `8f7c713dc2495780c037a45c03cf458ad7056cfe`.
-- Linux Host build source: root `6b756cfd5c5a2b317fd15934f139572218b04be7`,
-  Host `2fa4d389f8da059dc3bebcead95cd57c35fdcd43`.
-- Client `48bc98df023ecddb8967edef3d6da70238b2300b`, its common-C
-  `7ead62a835b8eeb99aac264809153424d3c778aa`.
+- Client `6739eafdd19c9b1bae370c9e9a3c72001bcaaba1`.
+- Client common-C `51b084da8f5fd894bf1962690a05b7b0f1269476`.
+- Linux Host `cb4b6b49c119cca269e24d9fcfb6f120cb5dc0d2`.
 - Kymux `12af484eb307351b068aba96da12afce46f4614b` (unchanged).
 
-Hosted candidate results:
+The Linux Host removal deletes about 19,000 lines of unsupported Windows code,
+including its platform dependencies and unused settings. Active Linux capture,
+encoding, input, NVIDIA API13 and the full CUDA architecture list are retained.
+The shared catalog preserves profile IDs, exact formats and runtime hardware
+probes; malformed or partial profile names are rejected. Encoded frames share
+one allocation through FFmpeg except when SPS rewriting or noncontiguous prefix
+removal requires assembly. The transport-to-C boundary still copies once.
+Client cancellation cannot be undone by late recovery completion. Mac display
+preparation, takeover drain and restoration run outside the runtime lock, with
+reserved admission, scope/token revalidation and asynchronous shutdown.
 
-| Product | Run | Result |
-| --- | --- | --- |
-| Ubuntu Client | `41369564545` | Passed; DEB collected |
-| macOS Client | `41369570173` | Passed; signed/notarized PKG collected |
-| macOS Host | `41369567315` | Passed; signed/notarized PKG collected |
-| Linux Host | `41371782372` | Passed; RPM collected |
+Portable checks pass: 115 CI-policy cases, eight common-C regressions, eight
+root build/structure contracts, C/C++ catalog contracts, 1,000 lifecycle races
+and 2,039 frame/recovery assertions. The four-MiB delta fixture confirms one
+allocation and no NAL/reassembly copies. Hosted Ubuntu component tests passed
+under ASan/UBSan. Mac runtime tests passed actual TLS/QUIC admission, takeover,
+disconnect/expiry restoration and cancellation with a synthetic display provider;
+cancellation drained in 0.08 seconds. These do not prove physical-display or
+installed session behavior.
 
-The Linux Host's first two runs caught a stale capture-selector source assertion
-and an unused VA-API include. Both are fixed. Those are the only differences
-from the other three products' root snapshot; their built sources are unchanged.
-The assertions now follow the retained display-refresh call, and the removed
-VA-API dependency was not restored to hide the include error.
+Hosted candidate builds:
 
-Packages are in `artifacts/packages/candidates/1.3.04-host-cleanup/`, with original
-source commits, hashes and package checks in `manifest.json` and `SHA256SUMS`.
-Logs, original manifests, recursive pins and regression reports are under
-`artifacts/qualification/desktop-cleanup-1.3.04/`. Hosted regression suites cover
-Qt EGL/Metal, schema7 negotiation, audio/input/lifecycle and package closure;
-they do not establish installed hardware/session acceptance.
+| Product | Run | Root source | Result |
+| --- | --- | --- | --- |
+| Linux Host | `41378937781` | `d98e996` | Passed; RPM collected |
+| Ubuntu Client | `41379496268` | `e2f42a6` | Passed; DEB collected |
+| macOS Host | `41378048318` | `e986108` | Passed; signed/notarized PKG collected |
+| macOS Client | `41378323417` | `f1d873e` | Passed; signed/notarized PKG collected |
 
-The approved cleanup implementation and all four hosted package checks are
-complete. No build remains active. Installed session acceptance is still pending;
-use the matching candidates and the gates below before considering a merge or
-release. This task did not merge, deploy or publish a release.
+The Linux Host passed three 900-frame, 150-Mbit/s loss-matrix trials spanning
+0, 0.5, 1, 3 and 5 percent injected loss, with zero unrecovered frames, plus
+its input lifecycle suite. This is synthetic transport qualification, not a live
+network or NVIDIA hardware pass.
+
+Packages are in `artifacts/packages/candidates/1.3.05-code-simplification/`.
+Original manifests, full logs, local fixture reports and recursive pins are in
+`artifacts/qualification/code-simplification-1.3.05/`. Package manifests retain
+each exact source commit and SHA-256. The root snapshots differ only by the
+Client changelog and Linux packaging gate corrections; later changes do not
+alter either built Mac product. Initial runs found a JSON Boolean type mismatch
+in the Mac catalog adapter and stale source assertions for deleted Linux Host
+Boost.Process guards and Client profile switches. These were corrected without
+restoring retired production paths; the corrected gates remain enforced.
+
+Ubuntu normal and ASan/UBSan suites, compositor checks at 100/125 percent scale,
+two-display behavior, three launcher smoke runs, package identity and dependency
+closure passed. Mac Client Qt/Metal fixtures and both Mac package/signing gates
+passed. Temporary task build/download directories were removed after preserving
+reports and packages. No hosted build remains active for this work.
+
+Next: install matching candidates for the hardware/session acceptance below,
+especially exact-profile decode, reconnect/cancel, Wacom, A/V soak and Mac
+display restoration. Fixture results do not substitute for those checks.
+
+## Previous checkpoint — Host and desktop Client cleanup
+
+The pushed starting checkpoint is root
+`94aeeee149b75b4c851931e1138e5bedfcac5aff` on `host-cleanup`, with Client
+`48bc98df023ecddb8967edef3d6da70238b2300b`, common-C
+`7ead62a835b8eeb99aac264809153424d3c778aa`, and Linux Host
+`2fa4d389f8da059dc3bebcead95cd57c35fdcd43`.
+
+Candidate **1.3.04-host-cleanup** already passed all four hosted build/package
+gates, including signed/notarized Mac packages. It removed retired Client
+crypto/socket/DNS helpers and packaging/rendering paths; unselected Linux Host
+display/capture/encoder backends; and schema4–6 negotiation compatibility.
+Qt production shader fixtures passed full/limited BT.709 and identity mappings
+on software GLES. Those changes are included in the current candidate.
+
+Its original packages, hashes and exact build snapshots remain in
+`artifacts/packages/candidates/1.3.04-host-cleanup/`; original manifests, logs and
+regression reports remain in `artifacts/qualification/desktop-cleanup-1.3.04/`.
+See [the scope inventory](docs/development/reviews/desktop-cleanup-inventory.md)
+and [the previous plan](docs/development/plans/host-cleanup.plan). Installed
+hardware/session acceptance remains pending; no merge, release or installation
+was performed for that checkpoint.
 
 ## Included prior candidates and unchanged contracts
 
