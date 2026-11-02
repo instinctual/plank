@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 #import "fixed-capture.h"
+#include "../../../../protocol/plank-transport/include/plank_encoding_profiles.h"
 #include <math.h>
 #include <stdatomic.h>
 #include <time.h>
@@ -23,12 +24,13 @@ static void displayChanged(CGDirectDisplayID display, CGDisplayChangeSummaryFlag
 }
 
 NSDictionary *PLANKMacEncodingProfile(NSString *mode) {
-    BOOL fullChroma = [mode isEqual:@"hevc-10-444-videotoolbox"];
-    if (!fullChroma && ![mode isEqual:@"hevc-10-420-videotoolbox"]) return nil;
-    return @{@"capture_source": @"screencapturekit", @"encoder_backend": @"videotoolbox",
-        @"encoding_mode": mode, @"codec": @"hevc", @"profile": fullChroma ? @"rext" : @"main10",
-        @"bit_depth": @10, @"chroma": fullChroma ? @"4:4:4" : @"4:2:0", @"range": @"full",
-        @"matrix": @"bt709", @"primaries": @"bt709", @"transfer": @"srgb", @"rgb_identity": @NO};
+    if (![mode isKindOfClass:NSString.class]) return nil;
+    const PlankEncodingProfile *profile = plank_encoding_profile_named(mode.UTF8String);
+    if (!profile || profile->encoder != PLANK_ENCODER_APPLE) return nil;
+    return @{@"capture_source": @"screencapturekit", @"encoder_backend": @(profile->backend),
+        @"encoding_mode": @(profile->mode), @"codec": @(profile->codec), @"profile": @(profile->profile),
+        @"bit_depth": @(profile->bit_depth), @"chroma": @(profile->chroma), @"range": @"full",
+        @"matrix": @(profile->matrix), @"primaries": @"bt709", @"transfer": @"srgb", @"rgb_identity": @(!!profile->rgb_identity)};
 }
 
 NSDictionary *PLANKMacFixedCaptureDescription(NSString *generation, NSString *identifier,

@@ -22,6 +22,8 @@ case ${PLANK_QT_SESSION_SANITIZERS:-0} in
         'QMAKE_LFLAGS+=-fsanitize=address,undefined') ;;
     *) echo 'PLANK_QT_SESSION_SANITIZERS must be 0 or 1' >&2; exit 2 ;;
 esac
+mkdir -p "$build_root"
+bash "$source_root/scripts/test/test-code-simplification.sh" "$build_root/simplification"
 for variant in production qt; do
     mkdir -p "$build_root/identity-$variant"
     (

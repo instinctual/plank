@@ -44,6 +44,7 @@ xcrun clang "${common[@]}" probes/macos/preview-receive.m "$archive" -lpthread -
     -o "$preview_build/preview-receive"
 if [[ ${4:-} = --synthetic-only ]]; then
     python3 tests/auth/macos-display-lease.py --server "$preview_build/preview-synthetic" --receiver "$preview_build/preview-receive"
+    python3 tests/auth/macos-display-cancellation.py --server "$preview_build/preview-synthetic"
     # Root is confined to synthetic loopback children and ephemeral identities;
     # no installation, real authentication, display or input is exercised.
     sudo -n "$(command -v python3)" tests/auth/macos-https-handoff.py \

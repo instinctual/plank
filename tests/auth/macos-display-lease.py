@@ -4,6 +4,7 @@ import argparse
 import hashlib
 import importlib.util
 import json
+import os
 from pathlib import Path
 import re
 import subprocess
@@ -20,7 +21,7 @@ fixture = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(fixture)
 with tempfile.TemporaryDirectory(prefix='plank-display-lease-') as directory:
     cert = fixture.create_identity(directory, root/'probes/macos/https-cert.cnf')
-    with subprocess.Popen([args.server, directory, 'display-lease'], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True) as server:
+    with subprocess.Popen([args.server, directory, 'display-lease'], env={**os.environ, 'PLANK_TEST_DISPLAY_TRANSACTION':'lock'}, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True) as server:
         try:
             line = server.stdout.readline()
             port = int(re.search(r'macos_https_auth_ready port=(\d+)', line)[1])

@@ -1,0 +1,67 @@
+# Desktop code simplification
+
+Branch: `code-simplification`, from committed and pushed checkpoint
+`94aeeee149b75b4c851931e1138e5bedfcac5aff` (`host-cleanup`). The operator authorized
+completion of all five items below without intermediate approval stops. No merge,
+release or deployment is implied. Preserve the earlier candidate packages.
+
+## Required work
+
+1. Delete unsupported Windows Host scaffolding, dependencies and dormant settings,
+   plus verified unused Client helpers. Keep active Linux CUDA/DRM/X11, native
+   macOS code, license attribution and Git history.
+2. Establish one encoding-profile catalog for stable IDs, wire names, precision,
+   capture compatibility and dimension restrictions. Consume it in the desktop
+   Client and both Hosts; preserve independent runtime hardware qualification.
+3. Give complete encoded Client frames one owned backing buffer. Preserve bounded
+   queues, keyframe/gap recovery, NAL validation, SPS corrections, timestamps and
+   shutdown ownership. Remove redundant NAL-payload/reassembly copies; measure
+   allocation/copy changes without claiming unmeasured live latency gains.
+4. Consolidate connection/recovery transitions under the existing Client session
+   worker. Keep durable cancellation and GUI responsiveness; preserve takeover,
+   authentication failure, renderer retention and held-input release behavior.
+5. Move macOS display/takeover operations outside the shared runtime lock using
+   explicit reservation and completion validation. Preserve graphical ownership,
+   authorization, generation checks, restoration and asynchronous shutdown.
+
+## Completion checks
+
+Each item needs production integration and focused behavioral regressions, not
+just new abstractions or source assertions. Exercise malformed profile/frame
+input, queue overflow and retirement, reconnect/cancel/stop ordering, and Mac
+display/takeover races. Keep protocol IDs and wire schemas stable unless an
+actual incompatible change requires explicit negotiation.
+
+Run all four hosted candidate builds, signing/notarizing the Mac packages through
+the protected workflow. Collect package manifests and hashes. Update HANDOFF
+with exact source pins, test results and remaining installed acceptance. Hardware
+GPU/color, audio soak, Wacom, login/logout and real display restoration cannot be
+claimed from hosted compilation or fixtures alone.
+
+## Status
+
+All five production changes are implemented. Hosted validation and package
+collection are pending for candidate `1.3.05-code-simplification`.
+
+Encoded frames have one reference-counted allocation containing the queue entry,
+NAL views and padded payload. FFmpeg retains the same allocation for ordinary
+frames; SPS rewriting and noncontiguous parameter sets retain an explicit copy
+path. The transport-to-C boundary still copies once. The fixture measures one
+allocation and no NAL/reassembly copies for a four-MiB delta frame; it does not
+measure end-to-end latency.
+
+The existing Client worker owns successful startup/recovery transitions;
+callbacks can request recovery or durable cancellation. A single lifecycle state
+replaces overlapping flags, and late GUI completions cannot reopen input after
+stopping. No additional worker is introduced.
+
+Mac display preparation, takeover drain and restoration reserve an operation
+under the runtime lock, perform provider work outside it, and revalidate request
+authorization and graphical scope before accepting a result. Launch rejects an
+outstanding operation or failed restoration. Shutdown cancels preparation and
+waits asynchronously for restoration. Synthetic runtime tests exercise the
+actual admission lock during provider calls and cancellation during preparation.
+
+Local checks pass: catalog C/C++ contracts, 1,000 lifecycle races, 1,882 encoded
+frame/recovery checks and common-C input/queue regressions. Hosted sanitizers,
+Mac transaction regressions and all four package builds remain required.

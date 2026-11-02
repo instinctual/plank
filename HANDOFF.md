@@ -4,7 +4,33 @@ Read `AGENTS.md` and the relevant build runbook first. Keep machine inventory,
 credentials and private captures outside Git. This file records current work;
 older candidate provenance remains in Git history and the artifact catalog.
 
-## Active — Host and desktop Client cleanup
+## Active — Desktop code simplification
+
+Branch: `code-simplification`, starting from pushed root `94aeeee` and the
+`host-cleanup` nested commits recorded below. The operator authorized all five
+items in [the plan](docs/development/plans/code-simplification.plan): unsupported
+Windows Host removal, a shared profile catalog, owned encoded Client frames,
+Client lifecycle consolidation, and Mac Host display transactions outside the
+shared runtime lock. All five implementations and local fixtures are complete;
+hosted validation and package collection remain in progress for
+**1.3.05-code-simplification**. No merge, release or deployment is requested.
+
+Client `4d2360d5` uses common-C `51b084d`; Linux Host is `f9672a68`.
+The shared catalog preserves profile IDs, exact formats and runtime hardware
+probes. Encoded frames share one allocation through FFmpeg except when SPS
+rewriting or noncontiguous prefix removal requires assembly. Client cancellation
+cannot be undone by late recovery completion. Mac display/takeover provider work
+runs outside the runtime lock, with reserved admission, scope/token revalidation,
+asynchronous shutdown and restoration on failure.
+
+Local checks: 115 CI-policy cases, seven common-C regressions, C/C++ catalog
+contracts, 1,000 lifecycle races and 1,882 frame/recovery assertions pass.
+The four-MiB delta fixture confirms one allocation and no NAL/reassembly copies.
+Hosted sanitizer, Mac runtime race and all four package results are pending.
+Installed acceptance remains separate; do not claim live performance or hardware
+qualification from these fixtures.
+
+## Checkpoint — Host and desktop Client cleanup
 
 Branch: `host-cleanup`, based on the pending dependency refresh and SDL-free
 Clients. Candidate version: **1.3.04-host-cleanup**. No merge, release or
