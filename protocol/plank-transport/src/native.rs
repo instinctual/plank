@@ -957,17 +957,19 @@ mod tests {
                 let packet = tokio::time::timeout_at(deadline, client_video.recv())
                     .await
                     .unwrap_or_else(|_| {
-                        panic!("loss-test receiver missed 100 ms scheduled deadline for frame {frame}")
+                        panic!(
+                            "loss-test receiver missed 100 ms scheduled deadline for frame {frame}"
+                        )
                     })
                     .expect("loss-test video endpoint closed")
                     .expect("loss-test video receive failed");
                 let received_at = matrix_start.elapsed();
-                if let AVPacket::Media(media) = packet {
-                    if !media.header.is_config {
-                        assert_eq!(media.header.pts, frame as u64 * 1_500);
-                        assert_eq!(media.payload, expected_payload);
-                        received.push(received_at);
-                    }
+                if let AVPacket::Media(media) = packet
+                    && !media.header.is_config
+                {
+                    assert_eq!(media.header.pts, frame as u64 * 1_500);
+                    assert_eq!(media.payload, expected_payload);
+                    received.push(received_at);
                 }
             }
             received
@@ -996,7 +998,9 @@ mod tests {
                 )
                 .await
                 .unwrap_or_else(|_| {
-                    panic!("loss-test sender missed 100 ms scheduled deadline for frame {frame_number}")
+                    panic!(
+                        "loss-test sender missed 100 ms scheduled deadline for frame {frame_number}"
+                    )
                 })
                 .expect("failed to send paced loss-test frame");
                 submitted.push(matrix_start.elapsed());
@@ -1010,7 +1014,8 @@ mod tests {
             }
             eprintln!(
                 "fec_loss_phase_basis_points={loss} frames={FRAMES_PER_PHASE} elapsed_ms={} dropped_datagrams={}",
-                phase_start.elapsed().as_millis(), dropped - dropped_after_phase
+                phase_start.elapsed().as_millis(),
+                dropped - dropped_after_phase
             );
             dropped_after_phase = dropped;
         }
@@ -1042,10 +1047,14 @@ mod tests {
             let violations = metrics.violations();
             eprintln!(
                 "fec_loss_performance_basis_points={loss} frames={FRAMES_PER_PHASE} payload_bytes={PAYLOAD_BYTES} submitted_bps={} received_bps={} received_millifps={} submission_max_us={} delivery_p95_us={} delivery_max_us={} receive_gap_max_us={} completion_us={} pass={}",
-                metrics.submitted_bps, metrics.received_bps, metrics.received_millifps,
+                metrics.submitted_bps,
+                metrics.received_bps,
+                metrics.received_millifps,
                 metrics.submission_max.as_micros(),
-                metrics.delivery_p95.as_micros(), metrics.delivery_max.as_micros(),
-                metrics.receive_gap_max.as_micros(), metrics.completion.as_micros(),
+                metrics.delivery_p95.as_micros(),
+                metrics.delivery_max.as_micros(),
+                metrics.receive_gap_max.as_micros(),
+                metrics.completion.as_micros(),
                 violations.is_empty(),
             );
             if !violations.is_empty() {
@@ -1055,11 +1064,17 @@ mod tests {
         assert!(proxy.forwarded.load(Ordering::Relaxed) > 20_000);
         assert!(proxy.dropped.load(Ordering::Relaxed) > 500);
         let fec = client_connection.protocol_stats();
-        let source = fec.video_fec_source_symbols.expect("missing FEC denominator");
-        let missing = fec.video_fec_source_symbols_missing.expect("missing pre-FEC counter");
+        let source = fec
+            .video_fec_source_symbols
+            .expect("missing FEC denominator");
+        let missing = fec
+            .video_fec_source_symbols_missing
+            .expect("missing pre-FEC counter");
         assert!(source > 0 && missing > 0 && missing <= source);
         assert_eq!(fec.video_fec_source_symbols_unrecovered, Some(0));
-        eprintln!("fec_loss_matrix_frames={TOTAL_FRAMES} source={source} missing={missing} unrecovered=0");
+        eprintln!(
+            "fec_loss_matrix_frames={TOTAL_FRAMES} source={source} missing={missing} unrecovered=0"
+        );
 
         server_connection.close();
         client_connection.close();

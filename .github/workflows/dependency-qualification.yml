@@ -16,11 +16,10 @@ jobs:
         with:
           persist-credentials: false
       - run: git submodule update --init third_party/kyber-kymux
-      - name: Test refreshed production and probe transport
+      - name: Test production transport and native loss recovery
         run: |
           cargo test --locked --release --manifest-path protocol/plank-transport/Cargo.toml
           cargo test --locked --release --manifest-path third_party/quinn-proto-0.11.19/Cargo.toml --lib connection::datagrams::
-          cargo test --locked --release --manifest-path probes/network/plank-transport/Cargo.toml
           PLANK_TRANSPORT_CARGO_FEATURES=quinn-telemetry bash scripts/test/run-plank-transport-native-loopback.sh
           PLANK_TRANSPORT_CARGO_FEATURES=quinn-telemetry,macos-source-first bash scripts/test/run-plank-transport-native-loopback.sh
 

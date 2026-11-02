@@ -76,6 +76,12 @@ xcrun clang++ -std=c++17 -fobjc-arc -mmacosx-version-min="$MACOSX_DEPLOYMENT_TAR
     -framework Foundation -framework AppKit -framework AVFoundation \
     -o "$build/tests/microphone-permission-test"
 "$build/tests/microphone-permission-test"
+# Exercise the shared send/drain controller with actual pinned software decoders.
+xcrun clang++ -std=c++17 -mmacosx-version-min="$MACOSX_DEPLOYMENT_TARGET" \
+    -Wall -Wextra -Werror -DPLANK_TEST_REAL_FFMPEG \
+    -I"$client/app/streaming" "$source_root/tests/session/decode-pump.cpp" \
+    $(pkg-config --cflags --libs libavcodec libavutil) -o "$build/tests/decode-pump"
+DYLD_LIBRARY_PATH="$PLANK_MAC_CLIENT_DEPS/install/lib" "$build/tests/decode-pump"
 patch_file="$client/app/deploy/linux/ffmpeg-patches/0001-hevc-enable-hwaccel-for-identity-gbr.patch"
 printf '%s  %s\n' d8514ed9db3fc2c1aba43cfad0b06f8be3670759bdb173b6fd0a6dc1cffa0bf4 "$patch_file" | shasum -a 256 -c -
 patch --batch --reverse --dry-run -d "$PLANK_MAC_CLIENT_DEPS/src/ffmpeg-9.0.2" -p1 < "$patch_file"
@@ -99,7 +105,7 @@ qmake -r "$client/moonlight-qt.pro" CONFIG+=release \
     "QMAKE_CFLAGS+=$PLANK_C_FILE_FLAGS" "QMAKE_CXXFLAGS+=$PLANK_C_FILE_FLAGS"
 make -j"${PLANK_BUILD_JOBS:-8}" release
 # Run shared topology and toolbar geometry on every Mac Client candidate.
-for suite in outputtopology plankdisplaymode planktoolbarlogic desktopstage macquitshortcut macapplication mackeyboardcapture plankpresentation macrawwacom macclipboardsync changelog authenticationtakeover hosttruststore hosttlsguard; do
+for suite in pollingthread outputtopology plankdisplaymode planktoolbarlogic desktopstage macquitshortcut macapplication mackeyboardcapture plankpresentation macrawwacom macclipboardsync changelog authenticationtakeover hosttruststore hosttlsguard; do
     run_shared_client_test "$suite"
 done
 # Dummy input only: no microphone permission or physical recording on builders.

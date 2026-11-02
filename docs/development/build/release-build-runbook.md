@@ -174,6 +174,17 @@ the builder to work around it. Verify RPM version, the production compile's
 Distinguish `/usr/bin/plank-host` (launcher script) from
 `/usr/libexec/plank/plank-host` (media ELF) when recording payload hashes.
 
+## Focused Linux Host regression builds
+
+After the production RPM is built, `test-linux-host-input.sh` builds component
+fixtures from the same pinned Host source. It runs the existing input, raw-HID,
+normalized pen, retained-session and reliable-queue tests against the fake UHID
+backend, plus production crypto and UTF-8 logging checks. Each suite is repeated
+25 times. Product input defaults are shared with the fixture, not copied.
+The job no longer recompiles the full media/CUDA Host with coverage merely to
+run input/crypto filters. Full Host tests remain available through BUILD_TESTS;
+RPM binaries are still built with BUILD_TESTS=OFF.
+
 ## Native transport lifecycle qualification
 
 The Linux Host build runs the vendored Quinn DATAGRAM boundary/accounting tests

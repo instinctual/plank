@@ -44,11 +44,18 @@ const MAX_VIDEO_FRAME_SIZE: usize = 64 * 1024 * 1024;
 const MAX_AUDIO_PACKET_SIZE: usize = 64 * 1024;
 const MAX_INPUT_PACKET_SIZE: usize = u16::MAX as usize;
 const VIDEO_METADATA_SIZE: usize = 16;
+// Keep the existing largest valid frame admissible, while bounding all queued
+// video to one maximum-size record (rather than 4/16 such records).
+const VIDEO_QUEUE_BYTE_CAPACITY: usize = MAX_VIDEO_FRAME_SIZE + VIDEO_METADATA_SIZE;
 const VIDEO_FLAG_KEY: u32 = 1;
 const VIDEO_CODEC_H264: u32 = u32::from_be_bytes(*b"H264");
 const VIDEO_CODEC_HEVC: u32 = u32::from_be_bytes(*b"HEVC");
 const AUDIO_CODEC_OPUS: u32 = u32::from_be_bytes(*b"OPUS");
 const CONNECTION_CLOSE_DRAIN: Duration = Duration::from_secs(1);
+
+#[cfg(test)]
+#[path = "native_video_tests.rs"]
+mod video_tests;
 
 #[cfg(test)]
 #[path = "native_data_tests.rs"]
@@ -67,6 +74,65 @@ mod microphone_lane;
 
 #[path = "native_camera.rs"]
 mod camera_lane;
+
+struct NativeVideoSubmission {
+    #[cfg(feature = "sender-timing")]
+    enqueued_at: Instant,
+    #[cfg(feature = "sender-timing")]
+    frame_number: u64,
+    codec: u32,
+    flags: u32,
+    pts: u64,
+    record: Bytes,
+}
+
+fn video_record(number: u64, latency: u16, payload: &[u8]) -> Bytes {
+    let mut record = BytesMut::with_capacity(VIDEO_METADATA_SIZE + payload.len());
+    record.put_u64(number);
+    record.put_u16(latency);
+    record.extend_from_slice(&[0; VIDEO_METADATA_SIZE - 10]);
+    record.extend_from_slice(payload);
+    record.freeze()
+}
+
+// Charges are retired only when the same item is removed under the queue lock.
+// Multiple older frames may be evicted by one large record; count every drop.
+struct VideoQueue<T> {
+    frames: VecDeque<(usize, T)>,
+    bytes: usize,
+}
+impl<T> Default for VideoQueue<T> {
+    fn default() -> Self {
+        Self {
+            frames: VecDeque::new(),
+            bytes: 0,
+        }
+    }
+}
+impl<T> VideoQueue<T> {
+    fn len(&self) -> usize {
+        self.frames.len()
+    }
+    fn front(&self) -> Option<&T> {
+        self.frames.front().map(|(_, value)| value)
+    }
+    fn pop_front(&mut self) -> Option<T> {
+        let (bytes, value) = self.frames.pop_front()?;
+        self.bytes -= bytes;
+        Some(value)
+    }
+    fn push_back(&mut self, value: T, bytes: usize, count_limit: usize) -> usize {
+        assert!(bytes <= VIDEO_QUEUE_BYTE_CAPACITY && count_limit > 0);
+        let mut dropped = 0;
+        while self.len() >= count_limit || bytes > VIDEO_QUEUE_BYTE_CAPACITY - self.bytes {
+            self.pop_front().expect("a full queue contains an item");
+            dropped += 1;
+        }
+        self.bytes += bytes;
+        self.frames.push_back((bytes, value));
+        dropped
+    }
+}
 
 struct NativeVideoFrame {
     #[cfg(feature = "sender-timing")]
@@ -126,8 +192,8 @@ impl NativeDataQueue {
 
 #[derive(Default)]
 struct NativeQueues {
-    video_send: VecDeque<NativeVideoFrame>,
-    video_receive: VecDeque<NativeVideoFrame>,
+    video_send: VideoQueue<NativeVideoSubmission>,
+    video_receive: VideoQueue<NativeVideoFrame>,
     audio_send: VecDeque<NativeAudioPacket>,
     audio_receive: VecDeque<NativeAudioPacket>,
     input_send: VecDeque<NativeInputPacket>,
@@ -394,12 +460,12 @@ async fn send_video(
             let trace_frame = sender_trace::Frame {
                 number: frame.frame_number,
                 key: frame.flags & VIDEO_FLAG_KEY != 0,
-                bytes: frame.payload.len(),
+                bytes: frame.record.len() - VIDEO_METADATA_SIZE,
                 depth: _queue_depth,
                 wire_bps: shared.rate_policy.active_wire_bps(),
                 drops: shared.stats.video_send_drops.load(Ordering::Relaxed),
             };
-            let payload_size = frame.payload.len() as u64;
+            let payload_size = (frame.record.len() - VIDEO_METADATA_SIZE) as u64;
             let submission = async {
                 if active_codec != Some(frame.codec) {
                     protocol
@@ -427,22 +493,15 @@ async fn send_video(
                         }))
                         .await?;
                 }
-                let mut native_payload =
-                    BytesMut::with_capacity(VIDEO_METADATA_SIZE + frame.payload.len());
-                native_payload.put_u64(frame.frame_number);
-                native_payload.put_u16(frame.host_processing_latency);
-                native_payload.extend_from_slice(&[0; VIDEO_METADATA_SIZE - 10]);
-                native_payload.extend_from_slice(&frame.payload);
-                let native_payload = native_payload.freeze();
                 protocol
                     .send(AVPacket::Media(MediaPacket {
                         header: MediaPacketHeader {
                             is_config: false,
                             is_key: key,
                             pts: frame.pts,
-                            size: native_payload.len() as u32,
+                            size: frame.record.len() as u32,
                         },
-                        payload: native_payload,
+                        payload: frame.record,
                     }))
                     .await?;
                 Ok::<(), anyhow::Error>(())
@@ -542,21 +601,16 @@ fn push_video_receive(shared: &NativeShared, frame: NativeVideoFrame) {
     let payload_size = frame.payload.len() as u64;
     let dropped = {
         let mut queues = shared.queues.lock().unwrap();
-        let dropped = if queues.video_receive.len() == VIDEO_RECEIVE_CAPACITY {
-            queues.video_receive.pop_front();
-            true
-        } else {
-            false
-        };
-        queues.video_receive.push_back(frame);
-        dropped
+        queues.video_receive.push_back(
+            frame,
+            payload_size as usize + VIDEO_METADATA_SIZE,
+            VIDEO_RECEIVE_CAPACITY,
+        )
     };
-    if dropped {
-        shared
-            .stats
-            .video_receive_drops
-            .fetch_add(1, Ordering::Relaxed);
-    }
+    shared
+        .stats
+        .video_receive_drops
+        .fetch_add(dropped as u64, Ordering::Relaxed);
     shared
         .stats
         .video_frames_received
@@ -577,8 +631,10 @@ async fn receive_video(
         match packet {
             AVPacket::Codec(packet) => codec = packet.header.codec,
             AVPacket::Media(packet) if !packet.header.is_config => {
-                if packet.payload.len() < VIDEO_METADATA_SIZE {
-                    return Err(anyhow!("native video frame metadata is truncated"));
+                if !(VIDEO_METADATA_SIZE + 1..=VIDEO_QUEUE_BYTE_CAPACITY)
+                    .contains(&packet.payload.len())
+                {
+                    return Err(anyhow!("native video frame size is invalid"));
                 }
                 let frame_number = u64::from_be_bytes(
                     packet.payload[..8]
@@ -1263,69 +1319,8 @@ fn finish_worker(shared: &NativeShared, result: Result<()>) {
 }
 
 #[cfg(test)]
-mod completion_tests {
-    use super::*;
-
-    #[test]
-    fn orderly_peer_close_fails_all_live_phases() {
-        for phase in [
-            EndpointState::PeerValidation,
-            EndpointState::SetupReady,
-            EndpointState::Ready,
-        ] {
-            let shared = NativeShared::new(false, false, 150_000_000);
-            shared.set_state(phase);
-            finish_worker(&shared, Ok(()));
-            assert_eq!(shared.state(), EndpointState::Failed);
-            assert!(shared.status.lock().unwrap().error.contains("peer closed"));
-        }
-    }
-
-    #[test]
-    fn explicit_local_stop_remains_stopped() {
-        for result in [Ok(()), Err(anyhow!("closed during local shutdown"))] {
-            let shared = NativeShared::new(false, false, 150_000_000);
-            shared.stop.store(true, Ordering::Release);
-            finish_worker(&shared, result);
-            assert_eq!(shared.state(), EndpointState::Stopped);
-            assert!(shared.status.lock().unwrap().error.is_empty());
-        }
-    }
-
-    #[test]
-    fn transport_failure_keeps_original_error() {
-        let shared = NativeShared::new(false, false, 150_000_000);
-        finish_worker(&shared, Err(anyhow!("original transport error")));
-        assert_eq!(shared.state(), EndpointState::Failed);
-        assert_eq!(
-            shared.status.lock().unwrap().error,
-            "original transport error"
-        );
-    }
-
-    #[test]
-    fn queued_control_precedes_peer_close() {
-        let shared = NativeShared::new(false, false, 150_000_000);
-        shared
-            .queues
-            .lock()
-            .unwrap()
-            .data_receive
-            .push_back(Bytes::from_static(b"takeover"));
-        finish_worker(&shared, Ok(()));
-        let receive = || {
-            wait_pop(
-                &shared,
-                &shared.data_receive_changed,
-                Duration::ZERO,
-                |queues| queues.data_receive.pop_front(),
-            )
-        };
-        assert_eq!(receive(), Some(Bytes::from_static(b"takeover")));
-        assert!(receive().is_none());
-        assert_eq!(shared.state(), EndpointState::Failed);
-    }
-}
+#[path = "native_completion_tests.rs"]
+mod completion_tests;
 
 fn enqueue_replaceable<T>(queue: &mut VecDeque<T>, capacity: usize, value: T) -> bool {
     let dropped = if queue.len() == capacity {
@@ -1694,31 +1689,31 @@ pub unsafe extern "C" fn plank_transport_native_video_send(
         if endpoint.shared.state() != EndpointState::Ready {
             return PLANK_TRANSPORT_ERROR_INVALID_STATE;
         }
-        let payload =
-            Bytes::copy_from_slice(unsafe { std::slice::from_raw_parts(payload, payload_size) });
-        let dropped = enqueue_replaceable(
-            &mut endpoint.shared.queues.lock().unwrap().video_send,
-            VIDEO_SEND_CAPACITY,
-            NativeVideoFrame {
+        let record = video_record(info.frame_number, info.host_processing_latency, unsafe {
+            std::slice::from_raw_parts(payload, payload_size)
+        });
+        let size = record.len();
+        let dropped = endpoint.shared.queues.lock().unwrap().video_send.push_back(
+            NativeVideoSubmission {
                 #[cfg(feature = "sender-timing")]
                 enqueued_at: Instant::now(),
+                #[cfg(feature = "sender-timing")]
+                frame_number: info.frame_number,
                 codec: info.codec,
                 flags: info.flags,
-                frame_number: info.frame_number,
                 pts: info.pts,
-                host_processing_latency: info.host_processing_latency,
-                payload,
+                record,
             },
+            size,
+            VIDEO_SEND_CAPACITY,
         );
-        if dropped {
-            endpoint
-                .shared
-                .stats
-                .video_send_drops
-                .fetch_add(1, Ordering::Relaxed);
-        }
+        endpoint
+            .shared
+            .stats
+            .video_send_drops
+            .fetch_add(dropped as u64, Ordering::Relaxed);
         endpoint.shared.video_send_notify.notify_one();
-        if dropped {
+        if dropped != 0 {
             PLANK_TRANSPORT_DROPPED
         } else {
             PLANK_TRANSPORT_OK
@@ -1775,13 +1770,16 @@ pub unsafe extern "C" fn plank_transport_native_video_receive(
             &endpoint.shared.video_receive_changed,
             Duration::from_millis(timeout_ms.into()),
             |queues| {
-                claim_receive_front(
-                    &mut queues.video_receive,
-                    |frame| frame.payload.len(),
-                    payload,
-                    payload_capacity,
-                    payload_size_out,
-                )
+                let size = queues.video_receive.front()?.payload.len();
+                let result = validate_bytes_out(size, payload, payload_capacity, payload_size_out);
+                Some(if result == PLANK_TRANSPORT_OK {
+                    Ok(queues
+                        .video_receive
+                        .pop_front()
+                        .expect("validated frame remains locked"))
+                } else {
+                    Err(result)
+                })
             },
         ) else {
             return if endpoint.shared.state() == EndpointState::Failed {

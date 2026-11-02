@@ -121,30 +121,6 @@ for required_rate_contract in \
 done
 echo "host_plank_transport_rust_input_gate=pass"
 echo "host_plank_transport_cargo_features=${plank_transport_cargo_features}"
-for required_plank_transport_token in \
-  'PlankTransportCertificateSha256' \
-  'PlankTransportToken' \
-  'start_plank_transport_data_plane' \
-  'session.plank_transport_endpoint' \
-  'plank_transport_native_video_send' \
-  'plank_transport_native_audio_send' \
-  'plank_transport_native_data_send' \
-  'plank_transport_native_data_receive' \
-  'PLANK_TRANSPORT_SETUP_LAUNCH_REQUEST' \
-  'host_feature_flags' \
-  'reference_frame_invalidation' \
-  'Native QUIC session negotiation active' \
-  'drain_plank_transport_control' \
-  'if (!session->plank_transport_endpoint)' \
-  'Confirmed PLANK encoder target over PlankTransport' \
-  'PlankTransport native transport'; do
-  rg -Fq "$required_plank_transport_token" \
-    "$source_dir/src" || {
-    echo "host plank_transport negotiation invariant is missing: ${required_plank_transport_token}" >&2
-    exit 1
-  }
-done
-echo "host_plank_transport_negotiation_gate=pass"
 for removed_data_plane_selector_token in \
   'plankDataPlane' \
   'PlankDataPlane' \

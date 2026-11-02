@@ -77,3 +77,25 @@ Builds: Linux Host `41378937781`, Ubuntu Client `41379496268`, Mac Host
 logs and local reports are retained in
 `artifacts/qualification/code-simplification-1.3.05/`; HANDOFF records the
 implementation pins. Installed hardware/session acceptance remains pending.
+
+
+## Follow-up simplification pass
+
+Authorized in full after the 1.3.05 checkpoint at root `0a32513`. Complete all
+items on this branch, then build matching hosted candidates; no merge/release.
+
+- Remove the retired two-connection transport, preserving native configuration,
+  authentication, cancellation, FEC and current wire/ABI values.
+- Make Client decoding follow FFmpeg send/drain semantics with interruptible
+  input waits, packet retry and explicit metadata retirement on errors.
+- Assemble Host video metadata and encoded bytes once before queue submission.
+- Bound native video queues by bytes and count with accounted overflow.
+- Compile focused Host input/crypto tests; replace brittle source assertions
+  where behavioral coverage exists; remove duplicate Qt build declarations.
+- Delete unreachable Client AV1, Linux Host Apple startup and unused KMS helper.
+- Replace per-bookmark polling sleeps with a cancellation-aware timed wait.
+- Remove unused wide-character logging and deprecated codecvt setup after
+  verifying UTF-8 logging behavior.
+
+Preserve live login-screen audio, 10-bit SDR/identity color paths, exact-format
+hardware qualification, input recovery and package ownership/security gates.

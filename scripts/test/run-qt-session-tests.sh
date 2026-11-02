@@ -14,9 +14,11 @@ export PKG_CONFIG_PATH="$PLANK_CLIENT_FFMPEG_WORK/install/lib/pkgconfig${PKG_CON
 test "$(pkg-config --variable=prefix libavutil)" = "$PLANK_CLIENT_FFMPEG_WORK/install"
 qmake=${QMAKE:-qmake6}
 qmake_flags=()
+cxx_flags=()
 case ${PLANK_QT_SESSION_SANITIZERS:-0} in
     0) ;;
-    1) qmake_flags+=(CONFIG+=debug
+    1) cxx_flags+=(-fsanitize=address,undefined -fno-omit-frame-pointer)
+       qmake_flags+=(CONFIG+=debug
         'QMAKE_CFLAGS+=-fsanitize=address,undefined -fno-omit-frame-pointer'
         'QMAKE_CXXFLAGS+=-fsanitize=address,undefined -fno-omit-frame-pointer'
         'QMAKE_LFLAGS+=-fsanitize=address,undefined') ;;
@@ -24,6 +26,19 @@ case ${PLANK_QT_SESSION_SANITIZERS:-0} in
 esac
 mkdir -p "$build_root"
 bash "$source_root/scripts/test/test-code-simplification.sh" "$build_root/simplification"
+c++ -std=c++17 -Wall -Wextra -Werror -DPLANK_TEST_REAL_FFMPEG "${cxx_flags[@]}" \
+    -I"$source_root/apps/client/app/streaming" \
+    "$source_root/tests/session/decode-pump.cpp" $(pkg-config --cflags --libs libavcodec libavutil) \
+    -o "$build_root/decode-pump-ffmpeg"
+"$build_root/decode-pump-ffmpeg"
+mkdir -p "$build_root/polling-tests"
+(
+    cd "$build_root/polling-tests"
+    "$qmake" "$source_root/apps/client/tests/pollingthread/pollingthread.pro" "${qmake_flags[@]}"
+    make -j"${PLANK_BUILD_JOBS:-4}"
+    ./pollingthread
+)
+
 for variant in production qt; do
     mkdir -p "$build_root/identity-$variant"
     (

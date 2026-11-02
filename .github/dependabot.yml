@@ -23,7 +23,6 @@ updates:
   - package-ecosystem: cargo
     directories:
       - /protocol/plank-transport
-      - /probes/network/plank-transport
     schedule:
       interval: weekly
       day: monday

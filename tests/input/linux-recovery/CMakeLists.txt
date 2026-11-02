@@ -68,3 +68,20 @@ target_link_libraries(input-recovery PRIVATE libvirtualhid::libvirtualhid gtest_
   Threads::Threads)
 add_test(NAME input-recovery COMMAND input-recovery)
 set_tests_properties(input-recovery PROPERTIES TIMEOUT 30)
+
+# Crypto and UTF-8 logging use production implementations without media/CUDA.
+find_package(OpenSSL REQUIRED)
+get_filename_component(PLANK_FFMPEG_PREFIX "${PLANK_FFMPEG_INCLUDE}" DIRECTORY)
+find_library(PLANK_AVUTIL avutil PATHS "${PLANK_FFMPEG_PREFIX}/lib" NO_DEFAULT_PATH REQUIRED)
+add_executable(host-core-tests
+  test-logging-utf8.cpp
+  "${HOST}/src/logging.cpp"
+  "${HOST}/src/crypto.cpp"
+  "${HOST}/tests/unit/test_crypto.cpp")
+target_compile_definitions(host-core-tests PRIVATE SUNSHINE_TESTS)
+target_include_directories(host-core-tests PRIVATE "${HOST}" "${PLANK_FFMPEG_INCLUDE}")
+target_link_libraries(host-core-tests PRIVATE gtest_main Boost::log Boost::thread
+  Boost::filesystem Boost::format OpenSSL::Crypto OpenSSL::SSL
+  "${PLANK_AVUTIL}" Threads::Threads ${CMAKE_DL_LIBS} m)
+add_test(NAME host-core-tests COMMAND host-core-tests)
+set_tests_properties(host-core-tests PROPERTIES TIMEOUT 30)

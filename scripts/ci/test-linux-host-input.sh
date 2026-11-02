@@ -8,23 +8,8 @@ host_source="$root/apps/host/linux"
 ffmpeg_dir=$(sed -n 's/^FFMPEG_PREPARED_BINARIES:[^=]*=//p' "$host_build/CMakeCache.txt")
 test -f "$ffmpeg_dir/include/libavutil/pixfmt.h"
 test -f "$ffmpeg_dir/lib/libavcodec.a"
-source "$root/scripts/package/package-version.sh"
-plank_load_package_version "$root"
-env BRANCH=plank-package BUILD_VERSION="$PLANK_PACKAGE_VERSION" \
-  COMMIT="$(git -C "$host_source" rev-parse HEAD)" \
-  cmake -S "$host_source" -B "$host_build" \
-    -DFFMPEG_PREPARED_BINARIES="$ffmpeg_dir" -DBUILD_TESTS=ON
-# Coverage-enabled test objects are larger than production objects.
-cmake --build "$host_build" --parallel 2 --target test_sunshine
-(
-  cd "$host_source"
-  "$host_build/tests/test_sunshine" --gtest_color=no \
-    --gtest_filter='CryptoTest.*:InputConfigDefaults.*:InputRetainedSessionTest.*:RawHidTablet.*:RawHidContactIo.*:NormalizedPen.*:ReliableQueue.*' \
-    --gtest_repeat=25 --gtest_shuffle --gtest_random_seed=837
-)
-# The full Host tests skip kernel-UHID cases on a builder. Run the link-wrapped
-# component fixture too: it exercises actual endpoint creation, suspension,
-# reservation cleanup and reattachment without touching any input devices.
+# Both fixtures compile production implementations directly. Avoid rebuilding
+# the entire CUDA/media Host merely to execute input and crypto test filters.
 fixture_build="$host_build/cmake-build-input-lifecycle"
 cxx_compiler=$(sed -n 's/^CMAKE_CXX_COMPILER:[^=]*=//p' "$host_build/CMakeCache.txt")
 test -x "$cxx_compiler"
@@ -39,5 +24,7 @@ if rg -l --glob '*.o.d' '/usr/(local/)?include/boost/' \
   exit 1
 fi
 "$fixture_build/input-recovery" --gtest_color=no \
+  --gtest_repeat=25 --gtest_shuffle --gtest_random_seed=837
+"$fixture_build/host-core-tests" --gtest_color=no \
   --gtest_repeat=25 --gtest_shuffle --gtest_random_seed=837
 echo 'host_input_lifecycle_gate=pass hardware_acceptance=not-performed'

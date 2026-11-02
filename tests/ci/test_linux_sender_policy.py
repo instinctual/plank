@@ -25,7 +25,7 @@ class LinuxSenderPolicyTests(unittest.TestCase):
     def test_application_pacer_is_absent_from_runtime_and_diagnostics(self):
         # The policy job checks only root sources; it deliberately does not
         # initialize product submodules. Inspect Kynet after product bootstrap.
-        for directory in ('protocol/plank-transport/src', 'probes/network/plank-transport/src'):
+        for directory in ('protocol/plank-transport/src',):
             for path in (ROOT / directory).rglob('*.rs'):
                 source = path.read_text()
                 for removed in ('DatagramPacer', 'datagram_pacer', 'outgoing_pacer',

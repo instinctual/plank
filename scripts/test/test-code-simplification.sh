@@ -25,3 +25,7 @@ cc -std=gnu11 -Wall -Wextra -Werror -Wno-unused-parameter "${flags[@]}" \
     "$root/apps/client/moonlight-common-c/moonlight-common-c/src/LinkedBlockingQueue.c" \
     -Wl,--gc-sections -pthread -o "$output/native-video-recovery"
 "$output/native-video-recovery"
+
+c++ -std=c++17 -Wall -Wextra -Werror "${flags[@]}" -I"$root/apps/client/app/streaming" \
+    "$root/tests/session/decode-pump.cpp" -o "$output/decode-pump"
+"$output/decode-pump"

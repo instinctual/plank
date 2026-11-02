@@ -38,7 +38,7 @@ impl Packet {
             "zero microphone activation generation"
         );
         ensure!(
-            self.sample_time % u64::from(FRAME_SAMPLES) == 0
+            self.sample_time.is_multiple_of(u64::from(FRAME_SAMPLES))
                 && self
                     .sample_time
                     .checked_add(u64::from(FRAME_SAMPLES))

@@ -4,7 +4,24 @@ Read `AGENTS.md` and the relevant build runbook first. Keep machine inventory,
 credentials and private captures outside Git. This file records current work;
 older candidate provenance remains in Git history and the artifact catalog.
 
-## Active — Desktop code simplification
+## Active — Transport and decoder simplification follow-up
+
+Branch: `code-simplification`. The operator authorized all eight findings from
+this second review without intermediate stops. Pushed checkpoint before edits:
+root `0a325133698897d99358862cdb546d566a7098ca` and the 1.3.05 pins below.
+Candidate version advances to **1.3.06-code-simplification**. No merge, release
+or installation is authorized by this task.
+
+Implemented: retired two-connection transport/probes removed; native config and
+lifecycle tests retained; one-copy Host video records; 64-MiB-plus-metadata video
+queue byte bounds and exact drop accounting; FFmpeg send/drain handling with
+packet retry and metadata reset; interruptible bookmark polling; focused Host
+input/crypto/logging builds; unused AV1/platform/KMS/wide logging code removed.
+The current native wire/ABI values, exact codec qualification and login audio
+are unchanged. Pending: complete hosted validation/package collection and record
+the final pins/results. Local transport and portable fixtures pass so far.
+
+## Previous checkpoint — Desktop code simplification
 
 Branch: `code-simplification`, starting from pushed root `94aeeee` and the
 `host-cleanup` nested commits recorded below. The operator authorized all five

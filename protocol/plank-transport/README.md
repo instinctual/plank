@@ -10,7 +10,7 @@ and destroys it. Rust owns its Tokio runtime and worker threads; it does not
 call back into Host or Client C++ while a C++ lock is held. Error text remains
 owned by the endpoint and is copied into caller-provided storage.
 
-ABI version 7 provides the certificate-gated pre-session boundary. Session
+The native ABI provides the certificate-gated pre-session boundary. Session
 setup starts with a reliable KyProto data endpoint. The Client receives the
 peer leaf certificate, validates it against
 the PLANK certificate profile, and explicitly approves it before any
@@ -63,7 +63,7 @@ and delivery-performance gates.
 ## Native wire generation and RaptorQ
 
 The native QUIC ALPN is **`plank-native/2`**. This generation pins RaptorQ
-**2.0.1** in both the production library and standalone probe lockfiles. Its
+**2.0.1** in the production library's lockfile, also used by the native probes. Its
 RFC 6330 repair-symbol numbering is incompatible with the RaptorQ 1.x builds
 that used the `kymux` ALPN. Source symbols still have ESIs `0..K`; repairs
 start at `K`, not the extended internal block size `K'`. The library handles
@@ -218,7 +218,6 @@ cargo test --locked --offline \
 cargo clippy --locked --offline \
   --manifest-path protocol/plank-transport/Cargo.toml \
   --all-targets -- -D warnings
-scripts/test/run-plank-transport-ffi-loopback.sh
 scripts/test/run-plank-transport-native-loopback.sh
 scripts/test/run-plank-transport-native-ffi-loopback.sh
 ```
@@ -226,6 +225,18 @@ scripts/test/run-plank-transport-native-ffi-loopback.sh
 The native C loopback verifies exact-fingerprint and certificate-profile trust,
 pre-session data with media/input blocked, explicit same-connection promotion,
 a 192-KiB key frame and metadata, raw Opus, Wacom-like input, and reliable data
-in both directions through real encrypted KyProto endpoints. The standalone saturation probe remains useful historical
-evidence for the tunneled implementation, but its split-connection and BBR
-results are not assumed for the new one-connection native baseline.
+in both directions through real encrypted KyProto endpoints. The retired
+two-connection transport and its historical probes are no longer build inputs.
+
+
+Video submissions assemble the 16-byte PLANK metadata prefix and encoded bytes
+once. The queue and KyProto sender move that same immutable allocation. The
+caller still owns its C input; one initial copy remains necessary. This does
+not change wire bytes, frame ordering, RaptorQ or codec/profile negotiation.
+Video send/receive queues retain at most 4/16 records respectively and at most
+64 MiB plus 16 bytes each. A maximum-sized valid frame still fits. Overflow
+evicts oldest records and counts every eviction, including multiple records
+removed for one larger frame. Frame-number gaps preserve decoder recovery.
+Validation and dequeue remain atomic; an undersized destination does not release
+a byte charge. Decoder/FEC work in flight and other lane/QUIC buffers are separate
+from these queue limits.
