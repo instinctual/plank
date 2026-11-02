@@ -98,24 +98,10 @@ static inline NSDictionary *PLANKMacNegotiateMedia(NSDictionary *request, unsign
         @"required_features": request[@"required_features"], @"features": selected};
 }
 
-// All supported external formats become one internal request. Schema4's mono
-// microphone is deliberately disabled; no version1 audio decoder is restored.
+// Validate the current wire envelope and flatten its negotiated media settings
+// for the session. This internal dictionary is never accepted as a wire request.
 static inline NSDictionary *PLANKMacNormalizeMediaLaunch(NSDictionary *request) {
-    if (![request isKindOfClass:NSDictionary.class] || !PLANKMacMediaInteger(request[@"schema_version"], 4, 7)) return nil;
-    unsigned schema = [request[@"schema_version"] unsignedIntValue];
-    if (schema <= 6) {
-        if (request.count != (schema == 6 ? 12u : 11u)) return nil;
-        for (NSString *name in @[@"clipboard", @"microphone", @"camera"]) {
-            if ([name isEqual:@"camera"] && schema < 6) continue;
-            id value = request[name];
-            if (![value isKindOfClass:NSNumber.class] || CFGetTypeID((__bridge CFTypeRef)value) != CFBooleanGetTypeID()) return nil;
-        }
-        NSMutableDictionary *normalized = [request mutableCopy];
-        normalized[@"schema_version"] = @6;
-        if (schema == 4) normalized[@"microphone"] = @NO;
-        if (schema < 6) normalized[@"camera"] = @NO;
-        return normalized;
-    }
+    if (![request isKindOfClass:NSDictionary.class] || !PLANKMacMediaInteger(request[@"schema_version"], 7, 7)) return nil;
     if (request.count > 16 || ![request[@"transport"] isEqual:@"plank-native/2"] ||
         !PLANKMacMediaRequired(request[@"required_features"]) ||
         ![request[@"features"] isKindOfClass:NSDictionary.class] || [request[@"features"] count] > 32) return nil;
@@ -127,7 +113,7 @@ static inline NSDictionary *PLANKMacNormalizeMediaLaunch(NSDictionary *request) 
         if (!PLANKMacMediaContainsProfile(value, PLANKMacMediaSelectedProfile(name, desktop[@"encoding_mode"], value))) return nil;
     }
     NSMutableDictionary *normalized = [NSMutableDictionary dictionaryWithDictionary:@{
-        @"schema_version": @6,
+        @"schema_version": @7,
         @"clipboard": @([features[@"clipboard"] isKindOfClass:NSDictionary.class]),
         @"microphone": @([features[@"microphone"] isKindOfClass:NSDictionary.class]),
         @"camera": @([features[@"camera"] isKindOfClass:NSDictionary.class])}];
@@ -145,7 +131,7 @@ static inline NSDictionary *PLANKMacMediaReplyFeatures(NSDictionary *request, BO
     for (NSString *name in PLANKMacMediaNames()) {
         BOOL enabled = !([name isEqual:@"clipboard"] && !clipboard) &&
             !([name isEqual:@"microphone"] && !microphone) && !([name isEqual:@"camera"] && !camera);
-        id selected = [request[@"schema_version"] isEqual:@7] ? request[@"features"][name] : nil;
+        id selected = request[@"features"][name];
         features[name] = enabled ? PLANKMacMediaSelectedProfile(name, normalized[@"encoding_mode"], selected) : (id)NSNull.null;
     }
     NSMutableDictionary *desktop = [features[@"desktop"] mutableCopy];

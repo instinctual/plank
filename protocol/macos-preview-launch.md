@@ -55,54 +55,30 @@ bounded request may finish but cannot trigger more work behind that prompt.
 Disconnect cancels the paused worker. Login/logout recovery otherwise remains
 automatic. These rules do not apply credentials to bookmark discovery polls.
 
-New peers use the independently versioned feature contract in
-[media-feature-negotiation.md](media-feature-negotiation.md), with launch envelope7.
-This document also defines the retained schema6 adapter. Schemas4/5 use the same
-fields except `camera`, which must be absent. Schema4 microphone is always
-disabled by the Host because its old mono packet format is incompatible.
+Desktop Clients use the independently versioned contract in
+[media-feature-negotiation.md](media-feature-negotiation.md). Launch envelope7
+is the only accepted external format; the shared request vector is
+`tests/protocol/macos-preview-launch-v7.json`.
 
-The schema6 body has exactly the twelve fields in
-`tests/protocol/macos-preview-launch-v6.json`:
+The top-level fields are `schema_version: 7`, `transport: "plank-native/2"`,
+`required_features`, `capture_generation`, `capture_id`,
+`max_udp_payload_size` and `features`. The negotiated desktop feature carries
+exact even pixel dimensions (2–8192), the selected VideoToolbox HEVC encoding
+profile, frame rate60 and bookmark bitrate10000–150000 kbit/s.
 
-| Field | Required value |
-| --- | --- |
-| `schema_version` | Integer 6 |
-| `clipboard` | Boolean Client opt-in; false on Linux Clients |
-| `microphone` | Boolean reverse-audio capability opt-in; not recording consent |
-| `camera` | Boolean reverse-camera capability opt-in; not capture consent (Linux Client only) |
-| `capture_generation` | Current authenticated topology generation |
-| `capture_id` | Current fixed-capture identifier |
-| `width`, `height` | Exact advertised even pixel dimensions, 2–8192 |
-| `encoding_mode` | `hevc-10-420-videotoolbox` |
-| `frame_rate` | Integer 60 |
-| `bitrate_kbps` | Integer 10000–150000, supplied by the bookmark |
-| `max_udp_payload_size` | Integer 1200–65527, the existing native QUIC range |
+The MTU is the complete QUIC UDP payload ceiling (1200–65527), not Ethernet MTU
+or encoded NAL size. Numeric validity does not establish the actual path MTU.
+Malformed values, incompatible required features, wrong profiles and stale
+geometry fail. Bounded additive optional hints are permitted by the envelope.
+There is no implicit resize, profile substitution, takeover or fallback port.
 
-The MTU value is the complete QUIC UDP payload ceiling, not Ethernet MTU or
-encoded NAL size. The Client must calculate or manually select it using its
-existing route policy; accepting a numeric value does not prove that path MTU.
-Unknown fields, booleans as integers, wrong profiles and stale geometry fail.
-There is no resize, profile substitution, implicit takeover or fallback port.
-
-A successful response has schema 6, `state: "connecting"`, an independent
+A successful reply contains envelope7, `state: "connecting"`, an independent
 one-use `transport_token`, `udp_port`, the exact `max_udp_payload_size`, the
-selected `capture` descriptor and:
-
-```json
-"services": {"audio": true, "input": true, "pen": "normalized", "cursor": "embedded", "clipboard": false, "microphone": false, "camera": false}
-```
-
-Clipboard is true only when explicitly requested by a capable Client and
-launched in the authenticated user's own desktop worker. It is false at
-LoginWindow and for Linux Clients. See `clipboard-sync.md`; the Client must use
-this negotiated result, not discovery alone, before accessing a pasteboard.
-
-Microphone is true only for an authenticated desktop worker with the installed
-PLANK input device exposing 48 kHz stereo float32 and a capable Client.
-A still-loaded mono driver is unavailable until the matching driver is loaded. It is false at LoginWindow. No Client
-input device opens just because the field is true: activation additionally
-requires OS consent and a generation-matched Host acknowledgement. See
-`microphone.md`. Linux Host negotiation is unchanged.
+selected `capture`, transport agreement, required features and actual enabled
+feature profiles. There is no legacy `services` object. Clipboard, microphone
+and camera availability remain limited by the authenticated desktop and actual
+Host resources. Device activation additionally requires the existing consent
+and acknowledgement flow; availability alone does not authorize capture.
 
 The UDP port is the same number as the approved HTTPS control port. QUIC uses
 the same leaf certificate; the Client pins the certificate it approved for
@@ -123,10 +99,8 @@ order. Malformed/unsupported controls fail the session. System audio is Opus,
 stereo 48 kHz, 5 ms packets (one stream, one coupled stream, mapping 0/1).
 Keyboard, absolute mouse, buttons, scrolling and normalized pen use native input.
 No separate cursor, raw-HID or generic-touchscreen capability is claimed.
-See `macos-pen-input.md` for pressure, validation and cleanup. Explicit adapters
-retain schemas4/5/6; earlier launch and transport protocols remain unsupported.
-The reply matches the requested schema exactly, omitting `camera` below schema6.
-Schema4 always returns `microphone: false`.
+See `macos-pen-input.md` for pressure, validation and cleanup. Retired launch
+schemas4–6 are rejected; no version-string adapter or mono audio fallback remains.
 The native library itself retains its shared Linux endpoint implementation.
 
 The Client now has a typed manifest parser and explicit native service flags.
@@ -150,7 +124,7 @@ pixel counts from 2 through 8192; scale is integer 1 or 2. Logical desktop
 dimensions are pixels divided by scale and may be odd. Booleans, fractional
 values, missing/extra fields and prior schemas are rejected. Matching Host and
 Client display contracts are required; no silent 1x downgrade. Launch supports
-schemas4/5/6/7 and fixed-capture topology remains schema13 (already carrying both geometries).
+schema7 and fixed-capture topology remains schema13 (already carrying both geometries).
 
 For macOS Clients, Match Client reads the current CoreGraphics mode's backing
 pixels and logical bounds, preserving the user's current "Looks like" setting

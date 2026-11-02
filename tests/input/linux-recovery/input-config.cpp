@@ -9,9 +9,3 @@ input_t input {
   true, false, true, true, true
 };
 }
-
-// Reservation lifecycle tests execute the real process.cpp. Display changes
-// are an unrelated boundary and must never touch the builder's desktop.
-namespace display_device {
-void revert_configuration() {}
-}

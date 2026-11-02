@@ -33,15 +33,6 @@ void fixupMissingCallbacks(PDECODER_RENDERER_CALLBACKS* video,
                           PCONNECTION_LISTENER_CALLBACKS* listener) {
     CHECK(*video != NULL && *audio != NULL && *listener != NULL);
 }
-int resolveHostName(const char* host, int family, int port,
-                    struct sockaddr_storage* address, SOCKADDR_LEN* length) {
-    (void)host; (void)family; (void)port; memset(address, 0, sizeof(*address));
-    address->ss_family = AF_INET; *length = sizeof(struct sockaddr_in); return 0;
-}
-int getLocalAddressByUdpConnect(const struct sockaddr_storage* remote, SOCKADDR_LEN length,
-                               unsigned short port, struct sockaddr_storage* local, SOCKADDR_LEN* localLength) {
-    (void)remote; (void)port; memset(local, 0, sizeof(*local)); *localLength = length; return 0;
-}
 int initializeAudioStream(void) { audioInit++; return failStage == STAGE_AUDIO_STREAM_INIT ? -7 : 0; }
 int startAudioStream(void* context, int flags) {
     (void)context; (void)flags; audioStart++; return failStage == STAGE_AUDIO_STREAM_START ? -7 : 0;
@@ -89,7 +80,9 @@ static void exercise(bool linuxSession, int failure) {
     DECODER_RENDERER_CALLBACKS video = {0};
     AUDIO_RENDERER_CALLBACKS audio = {0};
     CONNECTION_LISTENER_CALLBACKS listener = {0};
-    server.address = "127.0.0.1";
+    // DNS and route selection belong to the already connected QUIC owner.
+    // No socket or resolver stubs are linked into this lifecycle fixture.
+    server.address = "must-not-resolve.invalid";
     // Native session setup must work without a legacy application version.
     server.serverInfoAppVersion = NULL;
     server.serverCodecModeSupport = 1;
@@ -116,7 +109,6 @@ static void exercise(bool linuxSession, int failure) {
     }
     LiStopConnection();
     CHECK(stage == STAGE_NONE && LiGetPlankNativeServiceFlags() == 0);
-    CHECK(RemoteAddrString == NULL);
     CHECK(audioDestroy == (linuxSession && completed >= STAGE_AUDIO_STREAM_INIT));
     CHECK(audioStop == (linuxSession && completed >= STAGE_AUDIO_STREAM_START));
     CHECK(inputDestroy == (linuxSession && completed >= STAGE_INPUT_STREAM_INIT));

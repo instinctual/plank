@@ -14,7 +14,8 @@ class HostSourceGateTests(unittest.TestCase):
         self.assertIn('"$fixture_build/input-recovery"', build)
         self.assertIn('"${HOST}/src/process.cpp"', fixture)
         self.assertIn('-Wl,--wrap=open', fixture)
-        self.assertIn('googletest libdisplaydevice', fixture)
+        self.assertIn('foreach(dependency libvirtualhid googletest)', fixture)
+        self.assertNotIn('libdisplaydevice', fixture)
 
     def test_host_input_fixture_links_header_only_boost_dependencies(self):
         build = (ROOT / 'scripts/ci/test-linux-host-input.sh').read_text()

@@ -20,12 +20,11 @@ case "$role:$ID:$VERSION_ID" in
       pkgconf-pkg-config ripgrep rpm-build cpio wget xz tar gzip python3 python3-jinja2 \
       gcc-toolset-14-gcc gcc-toolset-14-gcc-c++ \
       "${PLANK_HOST_CUDA_PACKAGES[@]}" \
-      glib2-devel libcap-devel libdrm-devel libevdev-devel libva-devel \
+      glib2-devel libcap-devel libdrm-devel libevdev-devel \
       libX11-devel libxcb-devel libXcomposite-devel libXcursor-devel libXfixes-devel \
       libXi-devel libXinerama-devel libXrandr-devel libXtst-devel libxkbcommon-devel \
-      mesa-libgbm-devel mesa-libGL-devel numactl-devel openssl-devel opus-devel \
-      pam-devel pipewire-devel pulseaudio-libs-devel python3-devel systemd-devel \
-      vulkan-loader-devel wayland-devel wayland-protocols-devel
+      mesa-libgbm-devel mesa-libGL-devel openssl-devel opus-devel \
+      pam-devel pulseaudio-libs-devel python3-devel systemd-devel
     plank_verify_host_cuda
     /usr/local/cuda/bin/nvcc --version
     python3 -c 'import jinja2' # Fail before the long FFmpeg bootstrap.

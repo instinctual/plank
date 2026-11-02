@@ -32,10 +32,7 @@ def main():
                     requests = {
                         "/plank/display": {"schema_version": 3, "width": 1920, "height": 1080, "scale": 1,
                             "encoding_mode": "hevc-10-420-videotoolbox"},
-                        "/plank/launch": {"schema_version": 6, "clipboard": False, "microphone": False, "camera": False, "capture_generation": topology["generation"],
-                            "capture_id": capture["id"], "width": capture["width"], "height": capture["height"],
-                            "encoding_mode": "hevc-10-420-videotoolbox", "frame_rate": 60,
-                            "bitrate_kbps": 50000, "max_udp_payload_size": 1200}}
+                        "/plank/launch": fixture.media_launch(topology)}
                     for path, body in requests.items():
                         # Exceed the 16-token limit twice without waiting for
                         # expiry. Each failed setup must release only its token.

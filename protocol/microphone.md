@@ -1,10 +1,8 @@
-# Reverse microphone audio (in development)
+# Reverse microphone audio
 
-This extension is implemented on the native-media-investigation candidate branch,
-not released. Existing even-numbered Host-created endpoints and native/2 ALPN
-remain unchanged. Mac launch schemas5/6 request `microphone: true`; schema7 negotiates microphone
-feature3 (timestamped stereo) or feature2 (legacy stereo) independently. Schema4 peers retain desktop connectivity with microphone
-disabled. The authenticated reply advertises availability only for a
+The current schema7 media agreement negotiates microphone feature3 (timestamped
+stereo) or feature2 (untimed stereo) independently. The authenticated reply
+advertises availability only for a
 desktop worker with the installed stereo virtual input. Linux Hosts do not advertise
 this capability. Merely accepting an audio endpoint never authorizes capture.
 
@@ -117,9 +115,8 @@ HAL callback. The driver sanitizes fixed-size blocks into private sample history
 The virtual input exposes 48 kHz, interleaved stereo float32 with left/right
 channels. Both channels share timestamps and drift correction. Shared-memory
 and control version 2 reject the previous mono layout; the Host checks the
-loaded device format before advertising microphone availability. Launch schema4
-keeps microphone disabled through its compatibility adapter; mono envelope
-version1 is not accepted on a negotiated stereo lane.
+loaded device format before advertising microphone availability. Mono envelope
+version1 and retired launch schemas4–6 are not accepted.
 
 Automatic selection is owned for the producer lifetime. It remembers the prior
 input UID and restores only if PLANK is still selected; later user choices win.

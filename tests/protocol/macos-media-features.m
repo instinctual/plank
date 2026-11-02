@@ -8,27 +8,23 @@ int main(int argc, const char **argv) {
     if (argc != 3) return 2;
     @autoreleasepool {
         NSDictionary *vector = [NSJSONSerialization JSONObjectWithData:[NSData dataWithContentsOfFile:@(argv[1])] options:0 error:NULL];
-        NSDictionary *legacy = [NSJSONSerialization JSONObjectWithData:[NSData dataWithContentsOfFile:@(argv[2])] options:0 error:NULL];
-        CHECK(vector && legacy);
+        NSDictionary *current = [NSJSONSerialization JSONObjectWithData:[NSData dataWithContentsOfFile:@(argv[2])] options:0 error:NULL];
+        CHECK(vector && current);
+        CHECK([current isEqual:vector[@"launch"]]);
         unsigned status = 0;
         NSDictionary *offer = vector[@"offer"], *launch = vector[@"launch"];
         CHECK([PLANKMacNegotiateMedia(offer, &status) isEqual:vector[@"response"]] && status == 200);
         NSDictionary *normalized = PLANKMacNormalizeMediaLaunch(launch);
-        NSMutableDictionary *expected = [legacy mutableCopy];
-        expected[@"clipboard"] = @YES; expected[@"microphone"] = @YES; expected[@"camera"] = @YES;
-        CHECK([normalized isEqual:expected]);
+        CHECK(normalized.count == 12 && [normalized[@"schema_version"] isEqual:@7]);
+        for (NSString *key in @[@"width", @"height", @"encoding_mode", @"frame_rate", @"bitrate_kbps"])
+            CHECK([normalized[key] isEqual:launch[@"features"][@"desktop"][key]]);
+        CHECK(!PLANKMacNormalizeMediaLaunch(normalized));
         CHECK([PLANKMacMediaReplyFeatures(launch, YES, YES, YES) isEqual:launch[@"features"]]);
         NSDictionary *disabled = PLANKMacMediaReplyFeatures(launch, NO, NO, NO);
         for (NSString *name in @[@"clipboard", @"microphone", @"camera"]) CHECK(disabled[name] == NSNull.null);
         for (unsigned schema = 4; schema <= 6; ++schema) {
-            NSMutableDictionary *old = [expected mutableCopy]; old[@"schema_version"] = @(schema);
-            if (schema < 6) [old removeObjectForKey:@"camera"];
-            NSDictionary *converted = PLANKMacNormalizeMediaLaunch(old);
-            CHECK(converted.count == 12);
-            CHECK([converted[@"microphone"] boolValue] == (schema >= 5));
-            CHECK([converted[@"camera"] boolValue] == (schema >= 6));
-            CHECK([converted[@"clipboard"] boolValue]);
-            old[@"microphone"] = @1; CHECK(!PLANKMacNormalizeMediaLaunch(old));
+            NSMutableDictionary *old = [current mutableCopy]; old[@"schema_version"] = @(schema);
+            CHECK(!PLANKMacNormalizeMediaLaunch(old));
         }
         for (NSString *name in PLANKMacMediaNames()) {
             NSMutableDictionary *changed = [offer mutableCopy], *features = [offer[@"features"] mutableCopy];

@@ -1615,8 +1615,8 @@ c++ -std=c++17 -O2 -Wall -Wextra -Werror \
 "$packed_test_build/policy"
 c++ -std=c++17 -O2 -Wall -Wextra -Werror \
   "$repo_dir/tests/video/packed-bt709-shader.cpp" \
-  $(pkg-config --cflags --libs egl glesv2) -o "$packed_test_build/shader"
-"$packed_test_build/shader" "$source_dir/app/shaders/egl_opaque.frag"
+  -I"$source_dir/app" $(pkg-config --cflags --libs egl glesv2) -o "$packed_test_build/shader"
+"$packed_test_build/shader"
 cleanup_packed_test
 trap - EXIT
 echo "client_packed_bt709_policy_and_shader_gate=pass"

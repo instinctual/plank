@@ -1,6 +1,6 @@
 # Native camera lane (in development)
 
-Mac launch schema6 or independently negotiated camera feature1 in schema7
+Independently negotiated camera feature1 in launch schema7
 enables this optional lane separately from microphone. Earlier peers keep camera
 disabled while retaining desktop connectivity. This lane is integrated into the
 Ubuntu Client and macOS Host. macOS Client camera capture is not implemented.
@@ -116,7 +116,7 @@ The existing Mac Host advertises feature 1 only and Linux Host advertises neithe
 Product adapters must implement authenticated feature-2 selection and Linux
 receiver availability before exposing capture. A Mac encoded source must never
 offer feature 1 as a fallback. Optional incompatibility keeps camera unavailable
-and desktop/audio/input connected. Old schema6 selection remains feature 1.
+and desktop/audio/input connected.
 
 The first feature-2 mode is H.264 Annex B, 1280 × 720, nominal 30 fps, encoded by
 VideoToolbox hardware from NV12 with explicit BT.709 primaries, transfer and
@@ -159,7 +159,7 @@ Wacom acceptance remain platform integration gates.
 
 ## Session control and local camera boundary
 
-PLD1 camera controls are valid only after schema6 camera capability agreement:
+PLD1 camera controls are valid only after the schema7 camera feature agreement:
 SET_CAMERA (10) carries increasing nonzero u64 command generation and a u32
 flag (0 off, 1 on). CAMERA_APPLIED (11) echoes that generation and state 0 off,
 1 pending, 2 active or 3 unavailable. CAMERA_KEYFRAME (12) carries only the

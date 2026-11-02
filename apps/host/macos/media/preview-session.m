@@ -25,7 +25,7 @@ BOOL PLANKMacPreviewRequestMatchesTopology(NSDictionary *request, NSDictionary *
     request = PLANKMacNormalizeMediaLaunch(request);
     if (![request isKindOfClass:NSDictionary.class] || request.count != 12 ||
         ![topology isKindOfClass:NSDictionary.class] ||
-        !integerInRange(request[@"schema_version"], 6, 6) ||
+        !integerInRange(request[@"schema_version"], 7, 7) ||
         ![request[@"clipboard"] isKindOfClass:NSNumber.class] ||
         CFGetTypeID((__bridge CFTypeRef)request[@"clipboard"]) != CFBooleanGetTypeID() ||
         ![request[@"microphone"] isKindOfClass:NSNumber.class] ||
@@ -139,9 +139,9 @@ BOOL PLANKMacPreviewRequestMatchesTopology(NSDictionary *request, NSDictionary *
     PLANKMacAccountIdentity account = {0};
     if (![sessions authorizeToken:token peer:peer identity:&account]) return nil;
     unsigned microphoneSchema = PLANKMacMicrophoneSchema(request);
-    request = PLANKMacNormalizeMediaLaunch(request);
     NSDictionary *selected = topology();
     if (!PLANKMacPreviewRequestMatchesTopology(request, selected)) return nil;
+    request = PLANKMacNormalizeMediaLaunch(request);
     self = [super init];
     if (!self) return nil;
     _sessionID = NSUUID.UUID.UUIDString.lowercaseString;

@@ -135,7 +135,10 @@ int main(int argc, const char **argv) {
         NSDictionary *request = fixture ? [NSJSONSerialization JSONObjectWithData:fixture options:0 error:NULL] : nil;
         CHECK(PLANKMacPreviewRequestMatchesTopology(request, topology));
         NSMutableDictionary *fullRequest = [request mutableCopy];
-        fullRequest[@"encoding_mode"] = @"hevc-10-444-videotoolbox";
+        NSMutableDictionary *fullFeatures = [request[@"features"] mutableCopy];
+        NSMutableDictionary *fullDesktop = [fullFeatures[@"desktop"] mutableCopy];
+        fullDesktop[@"encoding_mode"] = @"hevc-10-444-videotoolbox";
+        fullFeatures[@"desktop"] = fullDesktop; fullRequest[@"features"] = fullFeatures;
         NSDictionary *fullTopology = PLANKMacFixedCaptureDescription(topology[@"generation"], @"cgdisplay:42",
             3840, 2160, CGRectMake(-1920, 0, 1920, 1080), @"hevc-10-444-videotoolbox");
         CHECK(PLANKMacPreviewRequestMatchesTopology(fullRequest, fullTopology));
@@ -148,26 +151,27 @@ int main(int argc, const char **argv) {
             CHECK(!PLANKMacPreviewRequestMatchesTopology(bad, topology));
             for (id value in @[[NSNull null], @[], @{}, @YES, @"invalid"]) {
                 bad[field] = value;
-                BOOL validBoolean = ([field isEqual:@"clipboard"] || [field isEqual:@"microphone"] || [field isEqual:@"camera"]) &&
-                    value == (__bridge id)kCFBooleanTrue;
-                CHECK(PLANKMacPreviewRequestMatchesTopology(bad, topology) == validBoolean);
-            }
-        }
-        for (id value in @[@0, @1, @1.5, @"true"]) {
-            NSMutableDictionary *bad = [request mutableCopy]; bad[@"clipboard"] = value;
-            CHECK(!PLANKMacPreviewRequestMatchesTopology(bad, topology));
-        }
-        for (NSString *field in @[@"width", @"height", @"frame_rate", @"bitrate_kbps", @"max_udp_payload_size"]) {
-            for (NSNumber *value in @[@(-1), @1.5, @(UINT64_MAX)]) {
-                NSMutableDictionary *bad = [request mutableCopy]; bad[field] = value;
                 CHECK(!PLANKMacPreviewRequestMatchesTopology(bad, topology));
             }
         }
-        for (unsigned schema = 0; schema < 6; schema++) {
+        for (NSString *field in @[@"width", @"height", @"frame_rate", @"bitrate_kbps"]) {
+            for (NSNumber *value in @[@(-1), @YES, @1.5, @(UINT64_MAX)]) {
+                NSMutableDictionary *bad = [request mutableCopy], *features = [request[@"features"] mutableCopy];
+                NSMutableDictionary *desktop = [features[@"desktop"] mutableCopy]; desktop[field] = value;
+                features[@"desktop"] = desktop; bad[@"features"] = features;
+                CHECK(!PLANKMacPreviewRequestMatchesTopology(bad, topology));
+            }
+        }
+        for (unsigned schema = 0; schema < 7; schema++) {
             NSMutableDictionary *bad = [request mutableCopy]; bad[@"schema_version"] = @(schema);
             CHECK(!PLANKMacPreviewRequestMatchesTopology(bad, topology));
         }
-        NSMutableDictionary *extra = [request mutableCopy]; extra[@"audio"] = @YES;
+        for (NSNumber *value in @[@(-1), @1199, @65528, @1.5, @(UINT64_MAX)]) {
+            NSMutableDictionary *bad = [request mutableCopy]; bad[@"max_udp_payload_size"] = value;
+            CHECK(!PLANKMacPreviewRequestMatchesTopology(bad, topology));
+        }
+        // Additive optional hints are allowed; an unknown required feature is not.
+        NSMutableDictionary *extra = [request mutableCopy]; extra[@"required_features"] = @[@"desktop", @"audio", @"input", @"unknown"];
         CHECK(!PLANKMacPreviewRequestMatchesTopology(extra, topology));
 
         PlankTransportConfig cfg = {0}; cfg.struct_size = sizeof(cfg); cfg.abi_version = PLANK_TRANSPORT_ABI_VERSION;

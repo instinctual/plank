@@ -34,25 +34,34 @@ release or deployment is implied by candidate builds.
   audio/video soak, input/Wacom and both macOS 26.7/27. No production session
   interruption or automatic deployment in this task.
 
+## Approved second pass — Hosts and desktop Clients
+
+Remove the remaining unused common-C crypto and socket helpers, including the
+redundant network preflight performed after the native transport connects.
+Preserve thread/signal initialization and the active media/input queues. Retire
+old Client renderer resources and inherited packaging/prebuilt/Qt5 paths. Move
+the packed-color shader regression to the actual Qt shader source before
+deleting the old shader. Remove unused controller launch arguments and the GFE
+audio error translation.
+
+On the Linux Host, remove the no-op libdisplaydevice layer and the unselected
+VA-API/Vulkan encoder and Wayland/KWin/portal capture backends. Preserve DRM,
+EGL/CUDA helpers, native X11 capture, and PLANK's actual display supervision.
+Retire schemas4–6 from the macOS external launch protocol and the desktop
+Client's finite old-release adapter; retain schema7 feature negotiation and
+explicit incompatible-peer errors. Current audio, input and color policies stay
+unchanged. Keep these changes in focused commits and validate all four hosted
+packages, followed by installed session acceptance; do not merge or release.
+
 ## Status
 
-Implementation is committed in focused changes. Linux Host pin `bd443255`;
-local policy/probe, lockfile, shell and privacy checks pass. Candidate version
-`1.3.02-host-cleanup`: signed Mac run `41359912649` passed at root
-`ffec346936d20c610b1cd3fbfef538a51e971e40`. Its package build now directly
-runs the synthetic capture lifecycle test: 1,000 cache reads add no mode
-queries, and expiry, callbacks, property changes and failure cases pass.
-Signing, notarization and Gatekeeper passed. Linux run `41361778133` passed at
-root `7bce649341c45a0137b2e3afca5ea9a1b0dc6c48`: production compilation,
-transport/loss, PAM, RPM and unit-executable linkage gates. The selected
-crypto/input suite passed 46 cases on each of 25 runs; three kernel-UHID cases
-skip on hosted workers. The fake-device input lifecycle fixture passed all
-56 cases on each of 25 runs. The earlier stale encoder references in the test
-registry are corrected without restoring unused production backends.
+The original Host cleanup and standard Mac Installer candidates passed their
+hosted builds (versions1.3.02/1.3.03); exact provenance remains in HANDOFF and the
+artifact manifests. The approved second pass is implemented for candidate
+1.3.04, with local source, common-C lifecycle, prepared-patch and production Qt
+shader checks passing. Four hosted builds remain to be run. No merge, release,
+deployment or live hardware-performance claim.
 
-Both packages are checksum-verified in the candidate catalog; HANDOFF records
-their exact sources and paths. The Mac inputs are unchanged by the later
-Linux-only correction. Original manifests and complete logs are retained under
-`artifacts/qualification/host-cleanup-1.3.02/`; duplicate staging and task-only
-tooling were removed. No builds remain running. No merge, deployment, installed
-acceptance or measured hardware performance result yet.
+See [the scope inventory](../reviews/desktop-cleanup-inventory.md) for removals,
+retained callers and the explicit validation boundary. HANDOFF is current state;
+older build narratives remain available through Git and artifact manifests.

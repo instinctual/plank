@@ -37,10 +37,7 @@ with tempfile.TemporaryDirectory(prefix='plank-display-lease-') as directory:
             assert status == 200 and reply['capture']['width'] == 3840
             token, topology = fixture.authenticate(cert, port, 'synthetic', 'test')
             capture = topology['capture']
-            status, stream = post({'schema_version':6, 'clipboard':False, 'microphone':False, 'camera':False,
-                'capture_generation':topology['generation'], 'capture_id':capture['id'],
-                'width':capture['width'], 'height':capture['height'], 'encoding_mode':'hevc-10-420-videotoolbox',
-                'frame_rate':60, 'bitrate_kbps':50000, 'max_udp_payload_size':1200}, token, '/plank/launch')
+            status, stream = post(fixture.media_launch(topology), token, '/plank/launch')
             assert status == 200
             fingerprint = hashlib.sha256(Path(directory,'cert.der').read_bytes()).hexdigest()
             result = subprocess.run([args.receiver, fingerprint, '--no-media'], input=json.dumps(stream).encode(),

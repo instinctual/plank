@@ -260,13 +260,12 @@ sudo dnf install -y --setopt=install_weak_deps=False \
   autoconf automake clang cmake curl gh git libtool make nasm ninja-build patch \
   pkgconf-pkg-config ripgrep rpm-build wget xz \
   gcc-toolset-14-gcc gcc-toolset-14-gcc-c++ "${PLANK_HOST_CUDA_PACKAGES[@]}" \
-  glib2-devel libcap-devel libdrm-devel libevdev-devel libva-devel \
+  glib2-devel libcap-devel libdrm-devel libevdev-devel \
   libX11-devel libxcb-devel libXcomposite-devel libXcursor-devel \
   libXfixes-devel libXi-devel libXinerama-devel libXrandr-devel \
   libXtst-devel libxkbcommon-devel mesa-libgbm-devel mesa-libGL-devel \
-  numactl-devel openssl-devel opus-devel pam-devel pipewire-devel \
-  pulseaudio-libs-devel python3-devel python3-jinja2 systemd-devel \
-  vulkan-loader-devel wayland-devel wayland-protocols-devel
+  openssl-devel opus-devel pam-devel \
+  pulseaudio-libs-devel python3-devel python3-jinja2 systemd-devel
 plank_verify_host_cuda
 ```
 
@@ -317,7 +316,8 @@ test "$(git -C "$host_build_deps" rev-parse HEAD)" = "$expected_build_deps"
 git -C "$host_build_deps" submodule update --init --recursive
 cmake -S "$host_build_deps" -B "$PLANK_HOST_FFMPEG_BUILD" \
   -DBUILD_ALL=OFF -DBUILD_FFMPEG=ON \
-  -DBUILD_FFMPEG_SVT_AV1=OFF \
+  -DBUILD_FFMPEG_SVT_AV1=OFF -DBUILD_FFMPEG_AMF=OFF \
+  -DBUILD_FFMPEG_LIBVA=OFF -DBUILD_FFMPEG_VULKAN=OFF \
   -DCMAKE_C_COMPILER=/opt/rh/gcc-toolset-14/root/usr/bin/gcc \
   -DCMAKE_CXX_COMPILER=/opt/rh/gcc-toolset-14/root/usr/bin/g++ \
   -DCMAKE_INSTALL_LIBDIR=lib \
@@ -330,9 +330,11 @@ for library in avcodec avutil cbs swscale x264; do
 done
 ```
 
-PLANK has no negotiated AV1 profile. Keep `BUILD_FFMPEG_SVT_AV1=OFF` explicit:
-the build-deps upstream default is on, and statically linking its unused
-encoder materially bloats the Host binary and RPM.
+PLANK uses x264 and direct NVENC on the Linux Host. Keep the four unused
+SVT-AV1, AMF, VA-API and Vulkan encoder switches explicitly off; their upstream
+defaults are on. NV Codec Headers remain required for CUDA interoperability.
+The dependency preflight rejects older prepared trees with those backends
+enabled and verifies the selected CBS patches against their exact sources.
 
 The build directory is intentionally nested at `third-party/build-deps/build`.
 The build-deps project copies recursive Git worktrees whose `.git` files use

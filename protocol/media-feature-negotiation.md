@@ -60,29 +60,14 @@ an optional feature at launch. An unavailable required feature prevents launch.
 Camera/microphone activation still requires the separate acknowledgement and
 device permission flows. The final launch reply governs device access.
 
-## Explicit adapters for existing peers
+## Compatibility boundary
 
-| Older launch schema | Desktop/audio/input | Reverse microphone | Camera |
-| --- | --- | --- | --- |
-| 4 | Preserved | Disabled (old mono packet format) | Disabled |
-| 5 | Preserved | Stereo schema2 when available | Disabled |
-| 6 | Preserved | Stereo schema2 when available | Schema1 when available |
+The desktop Clients and macOS Host require launch envelope7. Schemas4–6 and
+release-number lookup adapters are removed. A missing negotiation endpoint
+fails clearly; the Client does not retry using an older launch format.
+Feature versions remain independent: supported optional profiles can still be
+selected explicitly without changing the selected desktop codec or precision.
 
-The new Host accepts the exact old request and returns the exact old reply
-shape and schema. It never sends new optional fields to these strict parsers.
-All requests normalize to one internal media configuration. No duplicate mono
-decoder, old transport implementation or weaker authentication path is added.
-
-A new Client uses an adapter only after `/plank/negotiate` returns HTTP404 and
-a separate, certificate-pinned `/serverinfo` identifies a known older release:
-1.0.156, 1.0.157 and 1.1.001 map to schema4; 1.1.002 maps to schema5; 1.1.003
-maps to schema6. Branch suffixes are allowed. Unknown versions fail clearly.
-TLS failure, changed identity, denied authentication, timeout, malformed data,
-redirects and HTTP426 never trigger a fallback or launch retry. This finite
-version table bridges releases that predate feature negotiation; new releases
-use advertised feature contracts. Selected video quality is never downgraded.
-
-Tests cover both adapter directions, omitted/unknown optional features,
+Tests cover retired-envelope rejection, omitted/unknown optional features,
 required-feature rejection, exact profiles and real TLS request sequences.
-Installed mixed-version streaming and application camera/audio acceptance
-remain separate hardware gates.
+Installed streaming and camera/audio acceptance remain separate hardware gates.

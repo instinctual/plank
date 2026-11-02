@@ -32,12 +32,12 @@ xcrun clang -mmacosx-version-min="$MACOSX_DEPLOYMENT_TARGET" -fobjc-arc -Wall -W
     apps/host/macos/control/fixed-capture.m -framework Foundation -framework CoreGraphics \
     -o "$video_build/media-features"
 "$video_build/media-features" "$source_root/tests/protocol/media-feature-negotiation-v1.json" \
-    "$source_root/tests/protocol/macos-preview-launch-v6.json"
+    "$source_root/tests/protocol/macos-preview-launch-v7.json"
 shasum -a 256 "$transport_library" apps/host/macos/media/native-video.{h,m} \
     apps/host/macos/media/preview-session.{h,m} apps/host/macos/media/screen-capture.{h,m} \
     apps/host/macos/media/native-audio.{h,m} apps/host/macos/media/opus-encoder.{h,m} \
     apps/host/macos/auth/authentication-session.{h,m} tests/auth/macos-native-video.m \
-    tests/auth/macos-preview-session.m tests/protocol/macos-preview-launch-v6.json
+    tests/auth/macos-preview-session.m tests/protocol/macos-preview-launch-v7.json
 xcrun clang -mmacosx-version-min="$MACOSX_DEPLOYMENT_TARGET" -fobjc-arc -Wall -Wextra -Werror -Werror=unguarded-availability -Werror=unguarded-availability-new \
     -Iapps/host/macos/auth -Iapps/host/macos/media -Iprotocol/plank-transport/include \
     apps/host/macos/auth/authentication-session.m apps/host/macos/media/native-video.m \
@@ -69,7 +69,7 @@ openssl x509 -in "$certificate_dir/cert.pem" -outform DER -out "$certificate_dir
 certificate_hash=$(shasum -a 256 "$certificate_dir/cert.der")
 certificate_hash=${certificate_hash%% *}
 "$video_build/preview-session" "$certificate_dir/cert.pem" "$certificate_dir/key.pem" \
-    "$certificate_hash" "$source_root/tests/protocol/macos-preview-launch-v6.json"
+    "$certificate_hash" "$source_root/tests/protocol/macos-preview-launch-v7.json"
 if [[ ${4:-} = --session-only ]]; then
     # Fake capture/input and local QUIC only. Do not claim live encoder,
     # screen-recording permission or physical input qualification on a builder.

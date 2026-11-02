@@ -256,14 +256,12 @@
                 });
             };
         }
-        if ([request[@"schema_version"] isEqual:@7]) {
-            NSArray *required = request[@"required_features"];
-            if (([required containsObject:@"clipboard"] && !_stream.clipboardEnabled) ||
-                ([required containsObject:@"microphone"] && !_stream.microphoneEnabled) ||
-                ([required containsObject:@"camera"] && !_stream.cameraEnabled)) {
-                [_stream stopWithCompletion:nil];
-                *status = 426; return @{@"state": @"denied", @"error": @"protocol_incompatible"};
-            }
+        NSArray *required = request[@"required_features"];
+        if (([required containsObject:@"clipboard"] && !_stream.clipboardEnabled) ||
+            ([required containsObject:@"microphone"] && !_stream.microphoneEnabled) ||
+            ([required containsObject:@"camera"] && !_stream.cameraEnabled)) {
+            [_stream stopWithCompletion:nil];
+            *status = 426; return @{@"state": @"denied", @"error": @"protocol_incompatible"};
         }
         _takeoverToken = nil; _takeoverPeer = nil;
         // Snapshot after endpoint creation as well. Do not put a later display
@@ -278,17 +276,10 @@
         NSMutableDictionary *reply = [@{@"schema_version": @(schema), @"state": @"connecting",
             @"transport_token": transportToken, @"udp_port": @(port),
             @"max_udp_payload_size": normalized[@"max_udp_payload_size"], @"capture": selected[@"capture"]} mutableCopy];
-        if (schema == 7) {
-            reply[@"transport"] = @"plank-native/2";
-            reply[@"required_features"] = request[@"required_features"];
-            reply[@"features"] = PLANKMacMediaReplyFeatures(request, _stream.clipboardEnabled,
-                _stream.microphoneEnabled, _stream.cameraEnabled);
-        } else {
-            NSMutableDictionary *services = [@{@"audio": @YES, @"input": @YES, @"pen": @"normalized", @"cursor": @"embedded",
-                @"clipboard": @(_stream.clipboardEnabled), @"microphone": @(_stream.microphoneEnabled)} mutableCopy];
-            if (schema >= 6) services[@"camera"] = @(_stream.cameraEnabled);
-            reply[@"services"] = services;
-        }
+        reply[@"transport"] = @"plank-native/2";
+        reply[@"required_features"] = request[@"required_features"];
+        reply[@"features"] = PLANKMacMediaReplyFeatures(request, _stream.clipboardEnabled,
+            _stream.microphoneEnabled, _stream.cameraEnabled);
         [_stream start]; *status = 200; return reply;
     }
 }

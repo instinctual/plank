@@ -20,6 +20,19 @@ import uuid
 import xml.etree.ElementTree as ET
 
 
+def media_launch(topology, **desktop_overrides):
+    """Current wire fixture; optional services remain disabled for lifecycle tests."""
+    body = json.loads((Path(__file__).resolve().parents[1] /
+                       "protocol/macos-preview-launch-v7.json").read_text())
+    capture = topology["capture"]
+    body.update(capture_generation=topology["generation"], capture_id=capture["id"])
+    body["features"]["desktop"].update(width=capture["width"], height=capture["height"])
+    body["features"]["desktop"].update(desktop_overrides)
+    for name in ("clipboard", "microphone", "camera"):
+        body["features"][name] = None
+    return body
+
+
 def context(certificate):
     # Xcode's Python links LibreSSL 2.8.3 without TLS 1.3. The OS openssl CLI
     # supports TLS 1.3. Trust only our generated self-signed loopback fixture;
@@ -168,9 +181,7 @@ def authenticate(tls, port, username, password, encoding_mode="hevc-10-420-video
 
 def preview(tls, port, token, topology, receiver, media, seconds=3):
     capture = topology["capture"]
-    body = {"schema_version": 6, "clipboard": False, "microphone": False, "camera": False, "capture_generation": topology["generation"], "capture_id": capture["id"],
-            "width": capture["width"], "height": capture["height"], "encoding_mode": "hevc-10-420-videotoolbox",
-            "frame_rate": 60, "bitrate_kbps": 50000, "max_udp_payload_size": 1200}
+    body = media_launch(topology)
 
     def launch(value, bearer, path="/plank/launch"):
         encoded = json.dumps(value).encode()
@@ -225,24 +236,16 @@ def preview(tls, port, token, topology, receiver, media, seconds=3):
 
     assert launch(body, "x" * 44)[0] == 401
     if not media:
-        for invalid in (dict(body, width=1), dict(body, encoding_mode="hevc-10-444-nvenc"),
+        for invalid in (media_launch(topology, width=1), media_launch(topology, encoding_mode="hevc-10-444-nvenc"),
                         dict(body, capture_generation=str(uuid.uuid4()))):
             assert launch(invalid, token)[0] == 400
             assert launch(body, token)[0] == 401
             token, _ = authenticate(tls, port, "synthetic", "test")
-    # The old Client still requests mono microphone support. The new Host
-    # returns the exact schema4 reply with that incompatible service disabled.
-    first_body = dict(body, schema_version=4, microphone=True) if not media else body
-    if not media:
-        first_body.pop("camera")
-    status, reply = launch(first_body, token)
-    assert status == 200 and reply["schema_version"] == (4 if not media else 6) and reply["state"] == "connecting"
+    status, reply = launch(body, token)
+    assert status == 200 and reply["schema_version"] == 7 and reply["state"] == "connecting"
     assert reply["udp_port"] == port and reply["max_udp_payload_size"] == 1200
     assert reply["capture"] == capture and reply["transport_token"] != token
-    expected_services = {"audio": True, "input": True, "pen": "normalized", "cursor": "embedded", "clipboard": False, "microphone": False}
-    if media:
-        expected_services["camera"] = False
-    assert reply["services"] == expected_services
+    assert reply["features"] == body["features"] and "services" not in reply
     assert launch(body, token)[0] == 401  # one-use HTTP token, before QUIC activation
     assert launch({"schema_version": 3, "width": 1920, "height": 1080, "scale": 1, "encoding_mode": "hevc-10-420-videotoolbox"}, token, "/plank/display")[0] == 401
     if not media:
@@ -276,17 +279,10 @@ def preview(tls, port, token, topology, receiver, media, seconds=3):
             # reserved setup or silently reclaim the display, even behind NAT.
             competitor, _ = authenticate(tls, port, "synthetic", "test")
             assert launch(change, competitor, "/plank/display")[0] == 409
-            new_body = dict(body, capture_generation=resized["generation"],
-                            width=1920, height=1080)
+            new_body = media_launch(resized)
             assert launch(new_body, competitor)[0] == 409
             assert launch(offer, replacement, "/plank/negotiate") == (200, vector["response"])
-            feature_body = json.loads(json.dumps(vector["launch"]))
-            for name in ("capture_generation", "capture_id", "max_udp_payload_size"):
-                feature_body[name] = new_body[name]
-            for name in ("width", "height", "encoding_mode", "frame_rate", "bitrate_kbps"):
-                feature_body["features"]["desktop"][name] = new_body[name]
-            for name in ("clipboard", "microphone", "camera"):
-                feature_body["features"][name] = None
+            feature_body = new_body
             status, replacement_reply = launch(feature_body, replacement)
             assert status == 200 and replacement_reply["schema_version"] == 7
             assert replacement_reply["features"] == feature_body["features"]
@@ -294,19 +290,13 @@ def preview(tls, port, token, topology, receiver, media, seconds=3):
             result = subprocess.run([str(receiver), fingerprint, "--no-media"],
                                     input=json.dumps(replacement_reply).encode(), capture_output=True, timeout=15)
             assert result.returncode == 0, "replacement stream failed"
-            for schema in (5, 6):
+            for schema in (4, 5, 6):
                 bearer, current = authenticate(tls, port, "synthetic", "test")
-                bridge = dict(new_body, schema_version=schema, capture_generation=current["generation"])
-                if schema == 5:
-                    bridge.pop("camera")
-                status, bridge_reply = launch(bridge, bearer)
-                assert status == 200 and bridge_reply["schema_version"] == schema
-                assert ("camera" in bridge_reply["services"]) == (schema == 6)
-                result = subprocess.run([str(receiver), fingerprint, "--no-media"],
-                                        input=json.dumps(bridge_reply).encode(), capture_output=True, timeout=15)
-                assert result.returncode == 0, "legacy adapter stream failed"
+                retired = media_launch(current); retired["schema_version"] = schema
+                assert launch(retired, bearer)[0] == 400
+                assert launch(media_launch(current), bearer)[0] == 401
             print("macos_takeover=pass real_tls=1 real_quic=1 cancel_unchanged=1 same_peer_reservation=1 new_geometry=1")
-            print("macos_media_compatibility=pass schemas=4,5,6,7 negotiation_authorization=1")
+            print("macos_media_compatibility=pass schema=7 retired_schemas_rejected=4,5,6 negotiation_authorization=1")
             return
         finally:
             if old.poll() is None:
