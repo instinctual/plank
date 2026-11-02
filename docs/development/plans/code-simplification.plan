@@ -139,7 +139,7 @@ and candidate provenance. Performance claims require measured comparisons;
 GPU upload throughput, Xorg depth-30 capture and actual NVENC/session acceptance
 remain hardware gates. Do not infer them from a hosted build or CPU benchmark.
 
-Implementation for Host candidate1.3.09 and Ubuntu Client1.3.08:
+Implementation for Host candidate 1.3.09 and Ubuntu Client 1.3.08:
 
 - XCB queues root geometry, overlay geometry and checked SHM image requests
   before collecting replies. Every reply/error is consumed, including on resize.
@@ -149,14 +149,15 @@ Implementation for Host candidate1.3.09 and Ubuntu Client1.3.08:
   cap retains the existing pageable upload. x264 never registers these buffers.
   The image owns the registration/context until GPU reading has finished; error
   exits drain the conversion stream before releasing the image. Unregistration
-  precedes SHM detach/unmap. SHM access stays owner-only0600.
+  precedes SHM detach/unmap. SHM access stays owner-only, mode 0600.
 - Reusable CUDA events measure upload and conversion independently using the
   existing completion wait, without adding a GPU barrier. CPU dispatch/sync,
   XCB geometry/image waits, encode and complete frame service are also recorded.
   Timing accumulators retain 2048 recent samples each with lifetime mean/max/
   budget-miss counts. No session-length vectors or per-frame timing allocations.
 - CPU x264 unpacking uses contiguous worker bands and a simple nonaliasing
-  integer loop that GCC14 vectorizes; exact 0–1023 G/B/R values, source immutability and odd widths are tested.
+  integer loop that GCC 14 vectorizes; exact 0–1023 G/B/R values, source
+  immutability and odd widths are tested.
   Existing scaling mathematics and the NVENC conversion kernel are unchanged.
 - Removed the unreachable synchronous encode/capture implementation and X11
   embedded-cursor compositing. Separate cursor transport remains unchanged.
@@ -168,19 +169,20 @@ Measured comparisons (not an end-to-end stream benchmark):
 
 | Stage | Image | Original median | Candidate median |
 | --- | --- | --- | --- |
-| CPU unpack, GCC14, eight workers on build VM | 3840x2160 | 2.188ms | 2.043ms |
-| CPU unpack, GCC14, eight workers on build VM | 5120x2160 | 2.697ms | 2.540ms |
-| SHM to GPU upload, RTX6000 Ada/595.104.02 | 3840x2160 | 1.685ms | 1.248ms |
-| SHM to GPU upload, RTX6000 Ada/595.104.02 | 5120x2160 | 2.296ms | 1.662ms |
+| CPU unpack, GCC 14, eight workers on build VM | 3840x2160 | 2.188ms | 2.043ms |
+| CPU unpack, GCC 14, eight workers on build VM | 5120x2160 | 2.697ms | 2.540ms |
+| SHM to GPU upload, RTX 6000 Ada/595.104.02 | 3840x2160 | 1.685ms | 1.248ms |
+| SHM to GPU upload, RTX 6000 Ada/595.104.02 | 5120x2160 | 2.296ms | 1.662ms |
 
 The upload comparison used the production registration owner, real SysV SHM
-and pitched asynchronous CUDA copies with completion waits,100 measured frames
+and pitched asynchronous CUDA copies with completion waits, 100 measured frames
 per case. Readback matched every source bit. The GPU also had an existing
 workload, so tail latency is not a controlled performance result. No session,
 service, display or installed package was changed. Hardware test data contains
-synthetic pixels only. The live Xorg checked-batch fixture also passed at5120x2160/depth30 without
-saving pixels or changing the desktop. Its30-frame-per-case comparison showed
-25.446ms original versus26.326ms batched median capture time: no measured speed
+synthetic pixels only. The live Xorg checked-batch fixture also passed at
+5120x2160/depth-30 without saving pixels or changing the desktop. Its
+30-frame-per-case comparison showed 25.446ms original versus 26.326ms batched
+median capture time: no measured speed
 improvement in that short, concurrently loaded run. Batching removes serialized
 client round trips, but does not remove the dominant GPU/Xorg image readback.
 Do not describe it as a demonstrated frame-rate improvement. Full candidate
@@ -188,7 +190,7 @@ HEVC NVENC/x264 streaming and installed Client acceptance remain separate gates.
 
 Reproduce portable fixtures with `scripts/test/test-linux-native10.sh OUTPUT`
 using the pinned Host dependency headers. ASan/UBSan variants use
-`PLANK_NATIVE10_SANITIZERS=1` and the Host's GCC14 compiler. CPU benchmark source
+`PLANK_NATIVE10_SANITIZERS=1` and the Host's GCC 14 compiler. CPU benchmark source
 is `tests/video/native10/benchmark.cpp` (C++20, -O3, pthread); compare identical
 compiler flags. `tests/video/native10/upload.cpp` is a standalone GPU upload
 qualification fixture, built on Rocky with the pinned NV codec headers, then
@@ -202,7 +204,7 @@ owner-only SHM and the production checked-batch function, and discards all pixel
 Both GPU probes removed their temporary executable/buffers afterward. They are
 qualification tools, not packaged products or replacements for session tests.
 
-The final GCC14 comparison found no benefit from handwritten SSE2 over compiler
+The final GCC 14 comparison found no benefit from handwritten SSE2 over compiler
 vectorization. That manual implementation was removed. The retained unpack loop
 has nonoverlapping-plane contracts and contiguous worker ranges; compiler output
 confirms vectorization without architecture-specific dispatch. A registration
@@ -210,7 +212,24 @@ failure fixture also makes a failed retain call modify its output parameter:
 rollback must not release that unacquired context. CUDA timing-event handles are
 likewise adopted only after successful initialization.
 
-Ubuntu run41396383942 passed at root0e0b1f2 (Client7d628f60), version1.3.08.
-Host run41396380698 was intentionally canceled before packaging to include the
-final rollback/vectorization refinement. Rebuild only the affected Host as
+Ubuntu run `41396383942` passed at root `0e0b1f2` (Client `7d628f60`), version 1.3.08.
+Host run `41396380698` was intentionally canceled before packaging to include the
+final rollback/vectorization refinement. Only the affected Host was rebuilt as
 1.3.09; Client code and its successful candidate remain unchanged.
+
+Final Host build `41397585486` uses root `c4745cd` / Host `acd7054d`, version 1.3.09.
+The upload fixture was rebuilt against that exact Host revision and rerun:
+4K pageable 1.787ms / pinned 1.249ms; 5K pageable 2.526ms / pinned 1.663ms medians,
+100 frames each, exact readback in all cases. The changed initialization failure
+path is also covered by the portable fault-injection fixture. Source/probe hashes
+and reports are retained in the 1.3.09 qualification directory.
+
+Final Host build passed, including native10 fixtures, production/package checks,
+25 repeated input/crypto suites and three 900-frame loss matrices with zero
+unrecovered frames. The downloaded RPM owns `/var/log/plank` as root:root 0700.
+Both affected packages are collected under their original candidate versions;
+downloaded hashes and complete source manifests match the hosted originals.
+The original hosted logs, manifests and local qualification reports are retained.
+No build remains active. Implementation and automated qualification are complete;
+installed native X11/x264/HEVC NVENC and Client session acceptance remain pending.
+No merge, release or deployment was performed.

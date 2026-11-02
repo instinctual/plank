@@ -6,99 +6,87 @@ older candidate provenance remains in Git history and the artifact catalog.
 
 ## Active — Native X11 performance and frame-path cleanup
 
-Branch: `code-simplification`. The latest follow-up implements native X11/XShm
-batching, bounded reusable CUDA SHM registration for HEVC10 identity NVENC,
-contiguous compiler-vectorized x264 unpacking and bounded capture/encode timing. It also removes
-the unused synchronous Host pipeline/X11 cursor blending and caches Ubuntu EGL
-import capabilities per context. No wire/authentication/input or Mac rendering
-change. See the final section of the simplification plan for exact behavior,
-measurements and remaining hardware gates.
+Branch: `code-simplification`. All seven approved follow-up items are implemented
+and pushed. Both affected hosted builds passed; the original RPM and DEB are
+collected and checksum-verified. No build remains active. No merge, release or
+package installation was performed. Installed session acceptance is next.
 
-Ubuntu candidate1.3.08 passed run41396383942 at root0e0b1f2 (Client7d628f60).
-Host candidate1.3.09 is the remaining hosted build; the earlier Host run was
-canceled before packaging for the final CUDA rollback/vectorization refinement.
-Portable precision/request-order/registration-lifetime/budget/timing fixtures
-pass, including ASan/UBSan. GPU SHM upload qualified with exact pixel readback on
-the authorized RTX6000 Ada/595.104.02 Host: median upload improved about26–28%
-in the isolated comparison. This is not end-to-end capture/encoding acceptance.
-No package was installed and no running service/session was changed. The
-operator requested all items completed without intermediate approval pauses;
-finish hosted builds, collect provenance and record results before stopping.
+Current sources:
 
-The prior completed pass and original candidates below remain preserved.
-
-Source revisions:
-
-- Initial four-product snapshot: root `90cee00088be11c2e6f9b295b73e1d8e2ed6528d`.
-- Final transport cleanup: root `b13dbca` (1.3.07 Mac Host rebuild).
-- Client `b0b982db202410d6269d148280fe415f69b9fc79`.
-- Client common-C `9838bb82e2b018cf3d47f927fbf14226058ccc8b`.
-- Linux Host `0ac655da8d19bb8dff841f7f0e140cd078f7b6bc`.
+- Host candidate root `c4745cd`, version 1.3.09.
+- Linux Host `acd7054d` (includes successful-only CUDA resource adoption).
+- Ubuntu candidate root `0e0b1f2`, version 1.3.08.
+- Client `7d628f604023697d0d35b55d549d0e89a95a832e`.
+- Client common-C `9838bb82e2b018cf3d47f927fbf14226058ccc8b` (unchanged).
 - Kymux `12af484eb307351b068aba96da12afce46f4614b` (unchanged).
 
 Completed changes:
 
-1. Deleted the retired two-connection transport implementation and obsolete
-   standalone probes. Native configuration/lifecycle coverage remains.
-2. Replaced decoder polling with FFmpeg send/drain handling: retain the same
-   packet across EAGAIN, attach metadata after acceptance, flush both codec and
-   metadata on errors, and wake blocked input waits during cancellation.
-3. Assembled the Host's video prefix and encoded payload once, transferring
-   ownership through the send queue without a second frame copy.
-4. Bound send/receive video queues by both count and 64 MiB plus metadata;
-   count every evicted frame. FEC and Quinn have separate bounded storage.
-5. Compiled focused Linux Host input/crypto/logging tests instead of rebuilding
-   the entire Host with coverage. Removed duplicate Qt header declarations and
-   obsolete source-string requirements where behavioral gates remain.
-6. Removed unsupported Client AV1 paths, Linux Host Apple startup and an unused KMS
-   parser.
-7. Replaced bookmark polling sleeps with a cancellation-aware timed wait.
-8. Removed unused wide logging/deprecated codecvt initialization; verified actual
-   UTF-8 logging under the C locale without that facet.
+1. Batch XCB root/overlay geometry and checked SHM capture requests; validate and
+   consume every reply/error on each frame, including after topology changes.
+2. Register reusable native 10-bit SHM images for CUDA NVENC upload with a 256 MiB
+   process cap and pageable fallback. Keep SHM mode 0600, registration until GPU
+   completion, and unregistration before unmapping. Error exits drain the stream.
+3. Separate capture, GPU upload/conversion, CPU submission/wait and encoding
+   timing; retain 2048 samples per stage with lifetime aggregates.
+4. Give x264 workers contiguous rows and a nonaliasing exact RGB10 unpack loop.
+   GCC 14 vectorizes it; handwritten SIMD was tested and removed as unnecessary.
+5. Delete the unreachable synchronous Host capture/encoding implementation.
+6. Delete dormant X11 cursor blending, retaining separate cursor transport.
+7. Cache Ubuntu EGL import entry points/capabilities per Qt/EGL context; retain
+   existing image/frame/fence ownership and reset behavior.
 
-Native wire/ABI values, profile IDs, exact-format hardware qualification,
-login-screen audio, input recovery and package security/ownership are unchanged.
-Default and Mac-feature transport tests passed (61/63 tests respectively;
-nine certificate/media fixtures excluded from ordinary cargo tests). Required
-native loopback and loss runners passed hosted qualification. Clippy passes
-with warnings denied for default and Mac-feature builds. Eight common-C and
-eight repository/package contracts, 115 CI-policy cases, portable catalog and
-decode controller fixtures, 1,000 lifecycle races and 2,039 frame assertions pass.
-
-Ubuntu normal/ASan/UBSan suites passed actual pinned H.264/HEVC decoder tests,
-polling cancellation, input/Wacom, compositor scaling/two-display, launcher,
-package-upgrade, identity and dependency checks. Mac Client decoder, polling,
-Qt/Metal and signed-package gates passed. Linux Host input and crypto/UTF-8
-fixtures passed 25 shuffled repetitions; three 900-frame 150-Mbit/s loss matrices
-spanning 0–5% injected loss had zero unrecovered frames. These are hosted tests,
-not installed GPU, display, audio or tablet acceptance.
+No wire, authentication, input, Mac rendering or capture-profile change. Both
+native X11 x264 and HEVC 10-bit 4:4:4 identity NVENC remain supported. NvFBC retains
+its separate capture/encoding path. Private machine details stay outside Git.
 
 | Product | Version | Run | Source | Status |
 | --- | --- | --- | --- | --- |
-| Linux Host | 1.3.06-code-simplification | `41384148711` | `90cee00` | Passed; collected |
-| Ubuntu Client | 1.3.06-code-simplification | `41384151783` | `90cee00` | Passed; collected |
-| macOS Client | 1.3.06-code-simplification | `41384156717` | `90cee00` | Passed; signed/notarized, collected |
-| macOS Host | 1.3.07-code-simplification | `41385319485` | `b13dbca` | Passed; signed/notarized, collected |
+| Linux Host | 1.3.09-code-simplification | `41397585486` | `c4745cd` | Passed; collected |
+| Ubuntu Client | 1.3.08-code-simplification | `41396383942` | `0e0b1f2` | Passed; collected |
+| macOS Host, prior unchanged build | 1.3.07-code-simplification | `41385319485` | `b13dbca` | Passed; signed/notarized, collected |
+| macOS Client, prior unchanged build | 1.3.06-code-simplification | `41384156717` | `90cee00` | Passed; signed/notarized, collected |
 
-The earlier Mac Host 1.3.06 also passed run `41384154127` and remains preserved.
-The 1.3.07 follow-up only removes an unused receive timestamp compiled with
-sender-timing; the other three products do not enable that feature, so their
-compiled paths are unchanged. Do not relabel or replace the earlier artifact.
-Packages live in `artifacts/packages/candidates/<version>-code-simplification/`.
-Original manifests, source pins, logs and regression evidence are retained in
-`artifacts/qualification/code-simplification-1.3.06/`; the follow-up Host has its
-own 1.3.07 evidence directory. Check each manifest for its exact source/hash.
+Host run `41396380698` was deliberately canceled before packaging for the final
+CUDA rollback/compiler-vectorization refinement. It is not an accepted package.
+The successful Client source did not change, so its original package/version is
+retained. Do not relabel it as 1.3.09 or infer a combined root snapshot.
 
-All package checksums are verified. No hosted job remains active for this work.
-Temporary download copies and task-specific build directories were removed;
-the package catalog, qualification reports and prepared dependency caches remain.
+Validation completed:
 
-Resume with installed acceptance of the 1.3.06 Linux Host and both Clients,
-using the 1.3.07 macOS Host where applicable. Prioritize exact-profile decoding,
-static and moving desktops, startup cancellation, disconnect/reconnect, Wacom
-and an A/V soak before the broader gates below. No further implementation item
-from this pass is pending. No hosted result substitutes for installed testing,
-and no live performance improvement is claimed from copy/queue assertions alone.
+- Portable production-header tests verify all 1024 component levels, random
+  packed/unaligned/tail cases, row coverage, bounded timing, XCB request ordering,
+  resize/error replies, CUDA rollback and concurrent registration-budget use.
+  ASan/UBSan pass with GCC 14, including failed calls modifying output parameters.
+- The GPU upload fixture uses real mode 0600 SysV SHM and the production registration
+  owner on RTX 6000 Ada/595.104.02. Every returned source bit matches. Repeated
+  isolated comparisons show roughly 26–34% lower median upload time with pinned
+  SHM at 4K/5K. This is not an end-to-end encoding or frame-rate result.
+- A read-only live depth-30 Xorg fixture passed at 5120x2160. Its short concurrently
+  loaded comparison showed no capture speed gain (25.446ms original versus
+  26.326ms batched median). The dominant Xorg image readback remains. Neither
+  GPU probe installed anything, saved screen pixels or changed a running session.
+- GCC 14 CPU-only unpack comparisons show modest median improvement, principally
+  from contiguous row partitions. Full results and limitations are in the plan.
+- Ubuntu normal/sanitizer, decoder, compositor, EGL/1024-level precision, Wacom,
+  PipeWire, launcher, package-upgrade and package gates passed. These hosted
+  software-GPU checks do not qualify Intel VA-API or a live remote session.
+- Linux Host native10 and package gates passed, including RPM ownership of
+  `/var/log/plank` as root:root mode 0700. Input/crypto fixtures passed 25 shuffled
+  repetitions; three 900-frame loss matrices had zero unrecovered frames.
+
+Packages are in `artifacts/packages/candidates/<version>-code-simplification/`.
+Original manifests, SHA-256 checks, recursive source pins, hosted logs and test
+reports are retained under `artifacts/qualification/code-simplification-1.3.08/`
+and the corresponding 1.3.09 directory. Both original manifests match the local
+catalog, including source revisions, submodule pins and package hashes.
+Task-specific download/build scratch was removed after preserving this evidence.
+
+Installed acceptance remains: native X11 x264 and HEVC NVENC at 4K/5K, gradients
+and real motion, topology changes, reconnect/teardown and a normal Client soak.
+Check stage timings without attributing the isolated upload gain to total
+capture/encode latency. Prior Mac candidates still need their existing live
+gates. No build result substitutes for installed session acceptance.
 
 ## Preserved checkpoints
 
@@ -110,6 +98,10 @@ and no live performance improvement is claimed from copy/queue assertions alone.
 - Root `94aeeee`, candidate `1.3.04-host-cleanup`: all four builds passed after
   retired crypto/socket/DNS, packaging/rendering, unused Host backends and
   schema4–6 compatibility removal. See the cleanup inventory and prior plan.
+
+The previous eight-item follow-up and four-product qualification are preserved
+in root `90cee00`/`b13dbca` and the 1.3.06/1.3.07 artifacts. Their detailed changes
+and tests remain in the plan and Git history.
 
 See [the simplification plan](docs/development/plans/code-simplification.plan)
 and [cleanup inventory](docs/development/reviews/desktop-cleanup-inventory.md).
