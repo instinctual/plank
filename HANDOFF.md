@@ -4,6 +4,25 @@ Read `AGENTS.md` and the relevant build runbook first. Keep machine inventory,
 credentials and private captures outside Git. This file records current work;
 older candidate provenance remains in Git history and the artifact catalog.
 
+## Current work — independent bookmarks for one Host
+
+Branch: `client-bookmarks`, based on the complete `code-simplification` candidate
+below. Client-only candidate version: **1.3.14-client-bookmarks**.
+
+Add now creates an independent, permanent bookmark ID instead of replacing the
+record for the entered address. Edit accepts shared addresses and preserves the
+bookmark ID. Existing saved IDs/settings remain valid. Names, layouts, profiles,
+bitrates and Client-display choices remain per bookmark. Host TLS trust remains
+endpoint-scoped and is not reset by adding/deleting a bookmark. Changing a
+bookmark's destination clears its old token and identity key.
+
+The production-manager regression suite covers same-address Add/Edit,
+save/reload, existing IDs, deletion, shared trust, online metadata and supported
+address forms/Mac profiles. The delayed settings writer now locks its Host-map
+snapshot and synchronizes shutdown with its wait predicate. Both Client build
+scripts run this suite; hosted builds and package checks are pending. No Host
+changes, installations, merge or release are included in this task.
+
 ## Completed candidate — native-only cleanup/refactor
 
 Branch: `code-simplification`. All ten approved follow-up items are implemented

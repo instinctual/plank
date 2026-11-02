@@ -1657,7 +1657,7 @@ cleanup_bookmark_test() {
   fi
 }
 trap cleanup_bookmark_test EXIT
-for bookmark_test in outputtopology hostchoices planktoolbarlogic changelog authenticationtakeover hosttruststore hosttlsguard internetconnectivity; do
+for bookmark_test in bookmarks outputtopology hostchoices planktoolbarlogic changelog authenticationtakeover hosttruststore hosttlsguard internetconnectivity; do
   mkdir "$bookmark_test_build/$bookmark_test"
   qmake6 "$source_dir/tests/$bookmark_test/$bookmark_test.pro" \
     -o "$bookmark_test_build/$bookmark_test/Makefile"
