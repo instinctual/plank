@@ -859,17 +859,13 @@ for required_profile_token in \
   'PLANK_PROFILE_NVENC_H264_8BIT_444' \
   'PLANK_PROFILE_NVENC_HEVC_8BIT_444' \
   'PLANK_PROFILE_NVENC_HEVC_10BIT_444' \
-  'selectedVideoFormat = VIDEO_FORMAT_H264_HIGH8_422;' \
-  'selectedVideoFormat = VIDEO_FORMAT_H264_HIGH8_444;' \
-  'selectedVideoFormat = VIDEO_FORMAT_H264_HIGH10_422;' \
-  'selectedVideoFormat = VIDEO_FORMAT_H265_REXT8_444;' \
-  'selectedVideoFormat = VIDEO_FORMAT_H265_REXT10_444;' \
-  'int selectedVideoFormat = VIDEO_FORMAT_H264_HIGH10_444;' \
+  'const auto* selectedProfile = plank_encoding_profile(m_PlankVideoProfile);' \
+  'const int selectedVideoFormat = selectedProfile->video_format;' \
   'm_SupportedVideoFormats.append(selectedVideoFormat);'; do
   rg -Fq "$required_profile_token" \
     "$source_dir/app/settings/streamingpreferences.h" \
     "$source_dir/app/streaming/session.cpp" || {
-    echo "PLANK exact H.264 profile selection is missing: ${required_profile_token}" >&2
+    echo "PLANK exact encoding-profile selection is missing: ${required_profile_token}" >&2
     exit 1
   }
 done
