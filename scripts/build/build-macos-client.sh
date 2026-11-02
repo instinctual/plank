@@ -143,16 +143,6 @@ cc -std=gnu11 -Wall -Wextra -Werror -Wno-unused-parameter -DNDEBUG \
     "$client/moonlight-common-c/moonlight-common-c/tests/native-input-bounds.c" \
     "$build/moonlight-common-c/libmoonlight-common-c.a" \
     -o "$build/tests/native-input-bounds"
-for fixture in native-input-wire native-input-replacement; do
-    xcrun clang -std=gnu11 -Wall -Wextra -Werror -Wno-unused-parameter -DNDEBUG \
-        -mmacosx-version-min="$MACOSX_DEPLOYMENT_TARGET" \
-        -I"$client/moonlight-common-c/moonlight-common-c/src" \
-        -I"$source_root/protocol/plank-transport/include" \
-        "$client/moonlight-common-c/moonlight-common-c/tests/$fixture.c" \
-        "$build/moonlight-common-c/libmoonlight-common-c.a" \
-        -lpthread -lm -o "$build/tests/common-$fixture"
-    "$build/tests/common-$fixture"
-done
 "$build/tests/native-input-bounds"
 for fixture in native-input-wire native-input-replacement; do
     xcrun clang -std=gnu11 -Wall -Wextra -Werror -Wno-unused-parameter -DNDEBUG \

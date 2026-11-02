@@ -27,6 +27,9 @@ static void checkFrame(const uint8_t* bytes, int size, AVPixelFormat format)
     const auto* codec = avcodec_find_decoder(AV_CODEC_ID_H264);
     assert(codec);
     auto* context = avcodec_alloc_context3(codec);
+    assert(context);
+    context->flags |= AV_CODEC_FLAG_LOW_DELAY;
+    context->err_recognition = AV_EF_EXPLODE;
     context->thread_count = 2;
     context->thread_type = FF_THREAD_SLICE;
     assert(avcodec_open2(context, codec, nullptr) == 0);
@@ -41,15 +44,10 @@ static void checkFrame(const uint8_t* bytes, int size, AVPixelFormat format)
     unit.frameType = FRAME_TYPE_IDR;
     unit.fullLength = size;
     std::vector<uint8_t> assembly;
-    for (int frame = 0; frame < 6; ++frame) {
-        assert(plankSetDecodePacket(packet, &unit, assembly));
-        assert(packet->data == owner.bytes.data() && assembly.empty());
-        assert(packet->size == size && packet->flags == AV_PKT_FLAG_KEY);
-        assert(owner.references == 2 && memcmp(packet->data, bytes, size) == 0);
-        assert(avcodec_send_packet(context, packet) == 0);
-        av_packet_unref(packet);
-        assert(avcodec_receive_frame(context, output) == 0);
+    unsigned decodedFrames = 0;
+    auto validateFrame = [&] {
         assert(output->width == 1280 && output->height == 720);
+        assert(output->pts == decodedFrames);
         auto decodedFormat = static_cast<AVPixelFormat>(output->format);
         // FFmpeg's default format picker still exposes the deprecated full-
         // range YUVJ aliases. They have the same planes/depth; range is explicit.
@@ -67,8 +65,27 @@ static void checkFrame(const uint8_t* bytes, int size, AVPixelFormat format)
             assert(output->colorspace == AVCOL_SPC_BT709 && output->color_range == AVCOL_RANGE_JPEG);
         }
         av_frame_unref(output);
-        assert(avcodec_receive_frame(context, output) == AVERROR(EAGAIN));
+        ++decodedFrames;
+    };
+    // Even with low-delay requested, a valid SPS may advertise reorder depth.
+    // Exercise the send/drain contract and require every submitted IDR back;
+    // neither packet ownership nor SPS integrity depends on immediate output.
+    for (int frame = 0; frame < 6; ++frame) {
+        assert(plankSetDecodePacket(packet, &unit, assembly));
+        assert(packet->data == owner.bytes.data() && assembly.empty());
+        assert(packet->size == size && packet->flags == AV_PKT_FLAG_KEY);
+        assert(owner.references >= 2 && memcmp(packet->data, bytes, size) == 0);
+        packet->pts = packet->dts = frame;
+        assert(avcodec_send_packet(context, packet) == 0);
+        av_packet_unref(packet);
+        int result;
+        while ((result = avcodec_receive_frame(context, output)) == 0) validateFrame();
+        assert(result == AVERROR(EAGAIN));
     }
+    assert(avcodec_send_packet(context, nullptr) == 0);
+    int result;
+    while ((result = avcodec_receive_frame(context, output)) == 0) validateFrame();
+    assert(result == AVERROR_EOF && decodedFrames == 6);
     avcodec_free_context(&context);
     assert(owner.references == 1);
 
