@@ -11,7 +11,7 @@ static int audioInit, audioStart, audioStop, audioDestroy;
 static int inputInit, inputStart, inputStop, inputDestroy;
 static int videoInit, videoStart, videoStop, videoDestroy;
 static int controlInit, controlStart, controlStop, controlDestroy;
-static int failStage, completed, started, wiggles;
+static int failStage, completed, started;
 
 static void logMessage(const char* format, ...) { (void)format; }
 static void stageStarting(int value) { (void)value; }
@@ -53,7 +53,6 @@ int initializeControlStream(void) { controlInit++; return failStage == STAGE_CON
 int startControlStream(void) { controlStart++; return failStage == STAGE_CONTROL_STREAM_START ? -7 : 0; }
 int stopControlStream(void) { controlStop++; return 0; }
 void destroyControlStream(void) { controlDestroy++; }
-int LiSendMouseMoveEvent(short x, short y) { (void)x; (void)y; wiggles++; return 0; }
 
 static PLANK_NATIVE_SESSION_CONFIGURATION configuration(bool linuxSession) {
     PLANK_NATIVE_SESSION_CONFIGURATION c = {0};
@@ -97,7 +96,7 @@ static void exercise(bool linuxSession, int failure) {
     inputInit = inputStart = inputStop = inputDestroy = 0;
     videoInit = videoStart = videoStop = videoDestroy = 0;
     controlInit = controlStart = controlStop = controlDestroy = 0;
-    started = wiggles = completed = 0; failStage = failure;
+    started = completed = 0; failStage = failure;
     CHECK(LiSetPlankNativeSessionConfiguration(&c) == 0);
     CHECK(LiStartConnection(&server, &stream, &listener, &video, &audio,
                            NULL, 0, NULL, 0) == (failure ? -7 : 0));
@@ -117,7 +116,6 @@ static void exercise(bool linuxSession, int failure) {
     CHECK(videoStop == (completed >= STAGE_VIDEO_STREAM_START));
     CHECK(controlDestroy == (completed >= STAGE_CONTROL_STREAM_INIT));
     CHECK(controlStop == (completed >= STAGE_CONTROL_STREAM_START));
-    CHECK(wiggles == (linuxSession && !failure ? 2 : 0));
     if (!linuxSession) CHECK(audioInit + audioStart + inputInit + inputStart == 0);
     LiStopConnection(); // Idempotent cleanup must not repeat destruction.
     CHECK(videoDestroy <= 1 && audioDestroy <= 1 && inputDestroy <= 1 && controlDestroy <= 1);

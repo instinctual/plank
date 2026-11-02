@@ -240,7 +240,6 @@ done
 echo "host_plank_transport_native_input_gate=pass"
 for required_event_transport_token in \
   'send_plank_transport_event' \
-  'PLANK_TRANSPORT_EVENT_HDR_MODE' \
   'PLANK_TRANSPORT_EVENT_RAW_HID_WACOM' \
   'PLANK_TRANSPORT_EVENT_CURSOR_SHAPE' \
   'PLANK_TRANSPORT_EVENT_CURSOR_POSITION'; do

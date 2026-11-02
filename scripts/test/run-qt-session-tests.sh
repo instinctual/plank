@@ -31,6 +31,12 @@ c++ -std=c++17 -Wall -Wextra -Werror -DPLANK_TEST_REAL_FFMPEG "${cxx_flags[@]}" 
     "$source_root/tests/session/decode-pump.cpp" $(pkg-config --cflags --libs libavcodec libavutil) \
     -o "$build_root/decode-pump-ffmpeg"
 "$build_root/decode-pump-ffmpeg"
+c++ -std=c++17 -Wall -Wextra -Werror "${cxx_flags[@]}" \
+    -I"$source_root/apps/client/app/streaming" \
+    -I"$source_root/apps/client/moonlight-common-c/moonlight-common-c/src" \
+    "$source_root/tests/session/decode-packet.cpp" $(pkg-config --cflags --libs libavcodec libavutil) \
+    -o "$build_root/decode-packet"
+"$build_root/decode-packet"
 mkdir -p "$build_root/polling-tests"
 (
     cd "$build_root/polling-tests"

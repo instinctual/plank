@@ -82,6 +82,12 @@ xcrun clang++ -std=c++17 -mmacosx-version-min="$MACOSX_DEPLOYMENT_TARGET" \
     -I"$client/app/streaming" "$source_root/tests/session/decode-pump.cpp" \
     $(pkg-config --cflags --libs libavcodec libavutil) -o "$build/tests/decode-pump"
 DYLD_LIBRARY_PATH="$PLANK_MAC_CLIENT_DEPS/install/lib" "$build/tests/decode-pump"
+xcrun clang++ -std=c++17 -mmacosx-version-min="$MACOSX_DEPLOYMENT_TARGET" \
+    -Wall -Wextra -Werror -I"$client/app/streaming" \
+    -I"$client/moonlight-common-c/moonlight-common-c/src" \
+    "$source_root/tests/session/decode-packet.cpp" \
+    $(pkg-config --cflags --libs libavcodec libavutil) -o "$build/tests/decode-packet"
+DYLD_LIBRARY_PATH="$PLANK_MAC_CLIENT_DEPS/install/lib" "$build/tests/decode-packet"
 patch_file="$client/app/deploy/linux/ffmpeg-patches/0001-hevc-enable-hwaccel-for-identity-gbr.patch"
 printf '%s  %s\n' d8514ed9db3fc2c1aba43cfad0b06f8be3670759bdb173b6fd0a6dc1cffa0bf4 "$patch_file" | shasum -a 256 -c -
 patch --batch --reverse --dry-run -d "$PLANK_MAC_CLIENT_DEPS/src/ffmpeg-9.0.2" -p1 < "$patch_file"

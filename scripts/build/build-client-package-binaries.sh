@@ -282,7 +282,6 @@ echo "client_plank_transport_native_input_gate=pass"
 for required_event_transport_token in \
   'plank_transport_event.h' \
   'PLANK_TRANSPORT_EVENT_CURSOR_SHAPE' \
-  'LiNotifyPlankHdrMode' \
   'LiNotifyPlankRawHidControl' \
   'LiNotifyPlankCursorPosition'; do
   rg -Fq "$required_event_transport_token" \

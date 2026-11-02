@@ -32,7 +32,6 @@ void connectionDetectedFrameLoss(uint32_t start, uint32_t end) {
 }
 void connectionReceivedCompleteFrame(uint32_t frame, bool ltr) { (void)frame; (void)ltr; }
 void notifyKeyFrameReceived(void) { keys++; }
-bool LiGetCurrentHostDisplayHdrMode(void) { return false; }
 static int submit(PDECODE_UNIT unit) {
     CHECK(unit->fullLength > 0);
     CHECK(LiVideoFrameData(unit) == LiVideoBufferData(unit->frameBuffer));

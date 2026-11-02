@@ -17,17 +17,16 @@ case "$role:$ID:$VERSION_ID" in
     dnf config-manager --add-repo https://developer.download.nvidia.com/compute/cuda/repos/rhel9/x86_64/cuda-rhel9.repo
     dnf install -y --setopt=install_weak_deps=False \
       autoconf automake clang cmake curl-minimal git libtool make nasm ninja-build patch \
-      pkgconf-pkg-config ripgrep rpm-build cpio wget xz tar gzip python3 python3-jinja2 \
+      pkgconf-pkg-config ripgrep rpm-build cpio wget xz tar gzip python3 \
       gcc-toolset-14-gcc gcc-toolset-14-gcc-c++ \
       "${PLANK_HOST_CUDA_PACKAGES[@]}" \
       glib2-devel libcap-devel libdrm-devel libevdev-devel \
       libX11-devel libxcb-devel libXcomposite-devel libXcursor-devel libXfixes-devel \
       libXi-devel libXinerama-devel libXrandr-devel libXtst-devel libxkbcommon-devel \
-      mesa-libgbm-devel mesa-libGL-devel openssl-devel opus-devel \
+      openssl-devel opus-devel \
       pam-devel pulseaudio-libs-devel python3-devel systemd-devel
     plank_verify_host_cuda
     /usr/local/cuda/bin/nvcc --version
-    python3 -c 'import jinja2' # Fail before the long FFmpeg bootstrap.
     rpm -qa | sort
     ;;
   client:ubuntu:26.04)

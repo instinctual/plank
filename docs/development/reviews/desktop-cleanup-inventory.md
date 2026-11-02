@@ -12,7 +12,7 @@ source in a pinned dependency is part of the shipped executable.
 | Client packaging | WiX, AntiHooking, DMG/source-archive/Windows dependency tools, inherited prebuilt paths, Qt5 and embedded startup branches | Root `scripts/build` and `scripts/package` own Ubuntu DEB and Mac PKG; native platform APIs, private FFmpeg and Qt stay |
 | Client launch | Controller launch parameters, GFE-only status translation, old Mac version-string/schema adapters | Current bookmark choices, profile-specific decoding and schema7 feature negotiation stay |
 | Linux display | No-op `display_device` wrapper, libdisplaydevice submodule, dead settings and call sites | `session/host_supervisor.cpp`, topology and display leases own actual physical/virtual layout and restoration |
-| Linux capture/encode | Disabled Wayland/KWin/portal/PipeWire sources and protocol submodules, VA-API/Vulkan helpers/options | NvFBC, native X11, DRM/EGL/CUDA interop, x264 and direct NVENC are active; source/capture precision policy is unchanged |
+| Linux capture/encode | Disabled Wayland/KWin/portal/PipeWire sources and protocol submodules, VA-API/Vulkan helpers/options | NvFBC, native X11, DRM device discovery, CUDA conversion, x264 and direct NVENC are active; source/capture precision policy is unchanged |
 | Host dependency preparation | Implicit prepared-binary downloads and unused SVT-AV1/AMF/VA-API/Vulkan build/link prerequisites | Exact pinned FFmpeg, CBS patches, x264 and CUDA headers stay; Client Vulkan decoding and upstream Loader repair tests are separate |
 | Mac launch protocol | External schemas4–6 and automatic release-number compatibility fallback | Schema7 and independently negotiated audio/input/clipboard/microphone/camera features stay; incompatible peers fail explicitly |
 | Mac installation | Custom executable Requirements page | Standard Installer plus authorized FileVault preinstall guard; no automatic encryption change |
@@ -20,6 +20,16 @@ source in a pinned dependency is part of the shipped executable.
 The earlier pass also removed the Linux fork's superseded macOS backend,
 unreferenced GameStream crypto, unused encoder registrations and old upstream
 packaging. Native Mac capture/VideoToolbox/audio/input remain in `apps/host/macos`.
+
+The subsequent `code-simplification` legacy pass removes KMS product capture,
+GLAD/GL conversion, the generic FFmpeg hardware-encoding bridge, AV1 probing,
+HDR callbacks, the legacy input packet reconstruction/dispatcher, controller and
+relative-input APIs, unused recorder callbacks, H.264 SPS rewriting and its
+h264bitstream source. Client common-C remains an active queue/lifecycle/native
+input implementation; deleting it wholesale would remove current behavior.
+The Host common-C fork is now only `Limelight.h` and `plank.h`. Native input
+wire layouts are unchanged; retired HDR event type 1 is reserved. Ten-bit SDR
+and RGB identity remain supported.
 
 ## Validation boundary
 

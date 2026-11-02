@@ -233,3 +233,46 @@ The original hosted logs, manifests and local qualification reports are retained
 No build remains active. Implementation and automated qualification are complete;
 installed native X11/x264/HEVC NVENC and Client session acceptance remain pending.
 No merge, release or deployment was performed.
+# Native-only cleanup follow-up
+
+The approved follow-up removes the remaining unused Sunshine/Moonlight paths
+as one coordinated Host/Client refactor on `code-simplification`.
+Baseline: root c886880, Linux Host acd7054d, Client 7d628f60, common-C 9838bb82.
+
+Scope: remove the unused Host packet queue, unsupported controller/touch/relative
+Client APIs, KMS capture fallback, unreachable encoder variants/flags, obsolete
+renderer hooks and FFmpeg compatibility, dormant recording and HDR negotiation.
+Queue native input payloads directly and inject decoded values on Linux without
+GameStream packet reconstruction. Remove the discarded mouse wake-up messages.
+Retire H.264 SPS rewriting after exact-format decode tests and cache the Ubuntu
+software-conversion shader description across unchanged frames.
+
+Preserve absolute-input ordering, transition backpressure, retained tablet
+identity/recovery, native X11 and NvFBC, x264 and direct HEVC/H.264 NVENC, ten-bit
+SDR/RGB identity, hardware qualification and same-format software fallback.
+Wire message IDs remain unchanged/reserved. No legacy-version migration or new
+supported profile is introduced. Native Apple/AVP branches remain separate.
+
+Validation: production input wire/queue and Host fake-UHID fixtures, decode of
+original H.264 SPS/profile test frames, conversion precision/cache invalidation,
+source-removal gates, normal/sanitizer Qt tests, and affected hosted package gates.
+Compilation and simulated input do not establish installed hardware acceptance.
+No deployment, merge or release is implied by this cleanup.
+
+Implementation and validation additions:
+- Native wire tests exercise tool-transition barriers, UTF-8 validation, maximum
+  raw reports followed by pooled small events, signed scroll and ordered buttons.
+- Host fixtures inject the actual native payloads into the observable virtual
+  input backend, including malformed sizes/actions/nonfinite pen coordinates.
+- Decoder packet fixtures retain untouched SPS/PPS and encoded IDRs through real
+  FFmpeg H.264 8/10-bit 4:2:2 and 4:4:4 decode; no rewrite library remains.
+- GPU conversion tests reuse one converter across range, depth, size and stride
+  orientation changes and compare readback codes. Runtime adds no readback.
+- Required build/source gates and bootstrap prerequisites follow the removals.
+  Both maintained common-C branches are committed before their parent gitlinks.
+
+Native input payload definitions, codec profile choices, transport negotiation,
+raw-HID descriptors and session ownership remain unchanged. HDR event type 1
+is reserved. No new protocol version is needed for deletion of an unused event;
+matching rebuilt internal C APIs are required. Installed qualification remains
+separate from hosted compile/component tests.

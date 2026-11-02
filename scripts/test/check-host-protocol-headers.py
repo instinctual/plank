@@ -4,7 +4,7 @@ import argparse
 from pathlib import Path
 import re
 
-HEADERS = {"Input.h", "Limelight.h", "plank.h"}
+HEADERS = {"Limelight.h", "plank.h"}
 
 
 def validate(root):
@@ -14,7 +14,7 @@ def validate(root):
             raise ValueError("retired Host protocol dependency: " + retired)
     source = root / "src"
     if not source.is_dir() or {p.name for p in source.iterdir()} != HEADERS:
-        raise ValueError("Host protocol tree must contain only the three qualified headers")
+        raise ValueError("Host protocol tree must contain only the two qualified headers")
     if not (root / "LICENSE.txt").is_file():
         raise ValueError("Host protocol license is missing")
     for header in HEADERS:

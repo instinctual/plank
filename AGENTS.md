@@ -76,7 +76,7 @@ or UPnP configuration and command-line toggles. Routing and firewall policy
 remain administrator-managed.
 
 ENet and the inherited GameStream transport are not current build inputs.
-The Host common-C branch is header-only (Input.h, Limelight.h and plank.h),
+The Host common-C branch is header-only (Limelight.h and plank.h),
 with no recursive dependencies or compiled library. Do not restore ENet,
 nanors, retired transport source or their build wiring. Historical builds are
 not supported; preserving attribution/history does not require unused code in
@@ -188,7 +188,7 @@ source. Never rely on an old builder tree having been patched manually. On
 the Linux Client builder, redirect every current Linux client submodule
 to its retained local canonical repository before the first submodule update:
 qmdnsengine and common-c. Common-c has no recursive Linux dependencies.
-h264bitstream is vendored, libsoundio is removed, and the Windows/macOS
+The unused H.264 SPS rewriter and libsoundio are removed; the Windows/macOS
 prebuilts repository is not a Linux candidate input. Do not restore the stale
 submodule list or redownload already-present dependencies for each clean
 worktree. When a

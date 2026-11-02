@@ -34,7 +34,7 @@ class HostProtocolHeaders(unittest.TestCase):
             with self.subTest(language=language):
                 subprocess.run([compiler, "-x", language, "-std=" + standard,
                                 "-Werror", "-fsyntax-only", "-I", str(self.root / "src"), "-"],
-                               input='#include "Input.h"\n#include "Limelight.h"\n#include "plank.h"\n',
+                               input='#include "Limelight.h"\n#include "plank.h"\n',
                                text=True, check=True, capture_output=True)
 
     def test_reject_recursive_dependencies(self):

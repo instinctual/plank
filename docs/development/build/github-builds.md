@@ -523,9 +523,6 @@ after pushing can otherwise select the prior revision during ref propagation.
   follow the next 9.x release. Pin the 9.7 vault **before the first package
   transaction**, including Git/Python installation. The container's existing
   `curl-minimal` is sufficient; do not conflict with it by installing `curl`.
-- `glad: jinja2 not found`: `python3-jinja2` is an explicit Host bootstrap
-  prerequisite. Do not depend on a previous builder's Python environment or
-  let CMake install ad hoc dependencies late in the build.
 - Download HTTP 502/503: use bounded retries of the pinned input, retaining its
   SHA-256 gate. Do not change versions or accept a partial download.
 - Node.js 20 deprecation: the Node runtime embedded in a GitHub Action is

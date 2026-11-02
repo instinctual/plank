@@ -568,7 +568,7 @@ separate new path.
 
 Initialize every current client submodule before invoking the build. The
 current Linux client has two top-level submodules: qmdnsengine and common-c;
-common-c has no recursive Linux dependencies. h264bitstream is vendored source,
+common-c has no recursive Linux dependencies. The unused h264bitstream/SPS rewriter is removed;
 libsoundio has been removed, and the Windows/macOS prebuilts repository is not
 a Linux candidate input. Do not restore the old submodule list from a previous
 Moonlight base. `linux-client-builder` retains canonical local repositories for
@@ -1106,7 +1106,7 @@ those sources and declarations to remain absent. Do not confuse this cleanup
 with removal of the active `Limelight.h` protocol types.
 
 `host_protocol_headers_only_gate=pass` additionally requires that the Host's
-common-C dependency contain only `Input.h`, `Limelight.h` and `plank.h` under
+common-C dependency contain only `Limelight.h` and `plank.h` under
 `src/`, with a header-only CMake target. It has no recursive dependencies,
 compiled library, ENet or nanors. Initialize this exact Host header branch,
 not the Client implementation branch or an old upstream library checkout.
