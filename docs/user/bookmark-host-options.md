@@ -1,5 +1,19 @@
 # Host-aware bookmark options and Mac display matching
 
+## Multiple bookmarks for one Host
+
+In Clients built with the independent-bookmark change, open **Add workstation
+bookmark** again with the same Host address and a different nickname, such as "Workstation —
+single display" and "Workstation — dual displays". Each bookmark retains its own
+display layout, scaling, Client display selection, capture source, encoding
+profile and profile bitrates. Existing saved bookmarks remain intact.
+
+Edit changes only the selected bookmark; Delete removes only that bookmark.
+Host certificate trust remains shared by endpoint. Adding or deleting a
+bookmark does not reset trust or bypass the existing active-session rules.
+
+## Original Host-options qualification
+
 Branch: `bookmark-host-options`, based on accepted main `d6c4598`.
 Accepted and merged September 8: Client main `a803e0dc`, root acceptance tip
 `cef37c8`, both published. Later root closeout changes are documentation only.

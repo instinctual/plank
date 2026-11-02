@@ -4,7 +4,7 @@ Read `AGENTS.md` and the relevant build runbook first. Keep machine inventory,
 credentials and private captures outside Git. This file records current work;
 older candidate provenance remains in Git history and the artifact catalog.
 
-## Current work — independent bookmarks for one Host
+## Completed candidate — independent bookmarks for one Host
 
 Branch: `client-bookmarks`, based on the complete `code-simplification` candidate
 below. Client-only candidate version: **1.3.14-client-bookmarks**.
@@ -20,8 +20,30 @@ The production-manager regression suite covers same-address Add/Edit,
 save/reload, existing IDs, deletion, shared trust, online metadata and supported
 address forms/Mac profiles. The delayed settings writer now locks its Host-map
 snapshot and synchronizes shutdown with its wait predicate. Both Client build
-scripts run this suite; hosted builds and package checks are pending. No Host
+scripts run this suite. All nine cases passed on both platforms, along with
+the existing Client/component/package gates and 119 CI policy tests. No Host
 changes, installations, merge or release are included in this task.
+
+Package-source root: `d013be4a69068c2d46283fad18bb70c11f63ce8c`;
+Client: `f6b5ea1d` (other pins unchanged from the cleanup candidate).
+Ubuntu run `41510795259` and signed Mac Client run `41510800187` passed on
+their first attempt. The Mac PKG is notarized/stapled. Both packages are
+downloaded under `artifacts/packages/candidates/1.3.14-client-bookmarks/` and
+their SHA-256 checks pass. Original builder manifests, run metadata, logs,
+recursive pins and summary are in
+`artifacts/qualification/client-bookmarks-1.3.14/`.
+
+Next installed check: add two differently named bookmarks for the same Host
+with different layouts/profiles/bitrates; edit one, restart the Client and
+confirm both remain independent. Deleting one must retain the other.
+
+Build lesson: this task's new branch could not restore unchanged dependency
+caches held only on `code-simplification`; `main` still has the older baseline.
+The unnecessary cold builds finished and populated `client-bookmarks` caches.
+The runbook now requires checking branch/default-branch cache visibility before
+promising reuse. No cache-key relaxation, dependency change or unapproved merge
+was used to hide this limitation. Future shared reuse requires the approved
+baseline and caches on `main`, or a separately designed cross-branch store.
 
 ## Completed candidate — native-only cleanup/refactor
 

@@ -20,6 +20,19 @@ reuse compiler results, but tests, linking and packaging always run afresh.
 The other products still compile their application/transport objects fresh. See
 `github-builds.md` for cache boundaries and cold/warm qualification status.
 
+Before opening a new build branch, check cache visibility as well as dependency
+inputs. A manually dispatched Actions run can restore from its own branch or
+the default branch, not another feature branch even when it is an ancestor and
+has identical dependency keys. `gh cache list --ref refs/heads/<branch>` lists
+that branch's entries. Do not promise reuse merely because a previous feature
+branch built successfully. Keep approved dependency updates and their populated
+caches on `main` so subsequent branches can inherit them. Do not merge
+unaccepted product changes solely to warm a cache. If isolated work needs an
+unmerged dependency baseline, account for this one-time cold build; subsequent
+dispatches on that branch reuse its verified caches. Do not request
+`--clean-bootstrap` for a bookmark/UI change or restart a running bootstrap
+without a failure that justifies it.
+
 This is the canonical, repeatable procedure for producing PLANK host
 and client candidate packages. Read it before changing or running a release
 build. `AGENTS.md` defines machine policy; this runbook supplies the exact
