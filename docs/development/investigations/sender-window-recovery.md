@@ -67,3 +67,15 @@ They do not prove reconstruction of the much larger burst losses from the long
 ACK hold. Installed video/IDR, audio/input continuity and a sustained WAN soak
 remain required on a newly authorized qualified test pair. The protected
 production pair and excluded Gen11 Client must remain untouched.
+
+The final production-policy fixture passed in hosted run
+[41739851250](https://github.com/instinctual/plank/actions/runs/41739851250),
+source `60d72591ce78ef0627541022236477ffd3af97ca`. Both short holds delivered all
+27,120/81,360 submitted datagrams with zero send/receive discards; receive gaps
+were 17/20ms. The long hold discarded 7,715 outgoing datagrams, while the
+application-pause case discarded 679 at the receiver. Accounting found no
+unexplained wire loss. All four cases resumed without reconnecting with 3–5ms
+maximum measured tail latency. Native FEC matrices passed three times for each
+submission path; transport state, datagram accounting, reliable pressure and
+cancellation checks also passed. This qualifies the isolated candidate tests,
+not the original production incident or installed WAN behavior.

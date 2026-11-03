@@ -25,9 +25,17 @@ protocol and Client behavior unchanged. Quinn's own pacing remains coupled to
 window/RTT, so this can increase bursts; no independent pacing layer is added.
 The temporary alternative-controller wrapper is removed. The retained test
 asserts zero drops for brief holds and automatic resumption after actual sender
-overflow or receiver-queue overflow. Source and tests are pending candidate
-validation/build; no installation, merge or release. Long interruptions still
-drop data. See [the investigation](docs/development/investigations/sender-window-recovery.md).
+overflow or receiver-queue overflow. Hosted run `41739851250` passed the final
+four-case stall gate, transport/unit checks and native FEC/reliable/cancellation
+checks for both submission paths. Brief holds lost zero datagrams; long holds
+still dropped data and automatically resumed. See
+[the investigation](docs/development/investigations/sender-window-recovery.md).
+
+Candidate package source is `60d72591ce78ef0627541022236477ffd3af97ca`, with the
+unchanged Client/Linux Host/Kymux pins recorded for 1.3.16 below. Linux Host run
+`41740636134` and signed macOS Host run `41740645876` are building from that exact
+source with existing dependency caches. No Client package is required for this
+Host-only policy change. No installation, merge or release has occurred.
 
 The loopback datagrams include FEC-equivalent load but do not claim codec or
 RaptorQ recovery; the native regression matrix covers that separately. Live
