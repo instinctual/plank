@@ -4,9 +4,12 @@
 without Qt, a window, networking, audio or input. It does not install or replace
 the Client. Use it only on an authorized idle test machine.
 
-Manually dispatch `build.yml` with `product=linux-client-vaapi-probe` and the
-expected `source_sha`. This diagnostic-only job requires an existing verified
-Client FFmpeg cache. It neither rebuilds dependencies nor creates a package.
+Manually dispatch `build.yml` with `product=linux-client-vaapi-probe`, the
+expected `source_sha`, and `diagnostic_ffmpeg_cache` set to the exact cache key
+from the installed Client's build log. This diagnostic-only job requires that
+existing cache and verifies its receipt and patched source. A newer hosted
+compiler does not select a different FFmpeg for this comparison. It neither
+rebuilds dependencies nor creates a package; product cache rules are unchanged.
 The artifact includes its source revision, binary checksum and library hashes.
 Hosted parser/build checks are not hardware acceptance.
 

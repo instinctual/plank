@@ -27,6 +27,9 @@ on:
         description: Bypass dependency cache restore and save
         type: boolean
         default: false
+      diagnostic_ffmpeg_cache:
+        description: Exact retained FFmpeg cache key (VA-API diagnostic only)
+        type: string
 
 permissions:
   contents: read
@@ -127,7 +130,10 @@ jobs:
       - name: Require retained dependency inputs
         env:
           CLEAN_BOOTSTRAP: ${{ inputs.clean_bootstrap }}
-        run: test "$CLEAN_BOOTSTRAP" != true
+          REQUIRED_FFMPEG_CACHE: ${{ inputs.diagnostic_ffmpeg_cache }}
+        run: |
+          test "$CLEAN_BOOTSTRAP" != true
+          [[ "$REQUIRED_FFMPEG_CACHE" =~ ^plank-linux-client-ffmpeg-v2-[0-9a-f]{64}$ ]]
       - run: bash scripts/ci/install-linux-deps.sh client
       - name: Match the Client dependency fingerprint
         run: sudo apt-get install -y --no-install-recommends libvulkan-dev
@@ -138,14 +144,14 @@ jobs:
         id: ffmpeg
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0, Node24
         with:
-          key: ${{ steps.dependencies.outputs.ffmpeg-key }}
+          key: ${{ inputs.diagnostic_ffmpeg_cache }}
           path: ${{ steps.dependencies.outputs.ffmpeg-paths }}
       - name: Require and verify the existing Client libraries
         env:
           CACHE_MATCHED_FFMPEG: ${{ steps.ffmpeg.outputs.cache-matched-key }}
+          REQUIRED_FFMPEG_CACHE: ${{ inputs.diagnostic_ffmpeg_cache }}
         run: |
-          test -n "$CACHE_MATCHED_FFMPEG"
-          python3 scripts/ci/cache-dependencies.py verify --product linux-client
+          python3 scripts/ci/verify-vaapi-probe-cache.py
       - run: bash "$PLANK_SOURCE_ROOT/scripts/build/build-vaapi-decode-probe.sh"
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:

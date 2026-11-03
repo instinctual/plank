@@ -5,6 +5,7 @@ product=${1:-all}
 signed=${2:-false}
 clean_bootstrap=false
 macos_host_min_os=26.7
+diagnostic_ffmpeg_cache=
 target_selected=false
 for option in "${@:3}"; do
   case $option in
@@ -15,6 +16,9 @@ for option in "${@:3}"; do
       [[ $target_selected == false ]] || exit 2
       target_selected=true
       macos_host_min_os=${option#*=} ;;
+    --diagnostic-ffmpeg-cache=*)
+      [[ -z $diagnostic_ffmpeg_cache ]] || exit 2
+      diagnostic_ffmpeg_cache=${option#*=} ;;
     *) exit 2 ;;
   esac
 done
@@ -22,6 +26,11 @@ case $macos_host_min_os in 27.0|26.7) ;; *) exit 2;; esac
 [[ $macos_host_min_os != 27.0 || $product == macos-host ]] || exit 2
 case $product in all|linux-host|linux-client|linux-client-vaapi-probe|macos-host|macos-client|macos-fullscreen-probe|dependency-tests) ;; *) exit 2 ;; esac
 [[ $product != linux-client-vaapi-probe || $clean_bootstrap == false ]] || exit 2
+if [[ $product == linux-client-vaapi-probe ]]; then
+  [[ $diagnostic_ffmpeg_cache =~ ^plank-linux-client-ffmpeg-v2-[0-9a-f]{64}$ ]] || exit 2
+else
+  [[ -z $diagnostic_ffmpeg_cache ]] || exit 2
+fi
 case $signed in
   false) ;;
   true) case $product in macos-host|macos-client|macos-fullscreen-probe) ;; *) exit 2;; esac ;;
@@ -38,4 +47,4 @@ branch=$(git symbolic-ref --quiet --short HEAD)
 revision=$(git rev-parse HEAD)
 remote=$(git ls-remote origin "refs/heads/$branch" | cut -f1)
 test "$remote" = "$revision" || { echo 'Push this exact commit before dispatch.' >&2; exit 1; }
-gh workflow run build.yml --ref "$branch" -f "product=$product" -f "source_sha=$revision" -f "signed=$signed" -f "clean_bootstrap=$clean_bootstrap" -f "macos_host_min_os=$macos_host_min_os"
+gh workflow run build.yml --ref "$branch" -f "product=$product" -f "source_sha=$revision" -f "signed=$signed" -f "clean_bootstrap=$clean_bootstrap" -f "macos_host_min_os=$macos_host_min_os" -f "diagnostic_ffmpeg_cache=$diagnostic_ffmpeg_cache"
