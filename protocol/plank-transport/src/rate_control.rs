@@ -20,6 +20,10 @@ const FEC_AND_PACKET_SCALE_NUMERATOR: u64 = 27;
 const FEC_AND_PACKET_SCALE_DENOMINATOR: u64 = 20;
 const AUDIO_AND_CONTROL_RESERVE_BPS: u64 = 1_000_000;
 const MIN_WINDOW_PACKETS: u64 = 64;
+// A short LAN RTT must not reduce the flight allowance to approximately one
+// video frame. Keep bounded headroom for delayed acknowledgments, independently
+// of the unchanged 1MiB queue of datagrams waiting to be transmitted.
+const MIN_WINDOW_BYTES: u64 = 2 * 1024 * 1024;
 const STEADY_WINDOW_NUMERATOR: u64 = 3;
 const STEADY_WINDOW_DENOMINATOR: u64 = 2;
 const MAX_WINDOW_RTT: Duration = Duration::from_millis(100);
@@ -42,7 +46,9 @@ fn window_for_rate(rate_bps: u64, rtt: Duration, mtu: u16) -> u64 {
         .saturating_mul(STEADY_WINDOW_NUMERATOR as u128)
         .div_ceil(STEADY_WINDOW_DENOMINATOR as u128)
         .min(u64::MAX as u128) as u64;
-    target.max(MIN_WINDOW_PACKETS.saturating_mul(mtu as u64))
+    target
+        .max(MIN_WINDOW_BYTES)
+        .max(MIN_WINDOW_PACKETS.saturating_mul(mtu as u64))
 }
 
 /// Shared requested rate and Host controller budget for one media connection.
@@ -192,7 +198,9 @@ pub struct PlankRateControllerFactory {
 
 impl PlankRateControllerFactory {
     pub fn new(policy: Arc<TransportRatePolicy>) -> Arc<Self> {
-        eprintln!("PLANK sender: controller-budget-floor-bps=1000000000");
+        eprintln!(
+            "PLANK sender: controller-budget-floor-bps=1000000000 minimum-window-bytes={MIN_WINDOW_BYTES}"
+        );
         Arc::new(Self { policy })
     }
 }
@@ -247,18 +255,26 @@ mod tests {
         controller.update_window(Duration::from_secs(10));
         assert_eq!(controller.window(), 18_750_000);
         controller.update_window(Duration::from_micros(1));
-        assert_eq!(controller.window(), MIN_WINDOW_PACKETS * 1_344);
+        assert_eq!(controller.window(), MIN_WINDOW_BYTES);
     }
 
     #[test]
-    fn steady_window_is_rate_and_rtt_derived() {
+    fn steady_window_keeps_ack_headroom_below_the_rate_derived_target() {
         assert_eq!(
             window_for_rate(200_000_000, Duration::from_millis(20), 1_344),
-            750_000
+            MIN_WINDOW_BYTES
         );
         assert_eq!(
             window_for_rate(200_000_000, Duration::from_micros(100), 1_344),
-            MIN_WINDOW_PACKETS * 1_344
+            MIN_WINDOW_BYTES
+        );
+        assert_eq!(
+            window_for_rate(200_000_000, Duration::from_millis(100), 1_344),
+            3_750_000
+        );
+        assert_eq!(
+            window_for_rate(200_000_000, Duration::from_micros(100), u16::MAX),
+            MIN_WINDOW_PACKETS * u16::MAX as u64
         );
     }
 

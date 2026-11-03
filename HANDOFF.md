@@ -4,23 +4,35 @@ Read `AGENTS.md` and the relevant build runbook first. Keep machine inventory,
 credentials and private captures outside Git. This file records current work;
 older candidate provenance remains in Git history and the artifact catalog.
 
-## In progress — sender-window and ACK-delay comparison
+## In progress — sender-window recovery candidate
 
 The operator resumed the separate sender-stall investigation and explicitly
 prohibited disruption of the affected production pair. A new test Client is
 being prepared. Use isolated loopback tests meanwhile; no production SSH,
 impairment, package installation or service change is needed for this stage.
 
-The saved Host evidence shows an approximately 140KiB in-flight window filling,
+Saved Host evidence shows an approximately 140KiB in-flight window filling,
 send progress stalling and the bounded 1MiB outgoing datagram queue evicting
-packets. The trigger remains unproven. Test-only encrypted Quinn comparisons
-hold return-direction packets or pause application reads, with the unchanged
-1Gbps budget/send queue and proposed 1MiB/2MiB minimum windows. These synthetic
-datagrams include FEC-equivalent load but do not claim codec/RaptorQ acceptance.
-Measure clean warm-up, queue evictions, timing and resumption without reconnect.
-Production rate-control code and package version remain unchanged. A candidate
-requires measured improvement plus native transport regression checks; live
-acceptance awaits a newly authorized, qualified Client.
+packets. The original trigger remains unproven. Hosted comparison run
+`41738601498` at `2ae65baf` passed all 12 encrypted loopback cases and existing
+native Linux/macOS FEC regression matrices. With no injected packet loss,
+brief ACK holds caused 474/1024 sender drops in the baseline; a 2MiB minimum
+eliminated both. A 1MiB minimum did not cover the higher-rate case.
+
+Candidate **1.3.17-client-bookmarks** adds that single bounded minimum in the
+shared Host rate controller. It keeps encoder targets, FEC, outgoing-queue size,
+protocol and Client behavior unchanged. Quinn's own pacing remains coupled to
+window/RTT, so this can increase bursts; no independent pacing layer is added.
+The temporary alternative-controller wrapper is removed. The retained test
+asserts zero drops for brief holds and automatic resumption after actual sender
+overflow or receiver-queue overflow. Source and tests are pending candidate
+validation/build; no installation, merge or release. Long interruptions still
+drop data. See [the investigation](docs/development/investigations/sender-window-recovery.md).
+
+The loopback datagrams include FEC-equivalent load but do not claim codec or
+RaptorQ recovery; the native regression matrix covers that separately. Live
+acceptance awaits a newly authorized, qualified Client. Do not use the excluded
+Gen11 target or either protected production machine.
 
 ## Gen11 Client hardware — unqualified; investigation stopped
 
@@ -42,8 +54,8 @@ private footage and machine evidence remain outside Git.
 
 The unbuilt decoder-recovery experiment was privately preserved and removed
 from the working tree, including its unaccepted terminal retry policy. The
-Client is clean at `b859e34318ba315ad5068e2e00aa50120d26fe92` and
-`packaging/VERSION` remains 1.3.16. Existing committed transport/reconnect and
+Client is clean at `b859e34318ba315ad5068e2e00aa50120d26fe92`; the subsequent
+1.3.17 version belongs to the sender-window candidate above. Existing transport/reconnect and
 hardware-selection fixes remain intact. Temporary remote probes and recordings
 were removed after preserving the evidence; the ordinary Client is restored
 without preload recording. No package, driver or system configuration change,

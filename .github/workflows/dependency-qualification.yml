@@ -37,13 +37,10 @@ jobs:
           key: plank-transport-tests-v1-${{ runner.os }}-${{ hashFiles('rust-toolchain.toml', 'protocol/plank-transport/Cargo.lock') }}-${{ hashFiles('protocol/plank-transport/src/**/*.rs', 'third_party/kyber-kymux/**/*.rs', 'third_party/quinn-proto-0.11.19/**/*.rs') }}
           restore-keys: |
             plank-transport-tests-v1-${{ runner.os }}-${{ hashFiles('rust-toolchain.toml', 'protocol/plank-transport/Cargo.lock') }}-
-      - name: Test production transport and native loss recovery
+      - name: Compile transport qualification tests
         run: |
-          cargo test --locked --release --manifest-path protocol/plank-transport/Cargo.toml
-          cargo test --locked --release --manifest-path third_party/quinn-proto-0.11.19/Cargo.toml --lib connection::datagrams::
-          bash scripts/test/run-plank-transport-stalls.sh
-          PLANK_TRANSPORT_CARGO_FEATURES=quinn-telemetry bash scripts/test/run-plank-transport-native-loopback.sh
-          PLANK_TRANSPORT_CARGO_FEATURES=quinn-telemetry,macos-source-first bash scripts/test/run-plank-transport-native-loopback.sh
+          cargo test --no-run --locked --release --manifest-path protocol/plank-transport/Cargo.toml --features quinn-telemetry
+          cargo test --no-run --locked --release --manifest-path protocol/plank-transport/Cargo.toml --features quinn-telemetry,macos-source-first
       - uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0, Node24
         if: success() && steps.rust-cache.outputs.cache-hit != 'true'
         with:
@@ -52,6 +49,16 @@ jobs:
             ~/.cargo/git
             protocol/plank-transport/target
           key: ${{ steps.rust-cache.outputs.cache-primary-key }}
+      - name: Test transport state and datagram accounting
+        run: |
+          cargo test --locked --release --manifest-path protocol/plank-transport/Cargo.toml --features quinn-telemetry
+          cargo test --locked --release --manifest-path third_party/quinn-proto-0.11.19/Cargo.toml --lib connection::datagrams::
+      - name: Compare delayed acknowledgments and receiver pauses
+        run: bash scripts/test/run-plank-transport-stalls.sh
+      - name: Test native Linux FEC and reliable recovery
+        run: PLANK_TRANSPORT_CARGO_FEATURES=quinn-telemetry bash scripts/test/run-plank-transport-native-loopback.sh
+      - name: Test native macOS FEC and reliable recovery
+        run: PLANK_TRANSPORT_CARGO_FEATURES=quinn-telemetry,macos-source-first bash scripts/test/run-plank-transport-native-loopback.sh
 
   vulkan:
     if: inputs.scope != 'transport'

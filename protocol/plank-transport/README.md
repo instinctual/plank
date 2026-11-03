@@ -48,9 +48,17 @@ There is no application-level datagram pacer, optional pacer object, timer wait,
 or paced-baseline build. KyProto submits each prepared datagram to Quinn;
 Quinn's own congestion window, packet scheduling and bounded queue remain.
 The Host's shared rate policy uses a 1 Gbps budget floor on every platform,
-retains the existing RTT/window bounds and permits larger derived budgets.
-This is transport headroom, not an encoder bitrate or guaranteed link speed.
+retains the existing RTT-derived upper bounds and permits larger derived budgets.
+Its minimum in-flight window is 2MiB so a low LAN RTT does not reduce allowance
+to approximately one frame and make brief acknowledgment delays overflow the
+unchanged 1MiB outgoing queue. This is transport headroom, not an encoder bitrate
+or guaranteed link speed. Quinn derives packet pacing from its window and RTT;
+the reported budget is not an independent hard wire-rate limiter. A larger
+minimum window can therefore also allow larger/faster transmission bursts.
 The Client's existing default Quinn controller is unchanged.
+
+The [sender-window investigation](../../docs/development/investigations/sender-window-recovery.md)
+records measured comparisons, the bounded-stall regression and live-test limits.
 
 Linux Host packaging selects `quinn-telemetry`. The macOS Host can additionally
 select `macos-source-first` for its existing FEC submission order/diagnostics;

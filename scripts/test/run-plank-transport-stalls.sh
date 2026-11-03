@@ -14,5 +14,5 @@ export SC_NATIVE_TEST_PRIVATE_KEY="$test_tmp/key.pem"
 cargo test --release --locked --offline \
   --manifest-path "$repo_root/protocol/plank-transport/Cargo.toml" \
   --features quinn-telemetry \
-  native::transport_stalls::compare_ack_holds_and_receiver_pauses \
+  native::transport_stalls::bounded_window_survives_ack_holds_and_recovers_from_stalls \
   -- --ignored --exact --nocapture

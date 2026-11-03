@@ -8,78 +8,9 @@
 use super::loss_proxy::LossProxy;
 use crate::rate_control::{PlankRateControllerFactory, TransportRatePolicy};
 use bytes::Bytes;
-use quinn_proto::RttEstimator;
-use quinn_proto::congestion::{Controller, ControllerFactory, ControllerMetrics};
-use std::any::Any;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::time::{Duration, Instant};
-
-// Test-only overlay, so measurements can compare the current product policy
-// with proposed floors before changing production behavior.
-struct FloorFactory {
-    inner: Arc<PlankRateControllerFactory>,
-    floor: u64,
-}
-
-struct FloorController {
-    inner: Box<dyn Controller>,
-    floor: u64,
-}
-
-impl ControllerFactory for FloorFactory {
-    fn build(self: Arc<Self>, now: Instant, mtu: u16) -> Box<dyn Controller> {
-        Box::new(FloorController {
-            inner: self.inner.clone().build(now, mtu),
-            floor: self.floor,
-        })
-    }
-}
-
-impl Controller for FloorController {
-    fn on_sent(&mut self, now: Instant, bytes: u64, last: u64) {
-        self.inner.on_sent(now, bytes, last);
-    }
-    fn on_ack(
-        &mut self,
-        now: Instant,
-        sent: Instant,
-        bytes: u64,
-        limited: bool,
-        rtt: &RttEstimator,
-    ) {
-        self.inner.on_ack(now, sent, bytes, limited, rtt);
-    }
-    fn on_end_acks(&mut self, now: Instant, flight: u64, limited: bool, largest: Option<u64>) {
-        self.inner.on_end_acks(now, flight, limited, largest);
-    }
-    fn on_congestion_event(&mut self, now: Instant, sent: Instant, persistent: bool, lost: u64) {
-        self.inner.on_congestion_event(now, sent, persistent, lost);
-    }
-    fn on_mtu_update(&mut self, mtu: u16) {
-        self.inner.on_mtu_update(mtu);
-    }
-    fn window(&self) -> u64 {
-        self.inner.window().max(self.floor)
-    }
-    fn initial_window(&self) -> u64 {
-        self.inner.initial_window().max(self.floor)
-    }
-    fn metrics(&self) -> ControllerMetrics {
-        let mut metrics = self.inner.metrics();
-        metrics.congestion_window = self.window();
-        metrics
-    }
-    fn clone_box(&self) -> Box<dyn Controller> {
-        Box::new(Self {
-            inner: self.inner.clone_box(),
-            floor: self.floor,
-        })
-    }
-    fn into_any(self: Box<Self>) -> Box<dyn Any> {
-        self
-    }
-}
 
 #[derive(Clone, Copy, Debug)]
 enum Stall {
@@ -96,7 +27,7 @@ struct Received {
     tail_max_latency: Duration,
 }
 
-async fn compare(video_bps: u64, stall: Stall, hold: Duration, floor: u64) {
+async fn exercise_stall(video_bps: u64, stall: Stall, hold: Duration) {
     crate::init_crypto_once();
     let certificate =
         kynet::cert::load_cert_from_pem_file(std::env::var("SC_NATIVE_TEST_CERTIFICATE").unwrap())
@@ -115,10 +46,9 @@ async fn compare(video_bps: u64, stall: Stall, hold: Duration, floor: u64) {
         .min_mtu(1344)
         .mtu_discovery_config(None);
     transport.max_idle_timeout(Some(Duration::from_secs(10).try_into().unwrap()));
-    transport.congestion_controller_factory(Arc::new(FloorFactory {
-        inner: PlankRateControllerFactory::new(TransportRatePolicy::new(video_bps)),
-        floor,
-    }));
+    transport.congestion_controller_factory(PlankRateControllerFactory::new(
+        TransportRatePolicy::new(video_bps),
+    ));
     server_config.transport_config(Arc::new(transport));
     let server = quinn::Endpoint::server(server_config, "127.0.0.1:0".parse().unwrap()).unwrap();
     let mut proxy = LossProxy::start(server.local_addr().unwrap()).unwrap();
@@ -244,6 +174,7 @@ async fn compare(video_bps: u64, stall: Stall, hold: Duration, floor: u64) {
         .unwrap();
     let before = before.unwrap();
     let stats = sender.stats();
+    let receive_stats = receiver.stats();
     let queue = stats.plank_telemetry.unwrap();
     let dropped_before = before.plank_telemetry.unwrap().queue_evicted_datagrams;
     let kernel_drops = proxy.finish();
@@ -253,7 +184,7 @@ async fn compare(video_bps: u64, stall: Stall, hold: Duration, floor: u64) {
     client.close(0_u32.into(), b"diagnostic complete");
 
     eprintln!(
-        "stall_comparison mode={stall:?} video_bps={video_bps} hold_ms={} floor_bytes={floor} pre_rtt_us={} pre_cwnd={} pre_evicted={dropped_before} evicted={} queue_max={queue_max} queue_limit={} sent={sequence} received={} missing={} max_gap_ms={} tail_latency_max_ms={} submit_lag_ms={} held_return={} quic_lost={} proxy_kernel_drops={kernel_drops:?}",
+        "stall_comparison mode={stall:?} video_bps={video_bps} hold_ms={} pre_rtt_us={} pre_cwnd={} pre_evicted={dropped_before} evicted={} queue_max={queue_max} queue_limit={} sent={sequence} received={} missing={} transmitted={} arrived={} receiver_discarded={} max_gap_ms={} tail_latency_max_ms={} submit_lag_ms={} held_return={} quic_lost={} proxy_kernel_drops={kernel_drops:?}",
         hold.as_millis(),
         before.path.rtt.as_micros(),
         before.path.cwnd,
@@ -261,6 +192,9 @@ async fn compare(video_bps: u64, stall: Stall, hold: Duration, floor: u64) {
         queue.queue_limit_bytes,
         received.packets,
         sequence - received.packets,
+        stats.frame_tx.datagram,
+        receive_stats.frame_rx.datagram,
+        receive_stats.frame_rx.datagram - received.packets,
         received.maximum_gap.as_millis(),
         received.tail_max_latency.as_millis(),
         submission_lag.as_millis(),
@@ -273,7 +207,38 @@ async fn compare(video_bps: u64, stall: Stall, hold: Duration, floor: u64) {
         "proxy overload invalidated the comparison"
     );
     assert_eq!(proxy.dropped.load(Ordering::Relaxed), 0);
+    assert_eq!(
+        stats.frame_tx.datagram + queue.queue_evicted_datagrams,
+        sequence,
+        "submitted datagrams remain unaccounted for after recovery"
+    );
+    assert_eq!(
+        stats.frame_tx.datagram, receive_stats.frame_rx.datagram,
+        "unplanned loopback packet loss invalidated the comparison"
+    );
     assert_eq!(dropped_before, 0, "clean warm-up already overflowed");
+    assert!(before.path.cwnd >= 2 * 1024 * 1024);
+    match stall {
+        Stall::ReturnPath if hold <= Duration::from_millis(200) => {
+            assert_eq!(
+                queue.queue_evicted_datagrams, 0,
+                "brief ACK hold overflowed"
+            );
+            assert_eq!(received.packets, sequence, "brief ACK hold lost data");
+        }
+        Stall::ReturnPath => {
+            // A long interruption must actually fill the bounded send queue,
+            // so the resumption checks below exercise overflow recovery.
+            assert!(queue.queue_evicted_datagrams > 0);
+            assert_eq!(receive_stats.frame_rx.datagram, received.packets);
+        }
+        Stall::Consumer => {
+            // A blocked application is a distinct receiver-queue failure. Its
+            // QUIC worker still ACKs; increasing the sender window cannot fix it.
+            assert_eq!(queue.queue_evicted_datagrams, 0);
+            assert!(receive_stats.frame_rx.datagram > received.packets);
+        }
+    }
     assert!(
         submission_lag < Duration::from_millis(100),
         "sender did not maintain offered load"
@@ -296,15 +261,13 @@ async fn compare(video_bps: u64, stall: Stall, hold: Duration, floor: u64) {
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
 #[ignore = "run through scripts/test/run-plank-transport-stalls.sh"]
-async fn compare_ack_holds_and_receiver_pauses() {
-    for floor in [0, 1024 * 1024, 2 * 1024 * 1024] {
-        for (bps, stall, hold_ms) in [
-            (50_000_000, Stall::ReturnPath, 200),
-            (150_000_000, Stall::ReturnPath, 100),
-            (50_000_000, Stall::ReturnPath, 1500),
-            (50_000_000, Stall::Consumer, 250),
-        ] {
-            compare(bps, stall, Duration::from_millis(hold_ms), floor).await;
-        }
+async fn bounded_window_survives_ack_holds_and_recovers_from_stalls() {
+    for (bps, stall, hold_ms) in [
+        (50_000_000, Stall::ReturnPath, 200),
+        (150_000_000, Stall::ReturnPath, 100),
+        (50_000_000, Stall::ReturnPath, 1500),
+        (50_000_000, Stall::Consumer, 250),
+    ] {
+        exercise_stall(bps, stall, Duration::from_millis(hold_ms)).await;
     }
 }
