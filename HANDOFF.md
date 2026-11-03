@@ -26,14 +26,14 @@ packet loss had been applied; private timestamps/logs remain outside Git.
   now requires the pressure-recovery test instead of expecting queue overflow
   to kill the connection.
 
-Package source is root `6aa4f0d29c6585f2063c0fada2cd50a4b7a05d02`, Client
+Linux package source is root `6aa4f0d29c6585f2063c0fada2cd50a4b7a05d02`, Client
 `b859e34318ba315ad5068e2e00aa50120d26fe92`, Linux Host
 `2f2f207827a907fb6aaf2b8ac3833507389cd678` and Kymux
 `12af484eb307351b068aba96da12afce46f4614b`. Hosted run `41590277670`
 passed all four product compile/test jobs. Linux DEB/RPM packages are verified
-in `artifacts/packages/candidates/1.3.16-client-bookmarks/linux/`; Mac jobs
-were unsigned checks, not signed installer delivery. Build logs, original
-manifests, recursive pins and Qt evidence are in
+in `artifacts/packages/candidates/1.3.16-client-bookmarks/linux/`. The initial
+Mac jobs were unsigned checks; signed delivery is now complete as described
+below. Build logs, original manifests, recursive pins and Qt evidence are in
 `artifacts/qualification/data-backpressure-1.3.16/`. Dependency caches were
 reused; no FFmpeg or dependency version/patch changed.
 
@@ -68,8 +68,24 @@ staging were removed; the session remains connected. Raw machine evidence is
 private; the sanitized qualification summary remains in the artifact directory.
 This short random-loss matrix does not qualify burst loss, every bitrate, or
 live Mac behavior. Live queue saturation was not directly observable; the
-encrypted loopback test specifically exercises that path. Signed Mac 1.3.16
-installers and installed Mac acceptance remain outstanding. No merge or release.
+encrypted loopback test specifically exercises that path. No merge or release.
+
+Signed Mac delivery is complete from root
+`431902bc727b2065209aedfc7f701acced10e1e9` (only HANDOFF differs from the Linux
+package source; all product/dependency sources match). Host run `41595563892`
+and Client run `41595567493` passed signing, notarization, stapling, Gatekeeper
+and package gates. All existing dependency caches were restored and verified.
+The two PKGs are downloaded/checksum-verified in the same candidate catalog's
+`macos/` directory:
+
+- Host `plank-host_1.3.16-client-bookmarks_arm64.pkg`, macOS 26.7+:
+  `72fe9dc2d381ce54a70d962b0bf59ecbda521f30d939e7aab84c360834d4f52b`.
+- Client `plank-client_1.3.16-client-bookmarks_arm64.pkg`, macOS 15+:
+  `dfed633d4ae19502291745257e417ab5ad1db4eb16b6577463867ee7c6b4fba9`.
+
+Signed logs, run metadata, original manifests and Client UI test evidence are
+retained with the qualification reports. Duplicate staging was removed. No Mac
+installation or installed Mac acceptance occurred; those checks remain open.
 
 ## Ready for installed testing — HEVC hardware selection and NVENC recovery
 
