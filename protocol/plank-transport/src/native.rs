@@ -462,6 +462,10 @@ mod loss_proxy;
 #[path = "test_loss_performance.rs"]
 mod loss_performance;
 
+#[cfg(all(test, feature = "quinn-telemetry"))]
+#[path = "test_transport_stalls.rs"]
+mod transport_stalls;
+
 #[cfg(test)]
 mod tests {
     use super::loss_performance::{

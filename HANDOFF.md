@@ -4,6 +4,24 @@ Read `AGENTS.md` and the relevant build runbook first. Keep machine inventory,
 credentials and private captures outside Git. This file records current work;
 older candidate provenance remains in Git history and the artifact catalog.
 
+## In progress — sender-window and ACK-delay comparison
+
+The operator resumed the separate sender-stall investigation and explicitly
+prohibited disruption of the affected production pair. A new test Client is
+being prepared. Use isolated loopback tests meanwhile; no production SSH,
+impairment, package installation or service change is needed for this stage.
+
+The saved Host evidence shows an approximately 140KiB in-flight window filling,
+send progress stalling and the bounded 1MiB outgoing datagram queue evicting
+packets. The trigger remains unproven. Test-only encrypted Quinn comparisons
+hold return-direction packets or pause application reads, with the unchanged
+1Gbps budget/send queue and proposed 1MiB/2MiB minimum windows. These synthetic
+datagrams include FEC-equivalent load but do not claim codec/RaptorQ acceptance.
+Measure clean warm-up, queue evictions, timing and resumption without reconnect.
+Production rate-control code and package version remain unchanged. A candidate
+requires measured improvement plus native transport regression checks; live
+acceptance awaits a newly authorized, qualified Client.
+
 ## Gen11 Client hardware — unqualified; investigation stopped
 
 The operator excluded Intel NUC Gen11 (Tiger Lake) from qualified Client

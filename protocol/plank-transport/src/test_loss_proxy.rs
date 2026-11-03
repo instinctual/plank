@@ -5,18 +5,22 @@
 //! separately: a pass with extra loss still proves recovery, but cannot be
 //! described as an exact-loss measurement. Never relax frame assertions.
 
+use std::collections::VecDeque;
 use std::io;
 use std::net::{SocketAddr, UdpSocket};
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::thread::{self, JoinHandle};
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 pub(super) struct LossProxy {
     pub address: SocketAddr,
     pub loss_basis_points: Arc<AtomicU64>,
     pub forwarded: Arc<AtomicU64>,
     pub dropped: Arc<AtomicU64>,
+    return_hold_until_ms: Arc<AtomicU64>,
+    pub held_return_packets: Arc<AtomicU64>,
+    epoch: Instant,
     stop: Arc<AtomicBool>,
     worker: Option<JoinHandle<io::Result<Option<u64>>>>,
 }
@@ -32,13 +36,18 @@ impl LossProxy {
             "fec_loss_proxy_receive_buffer_bytes={}",
             socket_ref.recv_buffer_size()?
         );
-        socket.set_read_timeout(Some(Duration::from_millis(20)))?;
+        socket.set_read_timeout(Some(Duration::from_millis(2)))?;
         socket.set_write_timeout(Some(Duration::from_millis(100)))?;
         let address = socket.local_addr()?;
         let loss_basis_points = Arc::new(AtomicU64::new(0));
         let forwarded = Arc::new(AtomicU64::new(0));
         let dropped = Arc::new(AtomicU64::new(0));
         let stop = Arc::new(AtomicBool::new(false));
+        let epoch = Instant::now();
+        let return_hold_until_ms = Arc::new(AtomicU64::new(0));
+        let held_return_packets = Arc::new(AtomicU64::new(0));
+        let hold = return_hold_until_ms.clone();
+        let held = held_return_packets.clone();
         let (loss, sent, omitted, stopping) = (
             loss_basis_points.clone(),
             forwarded.clone(),
@@ -51,7 +60,19 @@ impl LossProxy {
                 let mut client = None;
                 let mut sequence = 0_u64;
                 let mut buffer = vec![0_u8; 65_535];
+                let mut pending: VecDeque<(u64, Vec<u8>)> = VecDeque::new();
+                let mut pending_bytes = 0;
                 while !stopping.load(Ordering::Acquire) {
+                    let now = epoch.elapsed().as_millis() as u64;
+                    while pending.front().is_some_and(|(until, _)| *until <= now) {
+                        let (_, packet) = pending.pop_front().unwrap();
+                        pending_bytes -= packet.len();
+                        if socket.send_to(&packet, server)? != packet.len() {
+                            return Err(io::Error::other(
+                                "delay proxy truncated a return datagram",
+                            ));
+                        }
+                    }
                     let (size, source) = match socket.recv_from(&mut buffer) {
                         Ok(packet) => packet,
                         Err(error)
@@ -79,6 +100,19 @@ impl LossProxy {
                         client
                     } else {
                         client = Some(source);
+                        let until = hold.load(Ordering::Acquire);
+                        if until > epoch.elapsed().as_millis() as u64 || !pending.is_empty() {
+                            if pending_bytes + size > 8 * 1024 * 1024 {
+                                return Err(io::Error::other(
+                                    "delay proxy exceeded its bounded return queue",
+                                ));
+                            }
+                            let until = until.max(pending.back().map_or(0, |(at, _)| *at));
+                            pending.push_back((until, buffer[..size].to_vec()));
+                            pending_bytes += size;
+                            held.fetch_add(1, Ordering::Relaxed);
+                            continue;
+                        }
                         server
                     };
                     let written = socket.send_to(&buffer[..size], destination)?;
@@ -96,9 +130,21 @@ impl LossProxy {
             loss_basis_points,
             forwarded,
             dropped,
+            return_hold_until_ms,
+            held_return_packets,
+            epoch,
             stop,
             worker: Some(worker),
         })
+    }
+
+    /// Hold encrypted return-direction packets without dropping or reordering
+    /// them. QUIC control travels here too; this is not an ACK-frame parser.
+    pub fn hold_return_for(&self, duration: Duration) {
+        self.return_hold_until_ms.store(
+            (self.epoch.elapsed() + duration).as_millis() as u64,
+            Ordering::Release,
+        );
     }
 
     fn join(&mut self) -> io::Result<Option<u64>> {
@@ -131,8 +177,43 @@ impl Drop for LossProxy {
     }
 }
 
+#[test]
+fn return_hold_preserves_order_without_blocking_forward_packets() {
+    let server = UdpSocket::bind("127.0.0.1:0").unwrap();
+    server
+        .set_read_timeout(Some(Duration::from_millis(20)))
+        .unwrap();
+    let client = UdpSocket::bind("127.0.0.1:0").unwrap();
+    client
+        .set_read_timeout(Some(Duration::from_secs(2)))
+        .unwrap();
+    let mut proxy = LossProxy::start(server.local_addr().unwrap()).unwrap();
+    client.send_to(b"hello", proxy.address).unwrap();
+    let mut buffer = [0; 16];
+    server.recv_from(&mut buffer).unwrap();
+    proxy.hold_return_for(Duration::from_millis(100));
+    client.send_to(b"first", proxy.address).unwrap();
+    client.send_to(b"second", proxy.address).unwrap();
+    server.send_to(b"forward", proxy.address).unwrap();
+    assert_eq!(client.recv_from(&mut buffer).unwrap().0, 7);
+    assert_eq!(&buffer[..7], b"forward");
+    assert!(matches!(
+        server.recv_from(&mut buffer).unwrap_err().kind(),
+        io::ErrorKind::WouldBlock | io::ErrorKind::TimedOut
+    ));
+    server
+        .set_read_timeout(Some(Duration::from_secs(2)))
+        .unwrap();
+    for expected in [b"first".as_slice(), b"second".as_slice()] {
+        let (size, _) = server.recv_from(&mut buffer).unwrap();
+        assert_eq!(&buffer[..size], expected);
+    }
+    assert_eq!(proxy.held_return_packets.load(Ordering::Relaxed), 2);
+    proxy.finish();
+}
+
 #[cfg(target_os = "linux")]
-fn kernel_drops(socket: &UdpSocket) -> io::Result<Option<u64>> {
+pub(super) fn kernel_drops(socket: &UdpSocket) -> io::Result<Option<u64>> {
     use std::os::fd::AsRawFd;
     use std::os::unix::fs::MetadataExt;
     let inode = std::fs::metadata(format!("/proc/self/fd/{}", socket.as_raw_fd()))?.ino();

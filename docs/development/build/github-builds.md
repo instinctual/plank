@@ -54,6 +54,12 @@ These jobs do not install products or perform live display, audio, input,
 network-loss or hardware-decoder qualification. Existing hardware gates and
 local builders remain available until hosted builds are qualified.
 
+`dependency-qualification.yml` accepts a manual `scope` of `all`, `transport`
+or `vulkan`. Select `transport` for isolated QUIC window/ACK-delay and native
+KyProto loss tests without rebuilding application or FFmpeg dependencies.
+Its Rust cache is keyed by the toolchain, lockfile and tested sources. These
+loopback measurements do not replace an installed WAN/session comparison.
+
 ## Local downloads and cleanup
 
 Use one task-specific staging directory under `build/` when downloading hosted
