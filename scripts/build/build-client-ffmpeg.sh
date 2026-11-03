@@ -14,7 +14,7 @@ runtime_stage_dir=$(realpath -m -- "$1")
 repo_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd)
 work_dir=$(realpath -m -- "${2:-${repo_dir}/build/client-ffmpeg-${ffmpeg_version}}")
 identity_gbr_patch="${repo_dir}/apps/client/app/deploy/linux/ffmpeg-patches/0001-hevc-enable-hwaccel-for-identity-gbr.patch"
-identity_gbr_patch_sha256=d8514ed9db3fc2c1aba43cfad0b06f8be3670759bdb173b6fd0a6dc1cffa0bf4
+identity_gbr_patch_sha256=eb6ef0c1076f54559b85a6bc4cc89f1c46a980da7b0f1f857258e638475085bb
 archive="${work_dir}/ffmpeg-${ffmpeg_version}.tar.xz"
 source_dir="${work_dir}/ffmpeg-${ffmpeg_version}"
 build_dir="${work_dir}/build"
@@ -50,11 +50,11 @@ printf '%s  %s\n' "${identity_gbr_patch_sha256}" "${identity_gbr_patch}" |
 # profiles, so the private PLANK FFmpeg build must offer VA-API for them. The
 # old prepared builder tree carried this patch, but the clean bootstrap did
 # not reproduce it until it became an explicit build input here.
-if patch --batch --forward --no-backup-if-mismatch --dry-run -d "${source_dir}" -p1 \
+if patch --batch --fuzz=0 --forward --no-backup-if-mismatch --dry-run -d "${source_dir}" -p1 \
     < "${identity_gbr_patch}" >/dev/null 2>&1; then
-  patch --batch --forward --no-backup-if-mismatch -d "${source_dir}" -p1 \
+  patch --batch --fuzz=0 --forward --no-backup-if-mismatch -d "${source_dir}" -p1 \
     < "${identity_gbr_patch}"
-elif patch --batch --reverse --no-backup-if-mismatch --dry-run -d "${source_dir}" -p1 \
+elif patch --batch --fuzz=0 --reverse --no-backup-if-mismatch --dry-run -d "${source_dir}" -p1 \
     < "${identity_gbr_patch}" >/dev/null 2>&1; then
   echo "Identity-GBR FFmpeg patch is already applied"
 else
@@ -67,6 +67,8 @@ if find "${source_dir}" -type f \( -name '*.orig' -o -name '*.rej' \) \
   exit 1
 fi
 echo "client_ffmpeg_identity_gbr_patch_gate=pass"
+python3 "$repo_dir/scripts/test/check-client-ffmpeg-identity.py" \
+  "$source_dir/libavcodec/hevc/hevcdec.c"
 
 mkdir -p "${build_dir}" "${install_dir}"
 source "$repo_dir/scripts/build/build-paths.sh"

@@ -10,6 +10,19 @@ ROOT = Path(__file__).resolve().parents[2]
 
 
 class ClientSourceGateTests(unittest.TestCase):
+    def test_ffmpeg_identity_guard_fixtures(self):
+        subprocess.run(['python3', str(ROOT / 'tests/packaging/test-client-ffmpeg-identity.py')],
+                       check=True, capture_output=True, text=True)
+
+    def test_both_clients_require_decoder_policy_and_format_offer_tests(self):
+        for script in ('scripts/build/build-client-package-binaries.sh',
+                       'scripts/build/build-macos-client.sh'):
+            with self.subTest(script=script):
+                text = (ROOT / script).read_text()
+                self.assertIn('scripts/test/check-client-ffmpeg-identity.py', text)
+                self.assertIn('tests/video/client-hardware-formats.cpp', text)
+                self.assertIn('tests/video/decoder-policy.cpp', text)
+
     def test_source_gate_covers_the_root_compositor_probe(self):
         spec = importlib.util.spec_from_file_location('no_sdl_gate', ROOT / 'scripts/test/check-client-no-sdl.py')
         module = importlib.util.module_from_spec(spec)

@@ -472,6 +472,11 @@ echo "host_auth_group_absence_gate=pass"
 # This includes the production PAM header and must use the Host's C++23 mode.
 mkdir -p "$build_dir/plank-security-tests"
 /opt/rh/gcc-toolset-14/root/usr/bin/g++ \
+  -std=c++20 -Wall -Wextra -Wpedantic -Werror \
+  -I"$source_dir/src" "$repo_dir/tests/video/nvenc-idr-recovery.cpp" \
+  -o "$build_dir/plank-security-tests/nvenc-idr-recovery"
+"$build_dir/plank-security-tests/nvenc-idr-recovery"
+/opt/rh/gcc-toolset-14/root/usr/bin/g++ \
   -std=c++23 -Wall -Wextra -Wpedantic -Werror -pthread \
   -I"$source_dir/src" "$repo_dir/tests/session/test-pam-broker-channel.cpp" \
   -o "$build_dir/plank-security-tests/pam-broker-channel-test"

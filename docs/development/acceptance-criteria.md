@@ -128,9 +128,10 @@ sampling, range, and color transform defined in
 
 The qualified default is H.264 High 10 4:4:4 full-range identity GBR. Decoder
 selection is internal and profile-specific: the Client validates a real
-exact-format hardware test frame first, then uses the exact software decoder
-for the same profile. If neither path preserves the requested tuple, the
-connection fails clearly.
+exact-format hardware test frame first. H.264 may use the exact software decoder
+for the same profile; HEVC requires hardware decoding. If the permitted paths
+cannot preserve the requested tuple, the connection fails clearly. Apply this
+by codec, including NVENC H.264 and Apple HEVC, not by the Host encoder name.
 
 Every supported profile must pass:
 

@@ -74,9 +74,17 @@ fi
 fetch https://ffmpeg.org/releases/ffmpeg-9.0.2.tar.xz 8c3850283eb25fa026482078a04051e0be17347b09ef81a0849bec15a96e002e
 ffmpeg_source="$PLANK_MAC_CLIENT_DEPS/src/ffmpeg-9.0.2"
 identity_patch="$PLANK_SOURCE_ROOT/apps/client/app/deploy/linux/ffmpeg-patches/0001-hevc-enable-hwaccel-for-identity-gbr.patch"
-printf '%s  %s\n' d8514ed9db3fc2c1aba43cfad0b06f8be3670759bdb173b6fd0a6dc1cffa0bf4 "$identity_patch" | shasum -a 256 -c -
-patch --batch --forward -d "$ffmpeg_source" -p1 < "$identity_patch"
-patch --batch --reverse --dry-run -d "$ffmpeg_source" -p1 < "$identity_patch"
+printf '%s  %s\n' eb6ef0c1076f54559b85a6bc4cc89f1c46a980da7b0f1f857258e638475085bb "$identity_patch" | shasum -a 256 -c -
+patch --batch --fuzz=0 --forward -d "$ffmpeg_source" -p1 < "$identity_patch"
+patch --batch --fuzz=0 --reverse --dry-run -d "$ffmpeg_source" -p1 < "$identity_patch"
+python3 "$PLANK_SOURCE_ROOT/scripts/test/check-client-ffmpeg-identity.py" \
+    "$ffmpeg_source/libavcodec/hevc/hevcdec.c"
+hardware_patch="$PLANK_SOURCE_ROOT/apps/client/app/deploy/linux/ffmpeg-patches/0002-videotoolbox-require-hevc-hardware.patch"
+printf '%s  %s\n' e6c0680ef435d6f9a474473e2630e708d7e2aec520b4e35254fb817f1fa8d775 "$hardware_patch" | shasum -a 256 -c -
+patch --batch --fuzz=0 --forward --no-backup-if-mismatch -d "$ffmpeg_source" -p1 < "$hardware_patch"
+patch --batch --fuzz=0 --reverse --dry-run -d "$ffmpeg_source" -p1 < "$hardware_patch"
+printf '%s  %s\n' f88b544a21f20447e41f236da464035dbb20953b05a528b399c81b798c906d4c \
+    "$ffmpeg_source/libavcodec/videotoolbox.c" | shasum -a 256 -c -
 mkdir -p "$PLANK_MAC_CLIENT_DEPS/build-ffmpeg"
 (
     cd "$PLANK_MAC_CLIENT_DEPS/build-ffmpeg"

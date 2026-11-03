@@ -5,11 +5,11 @@ build_root=${PLANK_QT_SESSION_TEST_BUILD:?Set a dedicated Qt-session test build 
 : "${PLANK_CLIENT_FFMPEG_WORK:?Set the retained private Client FFmpeg work directory}"
 ffmpeg_source="$PLANK_CLIENT_FFMPEG_WORK/ffmpeg-9.0.2"
 patch="$source_root/apps/client/app/deploy/linux/ffmpeg-patches/0001-hevc-enable-hwaccel-for-identity-gbr.patch"
-patch --batch --reverse --no-backup-if-mismatch --dry-run -d "$ffmpeg_source" -p1 < "$patch"
+patch --batch --fuzz=0 --reverse --no-backup-if-mismatch --dry-run -d "$ffmpeg_source" -p1 < "$patch"
 # The release preflight pins the resulting source too: patch-context offsets
 # alone are not proof that this is the qualified prepared dependency.
 test "$(sha256sum "$ffmpeg_source/libavcodec/hevc/hevcdec.c" | cut -d' ' -f1)" = \
-    9803af49884faaf2ed92ab4a1542099db235b5a4da06047be4bfeb885360714a
+    b4b3523850229d57ac51d931e2a8c17680280f1b84e6df19a6c6884a58fa99c2
 export PKG_CONFIG_PATH="$PLANK_CLIENT_FFMPEG_WORK/install/lib/pkgconfig${PKG_CONFIG_PATH:+:$PKG_CONFIG_PATH}"
 test "$(pkg-config --variable=prefix libavutil)" = "$PLANK_CLIENT_FFMPEG_WORK/install"
 qmake=${QMAKE:-qmake6}
@@ -25,6 +25,13 @@ case ${PLANK_QT_SESSION_SANITIZERS:-0} in
     *) echo 'PLANK_QT_SESSION_SANITIZERS must be 0 or 1' >&2; exit 2 ;;
 esac
 mkdir -p "$build_root"
+python3 "$source_root/scripts/test/check-client-ffmpeg-identity.py" \
+    "$ffmpeg_source/libavcodec/hevc/hevcdec.c"
+c++ -std=c++17 -Wall -Wextra -Werror "${cxx_flags[@]}" \
+    -I"$source_root/apps/client/app/streaming" \
+    "$source_root/tests/video/client-hardware-formats.cpp" $(pkg-config --cflags --libs libavcodec libavutil) \
+    -o "$build_root/client-hardware-formats"
+"$build_root/client-hardware-formats"
 bash "$source_root/scripts/test/test-code-simplification.sh" "$build_root/simplification"
 c++ -std=c++17 -Wall -Wextra -Werror -DPLANK_TEST_REAL_FFMPEG "${cxx_flags[@]}" \
     -I"$source_root/apps/client/app/streaming" \

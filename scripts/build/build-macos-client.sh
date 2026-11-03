@@ -89,8 +89,27 @@ xcrun clang++ -std=c++17 -mmacosx-version-min="$MACOSX_DEPLOYMENT_TARGET" \
     $(pkg-config --cflags --libs libavcodec libavutil) -o "$build/tests/decode-packet"
 DYLD_LIBRARY_PATH="$PLANK_MAC_CLIENT_DEPS/install/lib" "$build/tests/decode-packet"
 patch_file="$client/app/deploy/linux/ffmpeg-patches/0001-hevc-enable-hwaccel-for-identity-gbr.patch"
-printf '%s  %s\n' d8514ed9db3fc2c1aba43cfad0b06f8be3670759bdb173b6fd0a6dc1cffa0bf4 "$patch_file" | shasum -a 256 -c -
-patch --batch --reverse --dry-run -d "$PLANK_MAC_CLIENT_DEPS/src/ffmpeg-9.0.2" -p1 < "$patch_file"
+printf '%s  %s\n' eb6ef0c1076f54559b85a6bc4cc89f1c46a980da7b0f1f857258e638475085bb "$patch_file" | shasum -a 256 -c -
+patch --batch --fuzz=0 --reverse --dry-run -d "$PLANK_MAC_CLIENT_DEPS/src/ffmpeg-9.0.2" -p1 < "$patch_file"
+python3 "$source_root/scripts/test/check-client-ffmpeg-identity.py" \
+    "$PLANK_MAC_CLIENT_DEPS/src/ffmpeg-9.0.2/libavcodec/hevc/hevcdec.c"
+python3 "$source_root/tests/packaging/test-client-ffmpeg-identity.py"
+hardware_patch="$client/app/deploy/linux/ffmpeg-patches/0002-videotoolbox-require-hevc-hardware.patch"
+printf '%s  %s\n' e6c0680ef435d6f9a474473e2630e708d7e2aec520b4e35254fb817f1fa8d775 "$hardware_patch" | shasum -a 256 -c -
+patch --batch --fuzz=0 --reverse --dry-run -d "$PLANK_MAC_CLIENT_DEPS/src/ffmpeg-9.0.2" -p1 < "$hardware_patch"
+printf '%s  %s\n' f88b544a21f20447e41f236da464035dbb20953b05a528b399c81b798c906d4c \
+    "$PLANK_MAC_CLIENT_DEPS/src/ffmpeg-9.0.2/libavcodec/videotoolbox.c" | shasum -a 256 -c -
+xcrun clang++ -std=c++17 -mmacosx-version-min="$MACOSX_DEPLOYMENT_TARGET" \
+    -Wall -Wextra -Werror -I"$client/app/streaming" \
+    "$source_root/tests/video/client-hardware-formats.cpp" \
+    $(pkg-config --cflags --libs libavcodec libavutil) -o "$build/tests/client-hardware-formats"
+DYLD_LIBRARY_PATH="$PLANK_MAC_CLIENT_DEPS/install/lib" "$build/tests/client-hardware-formats"
+xcrun clang++ -std=c++17 -mmacosx-version-min="$MACOSX_DEPLOYMENT_TARGET" \
+    -Wall -Wextra -Werror -I"$client/app/streaming" \
+    -I"$client/moonlight-common-c/moonlight-common-c/src" \
+    -I"$source_root/protocol/plank-transport/include" \
+    "$source_root/tests/video/decoder-policy.cpp" -o "$build/tests/decoder-policy"
+"$build/tests/decoder-policy"
 pkg-config --modversion openssl opus libavcodec libavutil
 mkdir -p "$build"
 python3 "$source_root/scripts/test/check-macos-client-target.py" \

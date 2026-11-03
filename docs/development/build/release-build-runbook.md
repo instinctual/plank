@@ -100,6 +100,18 @@ identity-GBR patch. Its actual install prefix and pkg-config metadata remain the
 prepared dependency directory. Rebuild old prepared Client libraries with the
 current bootstrap scripts; stripping or relabeling an old library is not enough.
 
+HEVC identity-GBR aliases must be inside FFmpeg's `get_format()` hardware
+selection function. FFmpeg 9 also has an alpha-format switch with similar
+context: a patch applying cleanly there does not enable hardware decoding.
+Bootstrap and preflight check the actual function. Both Client build gates
+also decode the real 8/10-bit identity fixtures and require the platform
+hardware format to be offered before selecting software for the test. These
+GPU-free checks catch a broken patch or mismatched library; they do not replace
+installed exact-profile hardware decoding, color or sustained playback tests.
+The Mac bootstrap also applies the pinned VideoToolbox HEVC hardware-required
+patch: a CVPixelBuffer alone is not proof of a hardware decoder. Preflight checks
+that patch and its resulting source before building/signing the Client.
+
 macOS OpenSSL is configured for a neutral product prefix and staged with
 `DESTDIR`. Only development pkg-config/link metadata is relocated into the
 prepared tree. Its runtime configuration default is `/etc/plank/openssl`,

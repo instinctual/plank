@@ -84,8 +84,10 @@ the current checkout.
 
 The qualified default client video profile is H.264 High 10 4:4:4 identity.
 Decoder selection is internal, not a user preference: test exact-format
-hardware decoding first, then fall back to the FFmpeg software path for the
-same selected bookmark profile. A hardware path is acceptable only after a
+hardware decoding first. H.264 may fall back to the FFmpeg software path for the
+same selected bookmark profile; HEVC requires hardware decoding and must fail
+clearly if the exact hardware path cannot initialize. Apply this by codec,
+not by Host encoder backend. A hardware path is acceptable only after a
 real profile-specific test frame proves the requested codec profile, bit depth,
 chroma sampling, range, and identity mapping. On the qualified Intel NUC, HEVC
 Rext 10-bit 4:4:4 identity is hardware-decoded through VA-API to a Y410 surface
@@ -93,7 +95,7 @@ and presented through the EGL Y410/XR30 identity path. H.264 High 10 4:4:4 is
 not supported by that VA-API implementation and therefore uses the exact-format
 FFmpeg software path. Never silently substitute H.264 High 8 4:4:4, 4:2:0,
 another codec, or any other profile. If neither exact hardware nor exact
-software decoding works, fail the connection clearly.
+software decoding works for an eligible H.264 profile, fail the connection clearly.
 
 ## Build, Test, and Development Commands
 

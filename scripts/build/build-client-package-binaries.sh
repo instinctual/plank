@@ -41,9 +41,9 @@ python3 "$repo_dir/scripts/test/check-client-no-sdl.py" "$source_dir"
 echo "client_egl_build_input_gate=pass"
 
 identity_gbr_patch="$source_dir/app/deploy/linux/ffmpeg-patches/0001-hevc-enable-hwaccel-for-identity-gbr.patch"
-identity_gbr_patch_sha256=d8514ed9db3fc2c1aba43cfad0b06f8be3670759bdb173b6fd0a6dc1cffa0bf4
+identity_gbr_patch_sha256=eb6ef0c1076f54559b85a6bc4cc89f1c46a980da7b0f1f857258e638475085bb
 ffmpeg_archive_sha256=8c3850283eb25fa026482078a04051e0be17347b09ef81a0849bec15a96e002e
-ffmpeg_identity_source_sha256=9803af49884faaf2ed92ab4a1542099db235b5a4da06047be4bfeb885360714a
+ffmpeg_identity_source_sha256=b4b3523850229d57ac51d931e2a8c17680280f1b84e6df19a6c6884a58fa99c2
 ffmpeg_archive="$ffmpeg_work_dir/ffmpeg-9.0.2.tar.xz"
 ffmpeg_identity_source="$ffmpeg_work_dir/ffmpeg-9.0.2/libavcodec/hevc/hevcdec.c"
 [[ -f ${identity_gbr_patch} && -f ${ffmpeg_archive} && -f ${ffmpeg_identity_source} ]] || {
@@ -52,7 +52,7 @@ ffmpeg_identity_source="$ffmpeg_work_dir/ffmpeg-9.0.2/libavcodec/hevc/hevcdec.c"
 }
 printf '%s  %s\n' "$identity_gbr_patch_sha256" "$identity_gbr_patch" |
   sha256sum --check --status
-patch --batch --reverse --no-backup-if-mismatch --dry-run \
+patch --batch --fuzz=0 --reverse --no-backup-if-mismatch --dry-run \
   -d "$ffmpeg_work_dir/ffmpeg-9.0.2" -p1 \
   < "$identity_gbr_patch" >/dev/null 2>&1 || {
   echo "prepared Client FFmpeg is missing the identity-GBR hardware-decode patch" >&2
@@ -85,6 +85,8 @@ cleanup_ffmpeg_source_audit
 trap - EXIT
 echo "client_ffmpeg_pristine_source_gate=pass"
 echo "client_ffmpeg_identity_gbr_patch_gate=pass"
+python3 "$repo_dir/scripts/test/check-client-ffmpeg-identity.py" "$ffmpeg_identity_source"
+python3 "$repo_dir/tests/packaging/test-client-ffmpeg-identity.py"
 
 [[ $(rustc --version) == "rustc 1.99.1 "* ]] || {
   echo "PLANK transport requires rustc 1.99.1" >&2
@@ -1155,7 +1157,7 @@ if rg -n \
   exit 1
 fi
 for required_exact_decoder_token in \
-  'DecoderSelectionMode::PreferExactHardwareThenSoftware' \
+  'plankSoftwareDecodingAllowed(params->videoFormat)' \
   'validateDecodedProfileFrame(frame, params)' \
   'frame->hw_frames_ctx->data' \
   'Exact profile validation rejected decoded format' \
@@ -1697,6 +1699,17 @@ export LD_LIBRARY_PATH="${ffmpeg_prefix}/lib${LD_LIBRARY_PATH:+:${LD_LIBRARY_PAT
 }
 
 echo "client_render_shutdown_gate=pass"
+
+mkdir -p "$build_dir/tests"
+c++ -std=c++17 -Wall -Wextra -Werror -I"$source_dir/app/streaming" \
+  -I"$source_dir/moonlight-common-c/moonlight-common-c/src" \
+  -I"$repo_dir/protocol/plank-transport/include" \
+  "$repo_dir/tests/video/decoder-policy.cpp" -o "$build_dir/tests/decoder-policy"
+"$build_dir/tests/decoder-policy"
+c++ -std=c++17 -Wall -Wextra -Werror -I"$source_dir/app/streaming" \
+  "$repo_dir/tests/video/client-hardware-formats.cpp" $(pkg-config --cflags --libs libavcodec libavutil) \
+  -o "$build_dir/tests/client-hardware-formats"
+"$build_dir/tests/client-hardware-formats"
 
 c++ -std=c++17 -Wall -Wextra -Werror -I"$source_dir/app/streaming/audio" \
   "$repo_dir/tests/audio/client-microphone-clock.cpp" -o "$build_dir/tests/client-microphone-clock"

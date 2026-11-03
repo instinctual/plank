@@ -4,6 +4,44 @@ Read `AGENTS.md` and the relevant build runbook first. Keep machine inventory,
 credentials and private captures outside Git. This file records current work;
 older candidate provenance remains in Git history and the artifact catalog.
 
+## In progress — restore HEVC hardware selection and NVENC recovery
+
+Root, Client and Linux Host branch: `client-bookmarks`; candidate
+**1.3.15-client-bookmarks**. Client `412c0c2b`; Linux Host `2f2f2078`.
+The preceding independent-bookmark and cleanup work remains included/unmerged.
+
+An installed Linux session received video continuously, but decoded too slowly
+in software and repeatedly overflowed its decoder queue. Input continued to
+reach the Host; the frozen image made typing appear broken. Two fixes are in
+progress, with no production installation or restart:
+
+- The FFmpeg9 identity-GBR patch had been rebased into `map_to_alpha_format()`,
+  instead of the hardware-offer switch in `get_format()`. Its hash/application
+  gates passed but did not prove behavior. Corrected both 8/10-bit aliases;
+  added a source-location guard and real-fixture hardware-offer tests for both
+  desktop Clients. Tests choose software after inspecting the offered formats
+  so hosted checks require no GPU. Installed hardware acceptance remains open.
+- The Linux NVENC session discarded refresh requests inside its one-second
+  rate limit. Client/Host timing skew placed recovery requests inside that
+  window, leaving the decoder waiting for an IDR. Retain and coalesce a pending
+  request until its deadline; ordinary frames do not clear it. No extra thread,
+  periodic keyframes, protocol change or queue expansion is introduced.
+
+The operator approved hardware-only HEVC decoding. The policy applies to every
+HEVC profile from both Hosts, including Apple HEVC. H.264 software decoding
+remains supported, including NVENC H.264. Startup and decoder-reset failures
+explain the hardware requirement; no codec/profile substitution is permitted.
+The obsolete caller-selectable decoder mode is removed in favor of one policy.
+The Mac Client's private FFmpeg additionally requires hardware in VideoToolbox's
+HEVC decoder specification, preventing an internal Apple software fallback.
+Private machine evidence and the final session counters remain outside Git.
+
+Local gates pass: 121 CI-policy cases, four source-guard cases, actual old-patch
+rejection, the complete selectable-profile decoder policy, and NVENC deferred
+requests normally and under ASan/UBSan. Hosted Client runtime tests and Linux
+Host/Ubuntu Client/signed Mac Client candidate builds are still pending. Mac
+Host code is unchanged and does not need rebuilding for these fixes.
+
 ## Completed candidate — independent bookmarks for one Host
 
 Branch: `client-bookmarks`, based on the complete `code-simplification` candidate

@@ -78,6 +78,8 @@ depth, or chroma to make a hardware probe succeed. On the qualified Intel NUC:
 - H.265 10-bit 4:4:4 may use VA-API Main 4:4:4 10 with a Y410 surface imported
   as XR30.
 
-If an exact hardware path fails its test frame or import gate, the client uses
-the exact software decoder. If both exact paths fail, the connection fails
-with a clear unsupported-profile error.
+HEVC requires an exact hardware path on both desktop Clients. A failed test
+frame or import gate stops the connection with a clear hardware-decoding error;
+it does not silently start a software HEVC stream. H.264 retains exact-format
+software decoding when hardware cannot support the selected profile, including
+NVENC H.264. If neither permitted path works, the connection fails clearly.
