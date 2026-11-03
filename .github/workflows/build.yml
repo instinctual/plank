@@ -11,6 +11,11 @@ on:
         type: choice
         default: all
         options: [all, linux-host, linux-client, linux-client-vaapi-probe, macos-host, macos-client, macos-fullscreen-probe, dependency-tests]
+      dependency_scope:
+        description: Dependency tests to run (product=dependency-tests only)
+        type: choice
+        default: all
+        options: [all, transport, vulkan]
       source_sha:
         description: Expected commit (optional in UI; required by the dispatch helper)
         type: string
@@ -50,6 +55,8 @@ jobs:
     if: ${{ inputs.product == 'dependency-tests' }}
     needs: policy
     uses: ./.github/workflows/dependency-qualification.yml
+    with:
+      scope: ${{ inputs.dependency_scope || 'all' }}
 
   policy:
     runs-on: ubuntu-26.04

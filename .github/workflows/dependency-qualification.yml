@@ -9,6 +9,10 @@ on:
         default: all
         options: [all, transport, vulkan]
   workflow_call:
+    inputs:
+      scope:
+        type: string
+        default: all
 
 permissions:
   contents: read

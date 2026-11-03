@@ -54,11 +54,19 @@ These jobs do not install products or perform live display, audio, input,
 network-loss or hardware-decoder qualification. Existing hardware gates and
 local builders remain available until hosted builds are qualified.
 
-`dependency-qualification.yml` accepts a manual `scope` of `all`, `transport`
-or `vulkan`. Select `transport` for isolated QUIC window/ACK-delay and native
-KyProto loss tests without rebuilding application or FFmpeg dependencies.
-Its Rust cache is keyed by the toolchain, lockfile and tested sources. These
-loopback measurements do not replace an installed WAN/session comparison.
+The Hosted builds workflow accepts `product=dependency-tests` with
+`dependency_scope=all`, `transport` or `vulkan`. Select `transport` for isolated
+QUIC window/ACK-delay and native KyProto loss tests without rebuilding application
+or FFmpeg dependencies. Its test-only Rust cache is keyed by the toolchain,
+lockfile and tested sources. These loopback measurements do not replace an
+installed WAN/session comparison. Dispatch through `build.yml` while the reusable
+qualification workflow is not yet registered on main:
+
+```bash
+gh workflow run build.yml --ref "$(git branch --show-current)" \
+  -f product=dependency-tests -f dependency_scope=transport \
+  -f source_sha="$(git rev-parse HEAD)"
+```
 
 ## Local downloads and cleanup
 
