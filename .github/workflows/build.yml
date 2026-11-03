@@ -10,7 +10,7 @@ on:
         description: Product to rebuild (all on ordinary push/PR)
         type: choice
         default: all
-        options: [all, linux-host, linux-client, macos-host, macos-client, macos-fullscreen-probe, dependency-tests]
+        options: [all, linux-host, linux-client, linux-client-vaapi-probe, macos-host, macos-client, macos-fullscreen-probe, dependency-tests]
       source_sha:
         description: Expected commit (optional in UI; required by the dispatch helper)
         type: string
@@ -112,6 +112,47 @@ jobs:
       - name: Report disk usage
         if: always()
         run: df -h
+
+  linux-client-vaapi-probe:
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.product == 'linux-client-vaapi-probe' }}
+    needs: policy
+    runs-on: ubuntu-26.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - run: python3 scripts/ci/context.py
+      - name: Require retained dependency inputs
+        env:
+          CLEAN_BOOTSTRAP: ${{ inputs.clean_bootstrap }}
+        run: test "$CLEAN_BOOTSTRAP" != true
+      - run: bash scripts/ci/install-linux-deps.sh client
+      - name: Match the Client dependency fingerprint
+        run: sudo apt-get install -y --no-install-recommends libvulkan-dev
+      - name: Select existing dependency cache
+        id: dependencies
+        run: python3 scripts/ci/cache-dependencies.py prepare --product linux-client
+      - name: Restore exact Client FFmpeg
+        id: ffmpeg
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0, Node24
+        with:
+          key: ${{ steps.dependencies.outputs.ffmpeg-key }}
+          path: ${{ steps.dependencies.outputs.ffmpeg-paths }}
+      - name: Require and verify the existing Client libraries
+        env:
+          CACHE_MATCHED_FFMPEG: ${{ steps.ffmpeg.outputs.cache-matched-key }}
+        run: |
+          test -n "$CACHE_MATCHED_FFMPEG"
+          python3 scripts/ci/cache-dependencies.py verify --product linux-client
+      - run: bash "$PLANK_SOURCE_ROOT/scripts/build/build-vaapi-decode-probe.sh"
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: linux-client-vaapi-probe-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ env.PLANK_WORK_ROOT }}/vaapi-decode-probe/
+          if-no-files-found: error
+          retention-days: 7
 
   linux-client:
     if: ${{ !inputs.product || inputs.product == 'all' || inputs.product == 'linux-client' }}
