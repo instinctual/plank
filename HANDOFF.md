@@ -4,7 +4,7 @@ Read `AGENTS.md` and the relevant build runbook first. Keep machine inventory,
 credentials and private captures outside Git. This file records current work;
 older candidate provenance remains in Git history and the artifact catalog.
 
-## In progress — sender-window recovery candidate
+## Ready for installed testing — sender-window recovery candidate
 
 The operator resumed the separate sender-stall investigation and explicitly
 prohibited disruption of the affected production pair. A new test Client is
@@ -33,9 +33,22 @@ still dropped data and automatically resumed. See
 
 Candidate package source is `60d72591ce78ef0627541022236477ffd3af97ca`, with the
 unchanged Client/Linux Host/Kymux pins recorded for 1.3.16 below. Linux Host run
-`41740636134` and signed macOS Host run `41740645876` are building from that exact
-source with existing dependency caches. No Client package is required for this
-Host-only policy change. No installation, merge or release has occurred.
+`41740636134` and signed macOS Host run `41740645876` both passed from that exact
+source, reusing the existing verified dependency caches. Both packages are
+downloaded and checksum-verified under
+`artifacts/packages/candidates/1.3.17-client-bookmarks/`:
+
+- Linux RPM: `linux/plank-host-1.3.17-0.client_bookmarks.1.el9.x86_64.rpm`, SHA256
+  `91447bc7e6a41cf69e2a864c36fd3f0fd277d26c930cf1d95089451d2db1bf97`.
+- Signed/notarized/stapled Mac PKG: `macos/plank-host_1.3.17-client-bookmarks_arm64.pkg`,
+  SHA256 `2761df7fa76d1af6022a68588d803c17b18c493392c792f36f39e6a327567e70`.
+
+Original manifests, build logs, run metadata and the baseline/final comparison
+records are in `artifacts/qualification/sender-window-20261103/`. Duplicate
+download staging is removed. No Client package is required for this Host-only
+policy change; existing 1.3.16 Clients can test it. No installation, live
+acceptance, merge or release has occurred. All current changes are committed
+and pushed on `client-bookmarks`; no build or impairment is left running.
 
 The loopback datagrams include FEC-equivalent load but do not claim codec or
 RaptorQ recovery; the native regression matrix covers that separately. Live
