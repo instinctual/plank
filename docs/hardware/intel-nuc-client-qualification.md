@@ -1,5 +1,42 @@
 # Intel NUC Client Qualification
 
+## Current qualification policy
+
+**Intel NUC Gen11 (Tiger Lake) is not qualified for PLANK Client deployment.**
+The operator chose to exclude this generation on 2026-11-03 rather than pursue
+further diagnosis or add hardware-specific recovery workarounds. This is a
+deployment/acceptance policy, not a runtime hardware block or a claim that every
+Gen11 system fails. Other models still require exact-package session acceptance.
+
+The tested Tiger Lake Iris Xe Client repeatedly reported a 100ms VA-API surface
+timeout during 5120x2160/60 HEVC 10-bit 4:4:4 identity sessions. Kernel video-engine
+hangs, resets and fence expiry followed; the stream ended while the main process
+survived. The inspected sessions had zero unrecovered video data after FEC.
+
+Five ten-minute controls passed without new kernel GPU errors:
+
+- independent GStreamer decoding of separately encoded control footage;
+- the installed Client's exact FFmpeg libraries decoding that control;
+- the same decoder exporting surfaces with four retained leases;
+- the recorded failing stream decoded through the installed FFmpeg libraries;
+- that recording decoded and sampled into a ten-bit offscreen EGL target,
+  with three fenced leases: 36,000 frames, no skipped samples, maximum surface
+  synchronization time 5.66ms.
+
+The recording retained packet contents and boundaries, not live arrival timing.
+The controls do not reproduce Qt, compositor or multi-output integration. They
+do not establish whether the cause is in PLANK, FFmpeg, the driver or the kernel.
+The planned single-output live comparison was cancelled with the qualification
+decision. Unbuilt decoder-recovery changes were removed from the working tree.
+The ordinary installed Client and driver were unchanged. Private captures and
+machine evidence remain outside Git; the reusable diagnostic is documented in
+[`probes/video/vaapi-decode.md`](../../probes/video/vaapi-decode.md).
+
+## Qualification procedure and historical results
+
+The dated results below describe their original packages and implementations;
+they are not current build instructions or acceptance of a new candidate.
+
 Run this gate on every supported NUC generation with its production Ubuntu
 kernel, `intel-media-va-driver-non-free` (`iHD`), libva, FFmpeg, GStreamer's
 `vah265dec`,

@@ -4,85 +4,36 @@ Read `AGENTS.md` and the relevant build runbook first. Keep machine inventory,
 credentials and private captures outside Git. This file records current work;
 older candidate provenance remains in Git history and the artifact catalog.
 
-## In progress — Intel hardware-decoder timeout investigation
+## Gen11 Client hardware — unqualified; investigation stopped
 
-Root and Client remain on `client-bookmarks`. The Ubuntu 1.3.16 candidate has
-reproduced a video-engine GPU hang on a Tiger Lake Client. The process survives,
-but the session terminates after a VA-API surface timeout. The inspected
-sessions had no unrecovered video symbols; packet loss does not explain these
-failures. Exact machine details and GPU dumps remain in private notes.
+The operator excluded Intel NUC Gen11 (Tiger Lake) from qualified Client
+hardware on 2026-11-03. Do not use it for release acceptance or resume its
+investigation without new direction. The single-monitor comparison is cancelled.
+This is a qualification decision, not a runtime blacklist or a proven driver
+fault. The evidence and limits are recorded in
+[`docs/hardware/intel-nuc-client-qualification.md`](docs/hardware/intel-nuc-client-qualification.md).
 
-Uncommitted Client changes classify surface timeouts separately from fatal
-format/export failures, stop further decoder submissions, and use the existing
-worker to recreate the decoder. `packaging/VERSION` is reserved in the working
-tree as 1.3.17, but no candidate has been built or installed. The initial
-two-attempt/30-second terminal policy is **not accepted**: the operator wants
-retry frequency limited while the session remains open. Revise it before any
-candidate build; do not describe the current implementation as complete.
+Full 1.3.16 sessions repeatedly triggered video-engine GPU hangs with zero
+unrecovered video data. Five ten-minute independent controls passed, including
+the exact failing stream through the shipped FFmpeg libraries and through
+fenced offscreen GPU sampling. Root cause remains unresolved. Diagnostic-only
+hosted runs `41724066016` (`8fb8fef5`), `41729310186` (`929d2fcc`) and
+`41732372949` (`d8f2930a`) passed; the installed FFmpeg library hashes matched.
+Results are retained in `artifacts/qualification/vaapi-isolation-20261103/`;
+private footage and machine evidence remain outside Git.
 
-The operator then asked to isolate the cause before adding recovery complexity.
-An independent GStreamer VA-API control passed 36,000 frames over 600 seconds at
-5120x2160/60, HEVC 10-bit 4:4:4 identity/Y410. Every surface was explicitly
-synchronized with the same 100ms bound. No Qt, DMA-BUF export or presentation
-was used, and no new kernel GPU hang/reset was recorded. A separate 180-frame
-CPU-readback check also passed. Missing parser/VA plugins were extracted into
-a private temporary directory; no package, driver or installed application was
-changed. Private footage and machine evidence remain outside Git.
+The unbuilt decoder-recovery experiment was privately preserved and removed
+from the working tree, including its unaccepted terminal retry policy. The
+Client is clean at `b859e34318ba315ad5068e2e00aa50120d26fe92` and
+`packaging/VERSION` remains 1.3.16. Existing committed transport/reconnect and
+hardware-selection fixes remain intact. Temporary remote probes and recordings
+were removed after preserving the evidence; the ordinary Client is restored
+without preload recording. No package, driver or system configuration change,
+active collector or network impairment remains from the investigation.
 
-The same clip also passed 36,000 frames over 600 seconds through the installed
-Client's exact FFmpeg 9.0.2 libraries, without Qt or presentation. The maximum
-surface synchronization time was 7.84ms; no new kernel GPU errors occurred.
-Adding read-only DMA-BUF export and four retained surface leases also passed
-36,000 frames over 600 seconds, maximum synchronization time 6.60ms. There were
-no new kernel GPU errors, the GPU was not wedged, and both diagnostics exited
-cleanly. The next normal live session failed after about 175 seconds with the
-same surface timeout, followed by a kernel video-engine reset and fence expiry.
-All 20 missing video source symbols were recovered. The main process survived.
-This occurrence named the other video engine and a different error code; do
-not conflate it with the retained first GPU dump. No new package, configuration
-or artificial loss was installed.
-
-This is a repeated three-second control clip encoded from the test desktop,
-not the original failed stream. It does not exclude stream-specific driver,
-FFmpeg or presentation defects. The actual stream was privately recorded using
-a temporary, bounded, video-only recorder. The recorded full Client session failed after about
-86 seconds, with a video-engine reset and zero unrecovered FEC symbols. Its
-5,126 submitted packets then passed a ten-minute replay (36,000 frames) using
-the installed FFmpeg libraries without Qt: maximum synchronization time 5.62ms,
-no new kernel GPU errors, and a clean exit. Original packet boundaries and
-flags were retained, but original arrival timing was not reproduced. Both
-control and live streams use two slices per frame; the encoder reference-buffer
-limits differ. No deterministic bad packet or product lifetime defect is proven.
-
-Diagnostic run `41729310186` at `929d2fcc` passed recorder passthrough/bounds
-tests; the recorder was removed from the running process after capture. The
-exact installed Client was launched temporarily, then closed normally. No
-package or system configuration changed. Run `41732372949` at `d8f2930a` adds
-diagnostic-only offscreen EGL sampling with at most three fenced surface
-leases, Y410-to-XR30 import and a ten-bit target. Hosted checks and an installed
-180-frame sampling smoke pass. The ten-minute actual-stream sampling test also
-passed: 36,000 frames decoded and sampled, zero skipped samples, maximum surface
-synchronization time 5.66ms, no new kernel GPU errors, and a clean exit. It has
-no Qt, window or compositor integration; it does not reproduce live arrival
-timing. The ordinary Client is reopened without the recorder. The operator is
-asked to reconnect the same stream using "Fullscreen on this monitor" instead
-of spanning two Client outputs. This leaves the Host stream unchanged while
-isolating a presentation difference. Do not describe the cause as established.
-
-Diagnostic-only hosted run `41724066016` passed at root `8fb8fef5` using the
-explicitly selected retained FFmpeg cache. All three library checksums match
-the installed Client. No dependency rebuild or Client package was needed.
-The diagnostic cache selector validates the original receipt and source
-patches without changing product cache policy. This permits comparison with
-the shipped libraries when the hosted compiler image has changed. The first
-diagnostic link failure and subsequent image-fingerprint mismatch are resolved;
-neither was a product compile or hardware-test result. Artifact/build evidence
-is in `artifacts/qualification/vaapi-isolation-20261103/`.
-
-Surface ownership/fence review has not established a product defect. Neither
-a driver cause nor a fix is proven. Do not blacklist an entire hardware
-generation from this evidence alone. The authorized ACK-delay test remains
-deferred; no network impairment is active. No merge or release.
+Root and Client remain on `client-bookmarks`; no merge or release. The earlier
+ACK-delay investigation requires a different qualified Client and remains
+pending; do not continue it on the excluded Gen11 test machine.
 
 ## Reliable-data pressure and reconnect recovery — installed Linux checks complete
 

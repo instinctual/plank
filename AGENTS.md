@@ -97,6 +97,13 @@ FFmpeg software path. Never silently substitute H.264 High 8 4:4:4, 4:2:0,
 another codec, or any other profile. If neither exact hardware nor exact
 software decoding works for an eligible H.264 profile, fail the connection clearly.
 
+Intel NUC Gen11 (Tiger Lake) is not qualified Client hardware. The operator
+excluded it after repeated video-engine GPU hangs in full sessions; isolated
+decode and GPU-sampling checks passed, so the underlying cause remains unresolved.
+Do not use Gen11 for release acceptance or resume that investigation without
+operator direction. This is a hardware qualification policy, not a runtime
+generation blacklist. See `docs/hardware/intel-nuc-client-qualification.md`.
+
 ## Build, Test, and Development Commands
 
 macOS Host builds use **SDK 27 or newer** and a **26.7 deployment target** for
