@@ -4,16 +4,16 @@ Read `AGENTS.md` and the relevant build runbook first. Keep machine inventory,
 credentials and private captures outside Git. This file records current work;
 older candidate provenance remains in Git history and the artifact catalog.
 
-## In progress — restore HEVC hardware selection and NVENC recovery
+## Ready for installed testing — HEVC hardware selection and NVENC recovery
 
 Root, Client and Linux Host branch: `client-bookmarks`; candidate
 **1.3.15-client-bookmarks**. Client `412c0c2b`; Linux Host `2f2f2078`.
 The preceding independent-bookmark and cleanup work remains included/unmerged.
 
-An installed Linux session received video continuously, but decoded too slowly
+An inspected Linux session received video continuously, but decoded too slowly
 in software and repeatedly overflowed its decoder queue. Input continued to
-reach the Host; the frozen image made typing appear broken. Two fixes are in
-progress, with no production installation or restart:
+reach the Host; the frozen image made typing appear broken. Two fixes are
+implemented, with no production installation or restart:
 
 - The FFmpeg9 identity-GBR patch had been rebased into `map_to_alpha_format()`,
   instead of the hardware-offer switch in `get_format()`. Its hash/application
@@ -38,9 +38,39 @@ Private machine evidence and the final session counters remain outside Git.
 
 Local gates pass: 121 CI-policy cases, four source-guard cases, actual old-patch
 rejection, the complete selectable-profile decoder policy, and NVENC deferred
-requests normally and under ASan/UBSan. Hosted Client runtime tests and Linux
-Host/Ubuntu Client/signed Mac Client candidate builds are still pending. Mac
-Host code is unchanged and does not need rebuilding for these fixes.
+requests normally and under ASan/UBSan. All three hosted builds passed on their
+first attempt at package-source root `a09cb615ca18dc8bad25e02380c1efd007252b80`:
+
+- Linux Host `41563355878`: NVENC request regression, existing input/PAM tests
+  and RPM gates passed.
+- Ubuntu Client `41563352014`: real FFmpeg hardware-format offers for Main10
+  and identity 8/10-bit HEVC passed, including sanitizer runs. Profile policy,
+  component/compositor/launcher and package checks passed.
+- Signed Mac Client `41563360359`: corresponding VideoToolbox format-offer and
+  policy tests, existing Metal/Client checks, signing, notarization and stapling
+  passed. Mac Host code is unchanged and needs no rebuild for these fixes.
+
+All three packages are downloaded under
+`artifacts/packages/candidates/1.3.15-client-bookmarks/`; their original builder
+checksums pass. Logs, manifests, run metadata and the test summary are in
+`artifacts/qualification/video-recovery-1.3.15/`. Installers:
+
+- `linux/plank-host-1.3.15-0.client_bookmarks.1.el9.x86_64.rpm`
+- `linux/plank-client_1.3.15-client-bookmarks_amd64.deb`
+- `macos/plank-client_1.3.15-client-bookmarks_arm64.pkg`
+
+Code and notes are committed/pushed on `client-bookmarks`; no merge, release or
+installation. Next: manually install the exact Host and Client candidates on
+the authorized test pair, confirm HEVC hardware decoding/live updates, then
+test recovery. Check H.264 software decoding remains functional and a Client
+without the selected HEVC hardware path receives the explicit error. Hosted
+format-offer tests cannot qualify actual GPU surfaces or sustained playback.
+
+Cache record: Ubuntu reused Rust/Cargo/compiler outputs and rebuilt the changed
+FFmpeg library. Mac reused Rust/Cargo/Qt and rebuilt its shared native-dependency
+prefix for the FFmpeg fixes. This branch had no Linux Host dependency cache;
+the first Host build populated it. Do not repeat a dependency bootstrap merely
+to update these final notes.
 
 ## Completed candidate — independent bookmarks for one Host
 

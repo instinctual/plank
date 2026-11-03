@@ -568,7 +568,8 @@ The PLANK encoding profile is selected per bookmark. Decoder choice
 is not configurable: the client first performs a real test decode through each
 available exact-format hardware path, validates the decoded surface's bit
 depth and chroma geometry (plus full-range identity metadata for identity GBR),
-and then falls back to exact-format FFmpeg software decoding. The package gate
+and permits exact-format FFmpeg software decoding only for H.264. HEVC must
+pass hardware decoding and presentation or fail clearly. The package gate
 rejects a restored global decoder preference or CLI override and requires the
 test-frame validation path. A generic codec-family capability claim is not an
 acceptance result, and the client must never change the bookmark profile to

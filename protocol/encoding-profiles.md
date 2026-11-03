@@ -67,8 +67,8 @@ is absent or when the direct NVENC HEVC Rext 10-bit 4:4:4 probe fails.
 
 Decoder choice is internal and profile-specific. The client attempts a real
 exact-format hardware test frame first, validates decoded bit depth, chroma
-geometry, full-range identity metadata, and renderer import, then falls back to
-FFmpeg software decoding of the same bookmark format. It never changes codec,
+geometry, full-range identity metadata, and renderer import. H.264 may fall back
+to FFmpeg software decoding of the same bookmark format; HEVC cannot. It never changes codec,
 depth, or chroma to make a hardware probe succeed. On the qualified Intel NUC:
 
 - H.264 4:4:4 profiles use software decode because the iHD VA-API driver does

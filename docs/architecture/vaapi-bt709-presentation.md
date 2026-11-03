@@ -26,8 +26,9 @@ applies full-range BT.709 once in high precision. Preserve sRGB transfer and
 upload, and no encoder, transport, queue, input or Host change.
 
 Do not label the Mac stream RGB identity or HDR. Linux identity mode keeps its
-existing channel mapping. Apple Main10 4:2:0 and exact-format software fallback
-remain unchanged. Hardware acceptance still requires the real profile fixture
+existing channel mapping. Apple Main10 4:2:0 keeps its existing presentation path.
+From 1.3.15, HEVC requires hardware decoding; H.264 retains exact-format software
+fallback. Hardware acceptance still requires the real profile fixture
 and EGL surface import; the new path also compiles its shader during that test.
 
 ## Validation
