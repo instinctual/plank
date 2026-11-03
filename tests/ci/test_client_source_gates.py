@@ -22,6 +22,7 @@ class ClientSourceGateTests(unittest.TestCase):
                 self.assertIn('scripts/test/check-client-ffmpeg-identity.py', text)
                 self.assertIn('tests/video/client-hardware-formats.cpp', text)
                 self.assertIn('tests/video/decoder-policy.cpp', text)
+                self.assertIn('tests/auth/client-reconnect-policy.cpp', text)
 
     def test_source_gate_covers_the_root_compositor_probe(self):
         spec = importlib.util.spec_from_file_location('no_sdl_gate', ROOT / 'scripts/test/check-client-no-sdl.py')

@@ -1702,6 +1702,9 @@ echo "client_render_shutdown_gate=pass"
 
 mkdir -p "$build_dir/tests"
 c++ -std=c++17 -Wall -Wextra -Werror -I"$source_dir/app/streaming" \
+  "$repo_dir/tests/auth/client-reconnect-policy.cpp" -o "$build_dir/tests/client-reconnect-policy"
+"$build_dir/tests/client-reconnect-policy"
+c++ -std=c++17 -Wall -Wextra -Werror -I"$source_dir/app/streaming" \
   -I"$source_dir/moonlight-common-c/moonlight-common-c/src" \
   -I"$repo_dir/protocol/plank-transport/include" \
   "$repo_dir/tests/video/decoder-policy.cpp" -o "$build_dir/tests/decoder-policy"

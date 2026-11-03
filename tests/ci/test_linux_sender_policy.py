@@ -60,6 +60,7 @@ class LinuxSenderPolicyTests(unittest.TestCase):
         script = (ROOT / 'scripts/test/run-plank-transport-native-loopback.sh').read_text()
         self.assertIn('for loss_trial in 1 2 3;', script)
         self.assertIn('set -euo pipefail', script)
+        self.assertIn('native_ffi::data_tests::reliable_data_backpressure_recovers_both_receivers', script)
 
     def test_vendor_telemetry_snapshot_regression_is_required(self):
         host = (ROOT / 'scripts/build/build-host-package-binaries.sh').read_text()

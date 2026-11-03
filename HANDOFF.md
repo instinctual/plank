@@ -4,6 +4,35 @@ Read `AGENTS.md` and the relevant build runbook first. Keep machine inventory,
 credentials and private captures outside Git. This file records current work;
 older candidate provenance remains in Git history and the artifact catalog.
 
+## Reliable-data pressure and reconnect recovery — candidate in preparation
+
+Root and Client branch remain `client-bookmarks`; candidate **1.3.16-client-bookmarks**
+includes all preceding fixes. A live 1.3.15 session ended when the bounded
+reliable-data receiver filled. Its immediate reconnect reached the Host before
+old-session retirement and incorrectly reported a transfer. No deliberate
+packet loss had been applied; private timestamps/logs remain outside Git.
+
+- Shared transport now pauses the reliable-data reader when its 64-record/8MiB
+  queue fills. It resumes on successful FFI dequeue without evicting messages,
+  growing the limits or disconnecting. At most one extra bounded record waits;
+  cancellation remains prompt and invalid sizes remain rejected.
+- The Client routes occupied-session responses through its existing retry
+  policy, on Linux and Mac Hosts. Explicit takeover notifications, invalid
+  credentials, TLS rejection, user Disconnect and configured automatic timeout
+  remain terminal. Automatic recovery never requests takeover.
+- Local checks: 64 transport unit tests pass; the encrypted bidirectional test
+  passes packet/byte pressure, pauses over two seconds and ordered drain. The
+  Client recovery-policy fixture and 121 CI policy cases pass. The loss runner
+  now requires the pressure-recovery test instead of expecting queue overflow
+  to kill the connection. Hosted/package and installed checks are pending.
+
+The requested Client-ingress 0.5%-increment FEC matrix is deferred until this
+candidate can be tested. No loss rule, package install, service restart or
+remote configuration change has been made. The operator reconnected manually.
+Do not confuse the prior natural traffic's zero residual FEC count with an
+injected-loss test pass. Package builds must use the existing branch caches;
+no FFmpeg or dependency version/patch has changed in this follow-up.
+
 ## Ready for installed testing — HEVC hardware selection and NVENC recovery
 
 Root, Client and Linux Host branch: `client-bookmarks`; candidate

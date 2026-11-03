@@ -76,6 +76,10 @@ xcrun clang++ -std=c++17 -fobjc-arc -mmacosx-version-min="$MACOSX_DEPLOYMENT_TAR
     -framework Foundation -framework AppKit -framework AVFoundation \
     -o "$build/tests/microphone-permission-test"
 "$build/tests/microphone-permission-test"
+xcrun clang++ -std=c++17 -mmacosx-version-min="$MACOSX_DEPLOYMENT_TARGET" \
+    -Wall -Wextra -Werror -I"$client/app/streaming" \
+    "$source_root/tests/auth/client-reconnect-policy.cpp" -o "$build/tests/client-reconnect-policy"
+"$build/tests/client-reconnect-policy"
 # Exercise the shared send/drain controller with actual pinned software decoders.
 xcrun clang++ -std=c++17 -mmacosx-version-min="$MACOSX_DEPLOYMENT_TARGET" \
     -Wall -Wextra -Werror -DPLANK_TEST_REAL_FFMPEG \

@@ -1,4 +1,5 @@
 #include "plankreconnectpolicy.h"
+#include "sessionlifecycle.h"
 #include <cassert>
 #include <initializer_list>
 
@@ -9,7 +10,7 @@ int main()
     policy.allowUntil(30000);
     for (uint64_t now = 1; now < 30000; ++now) assert(policy.allowsRequest(now));
     for (uint64_t now = 30000; now < 90000; ++now) assert(!policy.allowsRequest(now));
-    policy.allowUntil(120000); // Explicit Keep Waiting.
+    policy.allowUntil(120000); // A new bounded recovery interval.
     assert(policy.allowsRequest(90000));
     assert(!policy.allowsRequest(120000));
     policy.allowContinuously();
@@ -30,4 +31,19 @@ int main()
         assert(!PlankReconnectPolicy::terminalStatus(status, true));
         assert(!PlankReconnectPolicy::terminalStatus(status, false));
     }
+
+    // A replacement request may beat retirement of the old Host connection.
+    // Busy responses preserve automatic recovery and do not authorize takeover.
+    PlankSessionLifecycle lifecycle;
+    policy.allowContinuously();
+    assert(lifecycle.started() && lifecycle.requestRecovery() && lifecycle.beginRecovery());
+    for (uint64_t now : {500ULL, 1500ULL, 2500ULL}) {
+        assert(policy.allowsRequest(now));
+        assert(!PlankReconnectPolicy::terminalStatus(409, false));
+        assert(lifecycle.recovering());
+    }
+    assert(lifecycle.recovered() && lifecycle.streaming());
+    // An explicit Host termination or user Disconnect remains final.
+    lifecycle.stop();
+    assert(!lifecycle.requestRecovery() && !lifecycle.recovered());
 }

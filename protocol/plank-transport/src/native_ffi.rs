@@ -254,6 +254,7 @@ struct NativeShared {
     input_receive_changed: Condvar,
     input_receive_space: tokio::sync::Notify,
     data_receive_changed: Condvar,
+    data_receive_space: tokio::sync::Notify,
     stats: NativeStats,
     rate_policy: Arc<TransportRatePolicy>,
     microphone: microphone_lane::Microphone,
@@ -294,6 +295,7 @@ impl NativeShared {
             input_receive_changed: Condvar::new(),
             input_receive_space: tokio::sync::Notify::new(),
             data_receive_changed: Condvar::new(),
+            data_receive_space: tokio::sync::Notify::new(),
             stats: NativeStats::default(),
             rate_policy: TransportRatePolicy::new(initial_video_bitrate_bps),
             microphone: microphone_lane::Microphone::default(),
@@ -833,21 +835,47 @@ async fn receive_data(
     mut recv: kymux_types::ProtocolRecv<DataPacket>,
 ) -> Result<()> {
     while let Some(packet) = recv.recv().await? {
-        {
-            let mut queues = shared.queues.lock().unwrap();
-            if !queues.data_receive.push_back(packet.payload) {
-                return Err(anyhow!(
-                    "native reliable data receive queue size limit exceeded"
-                ));
-            }
+        if !push_data_receive(&shared, packet.payload).await? {
+            return Ok(());
         }
-        shared
-            .stats
-            .data_packets_received
-            .fetch_add(1, Ordering::Relaxed);
-        shared.data_receive_changed.notify_one();
     }
     Ok(())
+}
+
+// Reliable traffic can arrive in a burst after retransmission or a scheduling
+// pause. Keep the packet/byte bounds, but stop reading this lane until its
+// consumer makes space. QUIC then applies flow control instead of ending a
+// healthy session. Only this one already-decoded packet is held outside the
+// queue; cancellation interrupts the wait and other media lanes keep running.
+async fn push_data_receive(shared: &NativeShared, payload: Bytes) -> Result<bool> {
+    if !(1..=MAX_DATA_PACKET_SIZE).contains(&payload.len()) {
+        return Err(anyhow!("invalid native reliable data packet size"));
+    }
+    Ok(shared
+        .until_shutdown(async {
+            loop {
+                let space = shared.data_receive_space.notified();
+                {
+                    let mut queues = shared.queues.lock().unwrap();
+                    if queues.data_receive.can_push(payload.len()) {
+                        let inserted = queues.data_receive.push_back(payload);
+                        debug_assert!(inserted);
+                        break;
+                    }
+                }
+                // There is one producer. notify_one retains a permit if the
+                // FFI consumer drains after the check but before this await.
+                space.await;
+            }
+            shared
+                .stats
+                .data_packets_received
+                .fetch_add(1, Ordering::Relaxed);
+            shared.data_receive_changed.notify_one();
+            Ok(())
+        })
+        .await?
+        .is_some())
 }
 
 async fn sample_stats(
@@ -2087,6 +2115,9 @@ pub unsafe extern "C" fn plank_transport_native_data_receive(
                 PLANK_TRANSPORT_TIMEOUT
             };
         };
+        if result == PLANK_TRANSPORT_OK {
+            endpoint.shared.data_receive_space.notify_one();
+        }
         result
     })
 }

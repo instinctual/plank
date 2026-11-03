@@ -197,17 +197,22 @@ the serial data task. These are application-payload bounds, not a claim about
 total RSS or Quinn's separately bounded stream/socket buffers.
 
 Send pressure returns the existing retryable `TIMEOUT` before making a copy.
-Incoming overflow terminates the connection with a size-limit error: reliable
-records are never silently evicted. Successful dequeue releases its byte
-charge; a short output buffer leaves the record and charge intact. FIFO copy
-and removal share one lock, including concurrent C ABI readers. Video/audio
-datagrams, RaptorQ, Wacom input and the 512 KiB clipboard limit are unchanged.
+Receive pressure pauses the serial reliable-data reader until the consumer
+frees space, propagating backpressure through QUIC without ending the session.
+The wait is cancellable and retains only the one additional bounded record;
+reliable records are never silently evicted. Invalid sizes still fail before
+allocation. Successful dequeue releases its byte charge and wakes the reader;
+a short output buffer leaves the record and charge intact. FIFO copy and
+removal share one lock, including concurrent C ABI readers. The other media
+lanes remain independent. Video/audio datagrams, RaptorQ, Wacom input and the
+512 KiB clipboard limit are unchanged.
 
 `tests/reliable-data.rs` runs the maintained parser regression tests through
 the product lockfile. Native queue tests cover byte/count limits, retry and
-variable-size accounting. The native loopback runner also floods the actual
-encrypted reliable-data receiver in both directions and requires a bounded,
-explicit failure with the already queued records preserved.
+variable-size accounting, spurious wakes and cancellation while full. The
+native loopback runner also bursts data through the actual encrypted receiver
+in both directions, pauses consumption beyond two seconds, then requires FIFO
+recovery with every record intact under both the packet and byte limits.
 
 Run the Rust and real C ABI checks with the pinned toolchain and offline Cargo
 cache:

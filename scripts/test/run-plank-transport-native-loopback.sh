@@ -52,7 +52,7 @@ cargo test "${cargo_profile_args[@]}" --locked --offline --manifest-path "$crate
   -- --ignored --exact --nocapture
 
 cargo test "${cargo_profile_args[@]}" --locked --offline --manifest-path "$crate_dir/Cargo.toml" \
-  native_ffi::data_tests::reliable_data_overflow_fails_both_receivers \
+  native_ffi::data_tests::reliable_data_backpressure_recovers_both_receivers \
   -- --ignored --exact --nocapture
 
 cargo test "${cargo_profile_args[@]}" --locked --offline --manifest-path "$crate_dir/Cargo.toml" \
