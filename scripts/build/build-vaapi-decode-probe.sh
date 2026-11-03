@@ -19,11 +19,17 @@ read -r -a dependency_flags <<< "$(pkg-config --cflags --libs libavcodec libavut
 g++ -std=c++17 -O2 -Wall -Wextra -Werror -pthread "${file_flags[@]}" \
   "$PLANK_SOURCE_ROOT/probes/video/plank-probe-vaapi-decode.cpp" \
   "${dependency_flags[@]}" -Wl,-rpath-link,"$prefix/lib" -o "$output/plank-probe-vaapi-decode"
+read -r -a header_flags <<< "$(pkg-config --cflags libavcodec)"
+cc -std=c11 -O2 -Wall -Wextra -Werror -fPIC -shared -pthread "${file_flags[@]}" \
+  "${header_flags[@]}" "$PLANK_SOURCE_ROOT/probes/video/plank-probe-video-record.c" \
+  -ldl -o "$output/libplank-video-record.so"
 LD_LIBRARY_PATH="$prefix/lib" "$output/plank-probe-vaapi-decode" --self-test
+LD_LIBRARY_PATH="$prefix/lib" python3 "$PLANK_SOURCE_ROOT/tests/video/test-vaapi-recording.py" \
+  "$output/plank-probe-vaapi-decode" "$output/libplank-video-record.so"
 LD_LIBRARY_PATH="$prefix/lib" "$output/plank-probe-vaapi-decode" --version > "$output/BUILD-INFO"
 git -C "$PLANK_SOURCE_ROOT" rev-parse HEAD >> "$output/BUILD-INFO"
 for name in libavcodec.so.63 libavutil.so.61 libswresample.so.7; do
   sha256sum "$prefix/lib/$name" | sed "s|$prefix/lib/||" >> "$output/LIBRARY-SHA256SUMS"
 done
-(cd "$output" && sha256sum plank-probe-vaapi-decode > SHA256SUMS)
+(cd "$output" && sha256sum plank-probe-vaapi-decode libplank-video-record.so > SHA256SUMS)
 echo 'vaapi_probe_build=pass hardware_test=not-performed'

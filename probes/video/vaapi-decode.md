@@ -43,3 +43,39 @@ A passing run is limited to that clip, duration, codec and surface lifecycle;
 it does not prove that the full Client or every stream is healthy. Record
 whether the clip came from the actual failed stream or a separately encoded
 control workload.
+
+## Recording the actual decoder input
+
+The same diagnostic artifact contains `libplank-video-record.so`. It is an
+explicit temporary `LD_PRELOAD` recorder, never a product dependency. On an
+authorized idle test Client, close the existing Client, create a private
+directory owned by its desktop user (mode 0700), and launch its ordinary
+executable with these two environment variables for that launch only:
+
+```bash
+PLANK_VIDEO_RECORD_DIR="$PLANK_PRIVATE_RECORDING" \
+LD_PRELOAD="$PLANK_DIAGNOSTIC_DIR/libplank-video-record.so" \
+  plank-client
+```
+
+Successful HEVC packet submissions are copied unchanged into separate files
+per decoder context. Qualification decoders therefore do not contaminate the
+live recording. H.264, audio, authentication and other network data are not
+recorded. Files are created exclusively with mode 0600; the recorder refuses
+a shared directory or a directory owned by another user. Total recording is
+bounded by ten minutes and 4 GiB. A write failure disables recording without
+changing the decoder's return value. File writes add some timing overhead;
+record whether the failure reproduced with the diagnostic enabled.
+
+Close the diagnostic launch before copying or replaying its files. The largest
+file normally belongs to the live stream; verify the dimensions/profile during
+replay. `plank-probe-vaapi-decode --inspect FILE.pvr` validates the packet framing
+without opening a GPU. Use the same `--input` replay command above; the format
+is recognized automatically. Replay streams one packet at a time from disk,
+retains the original packet boundaries/flags, and repeats from the first packet
+when needed. It does not reproduce original arrival timing or Qt presentation.
+Malformed/truncated recordings are rejected, not silently repaired.
+
+Recording files contain the remote desktop video. Keep them in private evidence
+storage, never the repository or a hosted artifact. Remove the two environment
+variables for all ordinary launches; no installed binary/configuration is edited.

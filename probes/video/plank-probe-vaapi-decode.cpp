@@ -27,6 +27,9 @@ namespace {
 using Clock = std::chrono::steady_clock;
 using Unit = std::pair<size_t, size_t>;
 constexpr size_t MaxClip = 256U * 1024U * 1024U;
+constexpr uint64_t MaxRecording = 4ULL * 1024ULL * 1024ULL * 1024ULL;
+constexpr uint32_t MaxPacket = 16U * 1024U * 1024U;
+constexpr size_t MaxUnits = 1000000;
 
 void require(bool condition, const char* message)
 {
@@ -51,7 +54,10 @@ std::vector<Unit> accessUnits(const std::vector<uint8_t>& bytes)
             else if (bytes[i + 2] == 0 && bytes[i + 3] == 1) prefix = 4;
         }
         if (prefix && i + prefix + 1 < bytes.size()) {
-            if (((bytes[i + prefix] >> 1) & 63) == 35) starts.push_back(i);
+            if (((bytes[i + prefix] >> 1) & 63) == 35) {
+                require(starts.size() < MaxUnits, "Too many access units");
+                starts.push_back(i);
+            }
             i += prefix + 2;
         } else ++i;
     }
@@ -63,6 +69,74 @@ std::vector<Unit> accessUnits(const std::vector<uint8_t>& bytes)
         units.emplace_back(starts[i - 1], starts[i] - starts[i - 1]);
     return units;
 }
+
+uint32_t littleEndian(const uint8_t* data)
+{
+    return uint32_t(data[0]) | (uint32_t(data[1]) << 8) |
+           (uint32_t(data[2]) << 16) | (uint32_t(data[3]) << 24);
+}
+
+class Clip {
+public:
+    explicit Clip(const std::string& path) : file(path, std::ios::binary | std::ios::ate)
+    {
+        require(bool(file), "Could not open private clip");
+        const auto size = file.tellg();
+        require(size >= 8 && uint64_t(size) <= MaxRecording, "Clip has an invalid size");
+        file.seekg(0);
+        char magic[8];
+        require(bool(file.read(magic, sizeof(magic))), "Could not read clip header");
+        recording = std::memcmp(magic, "PLANKV1\n", sizeof(magic)) == 0;
+        if (!recording) {
+            require(uint64_t(size) <= MaxClip, "Annex B control exceeds 256 MiB");
+            bytes.resize(size_t(size));
+            file.seekg(0);
+            require(bool(file.read(reinterpret_cast<char*>(bytes.data()), size)), "Could not read control clip");
+            units = accessUnits(bytes);
+            flags.resize(units.size(), 0);
+            return;
+        }
+        // Only index headers. The full recording never enters process memory.
+        uint64_t offset = 8;
+        while (offset < uint64_t(size)) {
+            require(uint64_t(size) - offset >= 8, "Truncated recording header");
+            uint8_t header[8];
+            require(bool(file.read(reinterpret_cast<char*>(header), sizeof(header))), "Could not read packet header");
+            const uint32_t length = littleEndian(header);
+            offset += sizeof(header);
+            require(length > 0 && length <= MaxPacket && uint64_t(size) - offset >= length,
+                    "Invalid or truncated recorded packet");
+            require(units.size() < MaxUnits, "Too many recorded packets");
+            units.emplace_back(size_t(offset), length);
+            flags.push_back(littleEndian(header + 4));
+            offset += length;
+            file.seekg(std::streamoff(offset));
+            require(bool(file), "Could not index recorded packet");
+        }
+        require(!units.empty(), "Recording has no packets");
+    }
+
+    size_t count() const { return units.size(); }
+    bool isRecording() const { return recording; }
+    void packet(size_t index, AVPacket* packet)
+    {
+        index %= units.size();
+        const auto unit = units[index];
+        checked(av_new_packet(packet, int(unit.second)), "Packet allocation");
+        packet->flags = int(flags[index]);
+        if (recording) {
+            file.seekg(std::streamoff(unit.first));
+            require(bool(file.read(reinterpret_cast<char*>(packet->data), std::streamsize(unit.second))),
+                    "Could not read recorded packet");
+        } else std::memcpy(packet->data, bytes.data() + unit.first, unit.second);
+    }
+private:
+    std::ifstream file;
+    bool recording = false;
+    std::vector<uint8_t> bytes;
+    std::vector<Unit> units;
+    std::vector<uint32_t> flags;
+};
 
 void selfTest()
 {
@@ -77,6 +151,8 @@ void selfTest()
     try { accessUnits({0,0,1,0x40,1}); }
     catch (const std::runtime_error&) { rejected = true; }
     require(rejected, "Missing AUD was accepted");
+    const uint8_t encoded[] = {0x78, 0x56, 0x34, 0x12};
+    require(littleEndian(encoded) == 0x12345678, "Recording endianness regression");
     std::cout << "vaapi_probe_parser=pass\n";
 }
 
@@ -125,6 +201,11 @@ try {
                   << " avutil=" << avutil_version() << '\n';
         return 0;
     }
+    if (argc == 3 && std::string(argv[1]) == "--inspect") {
+        const Clip clip(argv[2]);
+        std::cout << "recording=" << clip.isRecording() << " packets=" << clip.count() << '\n';
+        return 0;
+    }
     std::string input, device = "/dev/dri/renderD128", mode = "decode";
     int seconds = 600, fps = 60, width = 5120, height = 2160;
     for (int i = 1; i < argc; i += 2) {
@@ -141,14 +222,7 @@ try {
     }
     require(!input.empty() && (mode == "decode" || mode == "export"),
             "Use --input FILE [--mode decode|export] [--seconds N] [--fps N] [--width N] [--height N] [--device PATH]");
-    std::ifstream file(input, std::ios::binary | std::ios::ate);
-    require(bool(file), "Could not open private clip");
-    const auto size = file.tellg();
-    require(size > 0 && uint64_t(size) <= MaxClip, "Clip must be between 1 byte and 256 MiB");
-    std::vector<uint8_t> bytes(static_cast<size_t>(size));
-    file.seekg(0);
-    require(bool(file.read(reinterpret_cast<char*>(bytes.data()), size)), "Could not read clip");
-    const auto units = accessUnits(bytes);
+    Clip clip(input);
     Decoder decoder;
     const AVCodec* codec = avcodec_find_decoder(AV_CODEC_ID_HEVC);
     require(codec != nullptr, "HEVC decoder unavailable");
@@ -180,7 +254,8 @@ try {
     double maxSyncMs = 0;
     auto nextReport = started + std::chrono::seconds(15);
     std::cout << "start mode=" << mode << " ffmpeg=" << av_version_info()
-              << " units=" << units.size() << " frames=" << seconds * fps
+              << " units=" << clip.count() << " frames=" << seconds * fps
+              << " recording=" << clip.isRecording()
               << " qt=false presentation=false sync_timeout_ms=100" << std::endl;
     const auto receive = [&] {
         while (true) {
@@ -232,9 +307,7 @@ try {
     };
     for (int i = 0; i < seconds * fps; ++i) {
         std::this_thread::sleep_until(started + std::chrono::nanoseconds(int64_t(i) * 1000000000 / fps));
-        const auto unit = units[size_t(i) % units.size()];
-        checked(av_new_packet(decoder.packet, int(unit.second)), "Packet allocation");
-        std::memcpy(decoder.packet->data, bytes.data() + unit.first, unit.second);
+        clip.packet(size_t(i), decoder.packet);
         checked(avcodec_send_packet(context, decoder.packet), "Send packet");
         av_packet_unref(decoder.packet);
         receive();
