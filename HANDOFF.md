@@ -4,7 +4,7 @@ Read `AGENTS.md` and the relevant build runbook first. Keep machine inventory,
 credentials and private captures outside Git. This file records current work;
 older candidate provenance remains in Git history and the artifact catalog.
 
-## Reliable-data pressure and reconnect recovery — candidate in preparation
+## Reliable-data pressure and reconnect recovery — installed Linux checks complete
 
 Root and Client branch remain `client-bookmarks`; candidate **1.3.16-client-bookmarks**
 includes all preceding fixes. A live 1.3.15 session ended when the bounded
@@ -24,14 +24,52 @@ packet loss had been applied; private timestamps/logs remain outside Git.
   passes packet/byte pressure, pauses over two seconds and ordered drain. The
   Client recovery-policy fixture and 121 CI policy cases pass. The loss runner
   now requires the pressure-recovery test instead of expecting queue overflow
-  to kill the connection. Hosted/package and installed checks are pending.
+  to kill the connection.
 
-The requested Client-ingress 0.5%-increment FEC matrix is deferred until this
-candidate can be tested. No loss rule, package install, service restart or
-remote configuration change has been made. The operator reconnected manually.
-Do not confuse the prior natural traffic's zero residual FEC count with an
-injected-loss test pass. Package builds must use the existing branch caches;
-no FFmpeg or dependency version/patch has changed in this follow-up.
+Package source is root `6aa4f0d29c6585f2063c0fada2cd50a4b7a05d02`, Client
+`b859e34318ba315ad5068e2e00aa50120d26fe92`, Linux Host
+`2f2f207827a907fb6aaf2b8ac3833507389cd678` and Kymux
+`12af484eb307351b068aba96da12afce46f4614b`. Hosted run `41590277670`
+passed all four product compile/test jobs. Linux DEB/RPM packages are verified
+in `artifacts/packages/candidates/1.3.16-client-bookmarks/linux/`; Mac jobs
+were unsigned checks, not signed installer delivery. Build logs, original
+manifests, recursive pins and Qt evidence are in
+`artifacts/qualification/data-backpressure-1.3.16/`. Dependency caches were
+reused; no FFmpeg or dependency version/patch changed.
+
+The operator authorized installing the exact Client and subsequently the Host
+on the test pair. Both package/installed executable hashes match. Administrator
+configuration and the Host certificate were preserved. Package hashes:
+
+- Client DEB: `62b282f6eca1a72f70c0c46300c5a822ef36dbe7d9de6b5a760ae241a4ac41f9`.
+- Host RPM: `e8a5b6abee088b1af5461ead8ca45d51f3fb255d45d1438a2859d10b47844a04`.
+
+Installed qualification used HEVC 10-bit 4:4:4 identity, 5120x2160 at 60fps and
+a 50Mbps target. Client-ingress random loss matched only its active QUIC UDP
+tuple, affecting all incoming lanes, with independently guarded cleanup:
+
+- Client 1.3.16 / Host 1.3.15: full one-minute stages in 0.5% increments through 8%
+  completed without logged recovery errors. During the 8.5% stage the operator
+  reported after-FEC loss; two IDR requests each produced a Host refresh about
+  19ms later. Loss was removed and the operator confirmed normal playback
+  without reconnecting. The connection later recorded 18 unrecovered source
+  symbols; these are connection-wide totals, not per-stage measurements.
+- The authorized Host upgrade to 1.3.16 restarted only the Host/PAM services.
+  The Client retried while the listener was unavailable and automatically
+  reconnected with its retained renderer after about 11 seconds. It did not
+  report a false takeover or require the operator to restart the Client.
+- With both sides on 1.3.16, an additional 60-second 7% test dropped 22,902 of
+  325,074 packets (7.045%). No IDR/reconnect or audio underrun/missing-frame
+  event was logged, and the operator confirmed normal picture playback.
+  The exact after-FEC counter for this second run was not independently read.
+
+All injected-loss tables, transient services/timers and remote test/install
+staging were removed; the session remains connected. Raw machine evidence is
+private; the sanitized qualification summary remains in the artifact directory.
+This short random-loss matrix does not qualify burst loss, every bitrate, or
+live Mac behavior. Live queue saturation was not directly observable; the
+encrypted loopback test specifically exercises that path. Signed Mac 1.3.16
+installers and installed Mac acceptance remain outstanding. No merge or release.
 
 ## Ready for installed testing — HEVC hardware selection and NVENC recovery
 
