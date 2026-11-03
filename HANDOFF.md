@@ -44,11 +44,30 @@ or artificial loss was installed.
 
 This is a repeated three-second control clip encoded from the test desktop,
 not the original failed stream. It does not exclude stream-specific driver,
-FFmpeg or presentation defects. The actual live bitstream and complete render
-path remain unisolated; do not describe the cause as established. A temporary,
-bounded, video-only recorder is being added to the diagnostic artifact so the
-actual decoder submissions can be replayed without Qt. It is not linked or
-packaged into the product and changes no installed application.
+FFmpeg or presentation defects. The actual stream was privately recorded using
+a temporary, bounded, video-only recorder. The recorded full Client session failed after about
+86 seconds, with a video-engine reset and zero unrecovered FEC symbols. Its
+5,126 submitted packets then passed a ten-minute replay (36,000 frames) using
+the installed FFmpeg libraries without Qt: maximum synchronization time 5.62ms,
+no new kernel GPU errors, and a clean exit. Original packet boundaries and
+flags were retained, but original arrival timing was not reproduced. Both
+control and live streams use two slices per frame; the encoder reference-buffer
+limits differ. No deterministic bad packet or product lifetime defect is proven.
+
+Diagnostic run `41729310186` at `929d2fcc` passed recorder passthrough/bounds
+tests; the recorder was removed from the running process after capture. The
+exact installed Client was launched temporarily, then closed normally. No
+package or system configuration changed. Run `41732372949` at `d8f2930a` adds
+diagnostic-only offscreen EGL sampling with at most three fenced surface
+leases, Y410-to-XR30 import and a ten-bit target. Hosted checks and an installed
+180-frame sampling smoke pass. The ten-minute actual-stream sampling test also
+passed: 36,000 frames decoded and sampled, zero skipped samples, maximum surface
+synchronization time 5.66ms, no new kernel GPU errors, and a clean exit. It has
+no Qt, window or compositor integration; it does not reproduce live arrival
+timing. The ordinary Client is reopened without the recorder. The operator is
+asked to reconnect the same stream using "Fullscreen on this monitor" instead
+of spanning two Client outputs. This leaves the Host stream unchanged while
+isolating a presentation difference. Do not describe the cause as established.
 
 Diagnostic-only hosted run `41724066016` passed at root `8fb8fef5` using the
 explicitly selected retained FFmpeg cache. All three library checksums match
