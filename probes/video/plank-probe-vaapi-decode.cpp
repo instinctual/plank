@@ -14,6 +14,7 @@
 #include <utility>
 #include <vector>
 #include <unistd.h>
+#include "vaapi-sampling.h"
 
 extern "C" {
 #include <libavcodec/avcodec.h>
@@ -220,8 +221,8 @@ try {
         else if (key == "--height") height = number(argv[i + 1], 16384);
         else throw std::runtime_error("Unknown argument");
     }
-    require(!input.empty() && (mode == "decode" || mode == "export"),
-            "Use --input FILE [--mode decode|export] [--seconds N] [--fps N] [--width N] [--height N] [--device PATH]");
+    require(!input.empty() && (mode == "decode" || mode == "export" || mode == "sample"),
+            "Use --input FILE [--mode decode|export|sample] [--seconds N] [--fps N] [--width N] [--height N] [--device PATH]");
     Clip clip(input);
     Decoder decoder;
     const AVCodec* codec = avcodec_find_decoder(AV_CODEC_ID_HEVC);
@@ -249,6 +250,11 @@ try {
                                   device.c_str(), nullptr, 0), "VA-API device");
     checked(avcodec_open2(context, codec, nullptr), "Decoder open");
     std::deque<std::unique_ptr<Export>> exports;
+    std::unique_ptr<VaapiSampling> sampling;
+    if (mode == "sample") {
+        sampling = std::make_unique<VaapiSampling>();
+        sampling->initialize(device, width, height);
+    }
     const auto started = Clock::now();
     uint64_t decoded = 0;
     double maxSyncMs = 0;
@@ -281,7 +287,7 @@ try {
                           << " elapsed_ms=" << syncMs << std::endl;
                 throw std::runtime_error("VA-API surface synchronization failed");
             }
-            if (mode == "export") {
+            if (mode == "export" || sampling) {
                 auto item = std::make_unique<Export>();
                 item->lease = av_frame_clone(frame);
                 require(item->lease, "Could not retain surface");
@@ -292,8 +298,11 @@ try {
                 item->valid = true;
                 require(item->descriptor.fourcc == VA_FOURCC_Y410 && item->descriptor.num_objects <= 4,
                         "Export changed the expected Y410 format");
-                exports.push_back(std::move(item));
-                if (exports.size() > 4) exports.pop_front();
+                if (sampling) sampling->submit(item->descriptor, frame);
+                else {
+                    exports.push_back(std::move(item));
+                    if (exports.size() > 4) exports.pop_front();
+                }
             }
             ++decoded;
             av_frame_unref(decoder.frame);
@@ -316,6 +325,12 @@ try {
     receive();
     require(decoded == uint64_t(seconds) * fps, "Decoded frame count differs from submitted count");
     exports.clear();
+    if (sampling) {
+        std::cout << "sampling_result sampled=" << sampling->sampled << " skipped=" << sampling->skipped << std::endl;
+        require(sampling->sampled == decoded && sampling->skipped == 0,
+                "GPU sampling did not keep up with every decoded frame");
+    }
+    sampling.reset();
     std::cout << "result=pass mode=" << mode << " frames=" << decoded << " seconds="
               << std::chrono::duration<double>(Clock::now() - started).count()
               << " max_sync_ms=" << maxSyncMs << std::endl;

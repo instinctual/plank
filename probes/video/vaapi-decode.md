@@ -37,6 +37,15 @@ surface read-only and retains at most four surface leases. It still does not
 import or render those buffers. Compare kernel video-engine/reset messages
 over each test interval as well as frame counts and synchronization times.
 
+`--mode sample` adds offscreen GPU sampling through EGL/OpenGL ES on the exact
+same DRM render node. It imports Y410 as XR30 with the original DMA-BUF modifier,
+draws into a full-size ten-bit target and retains at most three surface leases
+until their draw fences complete. It rejects software rendering and reports
+skipped sampling draws if that bounded queue fills. No window, Qt, compositor
+integration, CPU readback or system configuration change is involved. This tests
+decoder/render-engine sharing; it is not full Client presentation or color
+qualification. The external deadline remains necessary during GPU teardown.
+
 A failure without rendering rules out Qt rendering as a necessary trigger for
 that clip. It does not distinguish FFmpeg, driver, kernel or bitstream defects.
 A passing run is limited to that clip, duration, codec and surface lifecycle;

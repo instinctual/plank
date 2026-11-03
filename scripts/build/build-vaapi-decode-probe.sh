@@ -15,7 +15,7 @@ export PKG_CONFIG_PATH="$prefix/lib/pkgconfig"
 [[ $(pkg-config --modversion libavcodec) = 63.1.102 ]]
 # These values are compiler switches produced by pkg-config/the path helper.
 read -r -a file_flags <<< "$PLANK_C_FILE_FLAGS"
-read -r -a dependency_flags <<< "$(pkg-config --cflags --libs libavcodec libavutil libva)"
+read -r -a dependency_flags <<< "$(pkg-config --cflags --libs libavcodec libavutil libva libdrm egl glesv2)"
 g++ -std=c++17 -O2 -Wall -Wextra -Werror -pthread "${file_flags[@]}" \
   "$PLANK_SOURCE_ROOT/probes/video/plank-probe-vaapi-decode.cpp" \
   "${dependency_flags[@]}" -Wl,-rpath-link,"$prefix/lib" -o "$output/plank-probe-vaapi-decode"
