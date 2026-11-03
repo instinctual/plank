@@ -18,11 +18,11 @@ read -r -a file_flags <<< "$PLANK_C_FILE_FLAGS"
 read -r -a dependency_flags <<< "$(pkg-config --cflags --libs libavcodec libavutil libva)"
 g++ -std=c++17 -O2 -Wall -Wextra -Werror -pthread "${file_flags[@]}" \
   "$PLANK_SOURCE_ROOT/probes/video/plank-probe-vaapi-decode.cpp" \
-  "${dependency_flags[@]}" -o "$output/plank-probe-vaapi-decode"
+  "${dependency_flags[@]}" -Wl,-rpath-link,"$prefix/lib" -o "$output/plank-probe-vaapi-decode"
 LD_LIBRARY_PATH="$prefix/lib" "$output/plank-probe-vaapi-decode" --self-test
 LD_LIBRARY_PATH="$prefix/lib" "$output/plank-probe-vaapi-decode" --version > "$output/BUILD-INFO"
 git -C "$PLANK_SOURCE_ROOT" rev-parse HEAD >> "$output/BUILD-INFO"
-for name in libavcodec.so.63 libavutil.so.61; do
+for name in libavcodec.so.63 libavutil.so.61 libswresample.so.7; do
   sha256sum "$prefix/lib/$name" | sed "s|$prefix/lib/||" >> "$output/LIBRARY-SHA256SUMS"
 done
 (cd "$output" && sha256sum plank-probe-vaapi-decode > SHA256SUMS)
