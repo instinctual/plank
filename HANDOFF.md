@@ -4,12 +4,24 @@ Read `AGENTS.md` and the relevant build runbook first. Keep machine inventory,
 credentials and private captures outside Git. This file records current work;
 older candidate provenance remains in Git history and the artifact catalog.
 
-## Ready for installed testing — headless bookmark choices and 1.4.00
+## Merged to main — 1.4.00 desktop baseline
 
-The operator requested hiding Match Host for virtual/headless Hosts and moving
-the next version to **1.4.00**. Root, Client and Linux Host remain on
-`client-bookmarks`; the earlier recovery work is retained, with no merge or
-release requested for this change.
+On 2026-11-05 the operator authorized merging the complete `client-bookmarks`
+candidate. Root, Client and Linux Host are now on `main`, fast-forwarded to
+the tested source without conflict resolution or new runtime changes. Root
+`6de6f8ef` is the merged candidate tip; this handoff update follows it.
+The **1.4.00** baseline includes dependency refresh, SDL removal, native cleanup,
+independent bookmarks, video/reconnect recovery, sender-window headroom and
+headless bookmark filtering. Native Apple/AVP work remains separate.
+
+Canonical common-C `plank/client` and `plank/host`, plus build-deps `plank/main`,
+were also fast-forwarded to their existing tested pins. Kymux stays pinned to
+`12af484e` on `dependency-refresh`: its own `main` has separate FEC-retirement
+changes that were not in this candidate. Do not repin it to that branch head or
+delete the retained dependency branch without separate reconciliation/testing.
+No package rebuild, deployment or release was requested by this merge. Existing
+branch-qualified packages keep their original provenance; rebuild from `main`
+when mainline packages are requested, never rename the existing candidates.
 
 Linux `serverinfo` now publishes the configured startup policy as a versioned
 UI hint. Both desktop Clients use one layout dropdown with stable saved values:
@@ -55,8 +67,9 @@ change affects only the Linux package source check. Mac Host code is unchanged,
 so no new Mac Host package was built for this task. Logs, run metadata, original
 manifests and Qt test evidence are retained under
 `artifacts/qualification/headless-bookmarks-1.4.00/`. No installed session test,
-deployment, merge or release has been performed for these candidates. Current
-code and notes are committed and pushed on `client-bookmarks`.
+deployment or release has been performed for these candidates. Current code and
+notes are committed and pushed on `main`; the prior candidate records below
+retain their build-time branches, versions and acceptance limits.
 
 ## Ready for installed testing — sender-window recovery candidate
 
@@ -100,9 +113,9 @@ downloaded and checksum-verified under
 Original manifests, build logs, run metadata and the baseline/final comparison
 records are in `artifacts/qualification/sender-window-20261103/`. Duplicate
 download staging is removed. No Client package is required for this Host-only
-policy change; existing 1.3.16 Clients can test it. No installation, live
-acceptance, merge or release has occurred. All current changes are committed
-and pushed on `client-bookmarks`; no build or impairment is left running.
+policy change; existing 1.3.16 Clients can test it. This qualification did not
+include installation or live acceptance. Its code is now merged as part of the
+1.4.00 baseline above; no build or impairment is left running.
 
 The loopback datagrams include FEC-equivalent load but do not claim codec or
 RaptorQ recovery; the native regression matrix covers that separately. Live
@@ -136,14 +149,13 @@ were removed after preserving the evidence; the ordinary Client is restored
 without preload recording. No package, driver or system configuration change,
 active collector or network impairment remains from the investigation.
 
-Root and Client remain on `client-bookmarks`; no merge or release. The earlier
-ACK-delay investigation requires a different qualified Client and remains
-pending; do not continue it on the excluded Gen11 test machine.
+The earlier ACK-delay investigation requires a different qualified Client;
+do not continue it on the excluded Gen11 test machine.
 
 ## Reliable-data pressure and reconnect recovery — installed Linux checks complete
 
-Root and Client branch remain `client-bookmarks`; candidate **1.3.16-client-bookmarks**
-includes all preceding fixes. A live 1.3.15 session ended when the bounded
+Candidate **1.3.16-client-bookmarks** was built from that branch and includes
+all preceding fixes. A live 1.3.15 session ended when the bounded
 reliable-data receiver filled. Its immediate reconnect reached the Host before
 old-session retirement and incorrectly reported a transfer. No deliberate
 packet loss had been applied; private timestamps/logs remain outside Git.
@@ -204,7 +216,8 @@ staging were removed; the session remains connected. Raw machine evidence is
 private; the sanitized qualification summary remains in the artifact directory.
 This short random-loss matrix does not qualify burst loss, every bitrate, or
 live Mac behavior. Live queue saturation was not directly observable; the
-encrypted loopback test specifically exercises that path. No merge or release.
+encrypted loopback test specifically exercises that path. Its code is now in
+the merged 1.4.00 baseline; this does not imply a published release.
 
 Signed Mac delivery is complete from root
 `431902bc727b2065209aedfc7f701acced10e1e9` (only HANDOFF differs from the Linux
@@ -225,9 +238,9 @@ installation or installed Mac acceptance occurred; those checks remain open.
 
 ## Ready for installed testing — HEVC hardware selection and NVENC recovery
 
-Root, Client and Linux Host branch: `client-bookmarks`; candidate
+Original root, Client and Linux Host branch: `client-bookmarks`; candidate
 **1.3.15-client-bookmarks**. Client `412c0c2b`; Linux Host `2f2f2078`.
-The preceding independent-bookmark and cleanup work remains included/unmerged.
+The preceding independent-bookmark and cleanup work is included in main.
 
 An inspected Linux session received video continuously, but decoded too slowly
 in software and repeatedly overflowed its decoder queue. Input continued to
@@ -278,12 +291,10 @@ checksums pass. Logs, manifests, run metadata and the test summary are in
 - `linux/plank-client_1.3.15-client-bookmarks_amd64.deb`
 - `macos/plank-client_1.3.15-client-bookmarks_arm64.pkg`
 
-Code and notes are committed/pushed on `client-bookmarks`; no merge, release or
-installation. Next: manually install the exact Host and Client candidates on
-the authorized test pair, confirm HEVC hardware decoding/live updates, then
-test recovery. Check H.264 software decoding remains functional and a Client
-without the selected HEVC hardware path receives the explicit error. Hosted
-format-offer tests cannot qualify actual GPU surfaces or sustained playback.
+Code and notes are included in main. The later 1.3.16 installed recovery checks
+are recorded above. Preserve H.264 software decoding and the explicit error
+when selected HEVC hardware decoding is unavailable. Hosted format-offer tests
+cannot qualify actual GPU surfaces or sustained playback.
 
 Cache record: Ubuntu reused Rust/Cargo/compiler outputs and rebuilt the changed
 FFmpeg library. Mac reused Rust/Cargo/Qt and rebuilt its shared native-dependency
@@ -296,11 +307,9 @@ to update these final notes.
 Branch: `client-bookmarks`, based on the complete `code-simplification` candidate
 below. Client-only candidate version: **1.3.14-client-bookmarks**.
 
-Resume on `client-bookmarks` in the root and Client repositories. Code and
-candidate records are pushed; the next step is operator testing, not another
-build. The preceding cleanup and this bookmark change remain unmerged to
-`main`. Continue using this branch for any bookmark follow-up so its verified
-dependency caches remain available.
+This work and its preceding cleanup are now in `main`. The candidate records
+below retain their original provenance; use the current mainline source for
+new work, not the superseded candidate branch.
 
 Add now creates an independent, permanent bookmark ID instead of replacing the
 record for the entered address. Edit accepts shared addresses and preserves the
@@ -315,7 +324,7 @@ address forms/Mac profiles. The delayed settings writer now locks its Host-map
 snapshot and synchronizes shutdown with its wait predicate. Both Client build
 scripts run this suite. All nine cases passed on both platforms, along with
 the existing Client/component/package gates and 119 CI policy tests. No Host
-changes, installations, merge or release are included in this task.
+changes or installations were required for this Client-only feature.
 
 Package-source root: `d013be4a69068c2d46283fad18bb70c11f63ce8c`;
 Client: `f6b5ea1d` (other pins unchanged from the cleanup candidate).
@@ -340,19 +349,20 @@ with different layouts/profiles/bitrates; edit one, restart the Client and
 confirm both remain independent. Deleting one must retain the other.
 
 Build lesson: this task's new branch could not restore unchanged dependency
-caches held only on `code-simplification`; `main` still has the older baseline.
-The unnecessary cold builds finished and populated `client-bookmarks` caches.
-The runbook now requires checking branch/default-branch cache visibility before
-promising reuse. No cache-key relaxation, dependency change or unapproved merge
-was used to hide this limitation. Future shared reuse requires the approved
-baseline and caches on `main`, or a separately designed cross-branch store.
+caches held only on `code-simplification` while `main` had the older baseline.
+The cold builds populated `client-bookmarks` caches. The runbook requires
+checking branch/default-branch cache visibility before promising reuse. The
+source baseline is now merged; a future mainline build must populate its caches
+before sibling feature branches can restore those inputs. No cache-key
+relaxation or dependency change was used to hide the original limitation.
 
 ## Completed candidate — native-only cleanup/refactor
 
 Branch: `code-simplification`. All ten approved follow-up items are implemented
 and pushed. **1.3.13-code-simplification** has passed the four products' hosted
 build/component/package gates. Both Mac PKGs are signed, notarized and stapled.
-No merge, release, installation or installed-session acceptance was performed.
+This source is now merged. Its original candidate qualification did not include
+release, installation or installed-session acceptance.
 
 Package catalog: `artifacts/packages/candidates/1.3.13-code-simplification/`.
 All four SHA-256 checks pass. Original builder manifests, logs, exact recursive
@@ -366,9 +376,9 @@ pins and `summary.json` are in `artifacts/qualification/code-simplification-1.3.
 | macOS Client | `bc959b800ff2351db29eba95ba9a4c59c19fd167` | `41497448295` Client job; signed `41497522046` |
 
 Final pins: Linux Host `7d9b16ce`, Client `8a989271`, Client common-C `0aa126f`,
-Host common-C headers `209604a`, Kymux `12af484e` (unchanged). Host headers use
-`code-simplification-host-headers`; the maintained product/common-C changes use
-`code-simplification`. The final Linux-only code/packaging corrections do not
+Host common-C headers `209604a`, Kymux `12af484e` (unchanged). The source was built
+on `code-simplification` / `code-simplification-host-headers`; the product and
+common-C commits are now on their canonical branches. The final Linux-only code/packaging corrections do not
 change Client or Mac product inputs. Their original packages/provenance are
 retained, not relabeled. Documentation-only commits may follow these build roots.
 
@@ -439,8 +449,9 @@ and tests remain in the plan and Git history.
 
 See [the simplification plan](docs/development/plans/code-simplification.plan)
 and [cleanup inventory](docs/development/reviews/desktop-cleanup-inventory.md).
-The original package and qualification directories remain intact. Neither
-checkpoint was merged, released, deployed or treated as hardware acceptance.
+The original package and qualification directories remain intact. Both
+checkpoints are now ancestors of main; merging does not imply release,
+deployment or hardware acceptance.
 
 ## Included prior candidates and unchanged contracts
 
