@@ -1226,7 +1226,7 @@ for required_bookmark_token in \
     exit 1
   }
 done
-rg -U -q 'addNewHostManually\(addressText\.text\.trim\(\),[[:space:]]*nicknameText\.text\.trim\(\),[[:space:]]*addHostLayout\.currentIndex,[[:space:]]*addVirtualMode1\.currentIndex,[[:space:]]*addVirtualMode2\.currentIndex,[[:space:]]*addScalingChoice\.currentIndex,[[:space:]]*addEncodingProfile\.model\.get\(' \
+rg -U -q 'addNewHostManually\(addressText\.text\.trim\(\),[[:space:]]*nicknameText\.text\.trim\(\),[[:space:]]*addHostLayout\.layoutChoice,[[:space:]]*addVirtualMode1\.currentIndex,[[:space:]]*addVirtualMode2\.currentIndex,[[:space:]]*addScalingChoice\.currentIndex,[[:space:]]*addEncodingProfile\.model\.get\(' \
   "$source_dir/app/gui/main.qml" || {
   echo "manual workstation dialog does not submit address, nickname, host layout, independent virtual modes, scaling, and encoding profile" >&2
   exit 1
