@@ -150,7 +150,26 @@ their charge; consuming or retiring them releases it. These are conservative
 admission budgets, **not measured RSS caps**: RaptorQ solver scratch is bounded
 separately by the symbol/block limits, and channel, output and Quinn buffers
 remain separately bounded. A budget violation fails explicitly rather than
-silently dropping arbitrary media.
+silently dropping arbitrary media, except for the bounded video retirement
+described below.
+
+When pending video reaches its object or byte budget, admission can retire
+the oldest media whose sequence is lowest and which has already waited at
+least the existing 50 ms reorder window. This permits recovery when a reliable
+configuration packet is delayed while its video datagrams continue arriving.
+Retirement frees only the space needed for the next object; it does not enlarge
+the budgets or add a playback delay. Configuration packets are never evicted,
+and a burst of fresh media alone exceeding the budget still fails explicitly.
+Group identity is resolved after eviction, since retirement may remove groups
+and change their vector indices. Late symbols cannot recreate retired frames.
+
+Retired objects contribute their FEC source/missing/unrecovered counts exactly
+once with the next delivered packet. A reconstructed but undelivered frame
+has zero after-FEC packet loss; its missing frame is accounted separately by
+the existing sequence-gap counter. Delayed configs still precede their media,
+and completed packets drain without waiting for another network arrival.
+The regression suite covers delayed-config stalls and bursts, object/byte
+limits, fresh-media rejection, group identity and exact loss accounting.
 
 Parser and processor failures propagate through the public receive result and
 cancel companion readers, rather than panicking or merely logging an error
