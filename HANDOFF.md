@@ -4,6 +4,56 @@ Read `AGENTS.md` and the relevant build runbook first. Keep machine inventory,
 credentials and private captures outside Git. This file records current work;
 older candidate provenance remains in Git history and the artifact catalog.
 
+## Kymux reconciliation — qualified; parent merge pending
+
+Branch `kymux-reconciliation` starts from main `b67727ad`. Kymux's shipping
+`dependency-refresh` pin `12af484e` and its separate `main` tip `04c3f179`
+were merged without conflicts as `7f7893f`; `0ec3ef2` adds byte-budget and
+exact FEC-accounting regressions. Kymux `main` is now fast-forwarded and pushed
+to `0ec3ef2a068d2267eba38a30cdc60f28fd17aaf2`, containing both histories.
+Root `af38de84` pins the candidate; `bf5c6046` adds its contract/handoff notes.
+The PLANK parent gitlink remains unchanged on main; its update is isolated on
+`kymux-reconciliation`. Original PR #26 still targets the superseded `04c3f179`:
+use the reconciled pin, not that older API/dependency snapshot.
+
+This preserves the newer upstream generic protocol/serialization APIs and all
+existing manifests/lockfiles, including RaptorQ 2.0.1. The runtime delta is only
+the bounded video receiver retirement and budget diagnostics in two KyProto
+files. Reliable configs remain ordered, stale frames can be retired at the
+existing limits, and fresh oversized bursts still fail. Wire generation,
+sender rate/window/queue policy, MTU handling, audio and reliable-data bounds
+are unchanged. Do not replace this with PR #26's original older pointer.
+
+Hosted transport qualification passed at exact root `af38de84` in
+`42075309641`: state/queue accounting, ACK/receiver stalls, native FEC,
+reliable pressure, cancellation, microphone and camera lanes. All six 150 Mbps
+loss matrices (0/0.5/1/3/5% loss) recovered every frame with zero unrecovered
+symbols; all 30 phase performance gates passed. Brief ACK holds caused zero
+drops; actual sender/receiver overflow recovered on the existing connection.
+The macOS feature configuration runs on Linux in this workflow, not macOS.
+
+All four hosted product builds passed at root `bf5c6046` in `42076080008`,
+including the Mac Host's real encrypted C-ABI loopback and the Linux Host's
+native recovery gates. Existing dependency caches were enabled; no forced
+bootstrap was requested. This is compilation/component/package validation,
+not installed session acceptance. Both Mac jobs were unsigned validation builds.
+No installation, production impairment, signing or release was performed.
+Logs, run metadata and a parsed transport summary are retained under
+`artifacts/qualification/kymux-reconciliation-20261105/`.
+
+Review of PLANK-specific Kymux changes found the rejected datagram batching,
+expanded send queue, blocking datagram submission and application pacer already
+removed/reverted. Keep the active security bounds, MTU handling, telemetry,
+packet draining and recovery. Simplifying the macOS source-first sender needs
+a measured comparison; this reconciliation does not remove it or claim it is
+redundant. Duplicate historical drain commits do not duplicate runtime code.
+
+Kymux PRs #2 (js-sys) and #4 (kywasmtime) were closed as requested because the
+shipping products do not use those browser backends. PLANK #28's failed Linux
+Client job passed on rerun (`42060946515`, attempt 2); its original failure was
+a download connection reset. #28 is not merged. The NVENC-headers update stays
+open and deferred because its driver requirement exceeds the qualified floor.
+
 ## Mainline packages ready — 1.4.00, not published
 
 On 2026-11-05 all four desktop packages were rebuilt on GitHub-hosted Actions
