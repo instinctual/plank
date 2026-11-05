@@ -4,6 +4,39 @@ Read `AGENTS.md` and the relevant build runbook first. Keep machine inventory,
 credentials and private captures outside Git. This file records current work;
 older candidate provenance remains in Git history and the artifact catalog.
 
+## Mainline packages ready — 1.4.00, not published
+
+On 2026-11-05 all four desktop packages were rebuilt on GitHub-hosted Actions
+from exact main root `2a82edd54f4beb556fd5754f0091b960f32043cd`. No product or
+build-script changes were needed. Successful workflow runs:
+
+- Linux Host: `42061683466`.
+- Ubuntu Client: `42061722088`.
+- Signed macOS Host: `42061520267`.
+- Signed macOS Client: `42061726889`, attempt 2. The first attempt stopped at
+  a dependency-download connection reset (`curl` exit 35); only the failed job
+  was retried at the same source revision.
+
+All packages are downloaded and SHA256-verified under
+`artifacts/packages/releases/1.4.00/`:
+
+- `linux/plank-host-1.4.00-1.el9.x86_64.rpm` — Rocky 9.7.
+- `linux/plank-client_1.4.00_amd64.deb` — Ubuntu 26.04.
+- `macos/plank-host_1.4.00_arm64.pkg` — macOS 26.7 and newer.
+- `macos/plank-client_1.4.00_arm64.pkg` — macOS 15 and newer.
+
+Both macOS installers are signed, notarized and stapled. Hosted build,
+component/regression and package gates passed, including the Client bookmark
+policy tests. This does not add installed hardware/session acceptance.
+Original manifests, build logs, run metadata and Qt test evidence are retained
+under `artifacts/qualification/release-1.4.00/`. Main's updated dependency caches
+were populated; no forced clean bootstrap was requested. Duplicate download
+staging was removed after catalog verification.
+
+The operator requested packages only: **no GitHub release, tag, deployment or
+installation** was performed. The `releases/` catalog denotes mainline package
+provenance, not publication. Source pins remain those recorded below.
+
 ## Merged to main — 1.4.00 desktop baseline
 
 On 2026-11-05 the operator authorized merging the complete `client-bookmarks`
@@ -19,9 +52,9 @@ were also fast-forwarded to their existing tested pins. Kymux stays pinned to
 `12af484e` on `dependency-refresh`: its own `main` has separate FEC-retirement
 changes that were not in this candidate. Do not repin it to that branch head or
 delete the retained dependency branch without separate reconciliation/testing.
-No package rebuild, deployment or release was requested by this merge. Existing
-branch-qualified packages keep their original provenance; rebuild from `main`
-when mainline packages are requested, never rename the existing candidates.
+The subsequent mainline builds are recorded above. Existing branch-qualified
+packages keep their original provenance; never rename candidates as mainline
+packages.
 
 Linux `serverinfo` now publishes the configured startup policy as a versioned
 UI hint. Both desktop Clients use one layout dropdown with stable saved values:
