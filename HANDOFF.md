@@ -4,6 +4,35 @@ Read `AGENTS.md` and the relevant build runbook first. Keep machine inventory,
 credentials and private captures outside Git. This file records current work;
 older candidate provenance remains in Git history and the artifact catalog.
 
+## Kymux reconciliation — validation in progress
+
+Branch `kymux-reconciliation` starts from main `b67727ad`. Kymux's shipping
+`dependency-refresh` pin `12af484e` and its separate `main` tip `04c3f179`
+were merged without conflicts as `7f7893f`; `0ec3ef2` adds byte-budget and
+exact FEC-accounting regressions. Root `af38de84` pins that candidate. Neither
+main branch has been changed by this task yet.
+
+This preserves the newer upstream generic protocol/serialization APIs and all
+existing manifests/lockfiles, including RaptorQ 2.0.1. The runtime delta is only
+the bounded video receiver retirement and budget diagnostics in two KyProto
+files. Reliable configs remain ordered, stale frames can be retired at the
+existing limits, and fresh oversized bursts still fail. Wire generation,
+sender rate/window/queue policy, MTU handling, audio and reliable-data bounds
+are unchanged. Do not replace this with PR #26's original older pointer.
+
+Hosted transport qualification is running at exact root `af38de84` in
+`42075309641`. It covers state/queue accounting, ACK/receiver stalls, native
+FEC and reliable recovery. The macOS feature configuration is exercised on
+Linux in that workflow; this is not an installed macOS session test. All four
+product compile/package gates are still pending. No installation, production
+impairment, signing or release is part of this reconciliation.
+
+Kymux PRs #2 (js-sys) and #4 (kywasmtime) were closed as requested because the
+shipping products do not use those browser backends. PLANK #28's failed Linux
+Client job passed on rerun (`42060946515`, attempt 2); its original failure was
+a download connection reset. #28 is not merged. The NVENC-headers update stays
+open and deferred because its driver requirement exceeds the qualified floor.
+
 ## Mainline packages ready — 1.4.00, not published
 
 On 2026-11-05 all four desktop packages were rebuilt on GitHub-hosted Actions
