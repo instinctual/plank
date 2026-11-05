@@ -4,7 +4,15 @@ Read `AGENTS.md` and the relevant build runbook first. Keep machine inventory,
 credentials and private captures outside Git. This file records current work;
 older candidate provenance remains in Git history and the artifact catalog.
 
-## Kymux reconciliation — qualified; parent merge pending
+## Kymux reconciliation — merged; 1.4.01 packages pending
+
+The operator authorized merging the tested reconciliation and PLANK #28 on
+2026-11-05, followed by all four mainline candidates without publication.
+PR #28 is merged; its artifact-upload update and the reconciliation are now
+combined on main. Version **1.4.01** keeps these new package bytes separate from
+the retained 1.4.00 installers. Signed Mac packages and Linux packages will be
+built on GitHub-hosted Actions with dependency caching enabled. No installation,
+live session acceptance or release is authorized by this packaging task.
 
 Branch `kymux-reconciliation` starts from main `b67727ad`. Kymux's shipping
 `dependency-refresh` pin `12af484e` and its separate `main` tip `04c3f179`
@@ -12,9 +20,9 @@ were merged without conflicts as `7f7893f`; `0ec3ef2` adds byte-budget and
 exact FEC-accounting regressions. Kymux `main` is now fast-forwarded and pushed
 to `0ec3ef2a068d2267eba38a30cdc60f28fd17aaf2`, containing both histories.
 Root `af38de84` pins the candidate; `bf5c6046` adds its contract/handoff notes.
-The PLANK parent gitlink remains unchanged on main; its update is isolated on
-`kymux-reconciliation`. Original PR #26 still targets the superseded `04c3f179`:
-use the reconciled pin, not that older API/dependency snapshot.
+The PLANK parent gitlink is now merged to the reconciled pin. Original PR #26
+targets the superseded `04c3f179` and will be closed after the mainline push:
+do not restore that older API/dependency snapshot.
 
 This preserves the newer upstream generic protocol/serialization APIs and all
 existing manifests/lockfiles, including RaptorQ 2.0.1. The runtime delta is only
@@ -51,7 +59,7 @@ redundant. Duplicate historical drain commits do not duplicate runtime code.
 Kymux PRs #2 (js-sys) and #4 (kywasmtime) were closed as requested because the
 shipping products do not use those browser backends. PLANK #28's failed Linux
 Client job passed on rerun (`42060946515`, attempt 2); its original failure was
-a download connection reset. #28 is not merged. The NVENC-headers update stays
+a download connection reset. #28 is now merged. The NVENC-headers update stays
 open and deferred because its driver requirement exceeds the qualified floor.
 
 ## Mainline packages ready — 1.4.00, not published
