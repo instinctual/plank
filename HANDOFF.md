@@ -4,7 +4,7 @@ Read `AGENTS.md` and the relevant build runbook first. Keep machine inventory,
 credentials and private captures outside Git. This file records current work;
 older candidate provenance remains in Git history and the artifact catalog.
 
-## In validation — headless bookmark choices and 1.4.00
+## Ready for installed testing — headless bookmark choices and 1.4.00
 
 The operator requested hiding Match Host for virtual/headless Hosts and moving
 the next version to **1.4.00**. Root, Client and Linux Host remain on
@@ -25,8 +25,38 @@ Shared QML tests cover both dialogs, stable single/dual values, invalid saved
 selections, stale discovery replies, offline hints, address changes and Mac
 fixed-layout behavior. Versioned parser vectors cover invalid/unknown hints.
 Local checks: 121 CI policy tests and 16 package-catalog tests pass; shell syntax
-and whitespace checks pass. Hosted Qt/build validation is pending; no hardware
-session acceptance or deployment is implied. Dependency pins are unchanged.
+and whitespace checks pass. Dependency pins are unchanged.
+
+Source pins: Client `e34dfd131ab0f35493f186666ddb8464d82b2dbd`, Linux Host
+`2281c3ed6dbf5779ec75dba15a8a4f165efba1fa`, Kymux
+`12af484eb307351b068aba96da12afce46f4614b`. Root `a3f4a327` contains the product
+change; `a1ea856d` updates the Linux packaging source check to expect the stable
+layout value rather than the former dropdown index. The first Linux Client run
+stopped at that stale check; it was not an application compile failure.
+
+Hosted Linux Host run `41976626854` and signed macOS Client run `41976630163`
+passed at `a3f4a327`. Linux Client run `41978798249` passed at `a1ea856d`, including
+the sanitizer/compositor and package checks. Both Clients passed all five
+bookmark-choice tests and all 26 output-topology tests, including the new policy
+vectors. The Ubuntu rerun restored Rust, Cargo and FFmpeg dependencies and reused
+compiler outputs; bootstrap took two seconds. The earlier Host FFmpeg cache miss
+followed changed installed NVIDIA configuration-package metadata; the compiler
+remains pinned CUDA 13.2.
+
+All three affected candidates are downloaded and checksum-verified under
+`artifacts/packages/candidates/1.4.00-client-bookmarks/`:
+
+- `linux/plank-client_1.4.00-client-bookmarks_amd64.deb`.
+- `linux/plank-host-1.4.00-0.client_bookmarks.1.el9.x86_64.rpm`.
+- `macos/plank-client_1.4.00-client-bookmarks_arm64.pkg` (signed, notarized, stapled).
+
+Each manifest retains its original root provenance and checksums; the final root
+change affects only the Linux package source check. Mac Host code is unchanged,
+so no new Mac Host package was built for this task. Logs, run metadata, original
+manifests and Qt test evidence are retained under
+`artifacts/qualification/headless-bookmarks-1.4.00/`. No installed session test,
+deployment, merge or release has been performed for these candidates. Current
+code and notes are committed and pushed on `client-bookmarks`.
 
 ## Ready for installed testing — sender-window recovery candidate
 
