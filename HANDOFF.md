@@ -612,6 +612,19 @@ bounded queues/parsers, fixed-MTU policy and no application datagram pacer.
 
 ## Separate work and remaining gates
 
+The 18 fully merged parent-repository feature branches were removed locally and
+from GitHub on 2026-11-05. Every deleted tip remains reachable from main. The
+clean `kymux-reconciliation` and `macos-click-pairing` worktrees were retired,
+including the former's linked Kymux checkout; canonical dependency repositories,
+their branches, retained packages and qualification evidence are unchanged.
+The 11 matching temporary `macos-signing` branch permissions were also removed.
+
+Remaining local parent branches are `main`, `apple-native-integration`,
+`native-builds`, `avp-dual-display`, `macos-host-test` and
+`codex/macos26-host-test`. The two Host test branches and their signing permissions
+remain, as do the native TestFlight permissions. The superseded PR #26 Dependabot
+branch remains remote-only; it was outside the selected 18 merged branches.
+
 Native Apple/AVP development and TestFlight automation remain on `native-builds`
 and the dedicated AVP work branches; consult their own HANDOFF/plan before
 resuming. Do not merge or remove those branches as part of desktop cleanup.
