@@ -1,0 +1,16 @@
+{
+  "schema": "plank-display-policy-hint",
+  "version": 1,
+  "cases": [
+    {"version": 1, "policy": "virtual", "expected": 0},
+    {"version": 1, "policy": "physical", "expected": 1},
+    {"version": 0, "policy": "virtual", "expected": -1},
+    {"version": 2, "policy": "physical", "expected": -1},
+    {"version": -1, "policy": "physical", "expected": -1},
+    {"version": 1, "policy": "", "expected": -1},
+    {"version": 1, "policy": "single", "expected": -1},
+    {"version": 1, "policy": "Physical", "expected": -1},
+    {"version": 1, "policy": "physical,virtual", "expected": -1},
+    {"version": 1, "policy": " virtual ", "expected": -1}
+  ]
+}

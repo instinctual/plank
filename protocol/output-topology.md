@@ -127,6 +127,27 @@ sent as stable IDs.
 
 ## Topology Document
 
+### Bookmark discovery hint
+
+Linux Host `serverinfo` includes `PlankDisplayPolicyVersion=1` and
+`PlankDisplayPolicy=physical|virtual`, reporting the administrator's configured
+`display.startup_layout`, not the active session layout. This is an optional,
+versioned UI hint, separate from topology version 13. No output geometry,
+desktop contents or user information is exposed. Missing, unknown-version or
+invalid hints are treated as unknown, never as authorization.
+
+Both Client bookmark dialogs omit Match Host when the hint is `virtual`.
+An existing bookmark can use its last authenticated topology until fresh
+discovery arrives, including offline editing. Changing the address discards
+that old-address hint. Unknown Hosts retain manual configuration. Removing a
+choice does not renumber stored layout values: match-client=0, physical=1,
+single=2, dual-horizontal=3. macOS retains its separate match-client/fixed
+choices. An invalid physical selection changes to Match Client in the editor;
+only Save persists the change. Authenticated topology and Host launch checks
+remain authoritative, and background discovery never rewrites bookmarks.
+
+### Authenticated layout
+
 The document contains a monotonically changing `generation`, the bounding
 desktop rectangle, a `layout` object, and an `outputs` array. `layout.kind` is
 `physical`, `single`, or `dual-horizontal`; `layout.virtual_modes` is empty for

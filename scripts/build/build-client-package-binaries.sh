@@ -1331,14 +1331,16 @@ echo "client_match_client_layout_gate=pass"
 
 # A reachable host publishes its startup layout and explicit allowed layouts.
 # Physical-startup hosts retain editable physical and temporary virtual choices;
-# headless hosts reject only the physical choice. Offline bookmarks remain fully
-# editable and are never silently rewritten when topology arrives.
+# headless hosts omit Match Host in both bookmark dialogs. Discovery is only a
+# UI hint; authenticated topology still enforces launch policy. Editing an
+# invalid physical choice selects Match Client, persisted only when saved.
 for required_display_policy_token in \
   'plankHostDisplayPolicy' \
   'displayPolicyKnown' \
   'allowedLayoutKinds' \
   'TemporaryPhysicalLayoutFeature' \
-  'Match Host requires physical displays attached to the workstation.' \
+  'PlankHostLayoutBox' \
+  'PlankDisplayPolicyVersion' \
   'This workstation does not support the display layout selected by the bookmark.'; do
   rg -Fq "$required_display_policy_token" "$source_dir/app" || {
     echo "host display-policy invariant is missing: ${required_display_policy_token}" >&2

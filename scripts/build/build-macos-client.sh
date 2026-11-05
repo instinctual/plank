@@ -47,7 +47,8 @@ run_shared_client_test() {
         DYLD_LIBRARY_PATH="$PLANK_MAC_CLIENT_DEPS/install/lib" \
             PLANK_CONNECTIVITY_CAPTURE_DIR="${PLANK_ARTIFACT_ROOT:-$build}/qualification/connectivity" \
             PLANK_QT_SESSION_CAPTURE_DIR="${PLANK_ARTIFACT_ROOT:-$build}/qualification/mac-qt-session" \
-            PLANK_REPO_ROOT="$source_root" QT_QPA_PLATFORM=offscreen QT_QUICK_BACKEND=software "./$suite"
+            PLANK_REPO_ROOT="$source_root" PLANK_CLIENT_SOURCE="$client" \
+            QT_QPA_PLATFORM=offscreen QT_QUICK_BACKEND=software "./$suite"
     )
 }
 # These small policy/network fixtures need no application objects; fail early.
@@ -134,7 +135,7 @@ qmake -r "$client/moonlight-qt.pro" CONFIG+=release \
     "QMAKE_CFLAGS+=$PLANK_C_FILE_FLAGS" "QMAKE_CXXFLAGS+=$PLANK_C_FILE_FLAGS"
 make -j"${PLANK_BUILD_JOBS:-8}" release
 # Run shared topology and toolbar geometry on every Mac Client candidate.
-for suite in bookmarks pollingthread outputtopology plankdisplaymode planktoolbarlogic desktopstage macquitshortcut macapplication mackeyboardcapture plankpresentation macrawwacom macclipboardsync changelog authenticationtakeover hosttruststore hosttlsguard; do
+for suite in bookmarks pollingthread outputtopology hostchoices plankdisplaymode planktoolbarlogic desktopstage macquitshortcut macapplication mackeyboardcapture plankpresentation macrawwacom macclipboardsync changelog authenticationtakeover hosttruststore hosttlsguard; do
     run_shared_client_test "$suite"
 done
 # Dummy input only: no microphone permission or physical recording on builders.

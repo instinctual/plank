@@ -4,6 +4,30 @@ Read `AGENTS.md` and the relevant build runbook first. Keep machine inventory,
 credentials and private captures outside Git. This file records current work;
 older candidate provenance remains in Git history and the artifact catalog.
 
+## In validation — headless bookmark choices and 1.4.00
+
+The operator requested hiding Match Host for virtual/headless Hosts and moving
+the next version to **1.4.00**. Root, Client and Linux Host remain on
+`client-bookmarks`; the earlier recovery work is retained, with no merge or
+release requested for this change.
+
+Linux `serverinfo` now publishes the configured startup policy as a versioned
+UI hint. Both desktop Clients use one layout dropdown with stable saved values:
+virtual Hosts omit Match Host; physical/unknown Hosts retain manual choices.
+The edit dialog also uses the last authenticated topology while offline, only
+for the original address. Unsupported saved physical choices select Match
+Client in the editor; Cancel leaves storage unchanged. Discovery never changes
+stored bookmarks, trust or authenticated launch policy. Mac Host layout choices
+are unchanged. New-bookmark filtering requires the updated Linux Host; existing
+bookmarks can use previously authenticated topology.
+
+Shared QML tests cover both dialogs, stable single/dual values, invalid saved
+selections, stale discovery replies, offline hints, address changes and Mac
+fixed-layout behavior. Versioned parser vectors cover invalid/unknown hints.
+Local checks: 121 CI policy tests and 16 package-catalog tests pass; shell syntax
+and whitespace checks pass. Hosted Qt/build validation is pending; no hardware
+session acceptance or deployment is implied. Dependency pins are unchanged.
+
 ## Ready for installed testing — sender-window recovery candidate
 
 The operator resumed the separate sender-stall investigation and explicitly
