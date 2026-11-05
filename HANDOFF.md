@@ -4,15 +4,50 @@ Read `AGENTS.md` and the relevant build runbook first. Keep machine inventory,
 credentials and private captures outside Git. This file records current work;
 older candidate provenance remains in Git history and the artifact catalog.
 
-## Kymux reconciliation — merged; 1.4.01 packages pending
+## Kymux reconciliation — merged; 1.4.01 packages ready
 
 The operator authorized merging the tested reconciliation and PLANK #28 on
 2026-11-05, followed by all four mainline candidates without publication.
-PR #28 is merged; its artifact-upload update and the reconciliation are now
-combined on main. Version **1.4.01** keeps these new package bytes separate from
-the retained 1.4.00 installers. Signed Mac packages and Linux packages will be
-built on GitHub-hosted Actions with dependency caching enabled. No installation,
-live session acceptance or release is authorized by this packaging task.
+PR #28 merged as `c7857982`; the reconciliation merged as `310210a8`.
+Exact root `ad1b32474b7affcd72fa00f21be9b8e891ce4546` is the **1.4.01** package
+source, separate from the retained 1.4.00 installers. Client
+`09e0536079d761a5d4e7e5d2133e719912f6abc7` only adds the bundled changelog;
+Linux Host remains `2281c3ed6dbf5779ec75dba15a8a4f165efba1fa`. All four builds
+use GitHub-hosted Actions with dependency caching enabled:
+
+- Linux Host `42083601539`: passed; RPM downloaded and checksum-verified.
+- Ubuntu Client `42083607155`: passed; DEB downloaded and checksum-verified,
+  with Qt test reports retained.
+- Signed macOS Host `42083612368`: passed; PKG downloaded and checksum-verified.
+- Signed macOS Client `42083619097`: attempt 2 passed; PKG downloaded and
+  checksum-verified. Attempt 1 timed out
+  waiting for the first frame swap in the unchanged `MacQtWindowTest`; preceding
+  Metal rendering/color tests passed. The same source passed the full window
+  test on one retry, with every gate retained and no code change. The initial
+  failure's underlying cause is not proven; its log is preserved.
+
+The combined source passed all 121 CI policy tests and 16 package-catalog tests.
+Both Host dependency caches were reused (four Linux groups, two macOS groups).
+Ubuntu reused Rust, Cargo and compiler caches; its exact FFmpeg cache key missed
+and was rebuilt and saved without changing dependency versions or cache policy.
+The successful Mac Client retry missed its four exact cache groups and populated
+them. No forced clean bootstrap was requested; do not describe a cache miss as
+successful dependency reuse.
+Package manifests, logs, run metadata and recursive source pins are retained in
+`artifacts/qualification/mainline-1.4.01/`. Mainline installers are collected in
+`artifacts/packages/releases/1.4.01/`; this path does not imply publication.
+Both Mac installers are signed, notarized and stapled. All four have passed
+their hosted build/component/package gates and local manifest/SHA256 checks:
+
+- `linux/plank-host-1.4.01-1.el9.x86_64.rpm` — Rocky 9.7.
+- `linux/plank-client_1.4.01_amd64.deb` — Ubuntu 26.04.
+- `macos/plank-host_1.4.01_arm64.pkg` — macOS 26.7 and newer.
+- `macos/plank-client_1.4.01_arm64.pkg` — macOS 15 and newer.
+
+Exact sizes, checksums and pins are in the catalog's `manifest.json` and
+`SHA256SUMS`; original per-product manifests remain in qualification evidence.
+No installation, live session acceptance, GitHub release or release tag was
+performed. The next gate is installed-session testing of these exact packages.
 
 Branch `kymux-reconciliation` starts from main `b67727ad`. Kymux's shipping
 `dependency-refresh` pin `12af484e` and its separate `main` tip `04c3f179`
@@ -21,8 +56,8 @@ exact FEC-accounting regressions. Kymux `main` is now fast-forwarded and pushed
 to `0ec3ef2a068d2267eba38a30cdc60f28fd17aaf2`, containing both histories.
 Root `af38de84` pins the candidate; `bf5c6046` adds its contract/handoff notes.
 The PLANK parent gitlink is now merged to the reconciled pin. Original PR #26
-targets the superseded `04c3f179` and will be closed after the mainline push:
-do not restore that older API/dependency snapshot.
+is closed as superseded by the merged reconciliation; do not restore its older
+`04c3f179` API/dependency snapshot.
 
 This preserves the newer upstream generic protocol/serialization APIs and all
 existing manifests/lockfiles, including RaptorQ 2.0.1. The runtime delta is only
