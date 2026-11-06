@@ -65,6 +65,12 @@ not platform qualification. The credential-free Mac job also exports its exact
 loopback-test executable and a source/hash manifest, even if a later test fails.
 That diagnostic artifact is not an installable product. It permits comparison
 on an authorized development Mac without compiling there or restarting its Host.
+It uses the Mac Host's `sender-timing` shipping feature selection. The operator
+assigned the strict Mac performance gate to that hardware: both accepted main
+and the candidate intermittently failed the hosted timing test. Hosted Mac
+checks remain mandatory for correctness/lifecycle, while Linux also retains its
+hosted performance matrices. Do not report package creation as Mac performance
+acceptance; retain the exact exported executable's three-run hardware result.
 Dispatch through `build.yml` while the reusable
 qualification workflow is not yet registered on main:
 

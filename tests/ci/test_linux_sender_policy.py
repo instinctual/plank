@@ -31,7 +31,10 @@ class LinuxSenderPolicyTests(unittest.TestCase):
             self.assertIn(f'runs-on: {runner}', job)
             self.assertEqual(job.count('bash scripts/test/run-plank-transport-native-loopback.sh'), 1)
         macos = (ROOT / 'scripts/build/build-macos-transport.sh').read_text()
-        self.assertIn('bash scripts/test/run-plank-transport-native-loopback.sh', macos)
+        self.assertIn('bash scripts/test/run-plank-transport-native-loopback.sh --functional-only', macos)
+        self.assertIn('--features sender-timing --message-format=json-render-diagnostics', macos_job)
+        self.assertIn('PLANK_TRANSPORT_CARGO_FEATURES=sender-timing bash scripts/test/run-plank-transport-native-loopback.sh --functional-only', macos_job)
+        self.assertNotIn('--functional-only', linux)
 
     def test_application_pacer_is_absent_from_runtime_and_diagnostics(self):
         # The policy job checks only root sources; it deliberately does not

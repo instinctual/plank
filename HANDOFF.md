@@ -63,16 +63,36 @@ The separate Linux long-ACK-hold fixture exposed unplanned UDP socket drops,
 so it now requests bounded headroom on its test sockets and independently
 checks sender, receiver and proxy kernel-drop counters. It still requires
 intentional outgoing-queue overflow, exact accounting and prompt recovery.
-The latest combined qualification run `42292919466` at root `6939c5da` is
-pending. Local VM socket caps also cause drops; those runs are diagnostics,
+The Linux qualification job in run `42292919466` at root `6939c5da` passed
+all four stall cases with zero unintended socket/proxy loss and all three
+900-frame matrices. Later Linux runs passed too. Local VM socket caps also cause drops; those runs are diagnostics,
 not performance acceptance. No product receive-buffer setting was changed.
 The credential-free Mac transport job exports only its exact test executable
 and provenance so runner failures can be compared without a full signed build.
 
-Next: finish hosted qualification and the signed Mac package, verify/download
-its original artifact, then update this status. Exact manifests retain each
-package's source; do not relabel/rebuild the passing Linux package for test-only
-changes. Installed capture/playback/loss acceptance remains a separate gate.
+The same-harness control in run `42294828551` used unchanged main `283dced7`,
+Kymux `0ec3ef2a`, its original Mac source-first feature and 1 MiB queue. It passed
+trial one, then failed trial two at frame 5 with no intentional loss and 174
+queue evictions. This establishes that the hosted failure also affects the
+accepted baseline, not that every possible regression is excluded. Increasing
+only diagnostic receive buffers retained all 900 frames but still missed a
+latency limit; no product receive-buffer change was adopted. Temporary baseline
+and receive-buffer comparison scripts are removed. Their manifests, binaries,
+test-only patch and logs remain in the ignored qualification catalog.
+
+The operator explicitly assigned Mac performance qualification to the authorized
+development Mac. Host packaging and the credential-free Mac transport job now
+run functional tests on GitHub; the exported executable matches the Host's
+`sender-timing` features. `run-prebuilt-native-loss.sh` keeps the same three
+150 Mbps matrices, exact reconstruction and original latency/throughput limits.
+AGENTS and both runbooks record this split; a signed PKG alone is not performance
+or installed-session acceptance. No production behavior changed for this policy.
+
+Next: build the Mac package and matching prebuilt test executable, verify/download
+both, and run that exact executable on the authorized Mac before marking this
+candidate ready. Preserve its installed Host/Terminal session. Exact manifests
+retain each package's source; do not relabel/rebuild the passing Linux package
+for test-only changes. Installed capture/playback/loss acceptance remains separate.
 
 ## Live Client connectivity — corrected 1.4.05 merged
 

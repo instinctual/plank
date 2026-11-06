@@ -266,6 +266,26 @@ that slow senders, catch-up stalls and delayed phases fail even when all frames
 eventually arrive. The matrix's fixed-size frames and evenly spaced proxy drops
 do not replace hardware, variable-keyframe, burst-loss or WAN soak testing.
 
+For macOS, the operator assigned this strict performance gate to the authorized
+development Mac. Hosted workers failed it with both unchanged main and the
+candidate; the same candidate executable passed on the development Mac. Keep
+the numerical requirements unchanged. Hosted Mac builds run parser/state,
+source/repair equivalence, reliable recovery and C ABI checks with
+`run-plank-transport-native-loopback.sh --functional-only`. The Linux builder
+continues to run the full suite, including performance.
+
+The credential-free `dependency-tests / transport-macos` job exports
+`macos-transport-qualification-<run-id>`. Verify its source commit, Kymux pin,
+SHA-256 and `sender-timing` feature selection against the Mac Host candidate.
+Copy only that prebuilt test executable, `probes/macos/loopback-cert.cnf` and
+`scripts/test/run-prebuilt-native-loss.sh` to a private scratch directory on the
+authorized Mac. Invoke the script with absolute paths to the executable and
+certificate configuration; it creates/removes ephemeral loopback credentials
+and requires all three 900-frame matrices. Do not compile or install there.
+Preserve Terminal and active Host sessions, retain the report, and remove the
+temporary files. Package signing does not establish this performance gate or
+installed streaming acceptance; record both separately.
+
 Its dedicated test-only proxy reports
 the effective socket receive buffer and Linux per-socket kernel drops separately
 from deliberately injected loss. `controlled_loss_only=false` means extra local

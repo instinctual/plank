@@ -3,6 +3,13 @@
 
 set -euo pipefail
 
+case ${1:-} in
+  '') performance=1 ;;
+  --functional-only) performance=0 ;;
+  *) echo 'Usage: run-plank-transport-native-loopback.sh [--functional-only]' >&2; exit 2 ;;
+esac
+[[ $# -le 1 ]] || exit 2
+
 repo_root=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd)
 crate_dir="$repo_root/protocol/plank-transport"
 test_tmp=$(mktemp -d /tmp/plank-native-kyproto.XXXXXX)
@@ -76,9 +83,11 @@ cargo test "${cargo_profile_args[@]}" --locked --offline --manifest-path "$crate
   -- --ignored --exact --nocapture
 
 # Three required passes, not retries: set -e stops on the first failure.
-for loss_trial in 1 2 3; do
-  echo "native_loss_matrix_trial=$loss_trial"
-  cargo test "${cargo_profile_args[@]}" --locked --offline --manifest-path "$crate_dir/Cargo.toml" \
-    native::tests::native_raptorq_survives_progressive_transport_loss_at_150_mbps \
-    -- --ignored --exact --nocapture
-done
+if [[ $performance == 1 ]]; then
+  for loss_trial in 1 2 3; do
+    echo "native_loss_matrix_trial=$loss_trial"
+    cargo test "${cargo_profile_args[@]}" --locked --offline --manifest-path "$crate_dir/Cargo.toml" \
+      native::tests::native_raptorq_survives_progressive_transport_loss_at_150_mbps \
+      -- --ignored --exact --nocapture
+  done
+fi

@@ -32,7 +32,7 @@ metadata = {
     "kymux_commit": subprocess.check_output(["git", "rev-parse", "HEAD:third_party/kyber-kymux"], cwd=root, text=True).strip(),
     "sha256": hashlib.sha256(binary.read_bytes()).hexdigest(),
     "role": "loopback qualification only; not an installable Host or Client",
-    "features": ["quinn-telemetry", "sender-timing"],
+    "features": ["sender-timing"],
     "deployment_target": "26.7",
 }
 (destination / "manifest.json").write_text(json.dumps(metadata, indent=2) + "\n")
