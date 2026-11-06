@@ -4,9 +4,9 @@ Read `AGENTS.md` and the relevant build runbook first. Keep machine inventory,
 credentials and private captures outside Git. This file records current work;
 older candidate provenance remains in Git history and the artifact catalog.
 
-## macOS login handoff — 1.4.03 candidate ready
+## macOS login handoff — 1.4.03 accepted
 
-Branch `macos-login-handoff` starts from `4aca1bf3` and retains the pending
+Branch `macos-login-handoff` starts from `4aca1bf3` and retains the accepted
 mouse-delta fix. Version **1.4.03**. A captured first post-reboot login showed
 the sign-in worker draining normally, while an immediate Client reconnect hit
 that retiring worker and received authentication `denied`. The Client correctly
@@ -43,10 +43,13 @@ staging is removed. Exact-branch signing policy `65716927` should be removed
 when retiring this branch; redundant all-product push run `42185127914` was
 cancelled because only the affected Mac Host package was requested.
 
-Next: install the candidate and test the first complete login after a manual
-reboot. No new installation, reboot, logout, merge, release or live session
-change has been performed by the agent. Private first-attempt evidence stays
-outside Git. Client/Linux Host pins are unchanged.
+On November 6 the operator confirmed that the candidate fixes the reported
+first-login failure and authorized commit, push and merge. The accepted scope
+is that reproduced login handoff; do not infer separate installed macOS 26.7
+or every login/logout scenario from this report. The QuickTime mouse fix below
+is also accepted and included. Private machine evidence stays outside Git.
+Client/Linux Host pins are unchanged. No agent-driven installation, reboot,
+logout or live session change was performed, and no release was requested.
 
 ## macOS mouse motion — 1.4.02 accepted for recording-area fix
 
