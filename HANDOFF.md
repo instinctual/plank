@@ -4,6 +4,28 @@ Read `AGENTS.md` and the relevant build runbook first. Keep machine inventory,
 credentials and private captures outside Git. This file records current work;
 older candidate provenance remains in Git history and the artifact catalog.
 
+## Live Client connectivity — candidate preparation
+
+Root and Client branch `client-live-connectivity` start from accepted main
+`65c2624f` / Client `09e05360`. Candidate version **1.4.04**.
+The operator approved automatic one-second ping summaries while the Internet
+Connectivity dialog is visible, removing Refresh and both explanatory lines.
+The configured background interval runs only while the main window is visible;
+hidden/minimized windows cancel probes and timers, and showing the window again
+checks immediately. The live dialog shares one scheduler with background checks,
+retains results between rounds and respects the existing IPv4 targets/timeouts.
+No Host polling, session recovery, QUIC health checks or stream RTT is changed.
+
+The operator also approved ignoring outside clicks in both Add and Edit bookmark
+dialogs. Their existing action buttons and Escape remain available. Shared Qt
+changes apply to Ubuntu and macOS Clients. New tests cover automatic updates,
+retained results, slow rounds without overlap, cancellation/reopening and the
+production QML window-visibility binding through hide/minimize/restore.
+Configuration comments and user documentation describe the new behavior.
+
+Next: hosted Ubuntu and signed macOS Client builds, package verification and
+installed UI testing. No deployment, merge or release is requested.
+
 ## macOS login handoff — 1.4.03 accepted and merged
 
 Work on `macos-login-handoff` started from `4aca1bf3` and includes the accepted

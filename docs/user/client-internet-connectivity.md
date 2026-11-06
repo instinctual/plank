@@ -12,31 +12,41 @@ The text and hover explanation remain available regardless of color; No response
 means the ping targets did not reply, not proof that all Internet access is down.
 
 Click the indicator (or focus it and press Enter or Space) to open **Internet
-Connectivity**. Opening the dialog sends one ping to every configured IPv4
-address concurrently, including those skipped by the background check. Each row
+Connectivity**. While the dialog is open, every configured IPv4 address is
+checked concurrently about once per second, including addresses skipped by the
+background check. Each row
 shows the address, colored status and actual ICMP round-trip time in whole
 milliseconds; replies faster than one millisecond show **<1 ms**. A dash means
 no timing is available, including a successful reply whose timing output could
 not be read. The completion time uses the Client's local clock.
 
-**Refresh** starts another complete check; it is disabled while checks are
-running. **Close** or Escape cancels outstanding dialog checks. Rapid reopening
-waits for cancelled processes to finish before starting fresh, so checks cannot
-accumulate. The dialog uses the configured timeout and has no automatic polling.
-The ordinary background check continues independently and still stops at the
-first reply; dialog results do not change Host status or connection behavior.
+Results update automatically without a Refresh button. Previous results stay
+visible while the next round runs, and **Live** shows the latest completion
+time. The configured timeout still applies; a slow round finishes before the
+next starts. **Close** or Escape ends live mode and resumes the normal background
+interval. Live results also update the main Internet indicator. There is one
+scheduler, so background and live rounds never overlap; cancelled processes
+finish before a mode switch or rapid reopening starts fresh checks.
 
-By default, the Client sends one ICMP echo to Google's public resolver at startup.
+By default, showing the main window sends one ICMP echo to Google's public resolver.
 If it does not reply within one second, it tries Cloudflare's, then Quad9's.
 The exact addresses are in the [configuration template](../../packaging/client/config/plank-client.conf).
-The first reply ends the round. Every 15 seconds it starts again at the first address. Checks
+The first reply ends the round. While the main window remains visible, every
+15 seconds it starts again at the first address. Checks
 are asynchronous and never overlap. A round longer than the configured interval
 finishes before the next round starts. Only state transitions are logged.
 
+Hiding, minimizing or closing the main window stops all Internet-check timers
+and cancels outstanding pings, including live-dialog checks. Showing it again
+checks immediately. A streaming window alone never restarts these Internet
+checks. Session recovery, QUIC health checks and the stream Toolbar's RTT
+measurement continue independently.
+
 The last result stays visible between rounds. Network-change notifications
-request a fresh check, with a short debounce. Resume/focus checks refresh stale
-results; periodic checks remain active if native network notifications are
-unavailable. The indicator is hidden when disabled.
+request a fresh check of a visible main window, with a short debounce.
+Resume/focus checks refresh stale results only while that window is visible;
+periodic checks still run if native network notifications are unavailable.
+The indicator is hidden when disabled.
 
 Configure both Ubuntu and macOS Clients in the administrator-owned
 `/etc/plank/client.conf`, then restart the Client:
@@ -77,8 +87,10 @@ Component tests cover ordered fallback, timer deadlines, responsive UI,
 periodic recovery, cancellation, disabled/invalid policy, unavailable tools,
 no-route versus permission failures, and actual IPv4 loopback pings on
 both supported build platforms. Summary checks also cover concurrent targets,
-timing formats, bounded output, utility errors, cancellation/reopening and
-unchanged background state. Hosted QML checks cover indicator text, visibility,
-sizing, dialog mouse/keyboard interaction, eight-target layout and screenshots.
+timing formats, bounded output, utility errors, cancellation/reopening, retained
+results, slow rounds without overlap and hidden-window stop/resume. Hosted QML
+checks exercise the production visibility binding, hide/minimize/restore,
+indicator text, sizing, automatic dialog updates, mouse/keyboard interaction,
+eight-target layout and screenshots.
 Installed UI/network acceptance remains
 separate from those build checks.
