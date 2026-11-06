@@ -11,6 +11,7 @@ import os
 from pathlib import Path
 import re
 import select
+import signal
 import socket
 import subprocess
 import tempfile
@@ -98,6 +99,27 @@ def main():
                 port = assigned
                 assert time.monotonic() - began < 3
                 https.discovery(certificate, port)
+                _, challenge = https.request(certificate, port, {"username": "synthetic"})
+                status, authenticated = https.request(certificate, port,
+                    {"conversation_id": challenge["conversation_id"], "responses": ["test"]}, "/plank/auth/respond")
+                assert status == 200 and authenticated["state"] == "authenticated"
+                token = authenticated["session_token"]
+                assert len(token) == 44
+                # The Client can reconnect before the previous graphical
+                # worker finishes draining. Exercise that real TLS window,
+                # including a response to a challenge issued before retirement.
+                _, challenge = https.request(certificate, port, {"username": "synthetic"})
+                assert challenge["state"] == "challenge"
+                response = {"conversation_id": challenge["conversation_id"], "responses": ["test"]}
+                server.send_signal(signal.SIGUSR1)
+                assert select.select([server.stdout], [], [], 3)[0], "retirement notification missing"
+                assert server.stdout.readline() == b"macos_https_auth_retired=1\n"
+                assert https.request(certificate, port, response, "/plank/auth/respond") == (200, {"state": "busy"})
+                assert https.request(certificate, port, {"username": "synthetic"}) == (200, {"state": "busy"})
+                # Availability never authorizes access through the old worker.
+                assert https.request(certificate, port, {}, raw=
+                    ("GET /plank/topology HTTP/1.1\r\nHost: localhost\r\n"
+                     f"Authorization: Bearer {token}\r\n\r\n").encode())[0] == 401
                 # A second listener must fail even for the same UID. This gate
                 # rejects a blanket SO_REUSEPORT workaround.
                 competitor = start(uid, port)
@@ -117,7 +139,7 @@ def main():
                     connection.close()
                 held.clear()
             assert not args.expect_lingering_close, "regression fixture did not detect graceful-close mutation"
-            print("macos_https_cross_uid_handoff=pass transitions=3 exclusive_listener=1 max_ready_seconds=3")
+            print("macos_https_cross_uid_handoff=pass transitions=3 retirement_auth_retryable=1 exclusive_listener=1 max_ready_seconds=3")
         finally:
             for connection in held:
                 connection.close()

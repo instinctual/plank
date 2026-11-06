@@ -38,12 +38,86 @@ static PLANKMacInputEvents *make(CGEventSourceRef source, CGRect bounds, CGSize 
         bounds:bounds pixels:pixels initialPosition:bounds.origin doubleClickInterval:0.5];
     CHECK(mapper != nil); return mapper;
 }
+static void checkDelta(CGEventRef event, double x, double y) {
+    CHECK(CGEventGetIntegerValueField(event, kCGMouseEventDeltaX) == x);
+    CHECK(CGEventGetIntegerValueField(event, kCGMouseEventDeltaY) == y);
+    // Check the application-facing values too: a moving absolute cursor alone
+    // does not prove that an AppKit selection/resize consumer sees motion.
+    NSEvent *native = [NSEvent eventWithCGEvent:event]; CHECK(native != nil);
+    CHECK(native.deltaX == x && native.deltaY == y);
+}
+static void checkMouseMotion(CGEventSourceRef source) {
+    CGRect bounds[] = {CGRectMake(0, 0, 5120, 2160), CGRectMake(-2560, 90, 2560, 1080)};
+    CGSize pixels = CGSizeMake(5120, 2160);
+    CGEventType kinds[] = {kCGEventMouseMoved, kCGEventLeftMouseDragged,
+        kCGEventOtherMouseDragged, kCGEventRightMouseDragged,
+        kCGEventOtherMouseDragged, kCGEventOtherMouseDragged};
+    for (unsigned g = 0; g < 2; ++g) for (unsigned button = 0; button <= 5; ++button) {
+        PLANKMacInputEvents *mapper = make(source, bounds[g], pixels);
+        double scale = g ? 2 : 1;
+        CGEventRef event = sendInput(mapper, 1, motion(100, 100, 5119, 2159), PLANKMacInputEvent);
+        checkDelta(event, 100 / scale, 100 / scale); CFRelease(event);
+        int64_t number = 0;
+        if (button) {
+            event = sendInput(mapper, 2, packet((uint8_t[]){button, 1}, 2), PLANKMacInputEvent);
+            checkDelta(event, 0, 0); number = sequence(event); CFRelease(event);
+        }
+        // Coalesced motion, reversal, a stationary report, then another move.
+        unsigned positions[][2] = {{400, 250}, {430, 200}, {430, 200}, {410, 230}};
+        int deltas[][2] = {{300, 150}, {30, -50}, {0, 0}, {-20, 30}};
+        for (unsigned i = 0; i < 4; ++i) {
+            event = sendInput(mapper, 1, motion(positions[i][0], positions[i][1], 5119, 2159), PLANKMacInputEvent);
+            CHECK(CGEventGetType(event) == kinds[button]);
+            if (button) CHECK(sequence(event) == number);
+            checkDelta(event, deltas[i][0] / scale, deltas[i][1] / scale);
+            CGPoint location = CGEventGetLocation(event);
+            CHECK(fabs(location.x - (bounds[g].origin.x + positions[i][0] / scale)) < 1e-7);
+            CHECK(fabs(location.y - (bounds[g].origin.y + positions[i][1] / scale)) < 1e-7);
+            CFRelease(event);
+        }
+        // Rejected delivery must not become the next delta's starting point.
+        CHECK([mapper consumeType:1 payload:motion(1000, 1000, 5119, 2159) time:now++ accept:^BOOL(CGEventRef value) {
+            checkDelta(value, 590 / scale, 770 / scale); return NO;
+        }] == PLANKMacInputDenied);
+        sendInput(mapper, 1, motion(5120, 100, 5119, 2159), PLANKMacInputMalformed);
+        event = sendInput(mapper, 1, motion(430, 250, 5119, 2159), PLANKMacInputEvent);
+        checkDelta(event, 20 / scale, 20 / scale);
+        if (button) CHECK(sequence(event) == number);
+        CFRelease(event);
+        NSArray *cleanup = [mapper stopAndCopyReleaseEvents];
+        CHECK(cleanup.count == (button ? 1u : 0u));
+        if (button) {
+            CGEventRef release = (__bridge CGEventRef)cleanup[0];
+            checkDelta(release, 0, 0); CHECK(sequence(release) == number);
+        }
+    }
+    // Slow one-backing-pixel moves on scaled displays must add up to the
+    // logical movement, not vanish through per-step truncation or double up.
+    int forward[][4] = {{1, 0, 1, 0}, {0, 1, 0, 0}};
+    int reverse[][4] = {{0, -1, 0, -1}, {0, 0, -1, 0}};
+    for (unsigned g = 0; g < 2; ++g) {
+        unsigned scale = g ? 4 : 2, width = 1280 * scale, height = 720 * scale;
+        PLANKMacInputEvents *mapper = make(source, CGRectMake(40, 90, 1280, 720), CGSizeMake(width, height));
+        CGEventRef event = sendInput(mapper, 2, packet((uint8_t[]){1, 1}, 2), PLANKMacInputEvent);
+        CFRelease(event);
+        for (unsigned i = 0; i < 4; ++i) {
+            event = sendInput(mapper, 1, motion(i + 1, i + 1, width - 1, height - 1), PLANKMacInputEvent);
+            checkDelta(event, forward[g][i], forward[g][i]); CFRelease(event);
+        }
+        for (unsigned i = 0; i < 4; ++i) {
+            event = sendInput(mapper, 1, motion(3 - i, 3 - i, width - 1, height - 1), PLANKMacInputEvent);
+            checkDelta(event, reverse[g][i], reverse[g][i]); CFRelease(event);
+        }
+        CHECK([mapper stopAndCopyReleaseEvents].count == 1);
+    }
+}
 int main(void) {
     alarm(30);
     @autoreleasepool {
         CGEventSourceRef source = CGEventSourceCreate(kCGEventSourceStatePrivate);
         CHECK(source != NULL);
         CGEventSourceSetPixelsPerLine(source, 10);
+        checkMouseMotion(source);
         // Independent expected endpoints, including negative origin and Retina.
         CGRect rectangles[] = {CGRectMake(0, 0, 1920, 1080), CGRectMake(0, 0, 1920, 1080),
             CGRectMake(-2560, -100, 2560, 2160), CGRectMake(40, 90, 1280, 720)};

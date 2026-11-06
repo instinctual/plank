@@ -4,6 +4,101 @@ Read `AGENTS.md` and the relevant build runbook first. Keep machine inventory,
 credentials and private captures outside Git. This file records current work;
 older candidate provenance remains in Git history and the artifact catalog.
 
+## macOS login handoff — 1.4.03 accepted and merged
+
+Work on `macos-login-handoff` started from `4aca1bf3` and includes the accepted
+mouse-delta fix. Both fixes are now merged into main at version **1.4.03**.
+A captured first post-reboot login showed
+the sign-in worker draining normally, while an immediate Client reconnect hit
+that retiring worker and received authentication `denied`. The Client correctly
+treated that as terminal; the desktop worker became ready about four seconds
+later. Neither the Client application nor machine coordinator crashed.
+
+Mac Host start/respond now use the existing `busy` response when graphical
+authority is unavailable or changes during verification. Clients already map
+this to retryable 503. Stale challenges/tokens/leases are still pruned, no
+authorization crosses a graphical generation, and actual verifier rejection,
+account mismatch, malformed input, replay in an active scope and explicit
+same-scope revocation remain denied. No Client or protocol-version change.
+
+New native cases cover login/logout, response after watchdog pruning, changes
+during verification, concurrent retirement/revocation and password wiping.
+The real loopback HTTPS cross-UID handoff gate also checks start/respond while
+the old listener remains reachable after authority retires. Its signal is
+synthetic-fixture-only; no production diagnostic/control endpoint is added.
+
+Source `54cdf2b11a093bf582f83dde16f514a421d9ad8d` is committed and pushed.
+Signed GitHub run `42185149530` passed on its first attempt, including 591
+authentication assertions, the real TLS retirement/cross-UID handoff test,
+its existing EADDRINUSE negative control, and the native session/input/package
+gates. Existing Client reconnect-policy, 121 CI policy and 16 package-catalog
+checks passed locally. The build used caching, but both exact Rust/Cargo keys
+missed and were populated; no dependency version changed or forced bootstrap
+was requested. Do not describe this run as a cache hit.
+
+Signed, notarized and stapled installer, downloaded and checksum/source-verified:
+`artifacts/packages/candidates/1.4.03-macos-login-handoff/macos/plank-host_1.4.03-macos-login-handoff_arm64.pkg`.
+The original manifest equals the collected manifest. Qualification evidence is
+in `artifacts/qualification/macos-login-handoff-1.4.03/`. Temporary download
+staging is removed. Exact-branch signing policy `65716927` should be removed
+when retiring this branch; redundant all-product push run `42185127914` was
+cancelled because only the affected Mac Host package was requested.
+
+On November 6 the operator confirmed that the candidate fixes the reported
+first-login failure and authorized commit, push and merge. The accepted scope
+is that reproduced login handoff; do not infer separate installed macOS 26.7
+or every login/logout scenario from this report. The QuickTime mouse fix below
+is also accepted and included. Private machine evidence stays outside Git.
+Client/Linux Host pins are unchanged. No agent-driven installation, reboot,
+logout or live session change was performed, and no release was requested.
+
+## macOS mouse motion — accepted and merged with login handoff
+
+Branch `macos-mouse-deltas` starts from main `32c92612`; version **1.4.02**.
+The operator approved a Mac Host fix for the built-in screen-recording area
+selector refusing to move/resize. Read-only checks found the full native
+display geometry and confirmed button/drag delivery, but the passive listener
+could not expose individual posted-event fields. An unposted Quartz check
+confirmed that constructing a mouse event with a changed absolute position
+leaves both movement deltas zero. Production code never filled them in.
+The operator's installed test below confirms that supplying them fixes the
+reported recording-area behavior.
+
+The Mac Host now derives X/Y movement from successive mapped Quartz positions.
+It rounds positions before subtraction so slow Retina motion accumulates
+correctly; rejected delivery retains the prior baseline through the existing
+state rollback. Mouse-down/up identities, pointer mapping and tablet behavior
+are retained. No Client, Linux Host, transport or dependency change is needed.
+New native regressions inspect both Quartz and AppKit deltas for all five
+buttons, native 5K, scaled/negative-origin displays, motion reversal, stationary
+reports, coalescing, rejected/malformed input and sub-point accumulation.
+
+Source `300c743ef94aa9815be9cf3af91721a17a075186` is committed and pushed.
+Signed GitHub run `42178253865` passed on the first attempt, reusing both
+Mac Host Rust/Cargo caches. Portable checks passed (121 CI policy and 16
+package-catalog tests). Hosted native checks include 3,863 mouse/input
+assertions, 1,537 pen assertions and 216 native-input assertions across eight
+scenarios, plus the existing display/authentication/session/package gates.
+These construct/inspect events; they do not prove the live selector is fixed.
+
+Signed, notarized and stapled original installer, downloaded and verified:
+`artifacts/packages/candidates/1.4.02-macos-mouse-deltas/macos/plank-host_1.4.02-macos-mouse-deltas_arm64.pkg`.
+The original manifest equals the locally collected manifest; SHA256 and source
+pin are verified. Evidence is in `artifacts/qualification/macos-mouse-deltas-1.4.02/`.
+Temporary download staging is removed. The exact branch has signing policy
+`65711552`; remove it when retiring the branch. The redundant all-product push
+run `42178245127` was cancelled; only the affected Mac Host package was requested.
+
+The operator installed this candidate and rebooted; installed version was
+confirmed during the separate login-handoff investigation above. On November 6
+the operator confirmed that the QuickTime screen-recording boundary is fixed.
+That accepts the reported selector behavior in the tested session; it does not
+claim separate installed Retina/all-button validation. No remote installation
+or Host/session restart was performed by the agent.
+Merged into main through `macos-login-handoff`; no release was requested.
+The recorded installers retain their original candidate identities. Temporary
+read-only collectors were removed. Private machine evidence remains outside Git.
+
 ## Kymux reconciliation — merged; 1.4.01 packages ready
 
 The operator authorized merging the tested reconciliation and PLANK #28 on

@@ -57,6 +57,13 @@ static BOOL validPeer(NSData *peer) {
 
 static NSDictionary *denied(void) { return @{@"state": @"denied"}; }
 static NSDictionary *busy(void) { return @{@"state": @"busy"}; }
+static NSDictionary *graphicalHandoff(void) {
+    // The old HTTPS listener can answer while its media/input owner drains.
+    // This is temporary unavailability, not an OS password rejection. Existing
+    // Clients retry "busy" but must stop on a genuine authentication denial.
+    fprintf(stderr, "macos_auth_setup deferred=graphical-handoff\n");
+    return busy();
+}
 
 enum { MaximumPendingChallenges = 16, MaximumSetupTokens = 4 };
 
@@ -74,7 +81,7 @@ enum { MaximumPendingChallenges = 16, MaximumSetupTokens = 4 };
     return self;
 }
 
-- (void)prune {
+- (PLANKMacGraphicalIdentity)prune {
     uint64_t now = monotonicSeconds();
     PLANKMacGraphicalIdentity current = _snapshot();
     for (NSMutableDictionary *records in @[_pending, _tokens]) {
@@ -89,6 +96,7 @@ enum { MaximumPendingChallenges = 16, MaximumSetupTokens = 4 };
             !plank_macos_account_may_attach(_lease.record.account, _lease.record.scope, current))) {
         [self endStreamLease:_lease];
     }
+    return current;
 }
 
 - (NSDictionary *)startForPeer:(NSData *)peer username:(NSString *)username {
@@ -97,12 +105,11 @@ enum { MaximumPendingChallenges = 16, MaximumSetupTokens = 4 };
         NSData *nameBytes = [username dataUsingEncoding:NSUTF8StringEncoding];
         if (!nameBytes.length || nameBytes.length > 255 || memchr(nameBytes.bytes, 0, nameBytes.length))
             return denied();
-        [self prune];
+        PLANKMacGraphicalIdentity scope = [self prune];
         // A full setup table must not prevent an existing owner from verifying
         // and replacing their abandoned token. Challenges have their own bound.
         if (_pending.count >= MaximumPendingChallenges) return busy();
-        PLANKMacGraphicalIdentity scope = _snapshot();
-        if (!plank_macos_graphical_identity_valid(scope)) return denied();
+        if (!plank_macos_graphical_identity_valid(scope)) return graphicalHandoff();
         NSString *conversation = randomToken();
         if (!conversation || _pending[conversation]) return denied();
         PLANKMacAuthRecord *record = [PLANKMacAuthRecord new];
@@ -124,9 +131,14 @@ enum { MaximumPendingChallenges = 16, MaximumSetupTokens = 4 };
         @synchronized(self) {
             if (!validPeer(peer) || ![conversation isKindOfClass:NSString.class] || conversation.length != 44)
                 return denied();
-            [self prune];
+            // Retain the challenge across pruning only to classify a scope
+            // change. It must never be verified or restored in the new scope.
             record = _pending[conversation];
-            if (!record || ![record.peer isEqual:peer]) return denied();
+            PLANKMacGraphicalIdentity scope = [self prune];
+            if (record && ![record.peer isEqual:peer]) return denied();
+            if (!plank_macos_graphical_identity_valid(scope)) return graphicalHandoff();
+            if (!record || record.expires <= monotonicSeconds()) return denied();
+            if (!plank_macos_same_graphical_scope(record.scope, scope)) return graphicalHandoff();
             // Consume BEFORE any verification. A response can never be replayed.
             [_pending removeObjectForKey:conversation];
             if (_verifying) return busy();
@@ -139,18 +151,23 @@ enum { MaximumPendingChallenges = 16, MaximumSetupTokens = 4 };
             PLANKMacAccountIdentity account = {0};
             PLANKMacAuthenticationResult result = PLANKMacVerifyAccountIsolated(record.username, password, &account);
             @synchronized(self) {
+                PLANKMacGraphicalIdentity scope = [self prune];
+                // A real verifier rejection remains terminal even if it races
+                // retirement. Successful/unavailable verification cannot grant
+                // a token across a desktop handoff; restart with the new owner.
+                if (result != PLANKMacAuthenticationVerified && result != PLANKMacAuthenticationUnavailable)
+                    return denied();
+                if (!plank_macos_same_graphical_scope(record.scope, scope)) return graphicalHandoff();
                 if (generation != _revocationGeneration) {
                     fprintf(stderr, "macos_auth_setup rejected=revoked-during-verification\n");
                     return denied();
                 }
                 // A helper timeout/cooldown is not a rejected OS password.
                 if (result == PLANKMacAuthenticationUnavailable) return busy();
-                if (result != PLANKMacAuthenticationVerified) return denied();
-                if (!plank_macos_account_may_attach(account, record.scope, _snapshot())) {
+                if (!plank_macos_account_may_attach(account, record.scope, scope)) {
                     fprintf(stderr, "macos_auth_setup rejected=desktop-authority\n");
                     return denied();
                 }
-                [self prune];
                 // Only a VERIFIED account can supersede its unused setup on
                 // this peer. Never let an unauthenticated name/IP invalidate
                 // another login, a different account behind NAT, or a lease.

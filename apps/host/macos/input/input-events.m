@@ -206,6 +206,14 @@ static int penEventIndex(CGEventType kind, unsigned sideButtons) {
             }
             event = CGEventCreateMouseEvent(_source, kind, target, mouseButton(index));
             if (event) {
+                // Absolute location does not populate the motion fields used by
+                // AppKit drag consumers (including the screen-selection UI).
+                // Quantize the endpoints, not each step: Retina sub-point moves
+                // must accumulate without amplifying or losing slow motion.
+                CGEventSetDoubleValueField(event, kCGMouseEventDeltaX,
+                    round(target.x) - round(_state.position.x));
+                CGEventSetDoubleValueField(event, kCGMouseEventDeltaY,
+                    round(target.y) - round(_state.position.y));
                 if (_state.buttons[index]) {
                     CGEventSetIntegerValueField(event, kCGMouseEventNumber, _state.mouseEventNumber[index]);
                     CGEventSetIntegerValueField(event, kCGMouseEventClickState, _state.clickCount[index]);
