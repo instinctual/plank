@@ -4,76 +4,62 @@ Read `AGENTS.md` and the relevant build runbook first. Keep machine inventory,
 credentials and private captures outside Git. This file records current work;
 older candidate provenance remains in Git history and the artifact catalog.
 
-## Live Client connectivity — 1.4.05 repair in preparation
+## Live Client connectivity — corrected 1.4.05 candidates ready
 
-**Do not install 1.4.04.** The operator's Ubuntu test exposed a duplicate
-`closePolicy` in the Edit bookmark dialog. It prevented `PcView.qml` from
-loading, hiding saved bookmarks and Add, and breaking Back navigation. The
-settings still contain the bookmarks; discovery still finds the Hosts. No
-settings deletion/reset is needed or was performed. The failure affects the
-shared QML, so both 1.4.04 packages are marked superseded in the local catalog.
+Root/Client branch `client-live-connectivity` started from accepted main
+`65c2624f` / Client `09e05360`. Exact **1.4.05** package source is root
+`351e721f10439a029f75da6b3f9125cad8d249fe`, Client
+`c97f8575d007481d886dfb15bc69354961a61ed6`; both are committed and pushed.
 
-The repair removes only the duplicate; Edit already had the requested Escape-only
-policy, and Add keeps its newly added policy. The operator also requested
-removing the Live/timestamp line and tightening the gap above Close. The unused
-timestamp state is removed, result height is capped at its content, and the
-footer padding is reduced. Error text remains visible only for a real error.
+The Internet dialog checks every configured IPv4 address about once per second,
+retains results between rounds, and has no Refresh button, explanatory paragraphs
+or Live/timestamp line. Its result area and Close spacing are compact. Normal
+checks use the configured interval only while the main window is visible;
+hiding/minimizing cancels timers/probes and showing it checks immediately.
+One scheduler serializes live/background rounds and cancellation. Session
+recovery, Host polling, QUIC health and stream RTT are unchanged. Add bookmarks
+now explicitly ignore outside clicks and are modal; Edit retains its existing
+Escape-only policy. Action buttons and Escape remain available.
 
-The existing full-launcher smoke test missed the failure because it checked
-only top-level readiness and a limited error list. It now requires the actual
-bookmark page's completion marker and rejects nested component/StackView
-failures and duplicate properties. A portable regression exercises the real
-validator; the saved incident log is rejected. Hosted full-launcher checks
-remain required before packaging. Version **1.4.05**; no new deployment yet.
+**Do not install 1.4.04.** Its duplicate Edit-dialog `closePolicy` prevented
+`PcView.qml` from loading, hiding bookmarks/Add and breaking Back. Saved
+bookmarks were intact; no settings deletion/reset was performed or is needed.
+The operator reported this after the build-only checks passed. The old full
+launcher test logged nested QML failures but did not reject them. The repaired
+check requires the actual bookmark-page completion marker as well as outer
+window readiness, and rejects component/StackView/duplicate-property errors.
+It rejects all three saved faulty CI launcher logs; the runbook documents this
+failure signature. Both old packages are marked DO-NOT-INSTALL in their catalog
+and retained only for provenance. Private machine logs/settings stay outside Git.
 
-## Live Client connectivity — superseded 1.4.04 validation record
+Hosted Ubuntu run `42194901081` and signed Mac run `42194905843` passed on their
+first attempts at the exact corrected source. Each connectivity suite reports
+47 passing results, including live updates, cancellation/reaping, slow rounds,
+production hide/minimize/restore binding, and compact dialog layout. The Ubuntu
+full launcher passed all three fresh-profile runs with the bookmark page ready
+and no nested QML failures. Existing Client/render/package gates passed, along
+with 122 portable CI policy tests. The prior fixture's QProcess teardown warning
+is absent after waiting for its asynchronous cancellation before destruction.
+All dependency caches were reused; Ubuntu also restored compiler outputs.
+No dependency upgrade or forced bootstrap.
 
-Root and Client branch `client-live-connectivity` start from accepted main
-`65c2624f` / Client `09e05360`. Candidate version **1.4.04**.
-The operator approved automatic one-second ping summaries while the Internet
-Connectivity dialog is visible, removing Refresh and both explanatory lines.
-The configured background interval runs only while the main window is visible;
-hidden/minimized windows cancel probes and timers, and showing the window again
-checks immediately. The live dialog shares one scheduler with background checks,
-retains results between rounds and respects the existing IPv4 targets/timeouts.
-No Host polling, session recovery, QUIC health checks or stream RTT is changed.
+Verified originals are collected under
+`artifacts/packages/candidates/1.4.05-client-live-connectivity/`:
 
-The operator also approved ignoring outside clicks in both Add and Edit bookmark
-dialogs. Their existing action buttons and Escape remain available. Shared Qt
-changes apply to Ubuntu and macOS Clients. New tests cover automatic updates,
-retained results, slow rounds without overlap, cancellation/reopening and the
-production QML window-visibility binding through hide/minimize/restore.
-Configuration comments and user documentation describe the new behavior.
+- `linux/plank-client_1.4.05-client-live-connectivity_amd64.deb`
+- `macos/plank-client_1.4.05-client-live-connectivity_arm64.pkg`
 
-Exact package source is root `5cb37579764a767ba6b661d8ad7d8a6a655f4924`,
-Client `0acc00b4f380fe8ffb1e8d137b393547212276ca`; both are committed and pushed.
-GitHub Ubuntu run `42190944623` and signed Mac run `42190949496` passed on their
-first attempts. The connectivity suites each report 47 passing results,
-including live updates, retained rows, slow-round serialization, actual IPv4
-loopback and the production QML hide/minimize/restore binding. Existing Client
-component/render/package gates also passed. Local checks passed 121 CI policy,
-six configuration-upgrade and 16 package-catalog cases; the Mac-only local
-configuration suite correctly skipped on Linux.
+The Mac PKG is signed, notarized and stapled. SHA256, source pins and original
+per-product manifests match the local catalog. Logs, Qt reports, regression
+controls and generated screenshots are in
+`artifacts/qualification/client-live-connectivity-1.4.05/`. Dialog layouts were
+visually inspected; download staging was removed. Signing policy `65721204`
+should be removed when retiring this branch. The redundant all-product push
+run `42194853835` was cancelled; no Host package was requested.
 
-Ubuntu reused Rust/Cargo/FFmpeg and compiler caches; Mac reused all four
-Rust/Cargo/native-library/Qt dependency caches. No dependency upgrade or forced
-bootstrap. The Mac installer is signed, notarized and stapled. Both original
-packages were downloaded, SHA256/source-verified and collected under
-`artifacts/packages/candidates/1.4.04-client-live-connectivity/`:
-
-- `linux/plank-client_1.4.04-client-live-connectivity_amd64.deb`
-- `macos/plank-client_1.4.04-client-live-connectivity_arm64.pkg`
-
-Original per-product manifests match the combined local catalog. Logs,
-recursive pins, Qt reports and generated UI screenshots are in
-`artifacts/qualification/client-live-connectivity-1.4.04/`; the three/eight-row
-dialog layouts were visually inspected. Temporary download staging is removed.
-Branch signing policy `65721204` should be removed when retiring this branch.
-The redundant all-product push run `42190907897` was cancelled; no Host package
-was requested. Installed UI acceptance of live pings, hidden-window behavior
-and outside-click bookmark protection remains pending. No deployment, merge or
-release has been performed for this candidate. The later installed failure
-above supersedes its build-only success; do not describe 1.4.04 as accepted.
+Next: operator installs 1.4.05 and confirms existing bookmarks/Add/Back, live
+pings, compact layout and outside-click protection. No remote installation,
+merge or release for this candidate. Do not infer installed acceptance from CI.
 
 ## macOS login handoff — 1.4.03 accepted and merged
 

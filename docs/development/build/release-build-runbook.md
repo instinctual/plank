@@ -175,6 +175,16 @@ failure. A later ad hoc inspection command is a validation-command failure and
 does not invalidate an already successful build unless it exposes a package
 defect.
 
+A visible Client launcher is not proof that its bookmark page loaded. A nested
+QML error can leave an empty page, hide Add and break Back while the application
+continues discovery and reports its outer window ready. In particular,
+`QQmlComponent: Component is not ready`, `QML StackView: initialItem/pop:` and
+`Property value set multiple times` are failures, not harmless UI warnings.
+The hosted full-launcher gate must require both outer-window readiness and
+`PLANK bookmark page ready`, and reject these errors before packaging. Preserve
+existing settings when diagnosing this symptom; an empty UI does not establish
+that saved bookmarks were deleted.
+
 The Qt client initializes a GUI platform before handling `--version`. Over a
 headless SSH connection, invoking it without a platform override aborts with
 `could not connect to display`. Always run a package-tree version check as:
