@@ -6,71 +6,73 @@ older candidate provenance remains in Git history and the artifact catalog.
 
 ## Shared source-first video FEC — candidate in progress
 
-The operator authorized branch `shared-source-first-fec` from main `283dced7`,
-including Kymux `0ec3ef2a`. Current candidate version is **1.4.08**. This replaces the
-two platform-selected video senders with the accepted macOS ordering on every
-platform: submit original symbols, then generate/send the same RaptorQ repairs.
-The source iterator now constructs one symbol at a time, avoiding a padded
-frame copy and a full-frame packet vector. The library's OTI partition,
-symbol IDs, padding, repair bytes/count and current wire generation are retained.
-Audio FEC, codecs, encoder rates and the Quinn controller are unchanged.
-Reverse camera video also uses this shared sender; receiving Clients need no
-protocol update for the Host ordering change.
+Branch `shared-source-first-fec` starts at main `283dced7`. Candidate **1.4.08**
+uses Kymux `079e5647`; Linux Host `2281c3ed` and Client `c97f8575` pins are
+unchanged. Production transport has not changed since root `c83c4bcc`; later
+commits improve qualification fixtures/diagnostics and documentation only.
+Do not merge or release without operator instruction.
 
-Removed the old prepare-all production path, macOS-only feature switches and
-obsolete two-archive comparison script. Timing diagnostics remain optional.
-Current runbooks use one shared loopback runner on both Host builders; the
-old Linux job labelled macOS FEC still selected the Linux path because of its
-target-OS guard. It is replaced by actual shared-sender tests, plus native Mac
-execution. Source tests cover exact upstream bytes at symbol boundaries,
-multi-block/sub-block padding, lost originals/repairs and reordering. The C ABI
-fixture now sends a 1.6 MB keyframe.
+Both Hosts now submit original video symbols before generating the same
+RaptorQ repairs. One shared lazy iterator avoids a padded frame copy and the
+full-frame source-packet vector. Tests compare original/repair bytes, OTI,
+IDs, multi-block/sub-block padding, loss and reordering against the pinned
+RaptorQ 2 library. The prepare-all production sender, platform-selection
+features and obsolete two-archive comparison script are removed. Optional
+sender tracing remains inactive unless explicitly sampled.
 
-Local parser/source checks passed (38 cases), default/timing Clippy passed,
-and the enlarged C ABI frame roundtrips passed both trust modes. The first
-local 150 Mbps matrix failed in its zero-injected-loss phase with a frame gap
-and four proxy socket drops. An isolated unchanged-main comparison also failed
-in its zero-loss phase and recorded 2,113 proxy drops. Neither is a qualifying
-performance pass. No retries or relaxed thresholds were used; hosted native
-gates remain required. Failure reporting now retains transport/FEC snapshots.
-Evidence is under `artifacts/qualification/shared-source-first-fec-1.4.06/`.
-No deployed session or system networking setting has been changed.
+The operator approved a **4 MiB outgoing datagram queue**, defined once in
+Kynet and used by server/client endpoints on Linux and macOS. Immediate
+submission and oldest-item eviction remain; there is no send_datagram_wait,
+application pacer, playback-delay target, system sysctl change or controller
+change. Capacity is allocated as needed. Larger bursts can fit; prolonged
+congestion can still fill a bounded queue. The existing 2 MiB in-flight floor
+and 1 Gbps controller budget are unchanged. Wire generation, codec behavior,
+audio FEC and repair count remain unchanged. Receiving Clients need no update
+for this Host change; rebuilt Client reverse-video senders share the code too.
 
-The first candidate `9c6fc521` / Kymux `258520c7` passed hosted transport
-`42282420253` and signed Mac Host `42282430816`, including three 150 Mbps loss
-matrices each. Mac package 1.4.06 is retained in its original catalog. Linux
-build `42282425564` passed all three matrices, then failed the new 1.6 MB C ABI
-test: Quinn evicted 430 unsent datagrams (606,300 bytes) from its 1 MiB queue,
-exceeding the repair budget. The network loss counters stayed zero. This is
-local queue pressure, not a RaptorQ byte mismatch. All failure logs are retained.
+Qualification and package state:
 
-The operator selected a larger bounded queue first, preserving existing
-immediate submission/oldest-eviction behavior. **No send_datagram_wait change
-has been made.** Kynet now defines one 4 MiB outgoing queue constant and uses
-it for native server/client endpoints on both platforms. This buffers bursts
-on demand; it does not set playback delay or alter the 2 MiB in-flight floor.
-The stall fixture uses the identical shared setting and still requires actual
-overflow and prompt recovery after a long hold. The all-lanes roundtrip and
-C ABI fixtures both use a 1.6 MB frame. Local 4 MiB C ABI tests pass both trust modes
-with zero queue evictions. New 1.4.07 evidence is kept separately from 1.4.06.
+- Linux Host run `42289562622`, package-source root `bdf7480f`, passed all three
+  900-frame 150-Mbps/60-fps matrices through 5% induced loss, the enlarged
+  1.6 MB C ABI frame in both trust modes, existing Host regressions and RPM
+  gates. The RPM is downloaded/SHA256-verified in
+  `artifacts/packages/candidates/1.4.08-shared-source-first-fec/linux/`.
+- Native Mac transport job in run `42292185553`, root `2ba1b0bc`, passed three
+  corresponding matrices: 2,700 intact frames, zero unrecovered symbols,
+  maximum delivery 25.883 ms. Signed Mac Host run `42292753675` subsequently
+  failed on a frame gap in its loss matrix; no package is available yet.
+- The exact earlier GitHub-built diagnostic binary from `d5009294` also passed
+  all three matrices on the authorized development Mac running 27.2: 2,700 frames,
+  zero unrecovered symbols, maximum delivery 23.128 ms. This was isolated
+  loopback testing, not installed-session acceptance. No Host restart,
+  installation, logout/display/input mutation or live network impairment.
+  Terminal and Host processes were preserved; temporary remote files removed.
+- Source/default/diagnostic Clippy, 122 CI policy tests and three sender-contract
+  checks pass. SDK27/minimum26.7 remain the Mac Host packaging contract.
 
-The 1.4.07 hosted stress run hit 748 unintended proxy kernel drops after the
-long ACK hold; its 2 MiB effective receive buffer could not absorb the released
-burst. The Mac matrix separately missed a 100 ms frame deadline. Both failures
-are retained, with no qualifying retry. The test-only proxy now has a dedicated
-receive worker and an 8 MiB/4,096-packet bounded ingress FIFO so forwarding/ACK
-release does not block socket draining. Saturation still fails, both workers
-join on stop/error, and kernel-drop/frame/latency gates remain. Timeout failures
-now preserve transport/FEC snapshots too. No product socket or system sysctl
-is changed by the test harness. Local VM tests still encounter
-loopback receive loss and are not performance acceptance. Candidate 1.4.08
-contains the same production queue/FEC code as 1.4.07; only test diagnostics,
-fixture capacity and version changed. New hosted qualification is pending.
+Failure evidence is retained under
+`artifacts/qualification/shared-source-first-fec-1.4.06/` through `1.4.08/`.
+The original 1 MiB queue lost 430 locally evicted datagrams in the large-frame
+Linux gate; the 4 MiB candidate resolves that measured case. Mac timing failures
+were subsequently isolated to the synthetic loss proxy: its queue accumulated
+while Quinn evicted nothing. Batching its test-only inter-thread handoffs let
+all original Mac frame/throughput/deadline gates pass. No thresholds or repair
+policy were relaxed and no failing run is counted as a qualifying retry.
 
-Next: commit/push this exact candidate, rerun the hosted transport gate and
-both Host package builds, and record actual results.
-Do not merge or publish a release. Installed Linux encoder/playback/loss
-acceptance remains separate from synthetic/hosted gates.
+The separate Linux long-ACK-hold fixture exposed unplanned UDP socket drops,
+so it now requests bounded headroom on its test sockets and independently
+checks sender, receiver and proxy kernel-drop counters. It still requires
+intentional outgoing-queue overflow, exact accounting and prompt recovery.
+The latest combined qualification run `42292919466` at root `6939c5da` is
+pending. Local VM socket caps also cause drops; those runs are diagnostics,
+not performance acceptance. No product receive-buffer setting was changed.
+The credential-free Mac transport job exports only its exact test executable
+and provenance so runner failures can be compared without a full signed build.
+
+Next: finish hosted qualification and the signed Mac package, verify/download
+its original artifact, then update this status. Exact manifests retain each
+package's source; do not relabel/rebuild the passing Linux package for test-only
+changes. Installed capture/playback/loss acceptance remains a separate gate.
 
 ## Live Client connectivity — corrected 1.4.05 merged
 

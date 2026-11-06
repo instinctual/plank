@@ -375,7 +375,7 @@ fn parse_kernel_drops(table: &str, inode: u64) -> io::Result<u64> {
 }
 
 #[cfg(not(target_os = "linux"))]
-fn kernel_drops(_socket: &UdpSocket) -> io::Result<Option<u64>> {
+pub(super) fn kernel_drops(_socket: &UdpSocket) -> io::Result<Option<u64>> {
     // Do not mislabel unavailable per-socket counters as zero on other OSes.
     Ok(None)
 }
