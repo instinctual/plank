@@ -4,6 +4,43 @@ Read `AGENTS.md` and the relevant build runbook first. Keep machine inventory,
 credentials and private captures outside Git. This file records current work;
 older candidate provenance remains in Git history and the artifact catalog.
 
+## Shared source-first video FEC — candidate in progress
+
+The operator authorized branch `shared-source-first-fec` from main `283dced7`,
+including Kymux `0ec3ef2a`. Candidate version is **1.4.06**. This replaces the
+two platform-selected video senders with the accepted macOS ordering on every
+platform: submit original symbols, then generate/send the same RaptorQ repairs.
+The source iterator now constructs one symbol at a time, avoiding a padded
+frame copy and a full-frame packet vector. The library's OTI partition,
+symbol IDs, padding, repair bytes/count and current wire generation are retained.
+Audio FEC, codecs, encoder rates, queues and Quinn policy are unchanged.
+Reverse camera video also uses this shared sender; receiving Clients need no
+protocol update for the Host ordering change.
+
+Removed the old prepare-all production path, macOS-only feature switches and
+obsolete two-archive comparison script. Timing diagnostics remain optional.
+Current runbooks use one shared loopback runner on both Host builders; the
+old Linux job labelled macOS FEC still selected the Linux path because of its
+target-OS guard. It is replaced by actual shared-sender tests, plus native Mac
+execution. Source tests cover exact upstream bytes at symbol boundaries,
+multi-block/sub-block padding, lost originals/repairs and reordering. The C ABI
+fixture now sends a 1.6 MB keyframe.
+
+Local parser/source checks passed (38 cases), default/timing Clippy passed,
+and the enlarged C ABI frame roundtrips passed both trust modes. The first
+local 150 Mbps matrix failed in its zero-injected-loss phase with a frame gap
+and four proxy socket drops. An isolated unchanged-main comparison also failed
+in its zero-loss phase and recorded 2,113 proxy drops. Neither is a qualifying
+performance pass. No retries or relaxed thresholds were used; hosted native
+gates remain required. Failure reporting now retains transport/FEC snapshots.
+Evidence is under `artifacts/qualification/shared-source-first-fec-1.4.06/`.
+No deployed session or system networking setting has been changed.
+
+Next: commit/push the exact candidate in dependency order, run the isolated
+hosted transport gate and both Host package builds, and record actual results.
+Do not merge or publish a release. Installed Linux encoder/playback/loss
+acceptance remains separate from synthetic/hosted gates.
+
 ## Live Client connectivity — corrected 1.4.05 merged
 
 Root/Client branch `client-live-connectivity` started from accepted main

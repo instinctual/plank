@@ -274,8 +274,8 @@ LoginWindow-only agent as well as the designated user's Aqua agent. It never
 logs out or reboots for testing. See `macos-session-lifecycle.md` for its
 role-private identity files, restart policy and remaining live acceptance gates.
 ABI-13 candidates must rebuild the transport archive; never link an ABI-12
-archive to the larger stats header. Preserve accepted .57's
-`PLANK_MACOS_SOURCE_FIRST=1` feature selection during that rebuild.
+archive to the larger stats header. Source-first video FEC is now shared and
+unconditional; no platform-specific feature selection is needed.
 
 Use `scripts/build/build-macos-host.sh SOURCE EMPTY_OUTPUT RETAINED_TRANSPORT_ARCHIVE`
 on the dedicated Mac. Set `PLANK_MACOS_HOST_VERSION` explicitly, for example
@@ -520,12 +520,14 @@ commands for a current candidate. The qualified source-first path below retains
 ordinary single-datagram submission. The application datagram pacer is now
 deleted, not merely bypassed.
 
-For source-first FEC qualification, use `PLANK_MACOS_SOURCE_FIRST=1`.
-This includes sender timing and enables source-first packet submission. The repair count and library's
-repair encoder remain unchanged. The runner additionally checks byte-identical
-source packets against the retained RaptorQ library, multi-block/sub-block
-padding, recovery at 0/5/10/20% omitted sources, and preparation timing. The
-timing test is synthetic CPU preparation, not a network/performance gate.
+Source-first video FEC is the only sender implementation on every platform.
+The Mac builder selects `PLANK_MACOS_SENDER_TIMING=1` only to retain the existing
+bounded opt-in timing trace. The repair count and library's repair encoder
+remain unchanged. The shared runner checks byte-identical source/repair packets,
+multi-block/sub-block padding, loss/reordering, and preparation timing, followed
+by the real encrypted loopback/recovery tests and three controlled-loss matrices.
+The preparation timing is CPU-only; the loss matrices retain their separate
+delivery/throughput gates. Neither replaces installed session acceptance.
 RaptorQ 2 changes repair IDs and the native QUIC protocol identifier; matching
 Host and Client packages are required. See the native transport contract.
 

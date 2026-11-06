@@ -60,13 +60,23 @@ The Client's existing default Quinn controller is unchanged.
 The [sender-window investigation](../../docs/development/investigations/sender-window-recovery.md)
 records measured comparisons, the bounded-stall regression and live-test limits.
 
-Linux Host packaging selects `quinn-telemetry`. The macOS Host can additionally
-select `macos-source-first` for its existing FEC submission order/diagnostics;
-neither that feature nor default features change the sender policy. Removed
+Every video sender uses source-first FEC: submit all original symbols, then
+calculate and submit RaptorQ repair symbols. Linux and macOS share this one
+implementation, including the reverse camera video lane. Source symbols are
+generated lazily without a padded frame copy or a frame-sized packet list.
+The first datagram does not wait for repair-matrix construction; repairs are
+still completed before the next video object. The wire format, symbol IDs,
+repair budget, receivers, and audio FEC path are unchanged. Existing matching
+`plank-native/2` Clients do not require an update for a Host using this order.
+
+Linux Host packaging selects `quinn-telemetry`; macOS enables `sender-timing`
+for its existing bounded opt-in diagnostics. Neither feature changes FEC or
+the sender policy. The platform-specific `macos-source-first`/`source-first-fec`
+features and `PLANK_MACOS_SOURCE_FIRST` build switch are removed. Removed
 `linux-fast-send`, `macos-fast-send` and `PLANK_MACOS_FAST_SEND` switches must
 not be restored for comparisons. Sender traces report FEC and Quinn work, not
-the deleted pacer/sleep counters. Both sender variants require the same loss
-and delivery-performance gates.
+the deleted pacer/sleep counters. Both Host builds run the shared source/repair
+equivalence, loss and delivery-performance gates on their native builders.
 
 ## Native wire generation and RaptorQ
 

@@ -1,6 +1,5 @@
 #!/bin/bash
-# Build the existing transport unchanged on the dedicated development Mac.
-# This is a qualification library, not an installable Host package.
+# Build and qualify the shared transport on the authorized macOS builder.
 set -euo pipefail
 if [[ $# != 2 || $1 != /* || $2 != /* ]]; then
     echo "Usage: $0 /absolute/source-worktree /absolute/build-directory" >&2
@@ -12,11 +11,11 @@ plank_macos_host_target
 transport_build=$2
 if [[ $(uname -s) != Darwin || $(uname -m) != arm64 ||
       $(xcrun --sdk macosx --show-sdk-version | cut -d . -f 1) -lt 27 ]]; then
-    echo "Requires the authorized Apple Silicon development Mac and SDK27+." >&2
+    echo "Requires an authorized Apple Silicon builder and SDK27+." >&2
     exit 2
 fi
-: "${PLANK_CARGO_ROOT:?Set the dedicated Mac Cargo cache path}"
-: "${PLANK_RUSTUP_ROOT:?Set the dedicated Mac Rustup path}"
+: "${PLANK_CARGO_ROOT:?Set the Mac builder Cargo cache path}"
+: "${PLANK_RUSTUP_ROOT:?Set the Mac builder Rustup path}"
 export CARGO_HOME="$PLANK_CARGO_ROOT" RUSTUP_HOME="$PLANK_RUSTUP_ROOT"
 export PATH="$CARGO_HOME/bin:$PATH"
 # Rust's debug stripping can misalign proc-macro LINKEDIT on macOS 27.
@@ -44,24 +43,14 @@ if [[ ${PLANK_MACOS_SENDER_TIMING:-0} == 1 ]]; then
 elif [[ ${PLANK_MACOS_SENDER_TIMING:-0} != 0 ]]; then
     echo 'PLANK_MACOS_SENDER_TIMING must be 0 or 1' >&2; exit 2
 fi
-if [[ ${PLANK_MACOS_SOURCE_FIRST:-0} == 1 ]]; then
-    features=(--features macos-source-first)
-elif [[ ${PLANK_MACOS_SOURCE_FIRST:-0} != 0 ]]; then
-    echo 'PLANK_MACOS_SOURCE_FIRST must be 0 or 1' >&2; exit 2
-fi
 # macOS ships Bash3.2, where an empty array is unbound under nounset.
 cargo +1.99.1 build --locked --release ${features[@]+"${features[@]}"} --manifest-path protocol/plank-transport/Cargo.toml
 cargo +1.99.1 test --locked --release ${features[@]+"${features[@]}"} --manifest-path protocol/plank-transport/Cargo.toml
-if [[ ${PLANK_MACOS_SOURCE_FIRST:-0} == 1 ]]; then
-    # Dependency unit tests are not run by the root Cargo test command.
-    # Compile the production helper/tests against this exact archive's rlib.
-    fec_rlibs=("$transport_build"/release/deps/libraptorq-*.rlib)
-    test ${#fec_rlibs[@]} -eq 1 && test -f "${fec_rlibs[0]}"
-    rustc +1.99.1 --edition=2024 --test -O tests/protocol/source-first-fec.rs \
-        -L "dependency=$transport_build/release/deps" --extern "raptorq=${fec_rlibs[0]}" \
-        -o "$transport_build/source-first-test"
-    "$transport_build/source-first-test" --nocapture --test-threads=1
-fi
+# The shared loopback runner includes dependency parser/state tests,
+# source/repair equivalence, reliable recovery and all three controlled-loss/
+# performance matrices on this OS.
+PLANK_TRANSPORT_CARGO_FEATURES=${features[1]:-} \
+    bash scripts/test/run-plank-transport-native-loopback.sh
 shasum -a 256 "$transport_build/release/libplank_transport.a"
 
 # Exercise the same real C ABI as Linux, with Apple platform link libraries.

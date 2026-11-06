@@ -40,7 +40,7 @@ jobs:
       - name: Compile transport qualification tests
         run: |
           cargo test --no-run --locked --release --manifest-path protocol/plank-transport/Cargo.toml --features quinn-telemetry
-          cargo test --no-run --locked --release --manifest-path protocol/plank-transport/Cargo.toml --features quinn-telemetry,macos-source-first
+          cargo test --no-run --locked --release --manifest-path protocol/plank-transport/Cargo.toml --features quinn-telemetry,sender-timing
       - uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0, Node24
         if: success() && steps.rust-cache.outputs.cache-hit != 'true'
         with:
@@ -52,13 +52,12 @@ jobs:
       - name: Test transport state and datagram accounting
         run: |
           cargo test --locked --release --manifest-path protocol/plank-transport/Cargo.toml --features quinn-telemetry
+          cargo test --locked --release --manifest-path protocol/plank-transport/Cargo.toml --features quinn-telemetry,sender-timing
           cargo test --locked --release --manifest-path third_party/quinn-proto-0.11.19/Cargo.toml --lib connection::datagrams::
       - name: Compare delayed acknowledgments and receiver pauses
         run: bash scripts/test/run-plank-transport-stalls.sh
-      - name: Test native Linux FEC and reliable recovery
+      - name: Test shared source-first FEC and reliable recovery
         run: PLANK_TRANSPORT_CARGO_FEATURES=quinn-telemetry bash scripts/test/run-plank-transport-native-loopback.sh
-      - name: Test native macOS FEC and reliable recovery
-        run: PLANK_TRANSPORT_CARGO_FEATURES=quinn-telemetry,macos-source-first bash scripts/test/run-plank-transport-native-loopback.sh
 
   vulkan:
     if: inputs.scope != 'transport'

@@ -950,6 +950,8 @@ mod tests {
                 .collect::<Vec<_>>(),
         );
         let expected_payload = payload.clone();
+        let sender_stats = server_connection.stats_provider();
+        let receiver_stats = client_connection.stats_provider();
         // A single epoch across every phase prevents delayed sends from
         // silently lowering the offered load or resetting accumulated latency.
         let matrix_start = tokio::time::Instant::now();
@@ -971,6 +973,23 @@ mod tests {
                 if let AVPacket::Media(media) = packet
                     && !media.header.is_config
                 {
+                    if media.header.pts != frame as u64 * 1_500 {
+                        // Preserve the cause of a missing frame before this
+                        // strict gate fails: sender eviction, network loss and
+                        // receiver pressure require different investigations.
+                        eprintln!(
+                            "fec_loss_failure_sender={:?}",
+                            sender_stats.connection_stats().await
+                        );
+                        eprintln!(
+                            "fec_loss_failure_receiver={:?}",
+                            receiver_stats.connection_stats().await
+                        );
+                        eprintln!(
+                            "fec_loss_failure_protocol={:?}",
+                            receiver_stats.protocol_stats()
+                        );
+                    }
                     assert_eq!(media.header.pts, frame as u64 * 1_500);
                     assert_eq!(media.payload, expected_payload);
                     received.push(received_at);

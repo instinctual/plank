@@ -13,8 +13,6 @@ default = []
 quinn-bbr = ["quinn-proto/plank-bbr-default"]
 quinn-telemetry = ["kynet/quinn-telemetry"]
 sender-timing = ["kynet/sender-timing", "kyproto/sender-timing"]
-# Source-first FEC selection used by the macOS Host; no alternate pacing mode.
-macos-source-first = ["sender-timing", "kyproto/source-first-fec"]
 
 [dependencies]
 anyhow = "1.0"

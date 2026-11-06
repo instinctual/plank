@@ -9,15 +9,15 @@ test_tmp=$(mktemp -d /tmp/plank-native-kyproto.XXXXXX)
 trap 'rm -rf -- "$test_tmp"' EXIT
 
 openssl req -x509 -newkey rsa:2048 -nodes -days 1 \
-  -subj '/CN=localhost' \
+  -config "$repo_root/probes/macos/loopback-cert.cnf" \
   -keyout "$test_tmp/key.pem" \
   -out "$test_tmp/cert.pem" >/dev/null 2>&1
 openssl x509 -in "$test_tmp/cert.pem" -outform DER -out "$test_tmp/cert.der"
 
 export SC_NATIVE_TEST_CERTIFICATE="$test_tmp/cert.pem"
 export SC_NATIVE_TEST_PRIVATE_KEY="$test_tmp/key.pem"
-SC_NATIVE_TEST_CERTIFICATE_SHA256=$(sha256sum "$test_tmp/cert.der")
-export SC_NATIVE_TEST_CERTIFICATE_SHA256=${SC_NATIVE_TEST_CERTIFICATE_SHA256%% *}
+SC_NATIVE_TEST_CERTIFICATE_SHA256=$(openssl dgst -sha256 "$test_tmp/cert.der")
+export SC_NATIVE_TEST_CERTIFICATE_SHA256=${SC_NATIVE_TEST_CERTIFICATE_SHA256##* }
 
 cc -std=c11 -O2 -Wall -Wextra -Werror -I"$crate_dir/include" \
   "$repo_root/tests/protocol/camera-v1.c" -o "$test_tmp/camera-wire"
@@ -42,6 +42,10 @@ fi
 # actual audio/video FEC parsers and receiver state machines with our lockfile.
 cargo test "${cargo_profile_args[@]}" --locked --offline --manifest-path "$crate_dir/Cargo.toml" \
   -p plank-transport -p kyproto --lib protocol::driver::av
+
+if [[ ${SC_NATIVE_CARGO_PROFILE:-release} == release ]]; then
+  bash "$repo_root/scripts/test/run-source-first-fec.sh" "${CARGO_TARGET_DIR:-$crate_dir/target}"
+fi
 
 cargo test "${cargo_profile_args[@]}" --locked --offline --manifest-path "$crate_dir/Cargo.toml" \
   native::version_tests::incompatible_peers_fail_tls_before_setup_or_media \

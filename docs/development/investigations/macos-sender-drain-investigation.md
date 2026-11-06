@@ -1,5 +1,10 @@
 # macOS sender-drain measurement
 
+This is a historical experiment record. Source-first video FEC is now the
+shared sender for all platforms. The old two-archive Mac-only comparison
+script and feature switches have been removed. Use the release build runbook
+and `scripts/test/run-plank-transport-native-loopback.sh` for current gates.
+
 ## Latest: .53 source-first FEC candidate
 
 ### Live comparison collected after user disconnect

@@ -61,8 +61,9 @@ queue; both must resume with the same connection, receive the final sequence
 and leave no persistent tail backlog. It also rejects unintended proxy/wire
 loss, clean-phase overflow and failure to maintain the offered schedule.
 
-Existing native KyProto/RaptorQ matrices run separately for Linux and macOS
-source-first submission, including reliable-data backpressure and cancellation.
+Current native KyProto/RaptorQ matrices exercise the shared source-first
+implementation on each Host builder, including reliable-data backpressure and
+cancellation; the separate platform selection has been removed.
 They do not prove reconstruction of the much larger burst losses from the long
 ACK hold. Installed video/IDR, audio/input continuity and a sustained WAN soak
 remain required on a newly authorized qualified test pair. The protected
