@@ -10,10 +10,10 @@ class LinuxSenderPolicyTests(unittest.TestCase):
         manifest = (ROOT / 'protocol/plank-transport/Cargo.toml').read_text()
         self.assertNotIn('linux-fast-send', manifest)
         self.assertNotIn('macos-fast-send', manifest)
-        self.assertIn('macos-source-first = ["sender-timing", "kyproto/source-first-fec"]', manifest)
+        self.assertNotIn('macos-source-first', manifest)
         self.assertRegex(manifest, r'(?m)^default = \[\]$')
 
-    def test_linux_package_does_not_enable_macos_fec_or_diagnostics(self):
+    def test_source_first_is_shared_and_diagnostics_remain_optional(self):
         host = (ROOT / 'scripts/build/build-host-package-binaries.sh').read_text()
         self.assertIn('${PLANK_TRANSPORT_CARGO_FEATURES:-quinn-telemetry}', host)
         for name in ('build-client-package-binaries.sh', 'build-macos-client.sh',
@@ -21,6 +21,20 @@ class LinuxSenderPolicyTests(unittest.TestCase):
             script = (ROOT / 'scripts/build' / name).read_text()
             self.assertNotIn('linux-fast-send', script)
             self.assertNotIn('PLANK_MACOS_FAST_SEND', script)
+            self.assertNotIn('PLANK_MACOS_SOURCE_FIRST', script)
+        workflow = (ROOT / '.github/workflows/dependency-qualification.yml').read_text()
+        self.assertNotIn('macos-source-first', workflow)
+        self.assertIn('--features quinn-telemetry,sender-timing', workflow)
+        linux, macos_job = workflow.split('\n  transport-macos:', 1)
+        macos_job = macos_job.split('\n  vulkan:', 1)[0]
+        for job, runner in ((linux, 'ubuntu-26.04'), (macos_job, 'xcode-27')):
+            self.assertIn(f'runs-on: {runner}', job)
+            self.assertEqual(job.count('bash scripts/test/run-plank-transport-native-loopback.sh'), 1)
+        macos = (ROOT / 'scripts/build/build-macos-transport.sh').read_text()
+        self.assertIn('bash scripts/test/run-plank-transport-native-loopback.sh --functional-only', macos)
+        self.assertIn('--features sender-timing --message-format=json-render-diagnostics', macos_job)
+        self.assertIn('PLANK_TRANSPORT_CARGO_FEATURES=sender-timing bash scripts/test/run-plank-transport-native-loopback.sh --functional-only', macos_job)
+        self.assertNotIn('--functional-only', linux)
 
     def test_application_pacer_is_absent_from_runtime_and_diagnostics(self):
         # The policy job checks only root sources; it deliberately does not

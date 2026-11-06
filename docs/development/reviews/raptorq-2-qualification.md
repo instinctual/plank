@@ -56,11 +56,12 @@ selection without relaxing the delivery-performance checks.
   injecting 0/0.5/1/3/5% datagram loss. Each run checks 900 complete frames,
   byte equality, before/after-FEC telemetry and per-phase delivery performance.
 
-Use pinned Rust 1.89.0 and the locked dependency graph. On Linux, the normal
-Host selection is `quinn-telemetry`. To additionally exercise the macOS
-source-first algorithm on that builder, use `quinn-telemetry,macos-source-first`.
-Both now use the identical sender policy without platform overrides. Do not
-present these Linux runs as native macOS/Apple Silicon qualification.
+These are the historical RaptorQ-upgrade results. For current qualification,
+use `rust-toolchain.toml`, the locked graph and the release build runbook.
+Source-first video FEC is now unconditional on both Hosts; the old
+`macos-source-first` feature is removed. Functional checks run on each native
+Host builder; strict Mac performance matrices use the matching hosted executable
+on the authorized development Mac. Linux results do not qualify Apple Silicon.
 
 Results and remaining package/hardware gates are recorded in HANDOFF. Full
 Linux/macOS Host/Client packages must be rebuilt together, with a new candidate

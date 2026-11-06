@@ -27,6 +27,31 @@ struct Received {
     tail_max_latency: Duration,
 }
 
+fn test_endpoint(config: Option<quinn::ServerConfig>) -> (quinn::Endpoint, std::net::UdpSocket) {
+    let socket = std::net::UdpSocket::bind("127.0.0.1:0").unwrap();
+    let options = socket2::SockRef::from(&socket);
+    // This fixture measures the application queue and recovery, not the
+    // capacity of the worker's default UDP socket. A delayed ACK release can
+    // immediately emit more than that default holds. Request bounded burst
+    // headroom only on these test sockets; keep system/product settings intact.
+    options
+        .set_recv_buffer_size(kynet::quinn::DATAGRAM_SEND_BUFFER_BYTES)
+        .unwrap();
+    eprintln!(
+        "stall_endpoint_receive_buffer_bytes={}",
+        options.recv_buffer_size().unwrap()
+    );
+    let monitor = socket.try_clone().unwrap();
+    let endpoint = quinn::Endpoint::new(
+        Default::default(),
+        config,
+        socket,
+        Arc::new(quinn::TokioRuntime),
+    )
+    .unwrap();
+    (endpoint, monitor)
+}
+
 async fn exercise_stall(video_bps: u64, stall: Stall, hold: Duration) {
     crate::init_crypto_once();
     let certificate =
@@ -41,6 +66,7 @@ async fn exercise_stall(video_bps: u64, stall: Stall, hold: Duration) {
     let mut server_config =
         quinn::ServerConfig::with_single_cert(vec![certificate.clone()], key).unwrap();
     let mut transport = quinn::TransportConfig::default();
+    transport.datagram_send_buffer_size(kynet::quinn::DATAGRAM_SEND_BUFFER_BYTES);
     transport
         .initial_mtu(1344)
         .min_mtu(1344)
@@ -50,19 +76,20 @@ async fn exercise_stall(video_bps: u64, stall: Stall, hold: Duration) {
         TransportRatePolicy::new(video_bps),
     ));
     server_config.transport_config(Arc::new(transport));
-    let server = quinn::Endpoint::server(server_config, "127.0.0.1:0".parse().unwrap()).unwrap();
+    let (server, server_socket) = test_endpoint(Some(server_config));
     let mut proxy = LossProxy::start(server.local_addr().unwrap()).unwrap();
     let mut roots = rustls::RootCertStore::empty();
     roots.add(certificate).unwrap();
     let mut client_config = quinn::ClientConfig::with_root_certificates(Arc::new(roots)).unwrap();
     let mut transport = quinn::TransportConfig::default();
+    transport.datagram_send_buffer_size(kynet::quinn::DATAGRAM_SEND_BUFFER_BYTES);
     transport
         .initial_mtu(1344)
         .min_mtu(1344)
         .mtu_discovery_config(None);
     transport.max_idle_timeout(Some(Duration::from_secs(10).try_into().unwrap()));
     client_config.transport_config(Arc::new(transport));
-    let mut client = quinn::Endpoint::client("127.0.0.1:0".parse().unwrap()).unwrap();
+    let (mut client, client_socket) = test_endpoint(None);
     client.set_default_client_config(client_config);
     let (sender, receiver) = tokio::time::timeout(Duration::from_secs(5), async {
         tokio::join!(
@@ -178,6 +205,11 @@ async fn exercise_stall(video_bps: u64, stall: Stall, hold: Duration) {
     let queue = stats.plank_telemetry.unwrap();
     let dropped_before = before.plank_telemetry.unwrap().queue_evicted_datagrams;
     let kernel_drops = proxy.finish();
+    let server_kernel_drops = super::loss_proxy::kernel_drops(&server_socket).unwrap();
+    let client_kernel_drops = super::loss_proxy::kernel_drops(&client_socket).unwrap();
+    eprintln!(
+        "stall_endpoint_kernel_drops server={server_kernel_drops:?} client={client_kernel_drops:?}"
+    );
     sender.close(0_u32.into(), b"diagnostic complete");
     receiver.close(0_u32.into(), b"diagnostic complete");
     server.close(0_u32.into(), b"diagnostic complete");
@@ -205,6 +237,16 @@ async fn exercise_stall(video_bps: u64, stall: Stall, hold: Duration) {
         kernel_drops,
         Some(0),
         "proxy overload invalidated the comparison"
+    );
+    assert_eq!(
+        server_kernel_drops,
+        Some(0),
+        "test sender socket overflowed"
+    );
+    assert_eq!(
+        client_kernel_drops,
+        Some(0),
+        "test receiver socket overflowed"
     );
     assert_eq!(proxy.dropped.load(Ordering::Relaxed), 0);
     assert_eq!(
@@ -254,8 +296,8 @@ async fn exercise_stall(video_bps: u64, stall: Stall, hold: Duration) {
     );
     assert_eq!(
         queue.queue_limit_bytes,
-        1024 * 1024,
-        "outgoing queue was silently enlarged"
+        4 * 1024 * 1024,
+        "outgoing queue differs from the qualified 4 MiB policy"
     );
 }
 

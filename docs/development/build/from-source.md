@@ -62,7 +62,7 @@ unset PLANK_MACOS_TEAM_ID PLANK_NOTARY_PROFILE
 # Set source, dependency/cache and output paths as in the Mac runbooks.
 source "$PLANK_SOURCE_ROOT/scripts/package/package-version.sh"
 plank_load_package_version "$PLANK_SOURCE_ROOT"
-PLANK_MACOS_SOURCE_FIRST=1 bash "$PLANK_SOURCE_ROOT/scripts/build/build-macos-transport.sh" \
+bash "$PLANK_SOURCE_ROOT/scripts/build/build-macos-transport.sh" \
   "$PLANK_SOURCE_ROOT" "$PLANK_WORK_ROOT/transport"
 PLANK_MACOS_HOST_VERSION="$PLANK_PACKAGE_VERSION" \
   bash "$PLANK_SOURCE_ROOT/scripts/build/build-macos-host.sh" \

@@ -668,7 +668,7 @@ mod tests {
             .await
             .expect("failed to send native video configuration packet");
         let video_payload = Bytes::from(
-            (0..192 * 1024)
+            (0..1_600_013)
                 .map(|index| ((index * 37 + 11) & 0xff) as u8)
                 .collect::<Vec<_>>(),
         );
@@ -950,6 +950,12 @@ mod tests {
                 .collect::<Vec<_>>(),
         );
         let expected_payload = payload.clone();
+        let sender_stats = server_connection.stats_provider();
+        let receiver_stats = client_connection.stats_provider();
+        let submitted_count = Arc::new(std::sync::atomic::AtomicU64::new(0));
+        let submitted_time_us = Arc::new(std::sync::atomic::AtomicU64::new(0));
+        let receive_progress = submitted_count.clone();
+        let receive_submission_time = submitted_time_us.clone();
         // A single epoch across every phase prevents delayed sends from
         // silently lowering the offered load or resetting accumulated latency.
         let matrix_start = tokio::time::Instant::now();
@@ -958,8 +964,28 @@ mod tests {
             while received.len() < TOTAL_FRAMES {
                 let frame = received.len();
                 let deadline = matrix_start + frame_offset(frame) + FRAME_DEADLINE;
-                let packet = tokio::time::timeout_at(deadline, client_video.recv())
-                    .await
+                let packet = tokio::time::timeout_at(deadline, client_video.recv()).await;
+                if packet.is_err() {
+                    eprintln!(
+                        "fec_deadline_progress expected_frame={frame} submitted_frames={} last_submission_us={} elapsed_us={}",
+                        receive_progress.load(Ordering::Acquire),
+                        receive_submission_time.load(Ordering::Acquire),
+                        matrix_start.elapsed().as_micros(),
+                    );
+                    eprintln!(
+                        "fec_deadline_failure_sender={:?}",
+                        sender_stats.connection_stats().await
+                    );
+                    eprintln!(
+                        "fec_deadline_failure_receiver={:?}",
+                        receiver_stats.connection_stats().await
+                    );
+                    eprintln!(
+                        "fec_deadline_failure_protocol={:?}",
+                        receiver_stats.protocol_stats()
+                    );
+                }
+                let packet = packet
                     .unwrap_or_else(|_| {
                         panic!(
                             "loss-test receiver missed 100 ms scheduled deadline for frame {frame}"
@@ -971,6 +997,23 @@ mod tests {
                 if let AVPacket::Media(media) = packet
                     && !media.header.is_config
                 {
+                    if media.header.pts != frame as u64 * 1_500 {
+                        // Preserve the cause of a missing frame before this
+                        // strict gate fails: sender eviction, network loss and
+                        // receiver pressure require different investigations.
+                        eprintln!(
+                            "fec_loss_failure_sender={:?}",
+                            sender_stats.connection_stats().await
+                        );
+                        eprintln!(
+                            "fec_loss_failure_receiver={:?}",
+                            receiver_stats.connection_stats().await
+                        );
+                        eprintln!(
+                            "fec_loss_failure_protocol={:?}",
+                            receiver_stats.protocol_stats()
+                        );
+                    }
                     assert_eq!(media.header.pts, frame as u64 * 1_500);
                     assert_eq!(media.payload, expected_payload);
                     received.push(received_at);
@@ -1008,6 +1051,9 @@ mod tests {
                 })
                 .expect("failed to send paced loss-test frame");
                 submitted.push(matrix_start.elapsed());
+                submitted_time_us
+                    .store(matrix_start.elapsed().as_micros() as u64, Ordering::Release);
+                submitted_count.store(submitted.len() as u64, Ordering::Release);
             }
             tokio::time::sleep_until(matrix_start + frame_offset(submitted.len())).await;
             let dropped = proxy.dropped.load(Ordering::Relaxed);

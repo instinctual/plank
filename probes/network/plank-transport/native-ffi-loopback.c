@@ -11,7 +11,9 @@
 #include <time.h>
 
 #ifndef PLANK_LOOPBACK_VIDEO_BYTES
-#define PLANK_LOOPBACK_VIDEO_BYTES (192 * 1024)
+/* Large keyframe: exercise submission beyond the 1 MiB outgoing queue and
+ * full source-first reconstruction through the production C ABI. */
+#define PLANK_LOOPBACK_VIDEO_BYTES 1600013
 #endif
 
 /* Exercise peer negotiation without changing the Host's default MTU policy. */

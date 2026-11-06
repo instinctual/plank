@@ -51,7 +51,14 @@ The Host's shared rate policy uses a 1 Gbps budget floor on every platform,
 retains the existing RTT-derived upper bounds and permits larger derived budgets.
 Its minimum in-flight window is 2MiB so a low LAN RTT does not reduce allowance
 to approximately one frame and make brief acknowledgment delays overflow the
-unchanged 1MiB outgoing queue. This is transport headroom, not an encoder bitrate
+outgoing queue. Both native QUIC endpoints use one shared **4MiB** outgoing
+datagram queue policy. This accommodates a measured 1.6 MB keyframe plus its
+repair burst without relying on the network worker draining the 1MiB upstream
+default fast enough. Quinn still submits immediately and evicts old unsent
+datagrams at capacity; no wait-for-space policy or application pacer is added.
+The larger capacity is used on demand, not a playback buffering target. A
+sustained stall can still fill it; the stall gate checks bounded memory and
+prompt recovery without a lasting backlog. This is transport headroom, not an encoder bitrate
 or guaranteed link speed. Quinn derives packet pacing from its window and RTT;
 the reported budget is not an independent hard wire-rate limiter. A larger
 minimum window can therefore also allow larger/faster transmission bursts.
@@ -60,13 +67,26 @@ The Client's existing default Quinn controller is unchanged.
 The [sender-window investigation](../../docs/development/investigations/sender-window-recovery.md)
 records measured comparisons, the bounded-stall regression and live-test limits.
 
-Linux Host packaging selects `quinn-telemetry`. The macOS Host can additionally
-select `macos-source-first` for its existing FEC submission order/diagnostics;
-neither that feature nor default features change the sender policy. Removed
+Every video sender uses source-first FEC: submit all original symbols, then
+calculate and submit RaptorQ repair symbols. Linux and macOS share this one
+implementation, including the reverse camera video lane. Source symbols are
+generated lazily without a padded frame copy or a frame-sized packet list.
+The first datagram does not wait for repair-matrix construction; repairs are
+still completed before the next video object. The wire format, symbol IDs,
+repair budget, receivers, and audio FEC path are unchanged. Existing matching
+`plank-native/2` Clients do not require an update for a Host using this order.
+
+Linux Host packaging selects `quinn-telemetry`; macOS enables `sender-timing`
+for its existing bounded opt-in diagnostics. Neither feature changes FEC or
+the sender policy. The platform-specific `macos-source-first`/`source-first-fec`
+features and `PLANK_MACOS_SOURCE_FIRST` build switch are removed. Removed
 `linux-fast-send`, `macos-fast-send` and `PLANK_MACOS_FAST_SEND` switches must
 not be restored for comparisons. Sender traces report FEC and Quinn work, not
-the deleted pacer/sleep counters. Both sender variants require the same loss
-and delivery-performance gates.
+the deleted pacer/sleep counters. Both Host builds run shared source/repair
+equivalence and functional transport gates. Linux also runs the strict loss/
+performance matrices on its hosted builder; Mac performance uses the exact
+hosted test executable on the authorized development Mac, with unchanged limits.
+See the release runbook for provenance and execution requirements.
 
 ## Native wire generation and RaptorQ
 

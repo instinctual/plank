@@ -141,6 +141,13 @@ probe as the Client.
 Hosted tests do not replace exact-candidate hardware/session acceptance. Read
 HANDOFF and the private notes for current test-target availability and results.
 
+Mac transport performance qualification runs on the authorized development Mac,
+using the exact GitHub-built test executable with the Host's shipping features.
+The operator moved the unchanged 150 Mbps/three-matrix timing gate there after
+hosted workers failed it with both the accepted baseline and candidate. Keep
+functional/package checks on GitHub and all loss/latency thresholds unchanged;
+see the release runbook's native transport qualification section.
+
 The workflows in `.github/workflows/build.yml` also authorize disposable
 GitHub-hosted builders for the same target OS/toolchain contracts: Rocky 9.7
 container, Ubuntu 26.04 and Apple Silicon macOS/SDK 27. These are compile/package

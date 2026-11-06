@@ -222,15 +222,16 @@ RPM binaries are still built with BUILD_TESTS=OFF.
 
 ## Native transport lifecycle qualification
 
-After transport changes, check both default and Mac sender features before
-dispatching packages. A default build alone does not compile feature-only
-diagnostic fields. With the pinned dependencies prepared, run:
+After transport changes, check both default and diagnostic features before
+dispatching packages. Video FEC is source-first on every platform, with no
+selection flag or alternate sender. A default build alone does not compile
+feature-only diagnostic fields. With the pinned dependencies prepared, run:
 
 ```bash
 cargo clippy --locked --offline --manifest-path protocol/plank-transport/Cargo.toml \
   --all-targets -- -D warnings
 cargo clippy --locked --offline --manifest-path protocol/plank-transport/Cargo.toml \
-  --all-targets --features quinn-telemetry,macos-source-first -- -D warnings
+  --all-targets --features quinn-telemetry,sender-timing -- -D warnings
 ```
 
 The Linux Host build runs the vendored Quinn DATAGRAM boundary/accounting tests
@@ -264,6 +265,26 @@ payload rates exclude FEC, QUIC and IP overhead. Deterministic unit tests prove
 that slow senders, catch-up stalls and delayed phases fail even when all frames
 eventually arrive. The matrix's fixed-size frames and evenly spaced proxy drops
 do not replace hardware, variable-keyframe, burst-loss or WAN soak testing.
+
+For macOS, the operator assigned this strict performance gate to the authorized
+development Mac. Hosted workers failed it with both unchanged main and the
+candidate; the same candidate executable passed on the development Mac. Keep
+the numerical requirements unchanged. Hosted Mac builds run parser/state,
+source/repair equivalence, reliable recovery and C ABI checks with
+`run-plank-transport-native-loopback.sh --functional-only`. The Linux builder
+continues to run the full suite, including performance.
+
+The credential-free `dependency-tests / transport-macos` job exports
+`macos-transport-qualification-<run-id>`. Verify its source commit, Kymux pin,
+SHA-256 and `sender-timing` feature selection against the Mac Host candidate.
+Copy only that prebuilt test executable, `probes/macos/loopback-cert.cnf` and
+`scripts/test/run-prebuilt-native-loss.sh` to a private scratch directory on the
+authorized Mac. Invoke the script with absolute paths to the executable and
+certificate configuration; it creates/removes ephemeral loopback credentials
+and requires all three 900-frame matrices. Do not compile or install there.
+Preserve Terminal and active Host sessions, retain the report, and remove the
+temporary files. Package signing does not establish this performance gate or
+installed streaming acceptance; record both separately.
 
 Its dedicated test-only proxy reports
 the effective socket receive buffer and Linux per-socket kernel drops separately
@@ -820,7 +841,12 @@ checks. A failure in the shipping policy stops packaging. No retired pacer
 implementation or comparison selection remains.
 Standalone loopback runners also accept `PLANK_TRANSPORT_CARGO_FEATURES`; an
 unset value exercises default Cargo features with the same sender policy,
-without the optional telemetry/source-first instrumentation.
+without the optional telemetry/timing instrumentation. Source-first FEC is
+always used. Both Host builders run the same functional loopback checks; Mac
+performance uses the prebuilt executable on authorized hardware as specified
+above. The source iterator is compared with the pinned RaptorQ library, including
+symbol boundaries, multi-block/sub-block padding, reordered/lost originals
+and repairs. Preparation timings are CPU-only measurements, not WAN latency.
 The loss fixture uses controlled receiver-side omissions, not a real WAN.
 Do not report its results as ten-minute or interactive hardware qualification.
 
