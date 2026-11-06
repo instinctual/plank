@@ -4,27 +4,58 @@ Read `AGENTS.md` and the relevant build runbook first. Keep machine inventory,
 credentials and private captures outside Git. This file records current work;
 older candidate provenance remains in Git history and the artifact catalog.
 
-## Mainline 1.4.09 — release packages in progress
+## Mainline 1.4.09 — release packages ready, publication held
 
 The operator authorized merging shared source-first FEC and building all four
 mainline packages, **without publishing a release or installing them**. Kymux
-main is now `079e5647`; parent main includes the completed feature branch.
+main is now `079e5647`; parent merge is `d14cd80a`.
 Client main adds only the 1.4.09 user-facing changelog (`1c54da5d`); its runtime
 sources and Linux Host pin remain unchanged. Packaging version is **1.4.09**.
 
-Build on GitHub from the exact prepared main commit, reusing verified dependency
-caches. Produce Linux Host RPM, Ubuntu Client DEB and signed/notarized Mac Host
-and Client PKGs. Preserve the 26.7 Host / 15.0 Client deployment targets. Collect
-originals under `artifacts/packages/releases/1.4.09/` with checksums/provenance;
-this catalog name does not mean a GitHub release has been published. No tag,
-release, installation or branch retirement is requested.
+All four GitHub builds passed at the identical main source
+`6c9bf535338c72d40b5193b8c112282b2ffa591b`, with verified dependency caches reused.
+Pins: Client `1c54da5d0cfae834c9484c67c3519bad8024d263`, Linux Host
+`2281c3ed6dbf5779ec75dba15a8a4f165efba1fa`, Kymux
+`079e56477a0577c74fb643400668ac983662d3e4`.
 
-Mac transport performance remains assigned to the authorized development Mac,
-using the matching GitHub-built executable and shipping features. Preserve its
-Host and Terminal sessions. Prior candidate results below remain valid evidence;
-keep source/package qualification separate from installed-session acceptance.
-Next: finish the four builds, collect/verify their artifacts, record the matching
-transport qualification, and update this section with final commits and results.
+Original, checksum-verified packages are in
+`artifacts/packages/releases/1.4.09/`:
+
+| Product | Installer | Successful build |
+| --- | --- | --- |
+| Linux Host | `linux/plank-host-1.4.09-1.el9.x86_64.rpm` | `42309328630` |
+| Ubuntu Client | `linux/plank-client_1.4.09_amd64.deb` | `42309335146` |
+| Mac Host | `macos/plank-host_1.4.09_arm64.pkg` | `42309339041` |
+| Mac Client | `macos/plank-client_1.4.09_arm64.pkg` | `42309343325` |
+
+Both Mac PKGs are signed, notarized and stapled, with Host minimum26.7 and
+Client minimum15.0. Component, launcher, compositor and package checks passed
+for the applicable products. Local catalog manifests match the original builder
+manifests and all four package hashes. SHA256SUMS and human-readable release
+notes are beside the installers. Complete logs, original manifests and test
+reports are in `artifacts/qualification/mainline-1.4.09/`; download staging is
+removed. The redundant all-product push build was cancelled; no forced
+dependency bootstrap or duplicate package build was needed.
+
+Transport run `42309346962` passed Linux and Mac functional gates. Linux passed
+three 900-frame 150-Mbps/60-fps loss matrices through 5% loss, with zero
+unrecovered frames, plus all four ACK-hold/receiver-pause recovery cases and no
+unintended kernel/proxy drops. Brief holds lost no data; deliberately prolonged
+holds exhausted bounded queues but recovered without reconnecting, with final
+tail latency 4–6 ms.
+
+The new mainline Mac test executable has exactly the same SHA256 as the
+candidate qualified on the authorized development Mac (below). Its three
+successful 150-Mbps matrices remain applicable; no redundant hardware test was
+run. The checksum comparison and matching shipping features are recorded in
+`mac-performance.json`. No Host or Terminal session was interrupted.
+
+No GitHub release, tag or installation was made. The local `releases` catalog
+name does not imply publication. Next: operator installation/session acceptance
+on qualified hardware and explicit publication authorization. These build and
+transport results do not replace installed capture/playback, audio/input or
+desktop-transition acceptance. Notes-only commits after `6c9bf535` do not
+change package provenance or require relabeling/rebuilding the installers.
 
 ## Shared source-first video FEC — candidates ready
 
