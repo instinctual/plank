@@ -960,8 +960,22 @@ mod tests {
             while received.len() < TOTAL_FRAMES {
                 let frame = received.len();
                 let deadline = matrix_start + frame_offset(frame) + FRAME_DEADLINE;
-                let packet = tokio::time::timeout_at(deadline, client_video.recv())
-                    .await
+                let packet = tokio::time::timeout_at(deadline, client_video.recv()).await;
+                if packet.is_err() {
+                    eprintln!(
+                        "fec_deadline_failure_sender={:?}",
+                        sender_stats.connection_stats().await
+                    );
+                    eprintln!(
+                        "fec_deadline_failure_receiver={:?}",
+                        receiver_stats.connection_stats().await
+                    );
+                    eprintln!(
+                        "fec_deadline_failure_protocol={:?}",
+                        receiver_stats.protocol_stats()
+                    );
+                }
+                let packet = packet
                     .unwrap_or_else(|_| {
                         panic!(
                             "loss-test receiver missed 100 ms scheduled deadline for frame {frame}"

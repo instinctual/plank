@@ -7,7 +7,7 @@ older candidate provenance remains in Git history and the artifact catalog.
 ## Shared source-first video FEC — candidate in progress
 
 The operator authorized branch `shared-source-first-fec` from main `283dced7`,
-including Kymux `0ec3ef2a`. Current candidate version is **1.4.07**. This replaces the
+including Kymux `0ec3ef2a`. Current candidate version is **1.4.08**. This replaces the
 two platform-selected video senders with the accepted macOS ordering on every
 platform: submit original symbols, then generate/send the same RaptorQ repairs.
 The source iterator now constructs one symbol at a time, avoiding a padded
@@ -54,8 +54,21 @@ overflow and prompt recovery after a long hold. The all-lanes roundtrip and
 C ABI fixtures both use a 1.6 MB frame. Local 4 MiB C ABI tests pass both trust modes
 with zero queue evictions. New 1.4.07 evidence is kept separately from 1.4.06.
 
-Next: commit/push this exact queue candidate in dependency order, rerun the
-hosted transport gate and both Host package builds, and record actual results.
+The 1.4.07 hosted stress run hit 748 unintended proxy kernel drops after the
+long ACK hold; its 2 MiB effective receive buffer could not absorb the released
+burst. The Mac matrix separately missed a 100 ms frame deadline. Both failures
+are retained, with no qualifying retry. The test-only proxy now has a dedicated
+receive worker and an 8 MiB/4,096-packet bounded ingress FIFO so forwarding/ACK
+release does not block socket draining. Saturation still fails, both workers
+join on stop/error, and kernel-drop/frame/latency gates remain. Timeout failures
+now preserve transport/FEC snapshots too. No product socket or system sysctl
+is changed by the test harness. Local VM tests still encounter
+loopback receive loss and are not performance acceptance. Candidate 1.4.08
+contains the same production queue/FEC code as 1.4.07; only test diagnostics,
+fixture capacity and version changed. New hosted qualification is pending.
+
+Next: commit/push this exact candidate, rerun the hosted transport gate and
+both Host package builds, and record actual results.
 Do not merge or publish a release. Installed Linux encoder/playback/loss
 acceptance remains separate from synthetic/hosted gates.
 
