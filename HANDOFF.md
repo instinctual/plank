@@ -4,6 +4,67 @@ Read `AGENTS.md` and the relevant build runbook first. Keep machine inventory,
 credentials and private captures outside Git. This file records current work;
 older candidate provenance remains in Git history and the artifact catalog.
 
+## Live Client connectivity — corrected 1.4.05 merged
+
+Root/Client branch `client-live-connectivity` started from accepted main
+`65c2624f` / Client `09e05360`. Exact **1.4.05** package source is root
+`351e721f10439a029f75da6b3f9125cad8d249fe`, Client
+`c97f8575d007481d886dfb15bc69354961a61ed6`; both are committed and pushed.
+
+The Internet dialog checks every configured IPv4 address about once per second,
+retains results between rounds, and has no Refresh button, explanatory paragraphs
+or Live/timestamp line. Its result area and Close spacing are compact. Normal
+checks use the configured interval only while the main window is visible;
+hiding/minimizing cancels timers/probes and showing it checks immediately.
+One scheduler serializes live/background rounds and cancellation. Session
+recovery, Host polling, QUIC health and stream RTT are unchanged. Add bookmarks
+now explicitly ignore outside clicks and are modal; Edit retains its existing
+Escape-only policy. Action buttons and Escape remain available.
+
+**Do not install 1.4.04.** Its duplicate Edit-dialog `closePolicy` prevented
+`PcView.qml` from loading, hiding bookmarks/Add and breaking Back. Saved
+bookmarks were intact; no settings deletion/reset was performed or is needed.
+The operator reported this after the build-only checks passed. The old full
+launcher test logged nested QML failures but did not reject them. The repaired
+check requires the actual bookmark-page completion marker as well as outer
+window readiness, and rejects component/StackView/duplicate-property errors.
+It rejects all three saved faulty CI launcher logs; the runbook documents this
+failure signature. Both old packages are marked DO-NOT-INSTALL in their catalog
+and retained only for provenance. Private machine logs/settings stay outside Git.
+
+Hosted Ubuntu run `42194901081` and signed Mac run `42194905843` passed on their
+first attempts at the exact corrected source. Each connectivity suite reports
+47 passing results, including live updates, cancellation/reaping, slow rounds,
+production hide/minimize/restore binding, and compact dialog layout. The Ubuntu
+full launcher passed all three fresh-profile runs with the bookmark page ready
+and no nested QML failures. Existing Client/render/package gates passed, along
+with 122 portable CI policy tests. The prior fixture's QProcess teardown warning
+is absent after waiting for its asynchronous cancellation before destruction.
+All dependency caches were reused; Ubuntu also restored compiler outputs.
+No dependency upgrade or forced bootstrap.
+
+Verified originals are collected under
+`artifacts/packages/candidates/1.4.05-client-live-connectivity/`:
+
+- `linux/plank-client_1.4.05-client-live-connectivity_amd64.deb`
+- `macos/plank-client_1.4.05-client-live-connectivity_arm64.pkg`
+
+The Mac PKG is signed, notarized and stapled. SHA256, source pins and original
+per-product manifests match the local catalog. Logs, Qt reports, regression
+controls and generated screenshots are in
+`artifacts/qualification/client-live-connectivity-1.4.05/`. Dialog layouts were
+visually inspected; download staging was removed. Signing policy `65721204`
+should be removed when retiring this branch. The redundant all-product push
+run `42194853835` was cancelled; no Host package was requested.
+
+On November 6 the operator authorized commit, push and merge. Client main was
+fast-forwarded to the exact tested `c97f8575` tree and pushed before the parent
+merge. Both repositories now have the corrected work on main at version
+**1.4.05**. No separate detailed installed-retest report was provided; retain the
+distinction between the recorded CI checks and live acceptance. No remote
+installation or release was performed. The installers above remain original
+branch candidates and must not be relabeled as mainline packages.
+
 ## macOS login handoff — 1.4.03 accepted and merged
 
 Work on `macos-login-handoff` started from `4aca1bf3` and includes the accepted
