@@ -4,6 +4,31 @@ Read `AGENTS.md` and the relevant build runbook first. Keep machine inventory,
 credentials and private captures outside Git. This file records current work;
 older candidate provenance remains in Git history and the artifact catalog.
 
+## macOS login handoff — candidate preparation
+
+Branch `macos-login-handoff` starts from `4aca1bf3` and retains the pending
+mouse-delta fix. Version **1.4.03**. A captured first post-reboot login showed
+the sign-in worker draining normally, while an immediate Client reconnect hit
+that retiring worker and received authentication `denied`. The Client correctly
+treated that as terminal; the desktop worker became ready about four seconds
+later. Neither the Client application nor machine coordinator crashed.
+
+Mac Host start/respond now use the existing `busy` response when graphical
+authority is unavailable or changes during verification. Clients already map
+this to retryable 503. Stale challenges/tokens/leases are still pruned, no
+authorization crosses a graphical generation, and actual verifier rejection,
+account mismatch, malformed input, replay in an active scope and explicit
+same-scope revocation remain denied. No Client or protocol-version change.
+
+New native cases cover login/logout, response after watchdog pruning, changes
+during verification, concurrent retirement/revocation and password wiping.
+The real loopback HTTPS cross-UID handoff gate also checks start/respond while
+the old listener remains reachable after authority retires. Its signal is
+synthetic-fixture-only; no production diagnostic/control endpoint is added.
+Next: hosted SDK27 checks and signed candidate, followed by the first complete
+login after reboot. No new installation, reboot, logout or live session change
+has been performed. Private first-attempt evidence stays outside Git.
+
 ## macOS mouse motion — 1.4.02 candidate ready
 
 Branch `macos-mouse-deltas` starts from main `32c92612`; version **1.4.02**.
@@ -40,9 +65,11 @@ Temporary download staging is removed. The exact branch has signing policy
 `65711552`; remove it when retiring the branch. The redundant all-product push
 run `42178245127` was cancelled; only the affected Mac Host package was requested.
 
-Next: install this candidate, reconnect, then test moving/resizing the recording
-selector and ordinary app/window dragging, including scaled displays. No
-package has been installed and no running Host or desktop session was restarted.
+The operator installed this candidate and rebooted; installed version was
+confirmed during the separate login-handoff investigation above. Acceptance of
+moving/resizing the recording selector and ordinary app/window dragging,
+including scaled displays, remains unreported. No remote installation or
+Host/session restart was performed by the agent.
 No merge or release. Temporary read-only collectors were removed. Private
 machine evidence remains outside Git.
 

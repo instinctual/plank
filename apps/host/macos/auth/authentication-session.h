@@ -18,6 +18,9 @@ typedef PLANKMacGraphicalIdentity (^PLANKMacGraphicalSnapshot)(void);
 // and obtain the canonical peer IP bytes from its accepted connection (not a
 // forwarded header). Calls belong on a background authentication queue.
 // This component opens no socket and does not log or retain passwords.
+// start/respond report "busy" when graphical authority is unavailable or
+// changes during a conversation. No challenge/token follows that change;
+// retry with the replacement owner. Credential denials remain terminal.
 @interface PLANKMacAuthenticationSession : NSObject
 - (instancetype)initWithGraphicalSnapshot:(PLANKMacGraphicalSnapshot)snapshot;
 - (NSDictionary *)startForPeer:(NSData *)peer username:(NSString *)username;

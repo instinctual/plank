@@ -18,6 +18,9 @@ PLANKMacAuthenticationResult PLANKMacVerifyAccountIsolated(
         NSString *name, NSMutableData *password, PLANKMacAccountIdentity *output) {
     ++verifications;
     [password resetBytesInRange:NSMakeRange(0, password.length)];
+    if ([name hasPrefix:@"retire"]) desktop.active = false;
+    if ([name isEqualToString:@"retire-denied"]) return PLANKMacAuthenticationDenied;
+    if ([name isEqualToString:@"retire-unavailable"]) return PLANKMacAuthenticationUnavailable;
     if ([name isEqualToString:@"invalid-password"]) return PLANKMacAuthenticationDenied;
     if ([name isEqualToString:@"unavailable"]) return PLANKMacAuthenticationUnavailable;
     *output = (PLANKMacAccountIdentity){123, {1}};
@@ -38,6 +41,84 @@ static NSDictionary *respond(PLANKMacAuthenticationSession *sessions, NSData *pe
     static const unsigned char empty[4] = {0};
     CHECK(!memcmp(password.bytes, empty, 4));
     return response;
+}
+
+static void handoffCases(NSData *peer, NSData *other) {
+    PLANKMacGraphicalIdentity scopes[] = {
+        {true, 100, {0, {0}}, PLANKMacScopeSignIn},
+        {true, 101, {123, {1}}, PLANKMacScopeDesktop}
+    };
+    for (unsigned phase = 0; phase < 2; ++phase) {
+        desktop = scopes[phase];
+        PLANKMacAuthenticationSession *sessions = [[PLANKMacAuthenticationSession alloc]
+            initWithGraphicalSnapshot:^{ return desktop; }];
+        NSDictionary *start = [sessions startForPeer:peer username:@"test"];
+        NSString *oldToken = respond(sessions, peer, start[@"conversation_id"])[@"session_token"];
+        PLANKMacStreamLease *lease = [sessions claimToken:oldToken peer:peer];
+        CHECK(lease && [sessions activateStreamLease:lease]);
+        start = [sessions startForPeer:peer username:@"test"];
+        unsigned previous = verifications;
+        desktop = (PLANKMacGraphicalIdentity){0};
+        PLANKMacAccountIdentity identity = {0};
+        // Media/watchdog validation may prune the conversation before its
+        // response arrives. Retirement must still be retryable, with no grant.
+        CHECK(![sessions authorizeStreamLease:lease identity:&identity]);
+        CHECK(![sessions hasStreamLease] && lease.transportToken == nil);
+        CHECK([[sessions valueForKey:@"pending"] count] == 0);
+        CHECK([[sessions startForPeer:peer username:@"test"][@"state"] isEqual:@"busy"]);
+        NSDictionary *reply = respond(sessions, peer, start[@"conversation_id"]);
+        CHECK([reply[@"state"] isEqual:@"busy"] && !reply[@"session_token"]);
+        CHECK(verifications == previous);
+        CHECK([[sessions valueForKey:@"tokens"] count] == 0);
+        // Structural errors remain errors even while the worker is retiring.
+        CHECK([[sessions startForPeer:peer username:@""][@"state"] isEqual:@"denied"]);
+        CHECK([respond(sessions, other, @"malformed")[@"state"] isEqual:@"denied"]);
+
+        desktop = scopes[1 - phase];
+        CHECK(![sessions authorizeToken:oldToken peer:peer identity:&identity]);
+        CHECK(![sessions authorizeStreamLease:lease identity:&identity]);
+        CHECK([respond(sessions, peer, start[@"conversation_id"])[@"state"] isEqual:@"denied"]);
+        start = [sessions startForPeer:peer username:@"test"];
+        CHECK([respond(sessions, other, start[@"conversation_id"])[@"state"] isEqual:@"denied"]);
+        reply = respond(sessions, peer, start[@"conversation_id"]);
+        CHECK([reply[@"state"] isEqual:@"authenticated"]);
+        CHECK([reply[@"desktop_stage"] isEqual:(phase ? @"greeter" : @"desktop")]);
+        CHECK([sessions authorizeToken:reply[@"session_token"] peer:peer identity:&identity]);
+        CHECK([respond(sessions, peer, start[@"conversation_id"])[@"state"] isEqual:@"denied"]);
+        [sessions revokeAll];
+    }
+    for (NSString *name in @[@"retire", @"retire-unavailable", @"retire-denied"]) {
+        desktop = scopes[0];
+        PLANKMacAuthenticationSession *sessions = [[PLANKMacAuthenticationSession alloc]
+            initWithGraphicalSnapshot:^{ return desktop; }];
+        NSDictionary *start = [sessions startForPeer:peer username:name];
+        NSDictionary *reply = respond(sessions, peer, start[@"conversation_id"]);
+        CHECK([reply[@"state"] isEqual:([name isEqual:@"retire-denied"] ? @"denied" : @"busy")]);
+        CHECK(!reply[@"session_token"] && [[sessions valueForKey:@"tokens"] count] == 0);
+        CHECK(![[sessions valueForKey:@"verifying"] boolValue]);
+    }
+    // The existing same-scope revokeAll test remains terminal. A concurrent
+    // revoke caused by OS handoff must instead defer, and still issue no token.
+    desktop = scopes[0];
+    PLANKMacAuthenticationSession *sessions = [[PLANKMacAuthenticationSession alloc]
+        initWithGraphicalSnapshot:^{ return desktop; }];
+    verificationEntered = dispatch_semaphore_create(0);
+    verificationRelease = dispatch_semaphore_create(0);
+    dispatch_semaphore_t finished = dispatch_semaphore_create(0);
+    NSDictionary *start = [sessions startForPeer:peer username:@"blocked"];
+    __block NSDictionary *late;
+    dispatch_async(dispatch_get_global_queue(QOS_CLASS_DEFAULT, 0), ^{
+        NSMutableData *password = [NSMutableData dataWithBytes:"test" length:4];
+        late = [sessions respondForPeer:peer conversation:start[@"conversation_id"] password:password];
+        dispatch_semaphore_signal(finished);
+    });
+    CHECK(dispatch_semaphore_wait(verificationEntered, dispatch_time(DISPATCH_TIME_NOW, 2 * NSEC_PER_SEC)) == 0);
+    desktop = (PLANKMacGraphicalIdentity){0};
+    [sessions revokeAll];
+    dispatch_semaphore_signal(verificationRelease);
+    CHECK(dispatch_semaphore_wait(finished, dispatch_time(DISPATCH_TIME_NOW, 2 * NSEC_PER_SEC)) == 0);
+    CHECK([late[@"state"] isEqual:@"busy"] && !late[@"session_token"]);
+    CHECK([[sessions valueForKey:@"tokens"] count] == 0);
 }
 
 int main(void) {
@@ -77,12 +158,13 @@ int main(void) {
         CHECK(![sessions authorizeToken:token peer:peer identity:&identity]);
         for (NSString *name in @[@"wrong-owner", @"replace"]) {
             start = [sessions startForPeer:peer username:name];
-            CHECK([respond(sessions, peer, start[@"conversation_id"])[@"state"] isEqual:@"denied"]);
+            CHECK([respond(sessions, peer, start[@"conversation_id"])[@"state"]
+                isEqual:([name isEqual:@"replace"] ? @"busy" : @"denied")]);
         }
         start = [sessions startForPeer:peer username:@"test"];
         unsigned previous = verifications;
         ++desktop.generation;
-        CHECK([respond(sessions, peer, start[@"conversation_id"])[@"state"] isEqual:@"denied"]);
+        CHECK([respond(sessions, peer, start[@"conversation_id"])[@"state"] isEqual:@"busy"]);
         CHECK(verifications == previous);
         start = [sessions startForPeer:peer username:@"test"];
         // KVC test-only access: avoid a product clock/expiration bypass API.
@@ -104,7 +186,7 @@ int main(void) {
         [sessions revokeAll];
         CHECK(![sessions authorizeToken:token peer:peer identity:&identity]);
         desktop.active = false;
-        CHECK([[sessions startForPeer:peer username:@"test"][@"state"] isEqual:@"denied"]);
+        CHECK([[sessions startForPeer:peer username:@"test"][@"state"] isEqual:@"busy"]);
         desktop.active = true;
         for (int i = 0; i < 16; ++i)
             CHECK([[sessions startForPeer:peer username:@"test"][@"state"] isEqual:@"challenge"]);
@@ -261,13 +343,14 @@ int main(void) {
         // Sign-in requires explicit valid scope. Absence of a desktop is not a
         // sign-in grant, and a remote principal is never the root GUI agent.
         desktop = (PLANKMacGraphicalIdentity){0};
-        CHECK([[sessions startForPeer:peer username:@"test"][@"state"] isEqual:@"denied"]);
+        CHECK([[sessions startForPeer:peer username:@"test"][@"state"] isEqual:@"busy"]);
         desktop = (PLANKMacGraphicalIdentity){true, 40, {0, {0}}, PLANKMacScopeSignIn};
         for (NSString *name in @[@"root", @"replace", @"phase-change"]) {
             desktop.phase = PLANKMacScopeSignIn;
             start = [sessions startForPeer:peer username:name];
             CHECK([start[@"state"] isEqual:@"challenge"]);
-            CHECK([respond(sessions, peer, start[@"conversation_id"])[@"state"] isEqual:@"denied"]);
+            CHECK([respond(sessions, peer, start[@"conversation_id"])[@"state"]
+                isEqual:([name isEqual:@"root"] ? @"denied" : @"busy")]);
         }
         desktop.phase = PLANKMacScopeSignIn;
         start = [sessions startForPeer:peer username:@"wrong-owner"];
@@ -301,7 +384,7 @@ int main(void) {
         start = [sessions startForPeer:peer username:@"test"];
         desktop = (PLANKMacGraphicalIdentity){true, signIn.generation, {123, {1}}, PLANKMacScopeDesktop};
         previous = verifications;
-        CHECK([respond(sessions, peer, start[@"conversation_id"])[@"state"] isEqual:@"denied"]);
+        CHECK([respond(sessions, peer, start[@"conversation_id"])[@"state"] isEqual:@"busy"]);
         CHECK(verifications == previous);
         start = [sessions startForPeer:peer username:@"test"];
         token = respond(sessions, peer, start[@"conversation_id"])[@"session_token"];
@@ -313,6 +396,7 @@ int main(void) {
         ++desktop.generation; // replacement LoginWindow agent
         CHECK(![sessions authorizeToken:token peer:peer identity:&identity]);
         [sessions revokeAll];
+        handoffCases(peer, other);
         printf("macos_authentication_session=pass checks=%u synthetic_only=1\n", checks);
     }
 }

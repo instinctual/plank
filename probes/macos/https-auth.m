@@ -6,6 +6,7 @@
 #include <sys/resource.h>
 #include <unistd.h>
 #include <signal.h>
+#include <stdatomic.h>
 #ifdef PLANK_MAC_PREVIEW_TEST
 #import "host-runtime.h"
 #import "screen-capture.h"
@@ -84,8 +85,8 @@ int main(int argc, const char *argv[]) {
         if (certificate) CFRelease(certificate);
         if (!identity) { puts("macos_https_identity_create=failed"); return 2; }
 #ifdef PLANK_SYNTHETIC_AUTH_TEST
-        __block BOOL scopeActive = YES;
-        PLANKMacGraphicalSnapshot snapshot = ^{ return (PLANKMacGraphicalIdentity){scopeActive, 1, {123, {1}}, PLANKMacScopeDesktop}; };
+        __block atomic_bool scopeActive = true;
+        PLANKMacGraphicalSnapshot snapshot = ^{ return (PLANKMacGraphicalIdentity){atomic_load(&scopeActive), 1, {123, {1}}, PLANKMacScopeDesktop}; };
 #else
         PLANKMacGraphicalSnapshot snapshot = ^{ return [authority snapshot]; };
 #endif
@@ -225,6 +226,17 @@ int main(int argc, const char *argv[]) {
         dispatch_source_t termination = dispatch_source_create(DISPATCH_SOURCE_TYPE_SIGNAL, SIGTERM, 0, dispatch_get_main_queue());
         dispatch_source_set_event_handler(termination, stop);
         dispatch_resume(termination);
+#ifdef PLANK_SYNTHETIC_AUTH_TEST
+        // Test-only retirement while HTTPS is still reachable. No production
+        // signal handler, network command or real graphical mutation is added.
+        signal(SIGUSR1, SIG_IGN);
+        dispatch_source_t retirement = dispatch_source_create(DISPATCH_SOURCE_TYPE_SIGNAL, SIGUSR1, 0, dispatch_get_main_queue());
+        dispatch_source_set_event_handler(retirement, ^{
+            atomic_store(&scopeActive, false);
+            puts("macos_https_auth_retired=1"); fflush(stdout);
+        });
+        dispatch_resume(retirement);
+#endif
         dispatch_after(dispatch_time(DISPATCH_TIME_NOW, fixtureLifetime * NSEC_PER_SEC), dispatch_get_main_queue(), stop);
         // Aqua notifications and the authority watcher require the main run loop.
         [[NSRunLoop mainRunLoop] run];
