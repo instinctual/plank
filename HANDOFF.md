@@ -4,7 +4,7 @@ Read `AGENTS.md` and the relevant build runbook first. Keep machine inventory,
 credentials and private captures outside Git. This file records current work;
 older candidate provenance remains in Git history and the artifact catalog.
 
-## Live Client connectivity — candidate preparation
+## Live Client connectivity — 1.4.04 candidates ready
 
 Root and Client branch `client-live-connectivity` start from accepted main
 `65c2624f` / Client `09e05360`. Candidate version **1.4.04**.
@@ -23,8 +23,34 @@ retained results, slow rounds without overlap, cancellation/reopening and the
 production QML window-visibility binding through hide/minimize/restore.
 Configuration comments and user documentation describe the new behavior.
 
-Next: hosted Ubuntu and signed macOS Client builds, package verification and
-installed UI testing. No deployment, merge or release is requested.
+Exact package source is root `5cb37579764a767ba6b661d8ad7d8a6a655f4924`,
+Client `0acc00b4f380fe8ffb1e8d137b393547212276ca`; both are committed and pushed.
+GitHub Ubuntu run `42190944623` and signed Mac run `42190949496` passed on their
+first attempts. The connectivity suites each report 47 passing results,
+including live updates, retained rows, slow-round serialization, actual IPv4
+loopback and the production QML hide/minimize/restore binding. Existing Client
+component/render/package gates also passed. Local checks passed 121 CI policy,
+six configuration-upgrade and 16 package-catalog cases; the Mac-only local
+configuration suite correctly skipped on Linux.
+
+Ubuntu reused Rust/Cargo/FFmpeg and compiler caches; Mac reused all four
+Rust/Cargo/native-library/Qt dependency caches. No dependency upgrade or forced
+bootstrap. The Mac installer is signed, notarized and stapled. Both original
+packages were downloaded, SHA256/source-verified and collected under
+`artifacts/packages/candidates/1.4.04-client-live-connectivity/`:
+
+- `linux/plank-client_1.4.04-client-live-connectivity_amd64.deb`
+- `macos/plank-client_1.4.04-client-live-connectivity_arm64.pkg`
+
+Original per-product manifests match the combined local catalog. Logs,
+recursive pins, Qt reports and generated UI screenshots are in
+`artifacts/qualification/client-live-connectivity-1.4.04/`; the three/eight-row
+dialog layouts were visually inspected. Temporary download staging is removed.
+Branch signing policy `65721204` should be removed when retiring this branch.
+The redundant all-product push run `42190907897` was cancelled; no Host package
+was requested. Installed UI acceptance of live pings, hidden-window behavior
+and outside-click bookmark protection remains pending. No deployment, merge or
+release has been performed for this candidate.
 
 ## macOS login handoff — 1.4.03 accepted and merged
 
