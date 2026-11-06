@@ -140,6 +140,11 @@ impl LossProxy {
                                 match packets.recv_timeout(Duration::from_millis(2)) {
                                     Ok(packet) => packet,
                                     Err(mpsc::RecvTimeoutError::Timeout) => continue,
+                                    Err(mpsc::RecvTimeoutError::Disconnected)
+                                        if stopping.load(Ordering::Acquire) =>
+                                    {
+                                        break;
+                                    }
                                     Err(mpsc::RecvTimeoutError::Disconnected) => {
                                         return Err(io::Error::other(
                                             "loss proxy receive worker stopped",
@@ -274,10 +279,14 @@ fn saturated_ingress_fails_instead_of_silently_dropping() {
 #[test]
 fn idle_shutdown_joins_both_proxy_workers() {
     let server = UdpSocket::bind("127.0.0.1:0").unwrap();
-    let proxy = LossProxy::start(server.local_addr().unwrap()).unwrap();
     let (done, joined) = mpsc::channel();
     let worker = thread::spawn(move || {
-        drop(proxy);
+        for _ in 0..20 {
+            let mut proxy = LossProxy::start(server.local_addr().unwrap()).unwrap();
+            // finish() must succeed, not merely join; Drop intentionally only
+            // reports failures while unwinding another assertion.
+            let _ = proxy.finish();
+        }
         done.send(()).unwrap();
     });
     joined
