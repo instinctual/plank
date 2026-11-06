@@ -25,7 +25,11 @@ class LinuxSenderPolicyTests(unittest.TestCase):
         workflow = (ROOT / '.github/workflows/dependency-qualification.yml').read_text()
         self.assertNotIn('macos-source-first', workflow)
         self.assertIn('--features quinn-telemetry,sender-timing', workflow)
-        self.assertEqual(workflow.count('bash scripts/test/run-plank-transport-native-loopback.sh'), 1)
+        linux, macos_job = workflow.split('\n  transport-macos:', 1)
+        macos_job = macos_job.split('\n  vulkan:', 1)[0]
+        for job, runner in ((linux, 'ubuntu-26.04'), (macos_job, 'xcode-27')):
+            self.assertIn(f'runs-on: {runner}', job)
+            self.assertEqual(job.count('bash scripts/test/run-plank-transport-native-loopback.sh'), 1)
         macos = (ROOT / 'scripts/build/build-macos-transport.sh').read_text()
         self.assertIn('bash scripts/test/run-plank-transport-native-loopback.sh', macos)
 
