@@ -22,7 +22,7 @@ const AUDIO_AND_CONTROL_RESERVE_BPS: u64 = 1_000_000;
 const MIN_WINDOW_PACKETS: u64 = 64;
 // A short LAN RTT must not reduce the flight allowance to approximately one
 // video frame. Keep bounded headroom for delayed acknowledgments, independently
-// of the unchanged 1MiB queue of datagrams waiting to be transmitted.
+// of the bounded queue of datagrams waiting to be transmitted.
 const MIN_WINDOW_BYTES: u64 = 2 * 1024 * 1024;
 const STEADY_WINDOW_NUMERATOR: u64 = 3;
 const STEADY_WINDOW_DENOMINATOR: u64 = 2;

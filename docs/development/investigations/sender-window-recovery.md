@@ -1,5 +1,11 @@
 # Sender window and delayed acknowledgments
 
+This records the original 2 MiB window qualification with a 1 MiB send queue.
+The later shared source-first candidate uses a separately qualified 4 MiB
+outgoing queue for large keyframe bursts. Current limits are documented in
+`protocol/plank-transport/README.md`; historical measurements below retain
+their original configuration.
+
 The November 2026 investigation concerns outgoing QUIC datagram eviction during
 an established stream. Saved evidence showed a roughly 140KiB in-flight window,
 negligible send progress for seconds, and a full 1MiB send queue. The cause of

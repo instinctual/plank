@@ -7,13 +7,13 @@ older candidate provenance remains in Git history and the artifact catalog.
 ## Shared source-first video FEC — candidate in progress
 
 The operator authorized branch `shared-source-first-fec` from main `283dced7`,
-including Kymux `0ec3ef2a`. Candidate version is **1.4.06**. This replaces the
+including Kymux `0ec3ef2a`. Current candidate version is **1.4.07**. This replaces the
 two platform-selected video senders with the accepted macOS ordering on every
 platform: submit original symbols, then generate/send the same RaptorQ repairs.
 The source iterator now constructs one symbol at a time, avoiding a padded
 frame copy and a full-frame packet vector. The library's OTI partition,
 symbol IDs, padding, repair bytes/count and current wire generation are retained.
-Audio FEC, codecs, encoder rates, queues and Quinn policy are unchanged.
+Audio FEC, codecs, encoder rates and the Quinn controller are unchanged.
 Reverse camera video also uses this shared sender; receiving Clients need no
 protocol update for the Host ordering change.
 
@@ -36,7 +36,25 @@ gates remain required. Failure reporting now retains transport/FEC snapshots.
 Evidence is under `artifacts/qualification/shared-source-first-fec-1.4.06/`.
 No deployed session or system networking setting has been changed.
 
-Next: commit/push the exact candidate in dependency order, run the isolated
+The first candidate `9c6fc521` / Kymux `258520c7` passed hosted transport
+`42282420253` and signed Mac Host `42282430816`, including three 150 Mbps loss
+matrices each. Mac package 1.4.06 is retained in its original catalog. Linux
+build `42282425564` passed all three matrices, then failed the new 1.6 MB C ABI
+test: Quinn evicted 430 unsent datagrams (606,300 bytes) from its 1 MiB queue,
+exceeding the repair budget. The network loss counters stayed zero. This is
+local queue pressure, not a RaptorQ byte mismatch. All failure logs are retained.
+
+The operator selected a larger bounded queue first, preserving existing
+immediate submission/oldest-eviction behavior. **No send_datagram_wait change
+has been made.** Kynet now defines one 4 MiB outgoing queue constant and uses
+it for native server/client endpoints on both platforms. This buffers bursts
+on demand; it does not set playback delay or alter the 2 MiB in-flight floor.
+The stall fixture uses the identical shared setting and still requires actual
+overflow and prompt recovery after a long hold. The all-lanes roundtrip and
+C ABI fixtures both use a 1.6 MB frame. Local 4 MiB C ABI tests pass both trust modes
+with zero queue evictions. New 1.4.07 evidence is kept separately from 1.4.06.
+
+Next: commit/push this exact queue candidate in dependency order, rerun the
 hosted transport gate and both Host package builds, and record actual results.
 Do not merge or publish a release. Installed Linux encoder/playback/loss
 acceptance remains separate from synthetic/hosted gates.

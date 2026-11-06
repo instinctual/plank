@@ -41,6 +41,7 @@ async fn exercise_stall(video_bps: u64, stall: Stall, hold: Duration) {
     let mut server_config =
         quinn::ServerConfig::with_single_cert(vec![certificate.clone()], key).unwrap();
     let mut transport = quinn::TransportConfig::default();
+    transport.datagram_send_buffer_size(kynet::quinn::DATAGRAM_SEND_BUFFER_BYTES);
     transport
         .initial_mtu(1344)
         .min_mtu(1344)
@@ -56,6 +57,7 @@ async fn exercise_stall(video_bps: u64, stall: Stall, hold: Duration) {
     roots.add(certificate).unwrap();
     let mut client_config = quinn::ClientConfig::with_root_certificates(Arc::new(roots)).unwrap();
     let mut transport = quinn::TransportConfig::default();
+    transport.datagram_send_buffer_size(kynet::quinn::DATAGRAM_SEND_BUFFER_BYTES);
     transport
         .initial_mtu(1344)
         .min_mtu(1344)
@@ -254,8 +256,8 @@ async fn exercise_stall(video_bps: u64, stall: Stall, hold: Duration) {
     );
     assert_eq!(
         queue.queue_limit_bytes,
-        1024 * 1024,
-        "outgoing queue was silently enlarged"
+        4 * 1024 * 1024,
+        "outgoing queue differs from the qualified 4 MiB policy"
     );
 }
 

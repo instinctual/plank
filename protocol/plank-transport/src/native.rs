@@ -668,7 +668,7 @@ mod tests {
             .await
             .expect("failed to send native video configuration packet");
         let video_payload = Bytes::from(
-            (0..192 * 1024)
+            (0..1_600_013)
                 .map(|index| ((index * 37 + 11) & 0xff) as u8)
                 .collect::<Vec<_>>(),
         );
