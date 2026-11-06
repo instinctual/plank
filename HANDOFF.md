@@ -4,7 +4,7 @@ Read `AGENTS.md` and the relevant build runbook first. Keep machine inventory,
 credentials and private captures outside Git. This file records current work;
 older candidate provenance remains in Git history and the artifact catalog.
 
-## macOS mouse motion — candidate preparation
+## macOS mouse motion — 1.4.02 candidate ready
 
 Branch `macos-mouse-deltas` starts from main `32c92612`; version **1.4.02**.
 The operator approved a Mac Host fix for the built-in screen-recording area
@@ -24,11 +24,27 @@ New native regressions inspect both Quartz and AppKit deltas for all five
 buttons, native 5K, scaled/negative-origin displays, motion reversal, stationary
 reports, coalescing, rejected/malformed input and sub-point accumulation.
 
-Next: run hosted SDK27 component/package gates and build a signed candidate,
-then test moving/resizing the recording selector and ordinary app/window
-dragging. No package has been installed and no running Host or desktop session
-was restarted. Temporary read-only collectors were removed. Private machine
-evidence remains outside Git.
+Source `300c743ef94aa9815be9cf3af91721a17a075186` is committed and pushed.
+Signed GitHub run `42178253865` passed on the first attempt, reusing both
+Mac Host Rust/Cargo caches. Portable checks passed (121 CI policy and 16
+package-catalog tests). Hosted native checks include 3,863 mouse/input
+assertions, 1,537 pen assertions and 216 native-input assertions across eight
+scenarios, plus the existing display/authentication/session/package gates.
+These construct/inspect events; they do not prove the live selector is fixed.
+
+Signed, notarized and stapled original installer, downloaded and verified:
+`artifacts/packages/candidates/1.4.02-macos-mouse-deltas/macos/plank-host_1.4.02-macos-mouse-deltas_arm64.pkg`.
+The original manifest equals the locally collected manifest; SHA256 and source
+pin are verified. Evidence is in `artifacts/qualification/macos-mouse-deltas-1.4.02/`.
+Temporary download staging is removed. The exact branch has signing policy
+`65711552`; remove it when retiring the branch. The redundant all-product push
+run `42178245127` was cancelled; only the affected Mac Host package was requested.
+
+Next: install this candidate, reconnect, then test moving/resizing the recording
+selector and ordinary app/window dragging, including scaled displays. No
+package has been installed and no running Host or desktop session was restarted.
+No merge or release. Temporary read-only collectors were removed. Private
+machine evidence remains outside Git.
 
 ## Kymux reconciliation — merged; 1.4.01 packages ready
 
