@@ -4,10 +4,32 @@ Read `AGENTS.md` and the relevant build runbook first. Keep machine inventory,
 credentials and private captures outside Git. This file records current work;
 older candidate provenance remains in Git history and the artifact catalog.
 
+## Mainline 1.4.09 — release packages in progress
+
+The operator authorized merging shared source-first FEC and building all four
+mainline packages, **without publishing a release or installing them**. Kymux
+main is now `079e5647`; parent main includes the completed feature branch.
+Client main adds only the 1.4.09 user-facing changelog (`1c54da5d`); its runtime
+sources and Linux Host pin remain unchanged. Packaging version is **1.4.09**.
+
+Build on GitHub from the exact prepared main commit, reusing verified dependency
+caches. Produce Linux Host RPM, Ubuntu Client DEB and signed/notarized Mac Host
+and Client PKGs. Preserve the 26.7 Host / 15.0 Client deployment targets. Collect
+originals under `artifacts/packages/releases/1.4.09/` with checksums/provenance;
+this catalog name does not mean a GitHub release has been published. No tag,
+release, installation or branch retirement is requested.
+
+Mac transport performance remains assigned to the authorized development Mac,
+using the matching GitHub-built executable and shipping features. Preserve its
+Host and Terminal sessions. Prior candidate results below remain valid evidence;
+keep source/package qualification separate from installed-session acceptance.
+Next: finish the four builds, collect/verify their artifacts, record the matching
+transport qualification, and update this section with final commits and results.
+
 ## Shared source-first video FEC — candidates ready
 
-Branch `shared-source-first-fec`, based on main `283dced7`, is committed/pushed
-but **not merged or released**. Candidate **1.4.08** is downloaded and checksum-
+Branch `shared-source-first-fec`, based on main `283dced7`, is now merged into
+main. Its original candidate packages below remain unpublished and unchanged. Candidate **1.4.08** is downloaded and checksum-
 verified for both Hosts. Neither package has been installed. Production code
 has not changed since root `c83c4bcc`; later changes concern qualification,
 diagnostics and documentation. Pins: Kymux `079e5647`, Linux Host `2281c3ed`,
@@ -84,7 +106,7 @@ as the exact total loss there. Native preparation timings are CPU-only.
 
 Next: operator installation/session acceptance on qualified Linux/macOS hardware
 for capture/playback and live loss recovery. Existing client, codec/color, audio,
-input and desktop-transition contracts remain. No release or merge is implied.
+input and desktop-transition contracts remain. No release or installation is implied.
 Keep signing policy `65785710` until this branch is retired. Download staging
 and temporary local source worktrees have been removed; native Apple work is
 untouched.

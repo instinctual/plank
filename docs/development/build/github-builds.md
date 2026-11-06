@@ -71,8 +71,7 @@ and the candidate intermittently failed the hosted timing test. Hosted Mac
 checks remain mandatory for correctness/lifecycle, while Linux also retains its
 hosted performance matrices. Do not report package creation as Mac performance
 acceptance; retain the exact exported executable's three-run hardware result.
-Dispatch through `build.yml` while the reusable
-qualification workflow is not yet registered on main:
+Dispatch through `build.yml` to bind qualification to an explicit source commit:
 
 ```bash
 gh workflow run build.yml --ref "$(git branch --show-current)" \
