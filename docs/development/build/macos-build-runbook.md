@@ -525,11 +525,13 @@ The Mac builder selects `PLANK_MACOS_SENDER_TIMING=1` only to retain the existin
 bounded opt-in timing trace. The repair count and library's repair encoder
 remain unchanged. The shared runner checks byte-identical source/repair packets,
 multi-block/sub-block padding, loss/reordering, and preparation timing, followed
-by the real encrypted loopback/recovery tests and three controlled-loss matrices.
-The preparation timing is CPU-only; the loss matrices retain their separate
-delivery/throughput gates. Neither replaces installed session acceptance.
-RaptorQ 2 changes repair IDs and the native QUIC protocol identifier; matching
-Host and Client packages are required. See the native transport contract.
+by real encrypted loopback/recovery tests. The strict three controlled-loss
+performance matrices run on the authorized development Mac using the exact
+hosted test executable and shipping features; follow the release runbook.
+Hosted workers failed this new timing test with the accepted baseline too.
+The preparation timing is CPU-only, and neither test replaces installed session
+acceptance. This refactor retains the current RaptorQ 2/native wire generation;
+receiving Clients need no update for this Host sender change.
 
 All Host builds use the shared sender policy: submit directly to Quinn and
 floor the rate-derived window budget at 1 Gbps. This is

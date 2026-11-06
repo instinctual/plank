@@ -82,8 +82,11 @@ the sender policy. The platform-specific `macos-source-first`/`source-first-fec`
 features and `PLANK_MACOS_SOURCE_FIRST` build switch are removed. Removed
 `linux-fast-send`, `macos-fast-send` and `PLANK_MACOS_FAST_SEND` switches must
 not be restored for comparisons. Sender traces report FEC and Quinn work, not
-the deleted pacer/sleep counters. Both Host builds run the shared source/repair
-equivalence, loss and delivery-performance gates on their native builders.
+the deleted pacer/sleep counters. Both Host builds run shared source/repair
+equivalence and functional transport gates. Linux also runs the strict loss/
+performance matrices on its hosted builder; Mac performance uses the exact
+hosted test executable on the authorized development Mac, with unchanged limits.
+See the release runbook for provenance and execution requirements.
 
 ## Native wire generation and RaptorQ
 

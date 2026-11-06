@@ -59,8 +59,9 @@ selection without relaxing the delivery-performance checks.
 These are the historical RaptorQ-upgrade results. For current qualification,
 use `rust-toolchain.toml`, the locked graph and the release build runbook.
 Source-first video FEC is now unconditional on both Hosts; the old
-`macos-source-first` feature is removed. The shared runner executes on each
-native Host builder. Linux results do not qualify macOS/Apple Silicon.
+`macos-source-first` feature is removed. Functional checks run on each native
+Host builder; strict Mac performance matrices use the matching hosted executable
+on the authorized development Mac. Linux results do not qualify Apple Silicon.
 
 Results and remaining package/hardware gates are recorded in HANDOFF. Full
 Linux/macOS Host/Client packages must be rebuilt together, with a new candidate

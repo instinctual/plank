@@ -842,8 +842,9 @@ implementation or comparison selection remains.
 Standalone loopback runners also accept `PLANK_TRANSPORT_CARGO_FEATURES`; an
 unset value exercises default Cargo features with the same sender policy,
 without the optional telemetry/timing instrumentation. Source-first FEC is
-always used. Both Host builders run the same native loopback/loss runner;
-the source iterator is compared with the pinned RaptorQ library, including
+always used. Both Host builders run the same functional loopback checks; Mac
+performance uses the prebuilt executable on authorized hardware as specified
+above. The source iterator is compared with the pinned RaptorQ library, including
 symbol boundaries, multi-block/sub-block padding, reordered/lost originals
 and repairs. Preparation timings are CPU-only measurements, not WAN latency.
 The loss fixture uses controlled receiver-side omissions, not a real WAN.

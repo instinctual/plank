@@ -4,95 +4,90 @@ Read `AGENTS.md` and the relevant build runbook first. Keep machine inventory,
 credentials and private captures outside Git. This file records current work;
 older candidate provenance remains in Git history and the artifact catalog.
 
-## Shared source-first video FEC — candidate in progress
+## Shared source-first video FEC — candidates ready
 
-Branch `shared-source-first-fec` starts at main `283dced7`. Candidate **1.4.08**
-uses Kymux `079e5647`; Linux Host `2281c3ed` and Client `c97f8575` pins are
-unchanged. Production transport has not changed since root `c83c4bcc`; later
-commits improve qualification fixtures/diagnostics and documentation only.
-Do not merge or release without operator instruction.
+Branch `shared-source-first-fec`, based on main `283dced7`, is committed/pushed
+but **not merged or released**. Candidate **1.4.08** is downloaded and checksum-
+verified for both Hosts. Neither package has been installed. Production code
+has not changed since root `c83c4bcc`; later changes concern qualification,
+diagnostics and documentation. Pins: Kymux `079e5647`, Linux Host `2281c3ed`,
+Client `c97f8575` (the latter two unchanged).
 
 Both Hosts now submit original video symbols before generating the same
-RaptorQ repairs. One shared lazy iterator avoids a padded frame copy and the
-full-frame source-packet vector. Tests compare original/repair bytes, OTI,
-IDs, multi-block/sub-block padding, loss and reordering against the pinned
-RaptorQ 2 library. The prepare-all production sender, platform-selection
-features and obsolete two-archive comparison script are removed. Optional
-sender tracing remains inactive unless explicitly sampled.
+RaptorQ repairs. A shared lazy iterator avoids a padded frame copy and the full
+source-packet vector. Byte-equivalence tests cover original/repair symbols,
+OTI, IDs, boundaries, multi-block/sub-block padding, loss and reordering against
+pinned RaptorQ 2.0.1. The old prepare-all production sender, platform-selection
+features and obsolete comparison script are removed. Optional tracing remains
+inactive unless sampled.
 
-The operator approved a **4 MiB outgoing datagram queue**, defined once in
-Kynet and used by server/client endpoints on Linux and macOS. Immediate
-submission and oldest-item eviction remain; there is no send_datagram_wait,
-application pacer, playback-delay target, system sysctl change or controller
-change. Capacity is allocated as needed. Larger bursts can fit; prolonged
-congestion can still fill a bounded queue. The existing 2 MiB in-flight floor
-and 1 Gbps controller budget are unchanged. Wire generation, codec behavior,
-audio FEC and repair count remain unchanged. Receiving Clients need no update
-for this Host change; rebuilt Client reverse-video senders share the code too.
+The operator approved one **4 MiB outgoing datagram queue** in Kynet, used by
+native server/client endpoints on Linux and macOS. Immediate submission and
+oldest-item eviction remain. No send_datagram_wait, application pacer, playback-
+delay target, system sysctl or product receive-buffer change was added. The
+2 MiB in-flight floor and 1 Gbps controller budget remain unchanged. Larger
+bursts fit, but prolonged congestion can still exhaust a bounded queue. Wire
+generation, repair count, audio FEC and codecs are unchanged. Receiving Clients
+need no update for this Host change; rebuilt reverse-video senders share it too.
 
-Qualification and package state:
+Verified originals are in
+`artifacts/packages/candidates/1.4.08-shared-source-first-fec/`:
 
-- Linux Host run `42289562622`, package-source root `bdf7480f`, passed all three
-  900-frame 150-Mbps/60-fps matrices through 5% induced loss, the enlarged
-  1.6 MB C ABI frame in both trust modes, existing Host regressions and RPM
-  gates. The RPM is downloaded/SHA256-verified in
-  `artifacts/packages/candidates/1.4.08-shared-source-first-fec/linux/`.
-- Native Mac transport job in run `42292185553`, root `2ba1b0bc`, passed three
-  corresponding matrices: 2,700 intact frames, zero unrecovered symbols,
-  maximum delivery 25.883 ms. Signed Mac Host run `42292753675` subsequently
-  failed on a frame gap in its loss matrix; no package is available yet.
-- The exact earlier GitHub-built diagnostic binary from `d5009294` also passed
-  all three matrices on the authorized development Mac running 27.2: 2,700 frames,
-  zero unrecovered symbols, maximum delivery 23.128 ms. This was isolated
-  loopback testing, not installed-session acceptance. No Host restart,
-  installation, logout/display/input mutation or live network impairment.
-  Terminal and Host processes were preserved; temporary remote files removed.
-- Source/default/diagnostic Clippy, 122 CI policy tests and three sender-contract
-  checks pass. SDK27/minimum26.7 remain the Mac Host packaging contract.
+| Product | Installer | Package-source root | Successful build |
+| --- | --- | --- | --- |
+| Linux Host | `linux/plank-host-1.4.08-0.shared_source_first_fec.1.el9.x86_64.rpm` | `bdf7480f` | `42289562622` |
+| Mac Host | `macos/plank-host_1.4.08-shared-source-first-fec_arm64.pkg` | `a829d945` | `42296107002` |
 
-Failure evidence is retained under
+The Mac PKG is signed, notarized and stapled, SDK27/minimum26.7. Original
+builder manifests, SHA256, exact source/submodule pins and logs match the local
+catalog. Later documentation/test-cache commits do not alter package inputs;
+do not relabel or rebuild these passing packages for those changes.
+
+Validation passed:
+
+- Linux package/component gates and both 1.6 MB C ABI trust modes. The original
+  1 MiB queue had evicted 430 datagrams in that large-frame test; 4 MiB resolves
+  the measured case. Source/default/diagnostic Clippy, 122 CI policy tests and
+  three sender-contract checks pass.
+- Final hosted qualification `42296110706`: Linux three 900-frame 150-Mbps/60-fps
+  matrices through 5% induced loss, zero unrecovered frames; all four stalled-ACK/
+  receiver-pause cases, zero unintended socket/proxy drops. Brief holds lost
+  nothing. Long holds intentionally overflowed the bounded queue and recovered
+  without reconnecting; final tail latency was 4–6 ms. Mac functional checks pass.
+- The operator assigned Mac performance qualification to the authorized
+  development Mac. The exact hosted executable from `a829d945`, using the Host's
+  `sender-timing` features, passed all three matrices on Mac 27.2: 2,700 intact
+  frames, zero unrecovered symbols, 150 Mbps in every phase; worst delivery 22.569 ms,
+  p95 10.968 ms and receive gap 29.821 ms. Executable SHA256 is
+  `b24b566d977930eea6acf73c0199d354b13d4734d0fe71b3704dcf1ae0990a79`.
+  Host/Terminal processes were preserved and all temporary remote files removed.
+  This is transport performance qualification, not installed-session acceptance.
+
+Why the Mac gate moved: the unchanged accepted baseline (`283dced7` / Kymux
+`0ec3ef2a`) also failed the identical hosted stress test at zero intentional
+loss. It passed one trial, then missed a deadline and evicted 174 datagrams in
+the next. That failure cannot establish a candidate-specific regression. The
+same hosted candidate passed on the authorized development Mac. With explicit
+operator approval, functional/package checks stay on GitHub and the unchanged
+strict performance gate runs on that Mac using a matching prebuilt executable.
+AGENTS and the build runbooks document this policy and its provenance checks.
+
+Test-only proxy handoffs are batched, bounded and fail on saturation; stalled-
+ACK fixture sockets request bounded headroom and report kernel drops separately.
+No production transport change was made to accommodate those fixture failures.
+The diagnostic receive-buffer experiment and temporary baseline-build script
+are removed. Failure logs, manifests, binaries, test-only baseline patch and
+hardware performance summary remain under
 `artifacts/qualification/shared-source-first-fec-1.4.06/` through `1.4.08/`.
-The original 1 MiB queue lost 430 locally evicted datagrams in the large-frame
-Linux gate; the 4 MiB candidate resolves that measured case. Mac timing failures
-were subsequently isolated to the synthetic loss proxy: its queue accumulated
-while Quinn evicted nothing. Batching its test-only inter-thread handoffs let
-all original Mac frame/throughput/deadline gates pass. No thresholds or repair
-policy were relaxed and no failing run is counted as a qualifying retry.
+Mac per-socket drop counters are unavailable; do not describe controlled loss
+as the exact total loss there. Native preparation timings are CPU-only.
 
-The separate Linux long-ACK-hold fixture exposed unplanned UDP socket drops,
-so it now requests bounded headroom on its test sockets and independently
-checks sender, receiver and proxy kernel-drop counters. It still requires
-intentional outgoing-queue overflow, exact accounting and prompt recovery.
-The Linux qualification job in run `42292919466` at root `6939c5da` passed
-all four stall cases with zero unintended socket/proxy loss and all three
-900-frame matrices. Later Linux runs passed too. Local VM socket caps also cause drops; those runs are diagnostics,
-not performance acceptance. No product receive-buffer setting was changed.
-The credential-free Mac transport job exports only its exact test executable
-and provenance so runner failures can be compared without a full signed build.
-
-The same-harness control in run `42294828551` used unchanged main `283dced7`,
-Kymux `0ec3ef2a`, its original Mac source-first feature and 1 MiB queue. It passed
-trial one, then failed trial two at frame 5 with no intentional loss and 174
-queue evictions. This establishes that the hosted failure also affects the
-accepted baseline, not that every possible regression is excluded. Increasing
-only diagnostic receive buffers retained all 900 frames but still missed a
-latency limit; no product receive-buffer change was adopted. Temporary baseline
-and receive-buffer comparison scripts are removed. Their manifests, binaries,
-test-only patch and logs remain in the ignored qualification catalog.
-
-The operator explicitly assigned Mac performance qualification to the authorized
-development Mac. Host packaging and the credential-free Mac transport job now
-run functional tests on GitHub; the exported executable matches the Host's
-`sender-timing` features. `run-prebuilt-native-loss.sh` keeps the same three
-150 Mbps matrices, exact reconstruction and original latency/throughput limits.
-AGENTS and both runbooks record this split; a signed PKG alone is not performance
-or installed-session acceptance. No production behavior changed for this policy.
-
-Next: build the Mac package and matching prebuilt test executable, verify/download
-both, and run that exact executable on the authorized Mac before marking this
-candidate ready. Preserve its installed Host/Terminal session. Exact manifests
-retain each package's source; do not relabel/rebuild the passing Linux package
-for test-only changes. Installed capture/playback/loss acceptance remains separate.
+Next: operator installation/session acceptance on qualified Linux/macOS hardware
+for capture/playback and live loss recovery. Existing client, codec/color, audio,
+input and desktop-transition contracts remain. No release or merge is implied.
+Keep signing policy `65785710` until this branch is retired. Download staging
+and temporary local source worktrees have been removed; native Apple work is
+untouched.
 
 ## Live Client connectivity — corrected 1.4.05 merged
 
@@ -851,7 +846,7 @@ Standard Mac Host filenames omit the OS floor; metadata still requires 26.7+.
 Mac Client remains one Apple Silicon package for 15+, built with SDK27 or newer.
 
 Dependencies: FFmpeg9.0.2, Boost1.92, JSON3.12, Vulkan1.4.367, Kymux/Kyproto0.29,
-Quinn0.11.12 / proto0.11.19 / udp0.5.16, Rustls0.23.46, RaptorQ2.0.1,
+Quinn0.11.12 / proto0.11.19 / udp0.5.16, Rustls0.23.46, RaptorQ 2.0.1,
 Rust1.99.1. NVIDIA595.104.02 / CUDA13.2 Update2 / NVENC SDK13.0.19 and the full
 CUDA architecture list are unchanged. Transport remains `plank-native/2` with
 bounded queues/parsers, fixed-MTU policy and no application datagram pacer.

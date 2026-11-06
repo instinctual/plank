@@ -83,8 +83,9 @@ jobs:
             ~/.cargo/registry
             ~/.cargo/git
             protocol/plank-transport/target
-          key: plank-macos-transport-tests-v1-${{ hashFiles('rust-toolchain.toml', 'protocol/plank-transport/Cargo.lock') }}-${{ hashFiles('protocol/plank-transport/src/**/*.rs', 'third_party/kyber-kymux/**/*.rs', 'third_party/quinn-proto-0.11.19/**/*.rs') }}
+          key: plank-macos-transport-tests-v2-sender-timing-${{ hashFiles('rust-toolchain.toml', 'protocol/plank-transport/Cargo.lock') }}-${{ hashFiles('protocol/plank-transport/src/**/*.rs', 'third_party/kyber-kymux/**/*.rs', 'third_party/quinn-proto-0.11.19/**/*.rs') }}
           restore-keys: |
+            plank-macos-transport-tests-v2-sender-timing-${{ hashFiles('rust-toolchain.toml', 'protocol/plank-transport/Cargo.lock') }}-
             plank-macos-transport-tests-v1-${{ hashFiles('rust-toolchain.toml', 'protocol/plank-transport/Cargo.lock') }}-
       - name: Build isolated native test executable
         run: |
