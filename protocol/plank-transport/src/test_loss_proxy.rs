@@ -35,37 +35,50 @@ impl Drop for StopReader<'_> {
     }
 }
 
+type PacketBatch = Vec<(SocketAddr, Vec<u8>)>;
+const PACKETS_PER_BATCH: usize = 32;
+
 fn receive_packets(
     socket: &UdpSocket,
     stop: &AtomicBool,
     queued: &AtomicUsize,
-    ingress: mpsc::SyncSender<(SocketAddr, Vec<u8>)>,
+    ingress: mpsc::SyncSender<PacketBatch>,
 ) -> io::Result<Option<u64>> {
     const MAX_INGRESS_BYTES: usize = 8 * 1024 * 1024;
     let mut buffer = vec![0_u8; 65_535];
+    let mut batch = Vec::with_capacity(PACKETS_PER_BATCH);
     while !stop.load(Ordering::Acquire) {
-        let (size, source) = match socket.recv_from(&mut buffer) {
-            Ok(packet) => packet,
+        match socket.recv_from(&mut buffer) {
+            Ok((size, source)) => {
+                batch.push((source, buffer[..size].to_vec()));
+                if batch.len() < PACKETS_PER_BATCH {
+                    continue;
+                }
+            }
+            Err(error) if error.kind() == io::ErrorKind::Interrupted => continue,
             Err(error)
                 if matches!(
                     error.kind(),
-                    io::ErrorKind::WouldBlock
-                        | io::ErrorKind::TimedOut
-                        | io::ErrorKind::Interrupted
-                ) =>
-            {
-                continue;
-            }
+                    io::ErrorKind::WouldBlock | io::ErrorKind::TimedOut
+                ) => {}
             Err(error) => return Err(error),
-        };
-        if queued.fetch_add(size, Ordering::AcqRel) + size > MAX_INGRESS_BYTES {
-            queued.fetch_sub(size, Ordering::Release);
+        }
+        if batch.is_empty() {
+            continue;
+        }
+        // Amortize channel wakes and byte-accounting atomics across a small
+        // burst. Flush a partial burst on the socket's 2 ms timeout as well;
+        // quiet handshake/control traffic must not wait for a full batch.
+        let bytes = batch.iter().map(|(_, data)| data.len()).sum::<usize>();
+        if queued.fetch_add(bytes, Ordering::AcqRel) + bytes > MAX_INGRESS_BYTES {
+            queued.fetch_sub(bytes, Ordering::Release);
             return Err(io::Error::other(
                 "loss proxy exceeded its ingress byte budget",
             ));
         }
-        if ingress.try_send((source, buffer[..size].to_vec())).is_err() {
-            queued.fetch_sub(size, Ordering::Release);
+        let ready = std::mem::replace(&mut batch, Vec::with_capacity(PACKETS_PER_BATCH));
+        if ingress.try_send(ready).is_err() {
+            queued.fetch_sub(bytes, Ordering::Release);
             if !stop.load(Ordering::Acquire) {
                 return Err(io::Error::other("loss proxy ingress queue unavailable"));
             }
@@ -113,7 +126,7 @@ impl LossProxy {
                     // This measurement-only FIFO avoids relying on the OS
                     // accepting our receive-buffer request. Both byte and
                     // packet bounds fail the test rather than hide omissions.
-                    let (ingress, packets) = mpsc::sync_channel(4096);
+                    let (ingress, packets) = mpsc::sync_channel(4096 / PACKETS_PER_BATCH);
                     let reader = thread::Builder::new()
                         .name("loss-proxy-receive".into())
                         .spawn_scoped(scope, || {
@@ -136,60 +149,66 @@ impl LossProxy {
                                     ));
                                 }
                             }
-                            let (source, buffer) =
-                                match packets.recv_timeout(Duration::from_millis(2)) {
-                                    Ok(packet) => packet,
-                                    Err(mpsc::RecvTimeoutError::Timeout) => continue,
-                                    Err(mpsc::RecvTimeoutError::Disconnected)
-                                        if stopping.load(Ordering::Acquire) =>
-                                    {
-                                        break;
-                                    }
-                                    Err(mpsc::RecvTimeoutError::Disconnected) => {
-                                        return Err(io::Error::other(
-                                            "loss proxy receive worker stopped",
-                                        ));
-                                    }
-                                };
-                            let size = buffer.len();
-                            queued.fetch_sub(size, Ordering::Release);
-                            let destination = if source == server {
-                                let Some(client) = client else { continue };
-                                sequence = sequence.wrapping_add(1);
-                                let loss = loss.load(Ordering::Acquire);
-                                // Same evenly distributed omissions as the original fixture;
-                                // this is deliberately not a random WAN-loss model.
-                                if (sequence % 10_000) * loss % 10_000 < loss {
-                                    omitted.fetch_add(1, Ordering::Relaxed);
-                                    continue;
-                                }
-                                client
-                            } else {
-                                client = Some(source);
-                                let until = hold.load(Ordering::Acquire);
-                                if until > epoch.elapsed().as_millis() as u64 || !pending.is_empty()
+                            let batch = match packets.recv_timeout(Duration::from_millis(2)) {
+                                Ok(packet) => packet,
+                                Err(mpsc::RecvTimeoutError::Timeout) => continue,
+                                Err(mpsc::RecvTimeoutError::Disconnected)
+                                    if stopping.load(Ordering::Acquire) =>
                                 {
-                                    if pending_bytes + size > 8 * 1024 * 1024 {
-                                        return Err(io::Error::other(
-                                            "delay proxy exceeded its bounded return queue",
-                                        ));
-                                    }
-                                    let until = until.max(pending.back().map_or(0, |(at, _)| *at));
-                                    pending.push_back((until, buffer));
-                                    pending_bytes += size;
-                                    held.fetch_add(1, Ordering::Relaxed);
-                                    continue;
+                                    break;
                                 }
-                                server
+                                Err(mpsc::RecvTimeoutError::Disconnected) => {
+                                    return Err(io::Error::other(
+                                        "loss proxy receive worker stopped",
+                                    ));
+                                }
                             };
-                            let written = socket.send_to(&buffer[..size], destination)?;
-                            if written != size {
-                                return Err(io::Error::other(
-                                    "loss proxy truncated a UDP datagram",
-                                ));
-                            }
-                            if source == server {
-                                sent.fetch_add(1, Ordering::Relaxed);
+                            queued.fetch_sub(
+                                batch.iter().map(|(_, data)| data.len()).sum::<usize>(),
+                                Ordering::Release,
+                            );
+                            for (source, buffer) in batch {
+                                let size = buffer.len();
+                                let destination = if source == server {
+                                    let Some(client) = client else { continue };
+                                    sequence = sequence.wrapping_add(1);
+                                    let loss = loss.load(Ordering::Acquire);
+                                    // Same evenly distributed omissions as the original fixture;
+                                    // this is deliberately not a random WAN-loss model.
+                                    if (sequence % 10_000) * loss % 10_000 < loss {
+                                        omitted.fetch_add(1, Ordering::Relaxed);
+                                        continue;
+                                    }
+                                    client
+                                } else {
+                                    client = Some(source);
+                                    let until = hold.load(Ordering::Acquire);
+                                    if until > epoch.elapsed().as_millis() as u64
+                                        || !pending.is_empty()
+                                    {
+                                        if pending_bytes + size > 8 * 1024 * 1024 {
+                                            return Err(io::Error::other(
+                                                "delay proxy exceeded its bounded return queue",
+                                            ));
+                                        }
+                                        let until =
+                                            until.max(pending.back().map_or(0, |(at, _)| *at));
+                                        pending.push_back((until, buffer));
+                                        pending_bytes += size;
+                                        held.fetch_add(1, Ordering::Relaxed);
+                                        continue;
+                                    }
+                                    server
+                                };
+                                let written = socket.send_to(&buffer[..size], destination)?;
+                                if written != size {
+                                    return Err(io::Error::other(
+                                        "loss proxy truncated a UDP datagram",
+                                    ));
+                                }
+                                if source == server {
+                                    sent.fetch_add(1, Ordering::Relaxed);
+                                }
                             }
                         }
                         Ok(())

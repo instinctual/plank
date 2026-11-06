@@ -59,7 +59,13 @@ The Hosted builds workflow accepts `product=dependency-tests` with
 QUIC window/ACK-delay and native KyProto loss tests without rebuilding application
 or FFmpeg dependencies. Its test-only Rust cache is keyed by the toolchain,
 lockfile and tested sources. These loopback measurements do not replace an
-installed WAN/session comparison. Dispatch through `build.yml` while the reusable
+installed WAN/session comparison. The transport group runs natively on Ubuntu
+and the SDK27 Mac worker; labelling a second Linux invocation as a Mac test is
+not platform qualification. The credential-free Mac job also exports its exact
+loopback-test executable and a source/hash manifest, even if a later test fails.
+That diagnostic artifact is not an installable product. It permits comparison
+on an authorized development Mac without compiling there or restarting its Host.
+Dispatch through `build.yml` while the reusable
 qualification workflow is not yet registered on main:
 
 ```bash
