@@ -4,6 +4,32 @@ Read `AGENTS.md` and the relevant build runbook first. Keep machine inventory,
 credentials and private captures outside Git. This file records current work;
 older candidate provenance remains in Git history and the artifact catalog.
 
+## macOS mouse motion — candidate preparation
+
+Branch `macos-mouse-deltas` starts from main `32c92612`; version **1.4.02**.
+The operator approved a Mac Host fix for the built-in screen-recording area
+selector refusing to move/resize. Read-only checks found the full native
+display geometry and confirmed button/drag delivery, but the passive listener
+could not expose individual posted-event fields. An unposted Quartz check
+confirmed that constructing a mouse event with a changed absolute position
+leaves both movement deltas zero. Production code never filled them in.
+Missing deltas are the leading cause, not yet proven by an installed A/B test.
+
+The Mac Host now derives X/Y movement from successive mapped Quartz positions.
+It rounds positions before subtraction so slow Retina motion accumulates
+correctly; rejected delivery retains the prior baseline through the existing
+state rollback. Mouse-down/up identities, pointer mapping and tablet behavior
+are retained. No Client, Linux Host, transport or dependency change is needed.
+New native regressions inspect both Quartz and AppKit deltas for all five
+buttons, native 5K, scaled/negative-origin displays, motion reversal, stationary
+reports, coalescing, rejected/malformed input and sub-point accumulation.
+
+Next: run hosted SDK27 component/package gates and build a signed candidate,
+then test moving/resizing the recording selector and ordinary app/window
+dragging. No package has been installed and no running Host or desktop session
+was restarted. Temporary read-only collectors were removed. Private machine
+evidence remains outside Git.
+
 ## Kymux reconciliation — merged; 1.4.01 packages ready
 
 The operator authorized merging the tested reconciliation and PLANK #28 on
