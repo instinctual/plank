@@ -9,6 +9,19 @@ import tempfile
 import time
 
 
+def validate_launcher_log(text):
+    # A top-level window can be alive while StackView fails to create the
+    # bookmark page. Treat nested component failures as fatal too.
+    if re.search(r'QQmlApplicationEngine failed|QQmlComponent: Component is not ready|'
+                 r'QML StackView: (?:initialItem|push|pop):|Property value set multiple times|'
+                 r'Cannot assign|ReferenceError:|TypeError:|Assertion.*failed|'
+                 r'QObject: Cannot create children|QThread: Destroyed while', text):
+        raise RuntimeError('Qt launcher reported a lifecycle or QML error')
+    if 'Qt launcher ready; decoder qualification deferred' not in text or \
+            'PLANK bookmark page ready' not in text:
+        raise RuntimeError('Qt launcher did not load its window and bookmark page')
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--binary', type=Path, required=True)
@@ -45,12 +58,7 @@ def main():
                 for log in sorted((Path(directory) / 'state').rglob('*.log')):
                     output.write(log.read_text(errors='replace'))
             text = report.read_text(errors='replace')
-            if 'Qt launcher ready; decoder qualification deferred' not in text:
-                raise RuntimeError('Qt launcher did not load its real QML window')
-            if re.search(r'QQmlApplicationEngine failed|'
-                         r'Cannot assign|ReferenceError:|TypeError:|Assertion.*failed|'
-                         r'QObject: Cannot create children|QThread: Destroyed while', text):
-                raise RuntimeError('Qt launcher reported a lifecycle or QML error')
+            validate_launcher_log(text)
     print('qt_full_launcher_smoke=pass runs=3 (not a live-stream qualification)')
 
 

@@ -1,4 +1,5 @@
 from pathlib import Path
+import importlib.util
 import subprocess
 import tempfile
 import unittest
@@ -7,6 +8,21 @@ ROOT = Path(__file__).resolve().parents[2]
 
 
 class QtSessionWorkflowTests(unittest.TestCase):
+    def test_launcher_smoke_requires_the_bookmark_page(self):
+        spec = importlib.util.spec_from_file_location('launcher_smoke', ROOT / 'scripts/test/smoke-qt-client.py')
+        smoke = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(smoke)
+        window_ready = 'Qt launcher ready; decoder qualification deferred to the stream surface\n'
+        healthy = 'PLANK bookmark page ready\n' + window_ready
+        smoke.validate_launcher_log(healthy)
+        for invalid in ('', window_ready,
+                        window_ready + 'QQmlComponent: Component is not ready\n',
+                        healthy + 'qrc:/gui/PcView.qml:482 Property value set multiple times\n',
+                        healthy + 'QML StackView: initialItem: failed to create page\n',
+                        healthy + 'QML StackView: pop: failed to create page\n'):
+            with self.subTest(log=invalid), self.assertRaises(RuntimeError):
+                smoke.validate_launcher_log(invalid)
+
     def test_ordinary_client_runs_qt_qualification_without_credentials(self):
         workflow = (ROOT / '.github/workflows/build.yml').read_text()
         job = workflow.split('  linux-client:\n')[1].split('  macos:\n')[0]

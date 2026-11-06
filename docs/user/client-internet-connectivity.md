@@ -18,11 +18,10 @@ background check. Each row
 shows the address, colored status and actual ICMP round-trip time in whole
 milliseconds; replies faster than one millisecond show **<1 ms**. A dash means
 no timing is available, including a successful reply whose timing output could
-not be read. The completion time uses the Client's local clock.
+not be read.
 
 Results update automatically without a Refresh button. Previous results stay
-visible while the next round runs, and **Live** shows the latest completion
-time. The configured timeout still applies; a slow round finishes before the
+visible while the next round runs. The configured timeout still applies; a slow round finishes before the
 next starts. **Close** or Escape ends live mode and resumes the normal background
 interval. Live results also update the main Internet indicator. There is one
 scheduler, so background and live rounds never overlap; cancelled processes

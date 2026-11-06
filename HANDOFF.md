@@ -4,7 +4,29 @@ Read `AGENTS.md` and the relevant build runbook first. Keep machine inventory,
 credentials and private captures outside Git. This file records current work;
 older candidate provenance remains in Git history and the artifact catalog.
 
-## Live Client connectivity — 1.4.04 candidates ready
+## Live Client connectivity — 1.4.05 repair in preparation
+
+**Do not install 1.4.04.** The operator's Ubuntu test exposed a duplicate
+`closePolicy` in the Edit bookmark dialog. It prevented `PcView.qml` from
+loading, hiding saved bookmarks and Add, and breaking Back navigation. The
+settings still contain the bookmarks; discovery still finds the Hosts. No
+settings deletion/reset is needed or was performed. The failure affects the
+shared QML, so both 1.4.04 packages are marked superseded in the local catalog.
+
+The repair removes only the duplicate; Edit already had the requested Escape-only
+policy, and Add keeps its newly added policy. The operator also requested
+removing the Live/timestamp line and tightening the gap above Close. The unused
+timestamp state is removed, result height is capped at its content, and the
+footer padding is reduced. Error text remains visible only for a real error.
+
+The existing full-launcher smoke test missed the failure because it checked
+only top-level readiness and a limited error list. It now requires the actual
+bookmark page's completion marker and rejects nested component/StackView
+failures and duplicate properties. A portable regression exercises the real
+validator; the saved incident log is rejected. Hosted full-launcher checks
+remain required before packaging. Version **1.4.05**; no new deployment yet.
+
+## Live Client connectivity — superseded 1.4.04 validation record
 
 Root and Client branch `client-live-connectivity` start from accepted main
 `65c2624f` / Client `09e05360`. Candidate version **1.4.04**.
@@ -50,7 +72,8 @@ Branch signing policy `65721204` should be removed when retiring this branch.
 The redundant all-product push run `42190907897` was cancelled; no Host package
 was requested. Installed UI acceptance of live pings, hidden-window behavior
 and outside-click bookmark protection remains pending. No deployment, merge or
-release has been performed for this candidate.
+release has been performed for this candidate. The later installed failure
+above supersedes its build-only success; do not describe 1.4.04 as accepted.
 
 ## macOS login handoff — 1.4.03 accepted and merged
 
