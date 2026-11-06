@@ -4,7 +4,7 @@ Read `AGENTS.md` and the relevant build runbook first. Keep machine inventory,
 credentials and private captures outside Git. This file records current work;
 older candidate provenance remains in Git history and the artifact catalog.
 
-## macOS login handoff — candidate preparation
+## macOS login handoff — 1.4.03 candidate ready
 
 Branch `macos-login-handoff` starts from `4aca1bf3` and retains the pending
 mouse-delta fix. Version **1.4.03**. A captured first post-reboot login showed
@@ -25,11 +25,30 @@ during verification, concurrent retirement/revocation and password wiping.
 The real loopback HTTPS cross-UID handoff gate also checks start/respond while
 the old listener remains reachable after authority retires. Its signal is
 synthetic-fixture-only; no production diagnostic/control endpoint is added.
-Next: hosted SDK27 checks and signed candidate, followed by the first complete
-login after reboot. No new installation, reboot, logout or live session change
-has been performed. Private first-attempt evidence stays outside Git.
 
-## macOS mouse motion — 1.4.02 candidate ready
+Source `54cdf2b11a093bf582f83dde16f514a421d9ad8d` is committed and pushed.
+Signed GitHub run `42185149530` passed on its first attempt, including 591
+authentication assertions, the real TLS retirement/cross-UID handoff test,
+its existing EADDRINUSE negative control, and the native session/input/package
+gates. Existing Client reconnect-policy, 121 CI policy and 16 package-catalog
+checks passed locally. The build used caching, but both exact Rust/Cargo keys
+missed and were populated; no dependency version changed or forced bootstrap
+was requested. Do not describe this run as a cache hit.
+
+Signed, notarized and stapled installer, downloaded and checksum/source-verified:
+`artifacts/packages/candidates/1.4.03-macos-login-handoff/macos/plank-host_1.4.03-macos-login-handoff_arm64.pkg`.
+The original manifest equals the collected manifest. Qualification evidence is
+in `artifacts/qualification/macos-login-handoff-1.4.03/`. Temporary download
+staging is removed. Exact-branch signing policy `65716927` should be removed
+when retiring this branch; redundant all-product push run `42185127914` was
+cancelled because only the affected Mac Host package was requested.
+
+Next: install the candidate and test the first complete login after a manual
+reboot. No new installation, reboot, logout, merge, release or live session
+change has been performed by the agent. Private first-attempt evidence stays
+outside Git. Client/Linux Host pins are unchanged.
+
+## macOS mouse motion — 1.4.02 accepted for recording-area fix
 
 Branch `macos-mouse-deltas` starts from main `32c92612`; version **1.4.02**.
 The operator approved a Mac Host fix for the built-in screen-recording area
@@ -38,7 +57,8 @@ display geometry and confirmed button/drag delivery, but the passive listener
 could not expose individual posted-event fields. An unposted Quartz check
 confirmed that constructing a mouse event with a changed absolute position
 leaves both movement deltas zero. Production code never filled them in.
-Missing deltas are the leading cause, not yet proven by an installed A/B test.
+The operator's installed test below confirms that supplying them fixes the
+reported recording-area behavior.
 
 The Mac Host now derives X/Y movement from successive mapped Quartz positions.
 It rounds positions before subtraction so slow Retina motion accumulates
@@ -66,10 +86,11 @@ Temporary download staging is removed. The exact branch has signing policy
 run `42178245127` was cancelled; only the affected Mac Host package was requested.
 
 The operator installed this candidate and rebooted; installed version was
-confirmed during the separate login-handoff investigation above. Acceptance of
-moving/resizing the recording selector and ordinary app/window dragging,
-including scaled displays, remains unreported. No remote installation or
-Host/session restart was performed by the agent.
+confirmed during the separate login-handoff investigation above. On November 6
+the operator confirmed that the QuickTime screen-recording boundary is fixed.
+That accepts the reported selector behavior in the tested session; it does not
+claim separate installed Retina/all-button validation. No remote installation
+or Host/session restart was performed by the agent.
 No merge or release. Temporary read-only collectors were removed. Private
 machine evidence remains outside Git.
 
