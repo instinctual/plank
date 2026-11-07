@@ -244,7 +244,7 @@ between records, not inside a length prefix or payload.
 
 The PLANK reliable-data send and receive queues each retain at most 64 records
 and 8 MiB of payload, whichever limit is reached first. Both limits apply to
-setup/authentication and active sessions on both Host and Client platforms.
+launch negotiation and active sessions on both Host and Client platforms.
 At most one additional record (1 MiB) per direction is being read/written by
 the serial data task. These are application-payload bounds, not a claim about
 total RSS or Quinn's separately bounded stream/socket buffers.
