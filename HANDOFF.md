@@ -4,7 +4,7 @@ Read `AGENTS.md` and the relevant build runbook first. Machine inventory,
 credentials and private captures stay outside Git. This file records current
 state; older detailed results remain in Git history and the artifact catalog.
 
-## Metrics / Telegraf — Linux deployment installed; Host data verified
+## Metrics / Telegraf — Linux deployment and dedicated bucket verified
 
 Current branch: **`metrics-telegraf`**, based on accepted main `1d770bab`.
 Product source is `816b1e18`; subsequent notes do not change runtime code.
@@ -65,11 +65,32 @@ Validation:
   drop counts are unavailable there. This is isolated transport qualification,
   not acceptance of installed collection or an interactive A/V session.
 
-The existing Grafana data source is healthy and accepted all 34 dashboard
-queries. The 14-panel dashboard is created, moved into the existing metrics
-folder and read back successfully. The temporary setup account was returned to
+The dedicated PLANK Grafana data source is healthy. The operator's dashboard cleanup
+is applied live and saved in the local repository copy: ten performance panels,
+24 direction-specific visual InfluxQL queries, `fill(none)`, Table legends with
+Last non-null values, and separate Hosts/Clients menus populated with machine
+names. Role, workstation UUID and bookmark selectors/grouping are removed.
+Video/audio graphs show Host send and Client receive. Host Encoder Target is
+a separate Host-only panel next to the video section. Observation, event, statistics-age and both application-queue panels
+are removed from the main view; telemetry remains available for diagnosis.
+All final query models executed successfully and the saved dashboard was read
+back. Before the requested fill/grouping changes, all 31 visual conversions
+matched their raw-query results across 2,928 returned rows. This is dashboard
+configuration only; installed application bytes and exporter schema are unchanged.
+This checkpoint includes the final dashboard and source documentation.
+The dashboard remains in the existing metrics folder. The temporary setup account was returned to
 Editor, with Admin capabilities absent and dashboard access still working.
-No Grafana data-source settings were changed. The verified Linux Host RPM and
+The operator then requested a dedicated PLANK bucket and unified private
+appliance provisioning. The new bucket retains the previous three-day retention
+policy and has its own InfluxQL mapping. Telegraf uses a bucket-scoped write
+token; Grafana uses a separate read-only token. Both credentials and the
+administrator token stay outside Git. All 24 visual queries pass against that
+new data source and return current Host and Client observations. Historical
+buckets and data sources remain intact. The operator retained full-resolution
+samples for three days; no downsampling was added. The supplied replacement
+write token is installed on both Linux collectors, with fresh writes verified.
+PLANK sessions were not restarted for that credential change.
+The verified Linux Host RPM and
 Ubuntu Client DEB are installed on the authorized test endpoints; package and
 running-executable hashes match the originals. Both localhost Telegraf inputs
 are listening, and PLANK metrics are enabled. Client bookmarks/settings compare
@@ -77,14 +98,17 @@ unchanged and the Client was reopened successfully. The existing Host session
 reconnected and its desktop application remained running.
 
 Real Host RTT, video cadence, encoder target, capture/profile and resolution
-records now reach the existing dashboard. System metrics remain current in
-their original bucket. That Host needed a separate, measurement-filtered output:
+records now reach the dashboard. Existing test-endpoint system outputs retain
+their original buckets; application metrics use separate filtered outputs.
+The Host originally needed a separate, measurement-filtered output:
 its system metrics use another bucket, and the initially supplied overlay URL
 was unreachable there. The new output now uses its existing LAN route to the
 same InfluxDB instance, verified against Grafana's configured data source.
-The old system output excludes only the three PLANK measurement names.
-Client system-metric delivery is healthy; real Client session metrics await
-reconnection by the operator. Do not claim Client media-metrics acceptance yet.
+Both existing system outputs exclude only the three PLANK measurement names.
+Real Client media metrics are now verified through Grafana as well, including
+network/decode/render rates, decode timing and the hardware-decoder flag.
+Client system-metric delivery is also healthy. This verifies metric collection
+and queries, not a new interactive audio/video/input acceptance claim.
 
 Evidence is in `artifacts/qualification/metrics-telegraf-1.4.11/`. The branch's
 signing permission is `65875659`; remove it when retiring this branch.
@@ -94,9 +118,21 @@ metrics and configuration backups are private, outside Git. The optional public
 Telegraf input now accepts only the three PLANK measurements; its real-parser
 fixture passes. This deployment configuration update does not change the
 already verified installers.
-Next: after the operator reconnects the Ubuntu Client, verify its real network,
-decoder/presentation and FEC measurements in Grafana. Mac installation is out of
-scope. No merge or release publication is requested.
+The private appliance repository's `plank-unified` branch removes obsolete
+product selection, duplicate branding/output profiles and retired launcher
+aliases. It retains Production/Beta channels, the effective network and tuning,
+and optional vendor helpers. Fresh Client/Relay provisioning uses the PLANK
+bucket for system and application metrics; token input is private and checked
+before system changes. Five credential/output tests, shell syntax and actual
+Telegraf profile parsing pass. No full appliance provisioner was executed, no
+fleet migration was performed, and package pins remain at their existing
+available versions. Application metrics require 1.4.11 or newer.
+The operator requested a commit checkpoint in both repositories. Dashboard and
+provisioning changes stay on their current branches; existing submodule pins
+are already committed and unchanged. Remaining provisioning acceptance is a
+fresh-appliance installation using an available metrics-capable package.
+Mac installation remains out of scope. No push, merge, new package build or
+release publication was requested for this checkpoint.
 
 ## Code review hardening — accepted and merged into main
 

@@ -2,8 +2,10 @@
 
 Branch: `metrics-telegraf`, based on accepted main `1d770bab`.
 
-The operator wants Host and Client metrics in an existing InfluxDB 2 bucket
-and an existing Grafana instance. The operator chose to retain InfluxDB 2. Linux Hosts and Ubuntu Clients already run
+The operator wants Host and Client metrics in InfluxDB 2 and the existing
+Grafana instance. After initial validation against the previous bucket, the
+operator requested a dedicated PLANK bucket and unified appliance provisioning.
+The operator chose to retain InfluxDB 2. Linux Hosts and Ubuntu Clients already run
 Telegraf. Macs do not yet have the agent. Deployment addresses, organization,
 bucket and credentials stay in private notes/provisioning, outside this repo.
 
@@ -45,9 +47,12 @@ effort, not a reliable audit trail. No extra privileges are required.
 
 ## Provisioning and qualification
 
-The existing Ubuntu installer copies selected Telegraf drop-ins. Its output and
-token are already configured; add only the PLANK input when integrating that
-separate provisioning repository. Current flush interval 5s plus jitter 10s means
+The private Ubuntu provisioner now has one PLANK product with Production/Beta
+package channels and Client/Relay input profiles. Fresh installations use one
+PLANK bucket for system and application metrics. The bucket write token is
+supplied outside Git, stored root-only, and rendered into a Telegraf-readable
+output. Credentials are prepared before provisioning changes the system.
+Current flush interval 5s plus jitter 10s means
 samples reach the database in batches roughly 5–15s apart. Preserve this policy
 unless the operator requests a change; source samples can still be one second.
 
@@ -57,11 +62,21 @@ sessions. Exercise the real Telegraf parser with an isolated localhost listener
 and file output. Keep streaming/loss performance limits unchanged. Build all
 four candidates on hosted Actions and preserve the accepted main baseline.
 
-The dashboard is deployed against the existing InfluxQL data source; all 34
-queries are accepted. The operator authorized Linux-only deployment. Both Linux
-products and local Telegraf inputs are installed and enabled. Real Host metrics
-are visible; Client media collection awaits the operator's reconnection. The
-Host's system-metrics bucket is preserved through an application-only output
-filter and its existing route to the same database. No Mac deployment occurred.
+The dashboard now uses a dedicated InfluxQL data source for the PLANK bucket,
+with a bucket-scoped read token. The dashboard review uses ten panels and 24 visual
+queries, machine-name Host/Client filters, no bookmark grouping, fill(none),
+and Table legends showing Last non-null values. Host Encoder Target is a
+separate panel from the measured video payload rates. The operator authorized Linux-only deployment. Both Linux
+products and local Telegraf inputs are installed and enabled. Real Host and Client media metrics
+are visible. The
+test endpoints' existing system-metrics buckets are preserved through
+application-only output filters. All 24 visual queries pass against the new
+bucket and return actual Host and Client observations. Historical buckets/data
+sources are retained. The Grafana setup account is back to Editor.
+No Mac deployment occurred. Private provisioner checks cover five credential/
+output tests, all shell syntax, actual Telegraf parsing for both input profiles,
+and unchanged network/tuning/authorization values. A full fresh-appliance
+installation has not been run; its older package pins are not promoted to a
+candidate absent from the provisioning server.
 No merge, release publication or change to existing system-metric collection
 is implied by creating this branch.

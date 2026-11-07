@@ -12,9 +12,10 @@ inside PLANK. The feature is disabled by default on every platform.
    and Clients can reuse their existing agent and system metrics. Macs need their
    own agent; the PLANK installer does not install or start Telegraf.
 2. Add [inputs.plank.conf](../../packaging/metrics/inputs.plank.conf) to that
-   agent's configuration directory and restart Telegraf. Keep its existing
-   InfluxDB URL, organization, bucket and token. Do not add a second duplicate
-   output. Keep `omit_hostname = false` so Telegraf adds the local `host` tag.
+   agent's configuration directory and restart Telegraf. Configure its InfluxDB
+   output for the intended metrics bucket, using a bucket-scoped write token.
+   Reuse an existing output if it already points there; do not add a duplicate.
+   Keep `omit_hostname = false` so Telegraf adds the local `host` tag.
 3. Enable PLANK collection in `/etc/plank/host.conf` and/or
    `/etc/plank/client.conf`, then restart that product:
 
@@ -45,17 +46,33 @@ also accepts only these three measurement names.
 ## Grafana
 
 Import [PLANK sessions](../../packaging/metrics/plank-influxql.json), then select
-the existing **InfluxQL** data source in the dashboard's data-source selector.
-The existing InfluxDB 2 database/retention-policy mapping must point to the
-bucket receiving Telegraf data. An already working InfluxQL data source needs
-no new database, Flux data source or duplicate bucket.
+the **InfluxQL** data source in the dashboard's data-source selector.
+Its InfluxDB 2 database/retention-policy mapping must point to the bucket
+receiving Telegraf data. Reuse an existing working data source, or create a
+dedicated one for a new bucket. For example, a `plank` bucket can be mapped to
+the InfluxQL database `plank-db` and retention-policy name `autogen`; the
+bucket's retention setting controls data expiry. Give Grafana a separate
+read-only token for that bucket. A new destination does not move or delete
+historical data in older buckets. No Flux migration is required.
 
-Filters select the local machine, remote workstation UUID and Host/Client role.
-`slot_id` distinguishes multiple bookmarks for the same workstation. The Host
-uses the fixed slot `host`. These stable IDs avoid a new series for each
-reconnection. Hostname is Telegraf's local machine name; it is never overwritten
-with the remote workstation's name. Version and connection start time are fields,
-not tags. Configure machine naming/privacy through Telegraf as for system metrics.
+The **Hosts** and **Clients** menus list machine names from Telegraf's `host`
+tag, limited to the corresponding PLANK product. Each menu filters only that
+product's queries. There is no separate Role menu or bookmark/UUID grouping.
+Measurements from multiple bookmarks on the same machine share its charts;
+existing mean, maximum and sum functions determine their aggregation.
+
+The ten performance panels use Grafana's visual InfluxQL editor. Fields,
+functions, filters and grouping are editable through its controls. FEC uses the
+Math control to retain the source-count-weighted percentage. Every query uses
+`fill(none)`, so empty time buckets are omitted. Legends use Table mode with
+Last non-null values. Video/audio graphs select Host sending and Client receiving
+counters. Host Encoder Target has its own panel showing the configured target
+for the selected Hosts.
+
+The observation, event, statistics-age and application-queue panels are omitted
+from the main view. Their underlying telemetry remains available for diagnosis.
+This dashboard change does not remove fields or identity tags from existing
+exporters or stored data; it avoids using those tags to split displayed series.
 
 The dashboard displays local browser time. PLANK timestamps observations with
 Unix wall time but calculates rates with monotonic elapsed time. Keep endpoint
