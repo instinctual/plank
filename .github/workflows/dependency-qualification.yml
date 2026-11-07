@@ -54,6 +54,10 @@ jobs:
           cargo test --locked --release --manifest-path protocol/plank-transport/Cargo.toml --features quinn-telemetry
           cargo test --locked --release --manifest-path protocol/plank-transport/Cargo.toml --features quinn-telemetry,sender-timing
           cargo test --locked --release --manifest-path third_party/quinn-proto-0.11.19/Cargo.toml --lib connection::datagrams::
+      - name: Validate optional metrics through the real Telegraf parser
+        run: python3 scripts/test/test-metrics-telegraf.py --download-test-agent --release
+      - name: Exercise the C media API with metrics disabled and a stalled collector
+        run: bash scripts/test/run-plank-transport-native-ffi-loopback.sh
       - name: Compare delayed acknowledgments and receiver pauses
         run: bash scripts/test/run-plank-transport-stalls.sh
       - name: Test shared source-first FEC and reliable recovery

@@ -14,6 +14,15 @@ TEMPLATE = ROOT / "packaging/client/config/plank-client.conf"
 
 
 class PolicyUpgrade(unittest.TestCase):
+    def test_preserves_custom_metrics_and_adds_comments(self):
+        original = b"[metrics]\nmetrics_enabled=true\nmetrics_port=30002\n[private]\nkey=value\n"
+        result = upgrade.add_missing_keys(original, TEMPLATE.read_bytes())
+        self.assertIn(b"metrics_enabled=true\nmetrics_port=30002\n", result)
+        self.assertNotIn(b"metrics_enabled = false", result)
+        self.assertIn(b"metrics_interval_seconds = 1\n", result)
+        self.assertIn(b"# Sample interval", result)
+        self.assertEqual(upgrade.add_missing_keys(result, TEMPLATE.read_bytes()), result)
+
     def test_complete_template_is_unchanged(self):
         original = TEMPLATE.read_bytes()
         self.assertEqual(upgrade.add_missing_keys(original, original), original)
@@ -26,7 +35,7 @@ class PolicyUpgrade(unittest.TestCase):
         self.assertEqual(result.count(b"internet_check_enabled="), 1)
         self.assertIn(b"internet_check_hosts=192.0.2.1\n", result)
         self.assertIn(b"port=30001\n", result)
-        self.assertTrue(result.endswith(original[original.index(b"[authentication]"):]))
+        self.assertIn(original[original.index(b"[authentication]"):], result)
         self.assertIn(b"internet_check_interval_seconds = 15\n", result)
         self.assertIn(b"# Maximum wait", result)
         self.assertEqual(upgrade.add_missing_keys(result, TEMPLATE.read_bytes()), result)
@@ -36,11 +45,11 @@ class PolicyUpgrade(unittest.TestCase):
                          b"[network]\r\nport=30001\r\n[private]\r\nkey=value\r\n"):
             with self.subTest(original=original):
                 result = upgrade.add_missing_keys(original, TEMPLATE.read_bytes())
-                for key in upgrade.KEYS:
+                for key in upgrade.KEYS + upgrade.METRICS_KEYS:
                     self.assertEqual(result.count(key.encode() + b" ="), 1)
                 self.assertEqual(upgrade.add_missing_keys(result, TEMPLATE.read_bytes()), result)
                 if b"\r\n" in original:
-                    self.assertTrue(result.endswith(b"port=30001\r\n[private]\r\nkey=value\r\n"))
+                    self.assertIn(b"port=30001\r\n[private]\r\nkey=value\r\n", result)
 
     def test_repeated_sections_and_unrelated_keys(self):
         original = b"[network]\nport=30001\n[private]\ninternet_check_enabled=maybe\n[network]\ninternet_check_enabled=false\n"

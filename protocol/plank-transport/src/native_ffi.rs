@@ -237,6 +237,38 @@ struct NativeStats {
     video_fec: Mutex<(u64, u64, u64)>,
 }
 
+impl NativeStats {
+    fn snapshot(&self) -> PlankTransportNativeStats {
+        let stats = self;
+        let fec = *stats.video_fec.lock().unwrap();
+        PlankTransportNativeStats {
+            struct_size: std::mem::size_of::<PlankTransportNativeStats>() as u32,
+            video_frames_sent: stats.video_frames_sent.load(Ordering::Relaxed),
+            video_bytes_sent: stats.video_bytes_sent.load(Ordering::Relaxed),
+            video_frames_received: stats.video_frames_received.load(Ordering::Relaxed),
+            video_bytes_received: stats.video_bytes_received.load(Ordering::Relaxed),
+            video_send_drops: stats.video_send_drops.load(Ordering::Relaxed),
+            video_receive_drops: stats.video_receive_drops.load(Ordering::Relaxed),
+            audio_packets_sent: stats.audio_packets_sent.load(Ordering::Relaxed),
+            audio_bytes_sent: stats.audio_bytes_sent.load(Ordering::Relaxed),
+            audio_packets_received: stats.audio_packets_received.load(Ordering::Relaxed),
+            audio_bytes_received: stats.audio_bytes_received.load(Ordering::Relaxed),
+            audio_send_drops: stats.audio_send_drops.load(Ordering::Relaxed),
+            audio_receive_drops: stats.audio_receive_drops.load(Ordering::Relaxed),
+            input_packets_sent: stats.input_packets_sent.load(Ordering::Relaxed),
+            input_packets_received: stats.input_packets_received.load(Ordering::Relaxed),
+            data_packets_sent: stats.data_packets_sent.load(Ordering::Relaxed),
+            data_packets_received: stats.data_packets_received.load(Ordering::Relaxed),
+            quic_rtt_us: stats.quic_rtt_us.load(Ordering::Relaxed),
+            quic_packets_lost: stats.quic_packets_lost.load(Ordering::Relaxed),
+            kyproto_packets_dropped: stats.kyproto_packets_dropped.load(Ordering::Relaxed),
+            video_fec_source_symbols: fec.0,
+            video_fec_source_symbols_missing: fec.1,
+            video_fec_source_symbols_unrecovered: fec.2,
+        }
+    }
+}
+
 struct NativeStatus {
     state: EndpointState,
     error: String,
@@ -265,6 +297,7 @@ struct NativeShared {
     data_receive_changed: Condvar,
     data_receive_space: tokio::sync::Notify,
     stats: NativeStats,
+    metrics: std::sync::OnceLock<Arc<crate::metrics::Reporter>>,
     rate_policy: Arc<TransportRatePolicy>,
     microphone: microphone_lane::Microphone,
     camera: camera_lane::Camera,
@@ -299,6 +332,7 @@ impl NativeShared {
             data_receive_changed: Condvar::new(),
             data_receive_space: tokio::sync::Notify::new(),
             stats: NativeStats::default(),
+            metrics: std::sync::OnceLock::new(),
             rate_policy: TransportRatePolicy::new(initial_video_bitrate_bps),
             microphone: microphone_lane::Microphone::default(),
             camera: camera_lane::Camera::default(),
@@ -396,6 +430,7 @@ pub struct PlankTransportNativeAudioPacketInfo {
 }
 
 #[repr(C)]
+#[derive(Clone, Copy, Default)]
 pub struct PlankTransportNativeStats {
     pub struct_size: u32,
     pub video_frames_sent: u64,
@@ -874,8 +909,10 @@ async fn sample_stats(
     provider: kyproto::KyProtoStatsProvider,
 ) -> Result<()> {
     let mut interval = tokio::time::interval(Duration::from_secs(1));
+    interval.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);
+    let mut metrics = shared.metrics.get().cloned().map(crate::metrics::Sampler::new);
     loop {
-        interval.tick().await;
+        let scheduled = interval.tick().await;
         if shared.stop.load(Ordering::Acquire) {
             return Ok(());
         }
@@ -905,6 +942,16 @@ async fn sample_stats(
                 .video_fec_source_symbols_unrecovered
                 .unwrap_or_default(),
         );
+        if let Some(metrics) = metrics.as_mut() {
+            let depths = shared.queues.try_lock().ok().map(|q| crate::metrics::QueueDepths {
+                video_send_frames: q.video_send.len() as u64, video_send_bytes: q.video_send.bytes as u64,
+                video_receive_frames: q.video_receive.len() as u64, video_receive_bytes: q.video_receive.bytes as u64,
+                audio_send_packets: q.audio_send.len() as u64, audio_receive_packets: q.audio_receive.len() as u64,
+                reliable_send_packets: q.data_send.packets.len() as u64, reliable_send_bytes: q.data_send.bytes as u64,
+                reliable_receive_packets: q.data_receive.packets.len() as u64, reliable_receive_bytes: q.data_receive.bytes as u64,
+            });
+            metrics.sample(shared.stats.snapshot(), depths, shared.rate_policy.requested_video_bps(), scheduled.into_std());
+        }
     }
 }
 
@@ -1505,6 +1552,9 @@ pub unsafe extern "C" fn plank_transport_native_video_send(
             .stats
             .video_send_drops
             .fetch_add(dropped as u64, Ordering::Relaxed);
+        if let Some(metrics) = endpoint.shared.metrics.get() {
+            metrics.host_video(info.host_processing_latency);
+        }
         endpoint.shared.video_send_notify.notify_one();
         if dropped != 0 {
             PLANK_TRANSPORT_DROPPED
@@ -1905,34 +1955,57 @@ pub unsafe extern "C" fn plank_transport_native_endpoint_stats(
         if stats_out.struct_size as usize != std::mem::size_of::<PlankTransportNativeStats>() {
             return PLANK_TRANSPORT_ERROR_INVALID_ARGUMENT;
         }
-        let stats = &endpoint.shared.stats;
-        let fec = *stats.video_fec.lock().unwrap();
-        *stats_out = PlankTransportNativeStats {
-            struct_size: std::mem::size_of::<PlankTransportNativeStats>() as u32,
-            video_frames_sent: stats.video_frames_sent.load(Ordering::Relaxed),
-            video_bytes_sent: stats.video_bytes_sent.load(Ordering::Relaxed),
-            video_frames_received: stats.video_frames_received.load(Ordering::Relaxed),
-            video_bytes_received: stats.video_bytes_received.load(Ordering::Relaxed),
-            video_send_drops: stats.video_send_drops.load(Ordering::Relaxed),
-            video_receive_drops: stats.video_receive_drops.load(Ordering::Relaxed),
-            audio_packets_sent: stats.audio_packets_sent.load(Ordering::Relaxed),
-            audio_bytes_sent: stats.audio_bytes_sent.load(Ordering::Relaxed),
-            audio_packets_received: stats.audio_packets_received.load(Ordering::Relaxed),
-            audio_bytes_received: stats.audio_bytes_received.load(Ordering::Relaxed),
-            audio_send_drops: stats.audio_send_drops.load(Ordering::Relaxed),
-            audio_receive_drops: stats.audio_receive_drops.load(Ordering::Relaxed),
-            input_packets_sent: stats.input_packets_sent.load(Ordering::Relaxed),
-            input_packets_received: stats.input_packets_received.load(Ordering::Relaxed),
-            data_packets_sent: stats.data_packets_sent.load(Ordering::Relaxed),
-            data_packets_received: stats.data_packets_received.load(Ordering::Relaxed),
-            quic_rtt_us: stats.quic_rtt_us.load(Ordering::Relaxed),
-            quic_packets_lost: stats.quic_packets_lost.load(Ordering::Relaxed),
-            kyproto_packets_dropped: stats.kyproto_packets_dropped.load(Ordering::Relaxed),
-            video_fec_source_symbols: fec.0,
-            video_fec_source_symbols_missing: fec.1,
-            video_fec_source_symbols_unrecovered: fec.2,
-        };
+        *stats_out = endpoint.shared.stats.snapshot();
         PLANK_TRANSPORT_OK
+    })
+}
+
+/// # Safety
+/// Endpoint and configuration strings must remain readable during this call.
+/// An output handle, if requested, must later be destroyed exactly once.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn plank_transport_native_metrics_configure(
+    endpoint: *mut PlankTransportNativeEndpoint,
+    config: *const crate::metrics::PlankMetricsConfig,
+    handle_out: *mut *mut crate::metrics::PlankMetricsHandle,
+) -> i32 {
+    catch_result(|| {
+        if !handle_out.is_null() { unsafe { *handle_out = std::ptr::null_mut(); } }
+        let (Some(endpoint), Some(config)) = (unsafe { endpoint.as_ref() }, unsafe { config.as_ref() }) else {
+            return PLANK_TRANSPORT_ERROR_INVALID_ARGUMENT;
+        };
+        let Ok(reporter) = (unsafe { crate::metrics::Reporter::create(config, endpoint.mode == 1) }) else {
+            return PLANK_TRANSPORT_ERROR_INVALID_ARGUMENT;
+        };
+        let lifecycle = endpoint.worker.lock().unwrap();
+        if endpoint.shared.state() != EndpointState::Idle || endpoint.shared.metrics.set(reporter.clone()).is_err() {
+            return PLANK_TRANSPORT_ERROR_INVALID_STATE;
+        }
+        if !handle_out.is_null() {
+            unsafe { *handle_out = Box::into_raw(Box::new(crate::metrics::PlankMetricsHandle(reporter.clone()))); }
+        }
+        drop(lifecycle);
+        reporter.event("created");
+        PLANK_TRANSPORT_OK
+    })
+}
+
+/// # Safety
+/// Endpoint and info strings must remain live during this call.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn plank_transport_native_metrics_stream_info(
+    endpoint: *mut PlankTransportNativeEndpoint,
+    info: *const crate::metrics::PlankMetricsStreamInfo,
+) -> i32 {
+    catch_result(|| {
+        let (Some(endpoint), Some(info)) = (unsafe { endpoint.as_ref() }, unsafe { info.as_ref() }) else {
+            return PLANK_TRANSPORT_ERROR_INVALID_ARGUMENT;
+        };
+        let Some(reporter) = endpoint.shared.metrics.get() else { return PLANK_TRANSPORT_OK; };
+        match unsafe { reporter.stream_info(info) } {
+            Ok(()) => PLANK_TRANSPORT_OK,
+            Err(()) => PLANK_TRANSPORT_ERROR_INVALID_ARGUMENT,
+        }
     })
 }
 
@@ -1950,10 +2023,16 @@ fn stop_endpoint(endpoint: &PlankTransportNativeEndpoint) -> i32 {
         && worker.join().is_err()
     {
         endpoint.shared.fail("native KyProto worker panicked");
+        drop(worker_slot);
+        if let Some(metrics) = endpoint.shared.metrics.get() { metrics.finish(true); }
         return PLANK_TRANSPORT_ERROR_PANIC;
     }
     if endpoint.shared.state() != EndpointState::Failed {
         endpoint.shared.set_state(EndpointState::Stopped);
+    }
+    drop(worker_slot);
+    if let Some(metrics) = endpoint.shared.metrics.get() {
+        metrics.finish(endpoint.shared.state() == EndpointState::Failed);
     }
     #[cfg(feature = "sender-timing")]
     endpoint.shared.sender_trace.flush();

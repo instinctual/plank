@@ -1,0 +1,112 @@
+# PLANK metrics through Telegraf
+
+Branch: `metrics-telegraf`, based on accepted main `1d770bab`.
+
+The operator wants Host and Client metrics in InfluxDB 2 and the existing
+Grafana instance. After initial validation against the previous bucket, the
+operator requested a dedicated PLANK bucket and unified appliance provisioning.
+The operator chose to retain InfluxDB 2. Linux Hosts and Ubuntu Clients already run
+Telegraf. Macs do not yet have the agent. Deployment addresses, organization,
+bucket and credentials stay in private notes/provisioning, outside this repo.
+
+## Architecture
+
+PLANK emits bounded Influx line-protocol datagrams to an IPv4 loopback listener.
+Use Telegraf's built-in `inputs.socket_listener` and the existing
+`outputs.influxdb_v2`; no custom Telegraf plugin, database SDK, credential store,
+new PLANK transport lane, or externally listening PLANK service is needed.
+The same exporter supports both operating systems. Mac collection requires a
+separate Telegraf installation; PLANK packages do not install/start that agent.
+
+Administrator configuration in Host/Client INI files enables metrics, selects
+the localhost UDP port (default 28991) and sample interval (default 1 second).
+Disabled by default. Export failures never fail or delay a session. No HTTP,
+DNS, disk spooling, synchronous retry or per-frame network logging in PLANK.
+Telegraf owns buffering and remote delivery. The local datagram hop is best
+effort, not a reliable audit trail. No extra privileges are required.
+
+## Data and dashboard
+
+- Reuse transport counters and Client decoder/presenter statistics. Keep
+  sender drops, receive queue drops, frame gaps, QUIC loss and RaptorQ source-
+  symbol loss separate. Do not export the toolbar's ten-second peaks as raw
+  interval loss. Handle counter resets and unknown/empty intervals explicitly.
+- Export RTT, video/audio rates and counts, queue pressure/drops, network/
+  decode/render FPS, processing/decoding/presentation timing, stream profile,
+  capture source, resolution, and metric freshness where actually available.
+  Do not invent unavailable capture/encoder/GPU or audio-device measurements.
+- Telegraf adds its existing local `host` tag so PLANK and system metrics can
+  be correlated. Stable workstation/bookmark identifiers distinguish peers and
+  duplicate bookmarks. Highly variable connection identifiers remain fields.
+- Keep schema names and units fixed; bound fields, strings and datagrams.
+  No usernames, credentials, clipboard text, keystrokes or screen contents.
+  Emit wall-clock timestamps; calculate rates with monotonic elapsed time.
+- Supply a Grafana dashboard with a selectable existing InfluxDB data source,
+  existing InfluxQL queries, machine/session filters, network/FEC, video, queue/drop and freshness panels.
+  Reuse system metrics already collected by Telegraf instead of duplicating them.
+
+## Provisioning and qualification
+
+The private Ubuntu provisioner now has one PLANK product with Production/Beta
+package channels and Client/Relay input profiles. Fresh installations use one
+PLANK bucket for system and application metrics. The operator authorized the
+bucket write-only token in the permanently private provisioning repository's
+shared Telegraf output file. Installation copies that ordinary configuration
+as `root:telegraf`, mode `0640`, without a generator, prompt or separate token
+store. Only `--channel` and `--help` remain in the Client installer. No token or
+deployment value belongs in this public repository. Administrator and Grafana
+read tokens remain outside Git.
+Current flush interval 5s plus jitter 10s means
+samples reach the database in batches roughly 5–15s apart. Preserve this policy
+unless the operator requests a change; source samples can still be one second.
+
+Test line-protocol escaping/types, payload limits, resets, empty intervals,
+disabled mode, absent/stalled collectors, concurrent teardown and multiple
+sessions. Exercise the real Telegraf parser with an isolated localhost listener
+and file output. Keep streaming/loss performance limits unchanged. Build all
+four candidates on hosted Actions and preserve the accepted main baseline.
+
+The dashboard now uses a dedicated InfluxQL data source for the PLANK bucket,
+with a bucket-scoped read token. The dashboard review uses ten panels and 24 visual
+queries, machine-name Host/Client filters, no bookmark grouping, fill(none),
+and Table legends showing Last non-null values. Host Encoder Target is a
+separate panel from the measured video payload rates. The operator authorized Linux-only deployment. Both Linux
+products and local Telegraf inputs are installed and enabled. Real Host and Client media metrics
+are visible. The
+test endpoints' existing system-metrics buckets are preserved through
+application-only output filters. All 24 visual queries pass against the new
+bucket and return actual Host and Client observations. Historical buckets/data
+sources are retained. The Grafana setup account is back to Editor.
+No Mac deployment occurred. Private provisioner checks cover five isolated
+installer CLI tests, shell syntax and actual Telegraf parsing for both input
+profiles without database writes. The operator's intervening ping/process-input
+and ZeroTier cleanup commits were pulled and preserved. A full fresh-appliance
+installation has not been run; its older package pins are not promoted to a
+candidate absent from the provisioning server.
+No merge, release publication or change to existing system-metric collection
+is implied by creating this branch.
+
+## Ubuntu Wacom activity follow-up
+
+The operator requested Wacom activity during active PLANK sessions, initially
+on Ubuntu Clients, and a detailed activity history. Observe decoded pen
+events from the existing grabbed evdev descriptors for raw-HID forwarding and
+from the existing libinput pen path for normalized forwarding. Do not infer pen
+movement from generic HID traffic or change forwarding, tablet identity or input
+recovery. Resynchronize observation after evdev overflow and attachment changes.
+
+Export only aggregate movement/tip-down counts, last-activity age, observation
+availability and a one-minute recent-activity state. Reuse the existing bounded
+local metrics output; no per-event log writes, extra input thread or wire change.
+The dashboard labels states Tablet active / Tablet idle / No data. This is
+interaction telemetry, not a work-performance determination. The operator
+removed generic status tiles and the minute-long active hold. Display raw
+movement/contact counts in one-second buckets, aggregated per Client across
+sessions, with finite gaps for missing observations. The exported diagnostic
+recent-activity state is not used by this view. No physical-workstation or
+macOS Client monitoring in this implementation.
+
+Candidate version is 1.4.12. The operator additionally authorized installation
+on another Ubuntu Client; deployment details and credentials stay private.
+Require hosted Client compilation, normal/sanitized Wacom fixtures, actual
+Telegraf parsing and live pen activity verification before installed acceptance.

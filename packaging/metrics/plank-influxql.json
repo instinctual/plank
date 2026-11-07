@@ -1,0 +1,2275 @@
+{
+  "id": null,
+  "uid": "plank-sessions-influxql",
+  "title": "PLANK sessions",
+  "description": "PLANK application metrics through Telegraf and an existing InfluxDB2 InfluxQL data source. No database URL, credentials or bucket binding is embedded.",
+  "tags": [
+    "PLANK",
+    "Telegraf"
+  ],
+  "schemaVersion": 39,
+  "version": 2,
+  "timezone": "browser",
+  "refresh": "5s",
+  "time": {
+    "from": "now-30m",
+    "to": "now"
+  },
+  "editable": true,
+  "templating": {
+    "list": [
+      {
+        "name": "datasource",
+        "label": "InfluxDB (InfluxQL)",
+        "type": "datasource",
+        "query": "influxdb",
+        "refresh": 1
+      },
+      {
+        "name": "hosts",
+        "label": "Hosts",
+        "type": "query",
+        "datasource": {
+          "type": "influxdb",
+          "uid": "${datasource}"
+        },
+        "query": "SHOW TAG VALUES FROM \"plank_transport\" WITH KEY = \"host\" WHERE \"role\" = 'host'",
+        "refresh": 1,
+        "includeAll": true,
+        "allValue": ".*",
+        "multi": true,
+        "current": {
+          "text": "All",
+          "value": "$__all"
+        },
+        "sort": 1
+      },
+      {
+        "name": "clients",
+        "label": "Clients",
+        "type": "query",
+        "datasource": {
+          "type": "influxdb",
+          "uid": "${datasource}"
+        },
+        "query": "SHOW TAG VALUES FROM \"plank_transport\" WITH KEY = \"host\" WHERE \"role\" = 'client'",
+        "refresh": 1,
+        "includeAll": true,
+        "allValue": ".*",
+        "multi": true,
+        "current": {
+          "text": "All",
+          "value": "$__all"
+        },
+        "sort": 1
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 17,
+      "type": "state-timeline",
+      "title": "Wacom Tablet Activity",
+      "description": "Actual pen activity in each one-second reporting interval, with no active hold period. Green means movement or tip-down in that sample; gray means the pen source was observed with no activity. No data means it was not observed or a sample is missing. Includes focused active PLANK sessions on Ubuntu Clients only. Multiple sessions share a Client row. Telegraf buffering can delay the newest samples.",
+      "datasource": {
+        "type": "influxdb",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 24,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "${datasource}"
+          },
+          "rawQuery": false,
+          "resultFormat": "time_series",
+          "alias": "$tag_host",
+          "measurement": "plank_transport",
+          "policy": "default",
+          "select": [
+            [
+              {
+                "type": "field",
+                "params": [
+                  "pen_motion_events_interval"
+                ]
+              },
+              {
+                "type": "sum",
+                "params": []
+              },
+              {
+                "type": "math",
+                "params": [
+                  "+ sum(\"pen_tip_down_events_interval\")"
+                ]
+              },
+              {
+                "type": "alias",
+                "params": [
+                  "Pen events"
+                ]
+              }
+            ]
+          ],
+          "groupBy": [
+            {
+              "type": "time",
+              "params": [
+                "1s"
+              ]
+            },
+            {
+              "type": "tag",
+              "params": [
+                "host"
+              ]
+            },
+            {
+              "type": "fill",
+              "params": [
+                "none"
+              ]
+            }
+          ],
+          "tags": [
+            {
+              "key": "role",
+              "operator": "=",
+              "value": "client"
+            },
+            {
+              "key": "host",
+              "operator": "=~",
+              "value": "/^${clients:regex}$/",
+              "condition": "AND"
+            }
+          ],
+          "orderByTime": "ASC"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [
+            {
+              "type": "range",
+              "options": {
+                "from": 0,
+                "to": 0,
+                "result": {
+                  "text": "Tablet idle",
+                  "color": "#8e8e8e",
+                  "index": 0
+                }
+              }
+            },
+            {
+              "type": "range",
+              "options": {
+                "from": 1,
+                "to": 9223372036854775807,
+                "result": {
+                  "text": "Tablet active",
+                  "color": "#73BF69",
+                  "index": 1
+                }
+              }
+            },
+            {
+              "type": "special",
+              "options": {
+                "match": "null",
+                "result": {
+                  "text": "No data",
+                  "color": "#5b5b66",
+                  "index": 2
+                }
+              }
+            }
+          ],
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "#8e8e8e"
+          },
+          "noValue": "No data",
+          "decimals": 0,
+          "custom": {
+            "lineWidth": 0,
+            "fillOpacity": 90,
+            "spanNulls": false,
+            "insertNulls": 1500
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byType",
+              "options": "time"
+            },
+            "properties": [
+              {
+                "id": "custom.insertNulls",
+                "value": 1500
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "mergeValues": true,
+        "showValue": "auto",
+        "alignValue": "left",
+        "rowHeight": 0.9,
+        "perPage": 20,
+        "legend": {
+          "showLegend": true,
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      }
+    },
+    {
+      "id": 1,
+      "type": "timeseries",
+      "title": "QUIC round-trip time",
+      "description": "Measured transport RTT. Host and Client observations are separate; this is not glass-to-glass latency.",
+      "datasource": {
+        "type": "influxdb",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 8,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "${datasource}"
+          },
+          "rawQuery": false,
+          "resultFormat": "time_series",
+          "alias": "$tag_host Host RTT",
+          "measurement": "plank_transport",
+          "policy": "default",
+          "select": [
+            [
+              {
+                "type": "field",
+                "params": [
+                  "rtt_ms"
+                ]
+              },
+              {
+                "type": "mean",
+                "params": []
+              },
+              {
+                "type": "alias",
+                "params": [
+                  "RTT"
+                ]
+              }
+            ]
+          ],
+          "groupBy": [
+            {
+              "type": "time",
+              "params": [
+                "$__interval"
+              ]
+            },
+            {
+              "type": "tag",
+              "params": [
+                "host"
+              ]
+            },
+            {
+              "type": "fill",
+              "params": [
+                "none"
+              ]
+            }
+          ],
+          "tags": [
+            {
+              "key": "role",
+              "operator": "=",
+              "value": "host"
+            },
+            {
+              "key": "host",
+              "operator": "=~",
+              "value": "/^${hosts:regex}$/",
+              "condition": "AND"
+            }
+          ],
+          "orderByTime": "ASC"
+        },
+        {
+          "refId": "B",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "${datasource}"
+          },
+          "rawQuery": false,
+          "resultFormat": "time_series",
+          "alias": "$tag_host Client RTT",
+          "measurement": "plank_transport",
+          "policy": "default",
+          "select": [
+            [
+              {
+                "type": "field",
+                "params": [
+                  "rtt_ms"
+                ]
+              },
+              {
+                "type": "mean",
+                "params": []
+              },
+              {
+                "type": "alias",
+                "params": [
+                  "RTT"
+                ]
+              }
+            ]
+          ],
+          "groupBy": [
+            {
+              "type": "time",
+              "params": [
+                "$__interval"
+              ]
+            },
+            {
+              "type": "tag",
+              "params": [
+                "host"
+              ]
+            },
+            {
+              "type": "fill",
+              "params": [
+                "none"
+              ]
+            }
+          ],
+          "tags": [
+            {
+              "key": "role",
+              "operator": "=",
+              "value": "client"
+            },
+            {
+              "key": "host",
+              "operator": "=~",
+              "value": "/^${clients:regex}$/",
+              "condition": "AND"
+            }
+          ],
+          "orderByTime": "ASC"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ms",
+          "min": 0,
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 1,
+            "fillOpacity": 4,
+            "spanNulls": false
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      }
+    },
+    {
+      "id": 2,
+      "type": "timeseries",
+      "title": "Encoded video payload",
+      "description": "Measured Host video send and Client video receive rates. Payload excludes FEC and QUIC/IP overhead.",
+      "datasource": {
+        "type": "influxdb",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 8,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "${datasource}"
+          },
+          "rawQuery": false,
+          "resultFormat": "time_series",
+          "alias": "$tag_host Host send Mbps",
+          "measurement": "plank_transport",
+          "policy": "default",
+          "select": [
+            [
+              {
+                "type": "field",
+                "params": [
+                  "video_send_mbps"
+                ]
+              },
+              {
+                "type": "mean",
+                "params": []
+              },
+              {
+                "type": "alias",
+                "params": [
+                  "send Mbps"
+                ]
+              }
+            ]
+          ],
+          "groupBy": [
+            {
+              "type": "time",
+              "params": [
+                "$__interval"
+              ]
+            },
+            {
+              "type": "tag",
+              "params": [
+                "host"
+              ]
+            },
+            {
+              "type": "fill",
+              "params": [
+                "none"
+              ]
+            }
+          ],
+          "tags": [
+            {
+              "key": "role",
+              "operator": "=",
+              "value": "host"
+            },
+            {
+              "key": "host",
+              "operator": "=~",
+              "value": "/^${hosts:regex}$/",
+              "condition": "AND"
+            }
+          ],
+          "orderByTime": "ASC"
+        },
+        {
+          "refId": "B",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "${datasource}"
+          },
+          "rawQuery": false,
+          "resultFormat": "time_series",
+          "alias": "$tag_host Client receive Mbps",
+          "measurement": "plank_transport",
+          "policy": "default",
+          "select": [
+            [
+              {
+                "type": "field",
+                "params": [
+                  "video_receive_mbps"
+                ]
+              },
+              {
+                "type": "mean",
+                "params": []
+              },
+              {
+                "type": "alias",
+                "params": [
+                  "receive Mbps"
+                ]
+              }
+            ]
+          ],
+          "groupBy": [
+            {
+              "type": "time",
+              "params": [
+                "$__interval"
+              ]
+            },
+            {
+              "type": "tag",
+              "params": [
+                "host"
+              ]
+            },
+            {
+              "type": "fill",
+              "params": [
+                "none"
+              ]
+            }
+          ],
+          "tags": [
+            {
+              "key": "role",
+              "operator": "=",
+              "value": "client"
+            },
+            {
+              "key": "host",
+              "operator": "=~",
+              "value": "/^${clients:regex}$/",
+              "condition": "AND"
+            }
+          ],
+          "orderByTime": "ASC"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "Mbits",
+          "min": 0,
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 1,
+            "fillOpacity": 4,
+            "spanNulls": false
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      }
+    },
+    {
+      "id": 15,
+      "type": "timeseries",
+      "title": "Host Encoder Target",
+      "description": "Configured encoder bitrate target for the selected Hosts, in Mbps.",
+      "datasource": {
+        "type": "influxdb",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 16,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "${datasource}"
+          },
+          "rawQuery": false,
+          "resultFormat": "time_series",
+          "alias": "$tag_host Host Encoder target",
+          "measurement": "plank_transport",
+          "policy": "default",
+          "select": [
+            [
+              {
+                "type": "field",
+                "params": [
+                  "encoder_target_mbps"
+                ]
+              },
+              {
+                "type": "mean",
+                "params": []
+              },
+              {
+                "type": "alias",
+                "params": [
+                  "Encoder target"
+                ]
+              }
+            ]
+          ],
+          "groupBy": [
+            {
+              "type": "time",
+              "params": [
+                "$__interval"
+              ]
+            },
+            {
+              "type": "tag",
+              "params": [
+                "host"
+              ]
+            },
+            {
+              "type": "fill",
+              "params": [
+                "none"
+              ]
+            }
+          ],
+          "tags": [
+            {
+              "key": "role",
+              "operator": "=",
+              "value": "host"
+            },
+            {
+              "key": "host",
+              "operator": "=~",
+              "value": "/^${hosts:regex}$/",
+              "condition": "AND"
+            }
+          ],
+          "orderByTime": "ASC"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "Mbits",
+          "min": 0,
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 1,
+            "fillOpacity": 4,
+            "spanNulls": false
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      }
+    },
+    {
+      "id": 3,
+      "type": "timeseries",
+      "title": "Incoming video loss \u2014 before / after FEC",
+      "description": "Client RaptorQ source-symbol counters, weighted by source symbols in each chart interval. Repair symbols are excluded. Missing/no-source intervals stay empty. Unlike the toolbar, these are not ten-second peak percentages.",
+      "datasource": {
+        "type": "influxdb",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 16,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "${datasource}"
+          },
+          "rawQuery": false,
+          "resultFormat": "time_series",
+          "alias": "$tag_host Client Before FEC",
+          "measurement": "plank_transport",
+          "policy": "default",
+          "select": [
+            [
+              {
+                "type": "field",
+                "params": [
+                  "video_fec_source_symbols_missing_interval"
+                ]
+              },
+              {
+                "type": "sum",
+                "params": []
+              },
+              {
+                "type": "math",
+                "params": [
+                  "* 100.0 / sum(\"video_fec_source_symbols_interval\")"
+                ]
+              },
+              {
+                "type": "alias",
+                "params": [
+                  "Before FEC"
+                ]
+              }
+            ]
+          ],
+          "groupBy": [
+            {
+              "type": "time",
+              "params": [
+                "$__interval"
+              ]
+            },
+            {
+              "type": "tag",
+              "params": [
+                "host"
+              ]
+            },
+            {
+              "type": "fill",
+              "params": [
+                "none"
+              ]
+            }
+          ],
+          "tags": [
+            {
+              "key": "role",
+              "operator": "=",
+              "value": "client"
+            },
+            {
+              "key": "host",
+              "operator": "=~",
+              "value": "/^${clients:regex}$/",
+              "condition": "AND"
+            }
+          ],
+          "orderByTime": "ASC"
+        },
+        {
+          "refId": "B",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "${datasource}"
+          },
+          "rawQuery": false,
+          "resultFormat": "time_series",
+          "alias": "$tag_host Client After FEC",
+          "measurement": "plank_transport",
+          "policy": "default",
+          "select": [
+            [
+              {
+                "type": "field",
+                "params": [
+                  "video_fec_source_symbols_unrecovered_interval"
+                ]
+              },
+              {
+                "type": "sum",
+                "params": []
+              },
+              {
+                "type": "math",
+                "params": [
+                  "* 100.0 / sum(\"video_fec_source_symbols_interval\")"
+                ]
+              },
+              {
+                "type": "alias",
+                "params": [
+                  "After FEC"
+                ]
+              }
+            ]
+          ],
+          "groupBy": [
+            {
+              "type": "time",
+              "params": [
+                "$__interval"
+              ]
+            },
+            {
+              "type": "tag",
+              "params": [
+                "host"
+              ]
+            },
+            {
+              "type": "fill",
+              "params": [
+                "none"
+              ]
+            }
+          ],
+          "tags": [
+            {
+              "key": "role",
+              "operator": "=",
+              "value": "client"
+            },
+            {
+              "key": "host",
+              "operator": "=~",
+              "value": "/^${clients:regex}$/",
+              "condition": "AND"
+            }
+          ],
+          "orderByTime": "ASC"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "min": 0,
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 1,
+            "fillOpacity": 4,
+            "spanNulls": false
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      }
+    },
+    {
+      "id": 4,
+      "type": "timeseries",
+      "title": "Client frame rate \u2014 network / decode / render",
+      "description": "Actual decoder statistics windows. Missing observations remain gaps; do not interpret them as measured zero FPS.",
+      "datasource": {
+        "type": "influxdb",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 24,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "${datasource}"
+          },
+          "rawQuery": false,
+          "resultFormat": "time_series",
+          "alias": "$tag_host Client network",
+          "measurement": "plank_client_video",
+          "policy": "default",
+          "select": [
+            [
+              {
+                "type": "field",
+                "params": [
+                  "network_fps"
+                ]
+              },
+              {
+                "type": "mean",
+                "params": []
+              },
+              {
+                "type": "alias",
+                "params": [
+                  "network"
+                ]
+              }
+            ]
+          ],
+          "groupBy": [
+            {
+              "type": "time",
+              "params": [
+                "$__interval"
+              ]
+            },
+            {
+              "type": "tag",
+              "params": [
+                "host"
+              ]
+            },
+            {
+              "type": "fill",
+              "params": [
+                "none"
+              ]
+            }
+          ],
+          "tags": [
+            {
+              "key": "role",
+              "operator": "=",
+              "value": "client"
+            },
+            {
+              "key": "host",
+              "operator": "=~",
+              "value": "/^${clients:regex}$/",
+              "condition": "AND"
+            }
+          ],
+          "orderByTime": "ASC"
+        },
+        {
+          "refId": "B",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "${datasource}"
+          },
+          "rawQuery": false,
+          "resultFormat": "time_series",
+          "alias": "$tag_host Client decode",
+          "measurement": "plank_client_video",
+          "policy": "default",
+          "select": [
+            [
+              {
+                "type": "field",
+                "params": [
+                  "decode_fps"
+                ]
+              },
+              {
+                "type": "mean",
+                "params": []
+              },
+              {
+                "type": "alias",
+                "params": [
+                  "decode"
+                ]
+              }
+            ]
+          ],
+          "groupBy": [
+            {
+              "type": "time",
+              "params": [
+                "$__interval"
+              ]
+            },
+            {
+              "type": "tag",
+              "params": [
+                "host"
+              ]
+            },
+            {
+              "type": "fill",
+              "params": [
+                "none"
+              ]
+            }
+          ],
+          "tags": [
+            {
+              "key": "role",
+              "operator": "=",
+              "value": "client"
+            },
+            {
+              "key": "host",
+              "operator": "=~",
+              "value": "/^${clients:regex}$/",
+              "condition": "AND"
+            }
+          ],
+          "orderByTime": "ASC"
+        },
+        {
+          "refId": "C",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "${datasource}"
+          },
+          "rawQuery": false,
+          "resultFormat": "time_series",
+          "alias": "$tag_host Client render",
+          "measurement": "plank_client_video",
+          "policy": "default",
+          "select": [
+            [
+              {
+                "type": "field",
+                "params": [
+                  "render_fps"
+                ]
+              },
+              {
+                "type": "mean",
+                "params": []
+              },
+              {
+                "type": "alias",
+                "params": [
+                  "render"
+                ]
+              }
+            ]
+          ],
+          "groupBy": [
+            {
+              "type": "time",
+              "params": [
+                "$__interval"
+              ]
+            },
+            {
+              "type": "tag",
+              "params": [
+                "host"
+              ]
+            },
+            {
+              "type": "fill",
+              "params": [
+                "none"
+              ]
+            }
+          ],
+          "tags": [
+            {
+              "key": "role",
+              "operator": "=",
+              "value": "client"
+            },
+            {
+              "key": "host",
+              "operator": "=~",
+              "value": "/^${clients:regex}$/",
+              "condition": "AND"
+            }
+          ],
+          "orderByTime": "ASC"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "fps",
+          "min": 0,
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 1,
+            "fillOpacity": 4,
+            "spanNulls": false
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      }
+    },
+    {
+      "id": 5,
+      "type": "timeseries",
+      "title": "Client timing \u2014 decode / queue / render",
+      "description": "Mean timing within each actual decoder window. Render queue timing is not audio delay; these values do not measure end-to-end latency.",
+      "datasource": {
+        "type": "influxdb",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 24,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "${datasource}"
+          },
+          "rawQuery": false,
+          "resultFormat": "time_series",
+          "alias": "$tag_host Client decode",
+          "measurement": "plank_client_video",
+          "policy": "default",
+          "select": [
+            [
+              {
+                "type": "field",
+                "params": [
+                  "decode_ms"
+                ]
+              },
+              {
+                "type": "mean",
+                "params": []
+              },
+              {
+                "type": "alias",
+                "params": [
+                  "decode"
+                ]
+              }
+            ]
+          ],
+          "groupBy": [
+            {
+              "type": "time",
+              "params": [
+                "$__interval"
+              ]
+            },
+            {
+              "type": "tag",
+              "params": [
+                "host"
+              ]
+            },
+            {
+              "type": "fill",
+              "params": [
+                "none"
+              ]
+            }
+          ],
+          "tags": [
+            {
+              "key": "role",
+              "operator": "=",
+              "value": "client"
+            },
+            {
+              "key": "host",
+              "operator": "=~",
+              "value": "/^${clients:regex}$/",
+              "condition": "AND"
+            }
+          ],
+          "orderByTime": "ASC"
+        },
+        {
+          "refId": "B",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "${datasource}"
+          },
+          "rawQuery": false,
+          "resultFormat": "time_series",
+          "alias": "$tag_host Client render_queue",
+          "measurement": "plank_client_video",
+          "policy": "default",
+          "select": [
+            [
+              {
+                "type": "field",
+                "params": [
+                  "render_queue_ms"
+                ]
+              },
+              {
+                "type": "mean",
+                "params": []
+              },
+              {
+                "type": "alias",
+                "params": [
+                  "render_queue"
+                ]
+              }
+            ]
+          ],
+          "groupBy": [
+            {
+              "type": "time",
+              "params": [
+                "$__interval"
+              ]
+            },
+            {
+              "type": "tag",
+              "params": [
+                "host"
+              ]
+            },
+            {
+              "type": "fill",
+              "params": [
+                "none"
+              ]
+            }
+          ],
+          "tags": [
+            {
+              "key": "role",
+              "operator": "=",
+              "value": "client"
+            },
+            {
+              "key": "host",
+              "operator": "=~",
+              "value": "/^${clients:regex}$/",
+              "condition": "AND"
+            }
+          ],
+          "orderByTime": "ASC"
+        },
+        {
+          "refId": "C",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "${datasource}"
+          },
+          "rawQuery": false,
+          "resultFormat": "time_series",
+          "alias": "$tag_host Client render",
+          "measurement": "plank_client_video",
+          "policy": "default",
+          "select": [
+            [
+              {
+                "type": "field",
+                "params": [
+                  "render_ms"
+                ]
+              },
+              {
+                "type": "mean",
+                "params": []
+              },
+              {
+                "type": "alias",
+                "params": [
+                  "render"
+                ]
+              }
+            ]
+          ],
+          "groupBy": [
+            {
+              "type": "time",
+              "params": [
+                "$__interval"
+              ]
+            },
+            {
+              "type": "tag",
+              "params": [
+                "host"
+              ]
+            },
+            {
+              "type": "fill",
+              "params": [
+                "none"
+              ]
+            }
+          ],
+          "tags": [
+            {
+              "key": "role",
+              "operator": "=",
+              "value": "client"
+            },
+            {
+              "key": "host",
+              "operator": "=~",
+              "value": "/^${clients:regex}$/",
+              "condition": "AND"
+            }
+          ],
+          "orderByTime": "ASC"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ms",
+          "min": 0,
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 1,
+            "fillOpacity": 4,
+            "spanNulls": false
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      }
+    },
+    {
+      "id": 6,
+      "type": "timeseries",
+      "title": "Host processing",
+      "description": "Host processing metadata covers the capture/encoder path as instrumented by that platform. It is not a separate GPU encode measurement. Zero/unknown samples are excluded.",
+      "datasource": {
+        "type": "influxdb",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 32,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "${datasource}"
+          },
+          "rawQuery": false,
+          "resultFormat": "time_series",
+          "alias": "$tag_host Host Mean",
+          "measurement": "plank_transport",
+          "policy": "default",
+          "select": [
+            [
+              {
+                "type": "field",
+                "params": [
+                  "host_processing_mean_ms"
+                ]
+              },
+              {
+                "type": "mean",
+                "params": []
+              },
+              {
+                "type": "alias",
+                "params": [
+                  "Mean"
+                ]
+              }
+            ]
+          ],
+          "groupBy": [
+            {
+              "type": "time",
+              "params": [
+                "$__interval"
+              ]
+            },
+            {
+              "type": "tag",
+              "params": [
+                "host"
+              ]
+            },
+            {
+              "type": "fill",
+              "params": [
+                "none"
+              ]
+            }
+          ],
+          "tags": [
+            {
+              "key": "role",
+              "operator": "=",
+              "value": "host"
+            },
+            {
+              "key": "host",
+              "operator": "=~",
+              "value": "/^${hosts:regex}$/",
+              "condition": "AND"
+            }
+          ],
+          "orderByTime": "ASC"
+        },
+        {
+          "refId": "B",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "${datasource}"
+          },
+          "rawQuery": false,
+          "resultFormat": "time_series",
+          "alias": "$tag_host Host Maximum",
+          "measurement": "plank_transport",
+          "policy": "default",
+          "select": [
+            [
+              {
+                "type": "field",
+                "params": [
+                  "host_processing_max_ms"
+                ]
+              },
+              {
+                "type": "max",
+                "params": []
+              },
+              {
+                "type": "alias",
+                "params": [
+                  "Maximum"
+                ]
+              }
+            ]
+          ],
+          "groupBy": [
+            {
+              "type": "time",
+              "params": [
+                "$__interval"
+              ]
+            },
+            {
+              "type": "tag",
+              "params": [
+                "host"
+              ]
+            },
+            {
+              "type": "fill",
+              "params": [
+                "none"
+              ]
+            }
+          ],
+          "tags": [
+            {
+              "key": "role",
+              "operator": "=",
+              "value": "host"
+            },
+            {
+              "key": "host",
+              "operator": "=~",
+              "value": "/^${hosts:regex}$/",
+              "condition": "AND"
+            }
+          ],
+          "orderByTime": "ASC"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ms",
+          "min": 0,
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 1,
+            "fillOpacity": 4,
+            "spanNulls": false
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      }
+    },
+    {
+      "id": 9,
+      "type": "timeseries",
+      "title": "QUIC and protocol drops",
+      "description": "Events per chart interval. QUIC loss includes transport traffic; it must not be divided by RaptorQ video-symbol counts or labeled video packet loss.",
+      "datasource": {
+        "type": "influxdb",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 32,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "${datasource}"
+          },
+          "rawQuery": false,
+          "resultFormat": "time_series",
+          "alias": "$tag_host Host quic_packets_lost",
+          "measurement": "plank_transport",
+          "policy": "default",
+          "select": [
+            [
+              {
+                "type": "field",
+                "params": [
+                  "quic_packets_lost_interval"
+                ]
+              },
+              {
+                "type": "sum",
+                "params": []
+              },
+              {
+                "type": "alias",
+                "params": [
+                  "quic_packets_lost"
+                ]
+              }
+            ]
+          ],
+          "groupBy": [
+            {
+              "type": "time",
+              "params": [
+                "$__interval"
+              ]
+            },
+            {
+              "type": "tag",
+              "params": [
+                "host"
+              ]
+            },
+            {
+              "type": "fill",
+              "params": [
+                "none"
+              ]
+            }
+          ],
+          "tags": [
+            {
+              "key": "role",
+              "operator": "=",
+              "value": "host"
+            },
+            {
+              "key": "host",
+              "operator": "=~",
+              "value": "/^${hosts:regex}$/",
+              "condition": "AND"
+            }
+          ],
+          "orderByTime": "ASC"
+        },
+        {
+          "refId": "B",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "${datasource}"
+          },
+          "rawQuery": false,
+          "resultFormat": "time_series",
+          "alias": "$tag_host Client quic_packets_lost",
+          "measurement": "plank_transport",
+          "policy": "default",
+          "select": [
+            [
+              {
+                "type": "field",
+                "params": [
+                  "quic_packets_lost_interval"
+                ]
+              },
+              {
+                "type": "sum",
+                "params": []
+              },
+              {
+                "type": "alias",
+                "params": [
+                  "quic_packets_lost"
+                ]
+              }
+            ]
+          ],
+          "groupBy": [
+            {
+              "type": "time",
+              "params": [
+                "$__interval"
+              ]
+            },
+            {
+              "type": "tag",
+              "params": [
+                "host"
+              ]
+            },
+            {
+              "type": "fill",
+              "params": [
+                "none"
+              ]
+            }
+          ],
+          "tags": [
+            {
+              "key": "role",
+              "operator": "=",
+              "value": "client"
+            },
+            {
+              "key": "host",
+              "operator": "=~",
+              "value": "/^${clients:regex}$/",
+              "condition": "AND"
+            }
+          ],
+          "orderByTime": "ASC"
+        },
+        {
+          "refId": "C",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "${datasource}"
+          },
+          "rawQuery": false,
+          "resultFormat": "time_series",
+          "alias": "$tag_host Host kyproto_packets_dropped",
+          "measurement": "plank_transport",
+          "policy": "default",
+          "select": [
+            [
+              {
+                "type": "field",
+                "params": [
+                  "kyproto_packets_dropped_interval"
+                ]
+              },
+              {
+                "type": "sum",
+                "params": []
+              },
+              {
+                "type": "alias",
+                "params": [
+                  "kyproto_packets_dropped"
+                ]
+              }
+            ]
+          ],
+          "groupBy": [
+            {
+              "type": "time",
+              "params": [
+                "$__interval"
+              ]
+            },
+            {
+              "type": "tag",
+              "params": [
+                "host"
+              ]
+            },
+            {
+              "type": "fill",
+              "params": [
+                "none"
+              ]
+            }
+          ],
+          "tags": [
+            {
+              "key": "role",
+              "operator": "=",
+              "value": "host"
+            },
+            {
+              "key": "host",
+              "operator": "=~",
+              "value": "/^${hosts:regex}$/",
+              "condition": "AND"
+            }
+          ],
+          "orderByTime": "ASC"
+        },
+        {
+          "refId": "D",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "${datasource}"
+          },
+          "rawQuery": false,
+          "resultFormat": "time_series",
+          "alias": "$tag_host Client kyproto_packets_dropped",
+          "measurement": "plank_transport",
+          "policy": "default",
+          "select": [
+            [
+              {
+                "type": "field",
+                "params": [
+                  "kyproto_packets_dropped_interval"
+                ]
+              },
+              {
+                "type": "sum",
+                "params": []
+              },
+              {
+                "type": "alias",
+                "params": [
+                  "kyproto_packets_dropped"
+                ]
+              }
+            ]
+          ],
+          "groupBy": [
+            {
+              "type": "time",
+              "params": [
+                "$__interval"
+              ]
+            },
+            {
+              "type": "tag",
+              "params": [
+                "host"
+              ]
+            },
+            {
+              "type": "fill",
+              "params": [
+                "none"
+              ]
+            }
+          ],
+          "tags": [
+            {
+              "key": "role",
+              "operator": "=",
+              "value": "client"
+            },
+            {
+              "key": "host",
+              "operator": "=~",
+              "value": "/^${clients:regex}$/",
+              "condition": "AND"
+            }
+          ],
+          "orderByTime": "ASC"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "min": 0,
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 1,
+            "fillOpacity": 4,
+            "spanNulls": false
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      }
+    },
+    {
+      "id": 10,
+      "type": "timeseries",
+      "title": "Client frame drops",
+      "description": "Dropped frames per chart interval. Network frame gaps differ from residual FEC source-symbol loss. Render and overflow drops are local to the Client.",
+      "datasource": {
+        "type": "influxdb",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 40,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "${datasource}"
+          },
+          "rawQuery": false,
+          "resultFormat": "time_series",
+          "alias": "$tag_host Client network",
+          "measurement": "plank_client_video",
+          "policy": "default",
+          "select": [
+            [
+              {
+                "type": "field",
+                "params": [
+                  "network_dropped_frames"
+                ]
+              },
+              {
+                "type": "sum",
+                "params": []
+              },
+              {
+                "type": "alias",
+                "params": [
+                  "network"
+                ]
+              }
+            ]
+          ],
+          "groupBy": [
+            {
+              "type": "time",
+              "params": [
+                "$__interval"
+              ]
+            },
+            {
+              "type": "tag",
+              "params": [
+                "host"
+              ]
+            },
+            {
+              "type": "fill",
+              "params": [
+                "none"
+              ]
+            }
+          ],
+          "tags": [
+            {
+              "key": "role",
+              "operator": "=",
+              "value": "client"
+            },
+            {
+              "key": "host",
+              "operator": "=~",
+              "value": "/^${clients:regex}$/",
+              "condition": "AND"
+            }
+          ],
+          "orderByTime": "ASC"
+        },
+        {
+          "refId": "B",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "${datasource}"
+          },
+          "rawQuery": false,
+          "resultFormat": "time_series",
+          "alias": "$tag_host Client render",
+          "measurement": "plank_client_video",
+          "policy": "default",
+          "select": [
+            [
+              {
+                "type": "field",
+                "params": [
+                  "render_dropped_frames"
+                ]
+              },
+              {
+                "type": "sum",
+                "params": []
+              },
+              {
+                "type": "alias",
+                "params": [
+                  "render"
+                ]
+              }
+            ]
+          ],
+          "groupBy": [
+            {
+              "type": "time",
+              "params": [
+                "$__interval"
+              ]
+            },
+            {
+              "type": "tag",
+              "params": [
+                "host"
+              ]
+            },
+            {
+              "type": "fill",
+              "params": [
+                "none"
+              ]
+            }
+          ],
+          "tags": [
+            {
+              "key": "role",
+              "operator": "=",
+              "value": "client"
+            },
+            {
+              "key": "host",
+              "operator": "=~",
+              "value": "/^${clients:regex}$/",
+              "condition": "AND"
+            }
+          ],
+          "orderByTime": "ASC"
+        },
+        {
+          "refId": "C",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "${datasource}"
+          },
+          "rawQuery": false,
+          "resultFormat": "time_series",
+          "alias": "$tag_host Client overflow",
+          "measurement": "plank_client_video",
+          "policy": "default",
+          "select": [
+            [
+              {
+                "type": "field",
+                "params": [
+                  "overflow_dropped_frames"
+                ]
+              },
+              {
+                "type": "sum",
+                "params": []
+              },
+              {
+                "type": "alias",
+                "params": [
+                  "overflow"
+                ]
+              }
+            ]
+          ],
+          "groupBy": [
+            {
+              "type": "time",
+              "params": [
+                "$__interval"
+              ]
+            },
+            {
+              "type": "tag",
+              "params": [
+                "host"
+              ]
+            },
+            {
+              "type": "fill",
+              "params": [
+                "none"
+              ]
+            }
+          ],
+          "tags": [
+            {
+              "key": "role",
+              "operator": "=",
+              "value": "client"
+            },
+            {
+              "key": "host",
+              "operator": "=~",
+              "value": "/^${clients:regex}$/",
+              "condition": "AND"
+            }
+          ],
+          "orderByTime": "ASC"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "min": 0,
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 1,
+            "fillOpacity": 4,
+            "spanNulls": false
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      }
+    },
+    {
+      "id": 11,
+      "type": "timeseries",
+      "title": "Encoded audio payload",
+      "description": "Encoded Host audio send rate and Client audio receive rate. Microphone uplink is a separate stream and is not represented by these counters.",
+      "datasource": {
+        "type": "influxdb",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 40,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "${datasource}"
+          },
+          "rawQuery": false,
+          "resultFormat": "time_series",
+          "alias": "$tag_host Host send",
+          "measurement": "plank_transport",
+          "policy": "default",
+          "select": [
+            [
+              {
+                "type": "field",
+                "params": [
+                  "audio_send_kbps"
+                ]
+              },
+              {
+                "type": "mean",
+                "params": []
+              },
+              {
+                "type": "alias",
+                "params": [
+                  "send"
+                ]
+              }
+            ]
+          ],
+          "groupBy": [
+            {
+              "type": "time",
+              "params": [
+                "$__interval"
+              ]
+            },
+            {
+              "type": "tag",
+              "params": [
+                "host"
+              ]
+            },
+            {
+              "type": "fill",
+              "params": [
+                "none"
+              ]
+            }
+          ],
+          "tags": [
+            {
+              "key": "role",
+              "operator": "=",
+              "value": "host"
+            },
+            {
+              "key": "host",
+              "operator": "=~",
+              "value": "/^${hosts:regex}$/",
+              "condition": "AND"
+            }
+          ],
+          "orderByTime": "ASC"
+        },
+        {
+          "refId": "B",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "${datasource}"
+          },
+          "rawQuery": false,
+          "resultFormat": "time_series",
+          "alias": "$tag_host Client receive",
+          "measurement": "plank_transport",
+          "policy": "default",
+          "select": [
+            [
+              {
+                "type": "field",
+                "params": [
+                  "audio_receive_kbps"
+                ]
+              },
+              {
+                "type": "mean",
+                "params": []
+              },
+              {
+                "type": "alias",
+                "params": [
+                  "receive"
+                ]
+              }
+            ]
+          ],
+          "groupBy": [
+            {
+              "type": "time",
+              "params": [
+                "$__interval"
+              ]
+            },
+            {
+              "type": "tag",
+              "params": [
+                "host"
+              ]
+            },
+            {
+              "type": "fill",
+              "params": [
+                "none"
+              ]
+            }
+          ],
+          "tags": [
+            {
+              "key": "role",
+              "operator": "=",
+              "value": "client"
+            },
+            {
+              "key": "host",
+              "operator": "=~",
+              "value": "/^${clients:regex}$/",
+              "condition": "AND"
+            }
+          ],
+          "orderByTime": "ASC"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "Kbits",
+          "min": 0,
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 1,
+            "fillOpacity": 4,
+            "spanNulls": false
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      }
+    }
+  ],
+  "annotations": {
+    "list": []
+  }
+}

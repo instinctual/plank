@@ -316,6 +316,11 @@ static int graphical(const char *service, NSString *role, NSString *directory, B
             return capture;
         }
         input:^id<PLANKMacInputDevice> { return [PLANKMacQuartzInput new]; }];
+    NSMutableDictionary *metrics = [config[@"Metrics"] mutableCopy];
+    if (![metrics[@"Valid"] boolValue]) NSLog(@"PLANK metrics disabled: invalid metrics configuration");
+    metrics[@"WorkstationID"] = config[@"UUID"];
+    metrics[@"Version"] = @PLANK_MACOS_HOST_VERSION;
+    runtime.metricsConfiguration = metrics;
     if (desktopDisplay.mirrorHostDisplays) runtime.releaseDisplay = ^BOOL {
         dispatch_semaphore_t finished = dispatch_semaphore_create(0);
         __block atomic_bool restored = false;
