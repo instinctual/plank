@@ -58,8 +58,10 @@ and file output. Keep streaming/loss performance limits unchanged. Build all
 four candidates on hosted Actions and preserve the accepted main baseline.
 
 The dashboard is deployed against the existing InfluxQL data source; all 34
-queries are accepted. Installed collection and populated-panel validation still
-require an authorized test endpoint. No Host/Client/Telegraf configuration or
-installation has occurred.
+queries are accepted. The operator authorized Linux-only deployment. Both Linux
+products and local Telegraf inputs are installed and enabled. Real Host metrics
+are visible; Client media collection awaits the operator's reconnection. The
+Host's system-metrics bucket is preserved through an application-only output
+filter and its existing route to the same database. No Mac deployment occurred.
 No merge, release publication or change to existing system-metric collection
 is implied by creating this branch.

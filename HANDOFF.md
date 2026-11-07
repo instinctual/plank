@@ -4,14 +4,15 @@ Read `AGENTS.md` and the relevant build runbook first. Machine inventory,
 credentials and private captures stay outside Git. This file records current
 state; older detailed results remain in Git history and the artifact catalog.
 
-## Metrics / Telegraf — candidates ready; live collection pending
+## Metrics / Telegraf — Linux deployment installed; Host data verified
 
 Current branch: **`metrics-telegraf`**, based on accepted main `1d770bab`.
 Product source is `816b1e18`; subsequent notes do not change runtime code.
 The operator selected **InfluxDB 2**, existing **InfluxQL** Grafana queries,
 and existing local Telegraf agents for Linux Hosts/Clients. Macs need a separate
 agent installation. Deployment addresses, data-source identity and tokens remain
-in private notes/provisioning. No Host/Client/Telegraf deployment has changed.
+in private notes/provisioning. The operator authorized Linux-only installation;
+no Mac package or agent was installed.
 
 Candidate **1.4.11** adds one shared, optional IPv4-loopback UDP exporter in the
 transport crate; policy wiring on both operating systems; actual Client decoder
@@ -68,16 +69,34 @@ The existing Grafana data source is healthy and accepted all 34 dashboard
 queries. The 14-panel dashboard is created, moved into the existing metrics
 folder and read back successfully. The temporary setup account was returned to
 Editor, with Admin capabilities absent and dashboard access still working.
-No data-source settings were changed. No live PLANK metrics have been collected.
+No Grafana data-source settings were changed. The verified Linux Host RPM and
+Ubuntu Client DEB are installed on the authorized test endpoints; package and
+running-executable hashes match the originals. Both localhost Telegraf inputs
+are listening, and PLANK metrics are enabled. Client bookmarks/settings compare
+unchanged and the Client was reopened successfully. The existing Host session
+reconnected and its desktop application remained running.
+
+Real Host RTT, video cadence, encoder target, capture/profile and resolution
+records now reach the existing dashboard. System metrics remain current in
+their original bucket. That Host needed a separate, measurement-filtered output:
+its system metrics use another bucket, and the initially supplied overlay URL
+was unreachable there. The new output now uses its existing LAN route to the
+same InfluxDB instance, verified against Grafana's configured data source.
+The old system output excludes only the three PLANK measurement names.
+Client system-metric delivery is healthy; real Client session metrics await
+reconnection by the operator. Do not claim Client media-metrics acceptance yet.
 
 Evidence is in `artifacts/qualification/metrics-telegraf-1.4.11/`. The branch's
 signing permission is `65875659`; remove it when retiring this branch.
-Next: obtain operator approval for the proposed development-Host/End-User-Client
-installation, configure the local Telegraf input and PLANK metrics, then verify
-real session data and populated graphs. End-User installation authorization is
-pending. The Mac also needs Telegraf; credentials stay outside Git. Do not
-interrupt an active session or install packages until that approval arrives.
-No merge or release publication is requested.
+Root-only rollback backups are retained on both endpoints; transferred package
+and credential-bearing staging files are removed. Access details, raw live
+metrics and configuration backups are private, outside Git. The optional public
+Telegraf input now accepts only the three PLANK measurements; its real-parser
+fixture passes. This deployment configuration update does not change the
+already verified installers.
+Next: after the operator reconnects the Ubuntu Client, verify its real network,
+decoder/presentation and FEC measurements in Grafana. Mac installation is out of
+scope. No merge or release publication is requested.
 
 ## Code review hardening — accepted and merged into main
 

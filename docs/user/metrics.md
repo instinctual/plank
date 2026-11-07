@@ -34,6 +34,14 @@ receive from both products and from multiple Client sessions on that machine.
 No firewall opening or special capability is needed. Invalid optional metrics
 values disable collection without preventing a session.
 
+If system metrics already go to a different bucket, retain that destination.
+Add a separate `outputs.influxdb_v2` using the application-metrics destination
+and `namepass = ["plank_transport", "plank_client_video", "plank_session"]`.
+Add the same list as `namedrop` on the original output so application metrics
+are not duplicated there. Keep tokens in the administrator-managed Telegraf
+configuration, not PLANK configuration or the repository. The supplied input
+also accepts only these three measurement names.
+
 ## Grafana
 
 Import [PLANK sessions](../../packaging/metrics/plank-influxql.json), then select
