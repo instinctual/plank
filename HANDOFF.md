@@ -4,6 +4,32 @@ Read `AGENTS.md` and the relevant build runbook first. Machine inventory,
 credentials and private captures stay outside Git. This file records current
 state; older detailed results remain in Git history and the artifact catalog.
 
+## Metrics / Telegraf — in progress
+
+Current branch: **`metrics-telegraf`**, based on accepted main `1d770bab`.
+The operator selected **InfluxDB 2**, existing **InfluxQL** Grafana queries,
+and existing local Telegraf agents for Linux Hosts/Clients. Macs need a separate
+agent installation. All deployment URLs, database/account details and credentials
+remain in private notes/provisioning. No production configuration has changed.
+
+Candidate version **1.4.11** adds one shared, optional IPv4-loopback UDP exporter
+in the transport crate, Host and Client policy wiring, Client decoder windows,
+Telegraf's standard socket-listener input and an importable InfluxQL dashboard.
+Metrics default off; existing Client policy values are preserved on upgrade.
+No protocol/ABI layout, decoder, capture, input or audio behavior is intentionally
+changed. New C APIs are additive. No database SDK or runtime dependency is added.
+See [metrics configuration and schema](docs/user/metrics.md) and
+[the plan](docs/development/plans/metrics-telegraf.plan).
+
+Local validation so far: Rust metrics tests, Clippy with warnings denied,
+portable Client policy-upgrade tests and actual Telegraf 1.40.3 parsing pass.
+The C media/teardown fixture passes with metrics disabled and a non-reading
+collector; retained handles reject observations safely after endpoint teardown.
+Component commits: Client `3314b184`, Linux Host `8ca14f4e`. Kymux/common-C
+pins are unchanged. Final hosted platform/package checks, installed-session performance and live
+InfluxDB/Grafana validation remain pending. InfluxDB health is reachable;
+Grafana currently times out from the builder. No merge or release is requested.
+
 ## Code review hardening — accepted and merged into main
 
 On November 7, 2026, the operator reported successful candidate testing and
@@ -12,7 +38,7 @@ main at `2b4b935f23dd07bad7d63b2ee8f2d89eaa3891eb`. The merge tree exactly match
 accepted branch; no production code or dependency pin changed during merging.
 Version remains **1.4.10**. Client, Linux Host and Kymux are on their pushed
 `main` branches; common-C is on its maintained `plank/client` branch. The
-canonical parent checkout is on `main`. No release publication was requested.
+accepted baseline remains on `main`; the current work is described above. No release publication was requested.
 See [the implementation checklist](docs/development/plans/code-review-hardening.md).
 
 Current pins:

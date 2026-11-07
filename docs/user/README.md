@@ -1,5 +1,6 @@
 # User documentation
 
+- [Application metrics and Grafana](metrics.md)
 - [Bookmark Host options](bookmark-host-options.md)
 - [Client Internet indicator](client-internet-connectivity.md)
 - [Mac remote audio output](macos-audio-output.md)

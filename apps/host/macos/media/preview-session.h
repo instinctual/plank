@@ -55,6 +55,8 @@ typedef NS_ENUM(unsigned, PLANKMacPreviewState) {
 @property(atomic, readonly, copy) NSString *transportToken;
 // Set before start. Called once on the session queue after all media/input drain.
 @property(copy) void (^didStop)(void);
+// Called before start, with administrator policy only. Failure is nonfatal.
+- (void)configureMetrics:(NSDictionary *)configuration;
 - (void)start;
 - (BOOL)mayBeTakenOverWithToken:(NSString *)token peer:(NSData *)peer;
 - (BOOL)reserveTakeoverWithToken:(NSString *)token peer:(NSData *)peer;

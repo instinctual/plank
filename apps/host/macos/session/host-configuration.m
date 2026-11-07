@@ -18,6 +18,12 @@ static NSString *systemHostName(void) {
     return validHostName(result) ? result : @"PLANK";
 }
 
+static BOOL metricsNumber(NSString *value, NSInteger minimum, NSInteger maximum) {
+    return value.length && value.length <= 5 && [value rangeOfCharacterFromSet:
+        [[NSCharacterSet characterSetWithCharactersInString:@"0123456789"] invertedSet]].location == NSNotFound &&
+        value.integerValue >= minimum && value.integerValue <= maximum;
+}
+
 NSDictionary *PLANKMacParseHostConfiguration(NSData *data) {
     if (!data.length || data.length > 32768) return nil;
     NSString *text = [[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding];
@@ -30,7 +36,8 @@ NSDictionary *PLANKMacParseHostConfiguration(NSData *data) {
         if (!line.length || [line hasPrefix:@"#"] || [line hasPrefix:@";"]) continue;
         if ([line hasPrefix:@"["] && [line hasSuffix:@"]"]) {
             section = [line substringWithRange:NSMakeRange(1, line.length - 2)];
-            if (![section isEqual:@"general"] && ![section isEqual:@"network"] && ![section isEqual:@"security"]) return nil;
+            if (![section isEqual:@"general"] && ![section isEqual:@"network"] &&
+                ![section isEqual:@"security"] && ![section isEqual:@"metrics"]) return nil;
             continue;
         }
         NSRange separator = [line rangeOfString:@"="];
@@ -39,7 +46,9 @@ NSDictionary *PLANKMacParseHostConfiguration(NSData *data) {
         NSString *value = [[line substringFromIndex:separator.location + 1] stringByTrimmingCharactersInSet:spaces];
         key = [NSString stringWithFormat:@"%@.%@", section, key];
         if ((![key isEqual:@"general.host_name"] && ![key isEqual:@"network.port"] &&
-             ![key isEqual:@"network.ping_timeout"] && ![key isEqual:@"general.mirror_host_displays"] && ![key isEqual:@"security.publish_session_user"]) || values[key]) return nil;
+             ![key isEqual:@"network.ping_timeout"] && ![key isEqual:@"general.mirror_host_displays"] &&
+             ![key isEqual:@"security.publish_session_user"] && ![key isEqual:@"metrics.metrics_enabled"] &&
+             ![key isEqual:@"metrics.metrics_port"] && ![key isEqual:@"metrics.metrics_interval_seconds"]) || values[key]) return nil;
         values[key] = value;
     }
     NSString *name = values[@"general.host_name"] ?: systemHostName();
@@ -56,9 +65,19 @@ NSDictionary *PLANKMacParseHostConfiguration(NSData *data) {
     if (![publishUser isEqual:@"true"] && ![publishUser isEqual:@"false"]) return nil;
     NSString *mirrorHostDisplays = values[@"general.mirror_host_displays"] ?: @"false";
     if (![mirrorHostDisplays isEqual:@"true"] && ![mirrorHostDisplays isEqual:@"false"]) return nil;
+    NSString *metricsEnabled = values[@"metrics.metrics_enabled"] ?: @"false";
+    NSString *metricsPort = values[@"metrics.metrics_port"] ?: @"28991";
+    NSString *metricsInterval = values[@"metrics.metrics_interval_seconds"] ?: @"1";
+    BOOL metricsValid = ([metricsEnabled isEqual:@"true"] || [metricsEnabled isEqual:@"false"]) &&
+        metricsNumber(metricsPort, 1024, 65535) && metricsNumber(metricsInterval, 1, 60);
+    // Optional observability must never prevent access to the workstation.
+    NSDictionary *metrics = @{@"Enabled": @(metricsValid && [metricsEnabled isEqual:@"true"]),
+        @"Port": @(metricsValid ? metricsPort.integerValue : 28991),
+        @"IntervalSeconds": @(metricsValid ? metricsInterval.integerValue : 1), @"Valid": @(metricsValid)};
     // Listening on all interfaces is product policy, not a second configuration key.
     return @{@"Address": @"0.0.0.0", @"Name": name, @"Port": @(port.integerValue),
-             @"MirrorHostDisplays": @([mirrorHostDisplays isEqual:@"true"]), @"PingTimeoutMs": @(timeout.integerValue), @"PublishSessionUser": @([publishUser isEqual:@"true"])};
+             @"MirrorHostDisplays": @([mirrorHostDisplays isEqual:@"true"]), @"PingTimeoutMs": @(timeout.integerValue),
+             @"Metrics": metrics, @"PublishSessionUser": @([publishUser isEqual:@"true"])};
 }
 
 NSString *PLANKMacReadWorkstationUUID(NSData *data) {

@@ -48,7 +48,16 @@ int main(void) { @autoreleasepool {
     assert([parse(@"# Defaults\n")[@"Port"] isEqual:@28989]);
     NSDictionary *config = parse(@"; comment\r\n[general]\r\nhost_name = Example Host\r\n[network]\r\nport = 30000\r\n");
     assert([config[@"Name"] isEqual:@"Example Host"] && [config[@"Port"] isEqual:@30000]);
-    assert([config[@"Address"] isEqual:@"0.0.0.0"] && config.count == 6);
+    assert([config[@"Address"] isEqual:@"0.0.0.0"] && config.count == 7);
+    assert([config[@"Metrics"][@"Enabled"] isEqual:@NO]);
+    NSDictionary *metrics = parse(@"[metrics]\nmetrics_enabled=true\nmetrics_port=30002\nmetrics_interval_seconds=5")[@"Metrics"];
+    assert([metrics[@"Enabled"] boolValue] && [metrics[@"Port"] isEqual:@30002] &&
+        [metrics[@"IntervalSeconds"] isEqual:@5]);
+    for (NSString *entry in @[@"metrics_enabled=maybe", @"metrics_port=0", @"metrics_port=65536",
+        @"metrics_port=1e4", @"metrics_interval_seconds=0", @"metrics_interval_seconds=61"]) {
+        NSDictionary *bad = parse([@"[metrics]\n" stringByAppendingString:entry]);
+        assert(bad && ![bad[@"Metrics"][@"Enabled"] boolValue] && ![bad[@"Metrics"][@"Valid"] boolValue]);
+    }
     assert([config[@"PingTimeoutMs"] isEqual:@10000] && [config[@"PublishSessionUser"] isEqual:@NO]);
     assert([config[@"MirrorHostDisplays"] isEqual:@NO]);
     assert([parse(@"[general]\nmirror_host_displays=true")[@"MirrorHostDisplays"] isEqual:@YES]);

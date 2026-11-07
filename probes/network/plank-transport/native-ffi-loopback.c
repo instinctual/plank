@@ -4,11 +4,18 @@
 
 #include "plank_transport.h"
 #include "plank_transport_setup.h"
+#include "plank_metrics.h"
+
+_Static_assert(sizeof(PlankMetricsConfig) == 40, "metrics configuration ABI");
+_Static_assert(sizeof(PlankMetricsStreamInfo) == 32, "metrics stream ABI");
+_Static_assert(sizeof(PlankMetricsClientVideo) == 104, "metrics decoder ABI");
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+#include <unistd.h>
+#include <arpa/inet.h>
 
 #ifndef PLANK_LOOPBACK_VIDEO_BYTES
 /* Large keyframe: exercise submission beyond the 1 MiB outgoing queue and
@@ -69,11 +76,37 @@ int main(int argc, char **argv) {
 
     PlankTransportNativeEndpoint *server = NULL;
     PlankTransportNativeEndpoint *client = NULL;
+    PlankMetricsHandle *metrics = NULL;
+    int metrics_collector = -1;
     if (plank_transport_native_endpoint_create(&server_config, &server) !=
             PLANK_TRANSPORT_OK ||
         plank_transport_native_endpoint_create(&client_config, &client) !=
-            PLANK_TRANSPORT_OK ||
-        plank_transport_native_endpoint_start(server) != PLANK_TRANSPORT_OK ||
+            PLANK_TRANSPORT_OK) goto failure;
+    /* No collector is required: telemetry cannot change media/lifecycle results.
+     * The other invocation keeps metrics disabled for a baseline comparison. */
+    if (profile_validation) {
+        metrics_collector = socket(AF_INET, SOCK_DGRAM, 0);
+        struct sockaddr_in sink = {0};
+        sink.sin_family = AF_INET; sink.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
+        socklen_t sink_size = sizeof(sink);
+        if (metrics_collector < 0 || bind(metrics_collector, (struct sockaddr *)&sink, sizeof(sink)) ||
+            getsockname(metrics_collector, (struct sockaddr *)&sink, &sink_size)) goto failure;
+        PlankMetricsConfig output = {sizeof(output), ntohs(sink.sin_port), 1,
+            "fixture-workstation", "fixture-bookmark", "test"};
+        if (plank_transport_native_metrics_configure(server, &output, NULL) != PLANK_TRANSPORT_OK ||
+            plank_transport_native_metrics_configure(client, &output, &metrics) != PLANK_TRANSPORT_OK ||
+            plank_transport_native_metrics_configure(client, &output, NULL) != PLANK_TRANSPORT_ERROR_INVALID_STATE)
+            goto failure;
+        PlankMetricsStreamInfo stream = {sizeof(stream), 5120, 2160, 60,
+            "x11-native10", "hevc-10-444-nvenc"};
+        if (plank_transport_native_metrics_stream_info(server, &stream) != PLANK_TRANSPORT_OK ||
+            plank_transport_native_metrics_stream_info(client, &stream) != PLANK_TRANSPORT_OK) goto failure;
+        PlankMetricsClientVideo window = {0};
+        window.struct_size = sizeof(window); window.hardware_decoder = 1;
+        window.window_seconds = 1; window.received_frames = 60; window.decoded_frames = 60;
+        if (plank_metrics_client_video(metrics, &window) != PLANK_TRANSPORT_OK) goto failure;
+    }
+    if (plank_transport_native_endpoint_start(server) != PLANK_TRANSPORT_OK ||
         plank_transport_native_endpoint_start(client) != PLANK_TRANSPORT_OK) {
         fprintf(stderr, "failed to create or start native endpoints\n");
         goto failure;
@@ -494,6 +527,13 @@ int main(int argc, char **argv) {
     plank_transport_native_endpoint_stop(client);
     plank_transport_native_endpoint_destroy(client);
     plank_transport_native_endpoint_destroy(server);
+    if (metrics != NULL) {
+        PlankMetricsClientVideo window = {0};
+        window.struct_size = sizeof(window); window.hardware_decoder = 1; window.window_seconds = 1;
+        if (plank_metrics_client_video(metrics, &window) != PLANK_TRANSPORT_DROPPED) abort();
+    }
+    plank_metrics_destroy(metrics);
+    if (metrics_collector >= 0) close(metrics_collector);
     printf("status=complete test=native-kyproto-ffi-loopback trust=%s "
            "video_frames=1 video_bytes=%zu audio_packets=1 input_packets=1 "
            "data_packets_each_direction=1 final_queued_control=1\n",
@@ -501,6 +541,8 @@ int main(int argc, char **argv) {
     return 0;
 
 failure:
+    plank_metrics_destroy(metrics);
+    if (metrics_collector >= 0) close(metrics_collector);
     plank_transport_native_endpoint_destroy(client);
     plank_transport_native_endpoint_destroy(server);
     return 1;

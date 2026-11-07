@@ -262,6 +262,8 @@ class Configuration(unittest.TestCase):
             updated = path.read_bytes()
             self.assertIn(b"internet_check_interval_seconds = 15", updated)
             self.assertIn(b"# Maximum wait", updated)
+            self.assertIn(b"metrics_enabled = false", updated)
+            self.assertIn(b"# Optional PLANK session metrics", updated)
             if custom:
                 self.assertIn(b"port=30001\n", updated)
                 self.assertTrue(updated.startswith(b"# private administrator additions\n[network]\n"))
@@ -281,7 +283,19 @@ class Configuration(unittest.TestCase):
         self.assertIn(b"internet_check_enabled=false\n", updated)
         self.assertNotIn(b"internet_check_enabled = true", updated)
         self.assertIn(b"internet_check_hosts=192.0.2.1\n", updated)
-        self.assertTrue(updated.endswith(b"[authentication]\nremember_username=true\n"))
+        self.assertIn(b"[authentication]\nremember_username=true\n", updated)
+        self.invoke("client")
+        self.assertEqual(path.read_bytes(), updated)
+
+    def test_client_metrics_preserves_explicit_policy(self):
+        self.invoke("client")
+        path = self.config / "client.conf"
+        path.write_bytes(b"[metrics]\nmetrics_enabled=true\nmetrics_port=30002\n")
+        self.invoke("client")
+        updated = path.read_bytes()
+        self.assertIn(b"metrics_enabled=true\nmetrics_port=30002\n", updated)
+        self.assertNotIn(b"metrics_enabled = false", updated)
+        self.assertIn(b"metrics_interval_seconds = 1", updated)
         self.invoke("client")
         self.assertEqual(path.read_bytes(), updated)
 

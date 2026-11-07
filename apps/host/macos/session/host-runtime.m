@@ -304,6 +304,7 @@
             });
             *status = 503; return nil;
         }
+        [_stream configureMetrics:_metricsConfiguration];
         if (_displayPrepared) {
             uint64_t generation = _displayGeneration;
             __weak typeof(self) weakSelf = self;

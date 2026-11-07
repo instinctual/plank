@@ -9,11 +9,12 @@ import sys
 
 KEYS = ("internet_check_enabled", "internet_check_hosts",
         "internet_check_interval_seconds", "internet_check_timeout_ms")
+METRICS_KEYS = ("metrics_enabled", "metrics_port", "metrics_interval_seconds")
 SECTION = re.compile(r"^\s*\[([^]]+)\]\s*(?:[#;].*)?$")
 ASSIGNMENT = re.compile(r"^\s*([^=\s]+)\s*=")
 
 
-def add_missing_keys(original, reference):
+def add_section_defaults(original, reference, target_section, keys):
     blocks, comments, section = {}, [], ""
     for line in reference.decode("utf-8").splitlines(keepends=True):
         header = SECTION.match(line)
@@ -23,11 +24,11 @@ def add_missing_keys(original, reference):
             comments.append(line)
         else:
             assignment = ASSIGNMENT.match(line)
-            if section == "network" and assignment and assignment[1] in KEYS:
+            if section == target_section and assignment and assignment[1] in keys:
                 blocks[assignment[1]] = "".join(comments) + line.rstrip("\r\n") + "\n"
             comments = []
-    if set(blocks) != set(KEYS):
-        raise ValueError("incomplete connectivity policy template")
+    if set(blocks) != set(keys):
+        raise ValueError("incomplete policy template")
 
     lines = original.decode("utf-8").splitlines(keepends=True)
     present, section, insertion = set(), "", None
@@ -35,13 +36,13 @@ def add_missing_keys(original, reference):
         header = SECTION.match(line)
         if header:
             section = header[1]
-            if section == "network" and insertion is None:
+            if section == target_section and insertion is None:
                 insertion = index + 1
-        elif section == "network":
+        elif section == target_section:
             assignment = ASSIGNMENT.match(line)
             if assignment:
                 present.add(assignment[1])
-    missing = [blocks[key] for key in KEYS if key not in present]
+    missing = [blocks[key] for key in keys if key not in present]
     if not missing:
         return original
     addition = "\n" + "\n".join(missing) + "\n"
@@ -49,7 +50,7 @@ def add_missing_keys(original, reference):
         prefix = "".join(lines)
         if prefix and not prefix.endswith("\n"):
             prefix += "\n"
-        result = prefix + "\n[network]\n" + addition
+        result = prefix + "\n[" + target_section + "]\n" + addition
     else:
         prefix = "".join(lines[:insertion])
         if not prefix.endswith("\n"):
@@ -59,6 +60,11 @@ def add_missing_keys(original, reference):
     if len(updated) > 32768:
         raise ValueError("updated policy exceeds 32 KiB")
     return updated
+
+
+def add_missing_keys(original, reference):
+    result = add_section_defaults(original, reference, "network", KEYS)
+    return add_section_defaults(result, reference, "metrics", METRICS_KEYS)
 
 
 def update(directory, template):
@@ -87,7 +93,7 @@ def update(directory, template):
         updated = add_missing_keys(original, Path(template).read_bytes())
         if original == updated:
             return
-        temporary = ".client-connectivity-" + secrets.token_hex(12)
+        temporary = ".client-policy-" + secrets.token_hex(12)
         fd = os.open(temporary, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW,
                      0o600, dir_fd=descriptor)
         with os.fdopen(fd, "wb") as stream:
@@ -113,4 +119,4 @@ if __name__ == "__main__":
         update(sys.argv[1], sys.argv[2])
     except (OSError, ValueError):
         # No configuration contents or administrator values in installation logs.
-        sys.exit("PLANK Client: could not complete the connectivity-default update safely; check /etc/plank/client.conf.")
+        sys.exit("PLANK Client: could not complete the policy-default update safely; check /etc/plank/client.conf.")

@@ -1,0 +1,63 @@
+# PLANK metrics through Telegraf
+
+Branch: `metrics-telegraf`, based on accepted main `1d770bab`.
+
+The operator wants Host and Client metrics in an existing InfluxDB 2 bucket
+and an existing Grafana instance. The operator chose to retain InfluxDB 2. Linux Hosts and Ubuntu Clients already run
+Telegraf. Macs do not yet have the agent. Deployment addresses, organization,
+bucket and credentials stay in private notes/provisioning, outside this repo.
+
+## Architecture
+
+PLANK emits bounded Influx line-protocol datagrams to an IPv4 loopback listener.
+Use Telegraf's built-in `inputs.socket_listener` and the existing
+`outputs.influxdb_v2`; no custom Telegraf plugin, database SDK, credential store,
+new PLANK transport lane, or externally listening PLANK service is needed.
+The same exporter supports both operating systems. Mac collection requires a
+separate Telegraf installation; PLANK packages do not install/start that agent.
+
+Administrator configuration in Host/Client INI files enables metrics, selects
+the localhost UDP port (default 28991) and sample interval (default 1 second).
+Disabled by default. Export failures never fail or delay a session. No HTTP,
+DNS, disk spooling, synchronous retry or per-frame network logging in PLANK.
+Telegraf owns buffering and remote delivery. The local datagram hop is best
+effort, not a reliable audit trail. No extra privileges are required.
+
+## Data and dashboard
+
+- Reuse transport counters and Client decoder/presenter statistics. Keep
+  sender drops, receive queue drops, frame gaps, QUIC loss and RaptorQ source-
+  symbol loss separate. Do not export the toolbar's ten-second peaks as raw
+  interval loss. Handle counter resets and unknown/empty intervals explicitly.
+- Export RTT, video/audio rates and counts, queue pressure/drops, network/
+  decode/render FPS, processing/decoding/presentation timing, stream profile,
+  capture source, resolution, and metric freshness where actually available.
+  Do not invent unavailable capture/encoder/GPU or audio-device measurements.
+- Telegraf adds its existing local `host` tag so PLANK and system metrics can
+  be correlated. Stable workstation/bookmark identifiers distinguish peers and
+  duplicate bookmarks. Highly variable connection identifiers remain fields.
+- Keep schema names and units fixed; bound fields, strings and datagrams.
+  No usernames, credentials, clipboard text, keystrokes or screen contents.
+  Emit wall-clock timestamps; calculate rates with monotonic elapsed time.
+- Supply a Grafana dashboard with a selectable existing InfluxDB data source,
+  existing InfluxQL queries, machine/session filters, network/FEC, video, queue/drop and freshness panels.
+  Reuse system metrics already collected by Telegraf instead of duplicating them.
+
+## Provisioning and qualification
+
+The existing Ubuntu installer copies selected Telegraf drop-ins. Its output and
+token are already configured; add only the PLANK input when integrating that
+separate provisioning repository. Current flush interval 5s plus jitter 10s means
+samples reach the database in batches roughly 5–15s apart. Preserve this policy
+unless the operator requests a change; source samples can still be one second.
+
+Test line-protocol escaping/types, payload limits, resets, empty intervals,
+disabled mode, absent/stalled collectors, concurrent teardown and multiple
+sessions. Exercise the real Telegraf parser with an isolated localhost listener
+and file output. Keep streaming/loss performance limits unchanged. Build all
+four candidates on hosted Actions and preserve the accepted main baseline.
+
+Live deployment and dashboard validation require reachable services and an
+authorized test endpoint. No live configuration or installation has occurred.
+No merge, release publication or change to existing system-metric collection
+is implied by creating this branch.

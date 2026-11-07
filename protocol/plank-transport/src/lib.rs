@@ -10,6 +10,7 @@ pub mod camera;
 pub mod camera_encoded;
 mod camera_record;
 pub mod microphone;
+pub mod metrics;
 pub mod native;
 pub mod native_ffi;
 pub mod rate_control;

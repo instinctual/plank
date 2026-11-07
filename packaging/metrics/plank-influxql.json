@@ -1,0 +1,994 @@
+{
+  "id": null,
+  "uid": "plank-sessions-influxql",
+  "title": "PLANK sessions",
+  "description": "PLANK application metrics through Telegraf and an existing InfluxDB2 InfluxQL data source. No database URL, credentials or bucket binding is embedded.",
+  "tags": [
+    "PLANK",
+    "Telegraf"
+  ],
+  "schemaVersion": 39,
+  "version": 1,
+  "timezone": "browser",
+  "refresh": "5s",
+  "time": {
+    "from": "now-30m",
+    "to": "now"
+  },
+  "editable": true,
+  "templating": {
+    "list": [
+      {
+        "name": "datasource",
+        "label": "InfluxDB (InfluxQL)",
+        "type": "datasource",
+        "query": "influxdb",
+        "refresh": 1
+      },
+      {
+        "name": "machine",
+        "label": "Machine",
+        "type": "query",
+        "datasource": {
+          "type": "influxdb",
+          "uid": "${datasource}"
+        },
+        "query": "SHOW TAG VALUES FROM \"plank_transport\" WITH KEY = \"host\"",
+        "refresh": 1,
+        "includeAll": true,
+        "allValue": ".*",
+        "multi": true,
+        "current": {
+          "text": "All",
+          "value": "$__all"
+        },
+        "sort": 1
+      },
+      {
+        "name": "workstation",
+        "label": "Workstation",
+        "type": "query",
+        "datasource": {
+          "type": "influxdb",
+          "uid": "${datasource}"
+        },
+        "query": "SHOW TAG VALUES FROM \"plank_transport\" WITH KEY = \"workstation_id\"",
+        "refresh": 1,
+        "includeAll": true,
+        "allValue": ".*",
+        "multi": true,
+        "current": {
+          "text": "All",
+          "value": "$__all"
+        },
+        "sort": 1
+      },
+      {
+        "name": "role",
+        "label": "Role",
+        "type": "query",
+        "datasource": {
+          "type": "influxdb",
+          "uid": "${datasource}"
+        },
+        "query": "SHOW TAG VALUES FROM \"plank_transport\" WITH KEY = \"role\"",
+        "refresh": 1,
+        "includeAll": true,
+        "allValue": ".*",
+        "multi": true,
+        "current": {
+          "text": "All",
+          "value": "$__all"
+        },
+        "sort": 1
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 1,
+      "type": "timeseries",
+      "title": "QUIC round-trip time",
+      "description": "Measured transport RTT. Host and Client observations are separate; this is not glass-to-glass latency.",
+      "datasource": {
+        "type": "influxdb",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "${datasource}"
+          },
+          "rawQuery": true,
+          "resultFormat": "time_series",
+          "query": "SELECT mean(\"rtt_ms\") AS \"RTT\" FROM \"plank_transport\" WHERE $timeFilter AND \"host\" =~ /^${machine:regex}$/ AND \"workstation_id\" =~ /^${workstation:regex}$/ AND \"role\" =~ /^${role:regex}$/ GROUP BY time($__interval), \"host\", \"role\", \"slot_id\", \"workstation_id\" fill(null)",
+          "alias": "$tag_host $tag_role RTT [$tag_slot_id]"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ms",
+          "min": 0,
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 1,
+            "fillOpacity": 4,
+            "spanNulls": false
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      }
+    },
+    {
+      "id": 2,
+      "type": "timeseries",
+      "title": "Encoded video payload",
+      "description": "Encoded payload rate excludes FEC and QUIC/IP overhead. Target is the Host encoder policy, not a guarantee of produced bitrate.",
+      "datasource": {
+        "type": "influxdb",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 0,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "${datasource}"
+          },
+          "rawQuery": true,
+          "resultFormat": "time_series",
+          "query": "SELECT mean(\"video_send_mbps\") AS \"send Mbps\" FROM \"plank_transport\" WHERE $timeFilter AND \"host\" =~ /^${machine:regex}$/ AND \"workstation_id\" =~ /^${workstation:regex}$/ AND \"role\" =~ /^${role:regex}$/ GROUP BY time($__interval), \"host\", \"role\", \"slot_id\", \"workstation_id\" fill(null)",
+          "alias": "$tag_host $tag_role send Mbps [$tag_slot_id]"
+        },
+        {
+          "refId": "B",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "${datasource}"
+          },
+          "rawQuery": true,
+          "resultFormat": "time_series",
+          "query": "SELECT mean(\"video_receive_mbps\") AS \"receive Mbps\" FROM \"plank_transport\" WHERE $timeFilter AND \"host\" =~ /^${machine:regex}$/ AND \"workstation_id\" =~ /^${workstation:regex}$/ AND \"role\" =~ /^${role:regex}$/ GROUP BY time($__interval), \"host\", \"role\", \"slot_id\", \"workstation_id\" fill(null)",
+          "alias": "$tag_host $tag_role receive Mbps [$tag_slot_id]"
+        },
+        {
+          "refId": "C",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "${datasource}"
+          },
+          "rawQuery": true,
+          "resultFormat": "time_series",
+          "query": "SELECT mean(\"encoder_target_mbps\") AS \"Encoder target\" FROM \"plank_transport\" WHERE $timeFilter AND \"host\" =~ /^${machine:regex}$/ AND \"workstation_id\" =~ /^${workstation:regex}$/ AND \"role\" =~ /^${role:regex}$/ GROUP BY time($__interval), \"host\", \"role\", \"slot_id\", \"workstation_id\" fill(null)",
+          "alias": "$tag_host $tag_role Encoder target [$tag_slot_id]"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "Mbits",
+          "min": 0,
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 1,
+            "fillOpacity": 4,
+            "spanNulls": false
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      }
+    },
+    {
+      "id": 3,
+      "type": "timeseries",
+      "title": "Incoming video loss \u2014 before / after FEC",
+      "description": "Client RaptorQ source-symbol counters, weighted by source symbols in each chart interval. Repair symbols are excluded. Missing/no-source intervals stay empty. Unlike the toolbar, these are not ten-second peak percentages.",
+      "datasource": {
+        "type": "influxdb",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 8,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "${datasource}"
+          },
+          "rawQuery": true,
+          "resultFormat": "time_series",
+          "query": "SELECT 100.0 * sum(\"video_fec_source_symbols_missing_interval\") / sum(\"video_fec_source_symbols_interval\") AS \"Before FEC\" FROM \"plank_transport\" WHERE $timeFilter AND \"host\" =~ /^${machine:regex}$/ AND \"workstation_id\" =~ /^${workstation:regex}$/ AND \"role\" =~ /^${role:regex}$/ GROUP BY time($__interval), \"host\", \"role\", \"slot_id\", \"workstation_id\" fill(null)",
+          "alias": "$tag_host $tag_role Before FEC [$tag_slot_id]"
+        },
+        {
+          "refId": "B",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "${datasource}"
+          },
+          "rawQuery": true,
+          "resultFormat": "time_series",
+          "query": "SELECT 100.0 * sum(\"video_fec_source_symbols_unrecovered_interval\") / sum(\"video_fec_source_symbols_interval\") AS \"After FEC\" FROM \"plank_transport\" WHERE $timeFilter AND \"host\" =~ /^${machine:regex}$/ AND \"workstation_id\" =~ /^${workstation:regex}$/ AND \"role\" =~ /^${role:regex}$/ GROUP BY time($__interval), \"host\", \"role\", \"slot_id\", \"workstation_id\" fill(null)",
+          "alias": "$tag_host $tag_role After FEC [$tag_slot_id]"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "min": 0,
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 1,
+            "fillOpacity": 4,
+            "spanNulls": false
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      }
+    },
+    {
+      "id": 4,
+      "type": "timeseries",
+      "title": "Client frame rate \u2014 network / decode / render",
+      "description": "Actual decoder statistics windows. Missing observations remain gaps; do not interpret them as measured zero FPS.",
+      "datasource": {
+        "type": "influxdb",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 8,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "${datasource}"
+          },
+          "rawQuery": true,
+          "resultFormat": "time_series",
+          "query": "SELECT mean(\"network_fps\") AS \"network\" FROM \"plank_client_video\" WHERE $timeFilter AND \"host\" =~ /^${machine:regex}$/ AND \"workstation_id\" =~ /^${workstation:regex}$/ AND \"role\" =~ /^${role:regex}$/ GROUP BY time($__interval), \"host\", \"role\", \"slot_id\", \"workstation_id\" fill(null)",
+          "alias": "$tag_host $tag_role network [$tag_slot_id]"
+        },
+        {
+          "refId": "B",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "${datasource}"
+          },
+          "rawQuery": true,
+          "resultFormat": "time_series",
+          "query": "SELECT mean(\"decode_fps\") AS \"decode\" FROM \"plank_client_video\" WHERE $timeFilter AND \"host\" =~ /^${machine:regex}$/ AND \"workstation_id\" =~ /^${workstation:regex}$/ AND \"role\" =~ /^${role:regex}$/ GROUP BY time($__interval), \"host\", \"role\", \"slot_id\", \"workstation_id\" fill(null)",
+          "alias": "$tag_host $tag_role decode [$tag_slot_id]"
+        },
+        {
+          "refId": "C",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "${datasource}"
+          },
+          "rawQuery": true,
+          "resultFormat": "time_series",
+          "query": "SELECT mean(\"render_fps\") AS \"render\" FROM \"plank_client_video\" WHERE $timeFilter AND \"host\" =~ /^${machine:regex}$/ AND \"workstation_id\" =~ /^${workstation:regex}$/ AND \"role\" =~ /^${role:regex}$/ GROUP BY time($__interval), \"host\", \"role\", \"slot_id\", \"workstation_id\" fill(null)",
+          "alias": "$tag_host $tag_role render [$tag_slot_id]"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "fps",
+          "min": 0,
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 1,
+            "fillOpacity": 4,
+            "spanNulls": false
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      }
+    },
+    {
+      "id": 5,
+      "type": "timeseries",
+      "title": "Client timing \u2014 decode / queue / render",
+      "description": "Mean timing within each actual decoder window. Render queue timing is not audio delay; these values do not measure end-to-end latency.",
+      "datasource": {
+        "type": "influxdb",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 16,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "${datasource}"
+          },
+          "rawQuery": true,
+          "resultFormat": "time_series",
+          "query": "SELECT mean(\"decode_ms\") AS \"decode\" FROM \"plank_client_video\" WHERE $timeFilter AND \"host\" =~ /^${machine:regex}$/ AND \"workstation_id\" =~ /^${workstation:regex}$/ AND \"role\" =~ /^${role:regex}$/ GROUP BY time($__interval), \"host\", \"role\", \"slot_id\", \"workstation_id\" fill(null)",
+          "alias": "$tag_host $tag_role decode [$tag_slot_id]"
+        },
+        {
+          "refId": "B",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "${datasource}"
+          },
+          "rawQuery": true,
+          "resultFormat": "time_series",
+          "query": "SELECT mean(\"render_queue_ms\") AS \"render_queue\" FROM \"plank_client_video\" WHERE $timeFilter AND \"host\" =~ /^${machine:regex}$/ AND \"workstation_id\" =~ /^${workstation:regex}$/ AND \"role\" =~ /^${role:regex}$/ GROUP BY time($__interval), \"host\", \"role\", \"slot_id\", \"workstation_id\" fill(null)",
+          "alias": "$tag_host $tag_role render_queue [$tag_slot_id]"
+        },
+        {
+          "refId": "C",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "${datasource}"
+          },
+          "rawQuery": true,
+          "resultFormat": "time_series",
+          "query": "SELECT mean(\"render_ms\") AS \"render\" FROM \"plank_client_video\" WHERE $timeFilter AND \"host\" =~ /^${machine:regex}$/ AND \"workstation_id\" =~ /^${workstation:regex}$/ AND \"role\" =~ /^${role:regex}$/ GROUP BY time($__interval), \"host\", \"role\", \"slot_id\", \"workstation_id\" fill(null)",
+          "alias": "$tag_host $tag_role render [$tag_slot_id]"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ms",
+          "min": 0,
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 1,
+            "fillOpacity": 4,
+            "spanNulls": false
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      }
+    },
+    {
+      "id": 6,
+      "type": "timeseries",
+      "title": "Host processing",
+      "description": "Host processing metadata covers the capture/encoder path as instrumented by that platform. It is not a separate GPU encode measurement. Zero/unknown samples are excluded.",
+      "datasource": {
+        "type": "influxdb",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 16,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "${datasource}"
+          },
+          "rawQuery": true,
+          "resultFormat": "time_series",
+          "query": "SELECT mean(\"host_processing_mean_ms\") AS \"Mean\" FROM \"plank_transport\" WHERE $timeFilter AND \"host\" =~ /^${machine:regex}$/ AND \"workstation_id\" =~ /^${workstation:regex}$/ AND \"role\" =~ /^${role:regex}$/ GROUP BY time($__interval), \"host\", \"role\", \"slot_id\", \"workstation_id\" fill(null)",
+          "alias": "$tag_host $tag_role Mean [$tag_slot_id]"
+        },
+        {
+          "refId": "B",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "${datasource}"
+          },
+          "rawQuery": true,
+          "resultFormat": "time_series",
+          "query": "SELECT max(\"host_processing_max_ms\") AS \"Maximum\" FROM \"plank_transport\" WHERE $timeFilter AND \"host\" =~ /^${machine:regex}$/ AND \"workstation_id\" =~ /^${workstation:regex}$/ AND \"role\" =~ /^${role:regex}$/ GROUP BY time($__interval), \"host\", \"role\", \"slot_id\", \"workstation_id\" fill(null)",
+          "alias": "$tag_host $tag_role Maximum [$tag_slot_id]"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ms",
+          "min": 0,
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 1,
+            "fillOpacity": 4,
+            "spanNulls": false
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      }
+    },
+    {
+      "id": 7,
+      "type": "timeseries",
+      "title": "Application queue depth",
+      "description": "Maximum observed queue depth within the chart interval. One-second sampling can miss a short burst; inspect the drop counters below as well.",
+      "datasource": {
+        "type": "influxdb",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 24,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "${datasource}"
+          },
+          "rawQuery": true,
+          "resultFormat": "time_series",
+          "query": "SELECT max(\"video_send_frames_queued\") AS \"video_send_frames\" FROM \"plank_transport\" WHERE $timeFilter AND \"host\" =~ /^${machine:regex}$/ AND \"workstation_id\" =~ /^${workstation:regex}$/ AND \"role\" =~ /^${role:regex}$/ GROUP BY time($__interval), \"host\", \"role\", \"slot_id\", \"workstation_id\" fill(null)",
+          "alias": "$tag_host $tag_role video_send_frames [$tag_slot_id]"
+        },
+        {
+          "refId": "B",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "${datasource}"
+          },
+          "rawQuery": true,
+          "resultFormat": "time_series",
+          "query": "SELECT max(\"video_receive_frames_queued\") AS \"video_receive_frames\" FROM \"plank_transport\" WHERE $timeFilter AND \"host\" =~ /^${machine:regex}$/ AND \"workstation_id\" =~ /^${workstation:regex}$/ AND \"role\" =~ /^${role:regex}$/ GROUP BY time($__interval), \"host\", \"role\", \"slot_id\", \"workstation_id\" fill(null)",
+          "alias": "$tag_host $tag_role video_receive_frames [$tag_slot_id]"
+        },
+        {
+          "refId": "C",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "${datasource}"
+          },
+          "rawQuery": true,
+          "resultFormat": "time_series",
+          "query": "SELECT max(\"audio_send_packets_queued\") AS \"audio_send_packets\" FROM \"plank_transport\" WHERE $timeFilter AND \"host\" =~ /^${machine:regex}$/ AND \"workstation_id\" =~ /^${workstation:regex}$/ AND \"role\" =~ /^${role:regex}$/ GROUP BY time($__interval), \"host\", \"role\", \"slot_id\", \"workstation_id\" fill(null)",
+          "alias": "$tag_host $tag_role audio_send_packets [$tag_slot_id]"
+        },
+        {
+          "refId": "D",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "${datasource}"
+          },
+          "rawQuery": true,
+          "resultFormat": "time_series",
+          "query": "SELECT max(\"audio_receive_packets_queued\") AS \"audio_receive_packets\" FROM \"plank_transport\" WHERE $timeFilter AND \"host\" =~ /^${machine:regex}$/ AND \"workstation_id\" =~ /^${workstation:regex}$/ AND \"role\" =~ /^${role:regex}$/ GROUP BY time($__interval), \"host\", \"role\", \"slot_id\", \"workstation_id\" fill(null)",
+          "alias": "$tag_host $tag_role audio_receive_packets [$tag_slot_id]"
+        },
+        {
+          "refId": "E",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "${datasource}"
+          },
+          "rawQuery": true,
+          "resultFormat": "time_series",
+          "query": "SELECT max(\"reliable_send_packets_queued\") AS \"reliable_send_packets\" FROM \"plank_transport\" WHERE $timeFilter AND \"host\" =~ /^${machine:regex}$/ AND \"workstation_id\" =~ /^${workstation:regex}$/ AND \"role\" =~ /^${role:regex}$/ GROUP BY time($__interval), \"host\", \"role\", \"slot_id\", \"workstation_id\" fill(null)",
+          "alias": "$tag_host $tag_role reliable_send_packets [$tag_slot_id]"
+        },
+        {
+          "refId": "F",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "${datasource}"
+          },
+          "rawQuery": true,
+          "resultFormat": "time_series",
+          "query": "SELECT max(\"reliable_receive_packets_queued\") AS \"reliable_receive_packets\" FROM \"plank_transport\" WHERE $timeFilter AND \"host\" =~ /^${machine:regex}$/ AND \"workstation_id\" =~ /^${workstation:regex}$/ AND \"role\" =~ /^${role:regex}$/ GROUP BY time($__interval), \"host\", \"role\", \"slot_id\", \"workstation_id\" fill(null)",
+          "alias": "$tag_host $tag_role reliable_receive_packets [$tag_slot_id]"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "min": 0,
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 1,
+            "fillOpacity": 4,
+            "spanNulls": false
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      }
+    },
+    {
+      "id": 8,
+      "type": "timeseries",
+      "title": "Application queue drops",
+      "description": "Drops per chart interval, calculated by PLANK before export so reconnect counter resets do not create spikes. Queue eviction is distinct from network packet loss.",
+      "datasource": {
+        "type": "influxdb",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 24,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "${datasource}"
+          },
+          "rawQuery": true,
+          "resultFormat": "time_series",
+          "query": "SELECT sum(\"video_send_drops_interval\") AS \"video_send_drops\" FROM \"plank_transport\" WHERE $timeFilter AND \"host\" =~ /^${machine:regex}$/ AND \"workstation_id\" =~ /^${workstation:regex}$/ AND \"role\" =~ /^${role:regex}$/ GROUP BY time($__interval), \"host\", \"role\", \"slot_id\", \"workstation_id\" fill(null)",
+          "alias": "$tag_host $tag_role video_send_drops [$tag_slot_id]"
+        },
+        {
+          "refId": "B",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "${datasource}"
+          },
+          "rawQuery": true,
+          "resultFormat": "time_series",
+          "query": "SELECT sum(\"video_receive_drops_interval\") AS \"video_receive_drops\" FROM \"plank_transport\" WHERE $timeFilter AND \"host\" =~ /^${machine:regex}$/ AND \"workstation_id\" =~ /^${workstation:regex}$/ AND \"role\" =~ /^${role:regex}$/ GROUP BY time($__interval), \"host\", \"role\", \"slot_id\", \"workstation_id\" fill(null)",
+          "alias": "$tag_host $tag_role video_receive_drops [$tag_slot_id]"
+        },
+        {
+          "refId": "C",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "${datasource}"
+          },
+          "rawQuery": true,
+          "resultFormat": "time_series",
+          "query": "SELECT sum(\"audio_send_drops_interval\") AS \"audio_send_drops\" FROM \"plank_transport\" WHERE $timeFilter AND \"host\" =~ /^${machine:regex}$/ AND \"workstation_id\" =~ /^${workstation:regex}$/ AND \"role\" =~ /^${role:regex}$/ GROUP BY time($__interval), \"host\", \"role\", \"slot_id\", \"workstation_id\" fill(null)",
+          "alias": "$tag_host $tag_role audio_send_drops [$tag_slot_id]"
+        },
+        {
+          "refId": "D",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "${datasource}"
+          },
+          "rawQuery": true,
+          "resultFormat": "time_series",
+          "query": "SELECT sum(\"audio_receive_drops_interval\") AS \"audio_receive_drops\" FROM \"plank_transport\" WHERE $timeFilter AND \"host\" =~ /^${machine:regex}$/ AND \"workstation_id\" =~ /^${workstation:regex}$/ AND \"role\" =~ /^${role:regex}$/ GROUP BY time($__interval), \"host\", \"role\", \"slot_id\", \"workstation_id\" fill(null)",
+          "alias": "$tag_host $tag_role audio_receive_drops [$tag_slot_id]"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "min": 0,
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 1,
+            "fillOpacity": 4,
+            "spanNulls": false
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      }
+    },
+    {
+      "id": 9,
+      "type": "timeseries",
+      "title": "QUIC and protocol drops",
+      "description": "Events per chart interval. QUIC loss includes transport traffic; it must not be divided by RaptorQ video-symbol counts or labeled video packet loss.",
+      "datasource": {
+        "type": "influxdb",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 32,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "${datasource}"
+          },
+          "rawQuery": true,
+          "resultFormat": "time_series",
+          "query": "SELECT sum(\"quic_packets_lost_interval\") AS \"quic_packets_lost\" FROM \"plank_transport\" WHERE $timeFilter AND \"host\" =~ /^${machine:regex}$/ AND \"workstation_id\" =~ /^${workstation:regex}$/ AND \"role\" =~ /^${role:regex}$/ GROUP BY time($__interval), \"host\", \"role\", \"slot_id\", \"workstation_id\" fill(null)",
+          "alias": "$tag_host $tag_role quic_packets_lost [$tag_slot_id]"
+        },
+        {
+          "refId": "B",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "${datasource}"
+          },
+          "rawQuery": true,
+          "resultFormat": "time_series",
+          "query": "SELECT sum(\"kyproto_packets_dropped_interval\") AS \"kyproto_packets_dropped\" FROM \"plank_transport\" WHERE $timeFilter AND \"host\" =~ /^${machine:regex}$/ AND \"workstation_id\" =~ /^${workstation:regex}$/ AND \"role\" =~ /^${role:regex}$/ GROUP BY time($__interval), \"host\", \"role\", \"slot_id\", \"workstation_id\" fill(null)",
+          "alias": "$tag_host $tag_role kyproto_packets_dropped [$tag_slot_id]"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "min": 0,
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 1,
+            "fillOpacity": 4,
+            "spanNulls": false
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      }
+    },
+    {
+      "id": 10,
+      "type": "timeseries",
+      "title": "Client frame drops",
+      "description": "Dropped frames per chart interval. Network frame gaps differ from residual FEC source-symbol loss. Render and overflow drops are local to the Client.",
+      "datasource": {
+        "type": "influxdb",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 32,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "${datasource}"
+          },
+          "rawQuery": true,
+          "resultFormat": "time_series",
+          "query": "SELECT sum(\"network_dropped_frames\") AS \"network\" FROM \"plank_client_video\" WHERE $timeFilter AND \"host\" =~ /^${machine:regex}$/ AND \"workstation_id\" =~ /^${workstation:regex}$/ AND \"role\" =~ /^${role:regex}$/ GROUP BY time($__interval), \"host\", \"role\", \"slot_id\", \"workstation_id\" fill(null)",
+          "alias": "$tag_host $tag_role network [$tag_slot_id]"
+        },
+        {
+          "refId": "B",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "${datasource}"
+          },
+          "rawQuery": true,
+          "resultFormat": "time_series",
+          "query": "SELECT sum(\"render_dropped_frames\") AS \"render\" FROM \"plank_client_video\" WHERE $timeFilter AND \"host\" =~ /^${machine:regex}$/ AND \"workstation_id\" =~ /^${workstation:regex}$/ AND \"role\" =~ /^${role:regex}$/ GROUP BY time($__interval), \"host\", \"role\", \"slot_id\", \"workstation_id\" fill(null)",
+          "alias": "$tag_host $tag_role render [$tag_slot_id]"
+        },
+        {
+          "refId": "C",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "${datasource}"
+          },
+          "rawQuery": true,
+          "resultFormat": "time_series",
+          "query": "SELECT sum(\"overflow_dropped_frames\") AS \"overflow\" FROM \"plank_client_video\" WHERE $timeFilter AND \"host\" =~ /^${machine:regex}$/ AND \"workstation_id\" =~ /^${workstation:regex}$/ AND \"role\" =~ /^${role:regex}$/ GROUP BY time($__interval), \"host\", \"role\", \"slot_id\", \"workstation_id\" fill(null)",
+          "alias": "$tag_host $tag_role overflow [$tag_slot_id]"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "min": 0,
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 1,
+            "fillOpacity": 4,
+            "spanNulls": false
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      }
+    },
+    {
+      "id": 11,
+      "type": "timeseries",
+      "title": "Encoded audio payload",
+      "description": "Encoded Host-to-Client audio payload. This does not measure audio-device buffering, synchronization or microphone uplink.",
+      "datasource": {
+        "type": "influxdb",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 40,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "${datasource}"
+          },
+          "rawQuery": true,
+          "resultFormat": "time_series",
+          "query": "SELECT mean(\"audio_send_kbps\") AS \"send\" FROM \"plank_transport\" WHERE $timeFilter AND \"host\" =~ /^${machine:regex}$/ AND \"workstation_id\" =~ /^${workstation:regex}$/ AND \"role\" =~ /^${role:regex}$/ GROUP BY time($__interval), \"host\", \"role\", \"slot_id\", \"workstation_id\" fill(null)",
+          "alias": "$tag_host $tag_role send [$tag_slot_id]"
+        },
+        {
+          "refId": "B",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "${datasource}"
+          },
+          "rawQuery": true,
+          "resultFormat": "time_series",
+          "query": "SELECT mean(\"audio_receive_kbps\") AS \"receive\" FROM \"plank_transport\" WHERE $timeFilter AND \"host\" =~ /^${machine:regex}$/ AND \"workstation_id\" =~ /^${workstation:regex}$/ AND \"role\" =~ /^${role:regex}$/ GROUP BY time($__interval), \"host\", \"role\", \"slot_id\", \"workstation_id\" fill(null)",
+          "alias": "$tag_host $tag_role receive [$tag_slot_id]"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "Kbits",
+          "min": 0,
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 1,
+            "fillOpacity": 4,
+            "spanNulls": false
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      }
+    },
+    {
+      "id": 12,
+      "type": "timeseries",
+      "title": "Client video statistics age",
+      "description": "Age since the Client last supplied a decoder statistics window. A static desktop can have no frames. Use the latest-observation table to distinguish this from missing Telegraf delivery.",
+      "datasource": {
+        "type": "influxdb",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 40,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "${datasource}"
+          },
+          "rawQuery": true,
+          "resultFormat": "time_series",
+          "query": "SELECT max(\"client_video_age_seconds\") AS \"Age\" FROM \"plank_transport\" WHERE $timeFilter AND \"host\" =~ /^${machine:regex}$/ AND \"workstation_id\" =~ /^${workstation:regex}$/ AND \"role\" =~ /^${role:regex}$/ GROUP BY time($__interval), \"host\", \"role\", \"slot_id\", \"workstation_id\" fill(null)",
+          "alias": "$tag_host $tag_role Age [$tag_slot_id]"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "min": 0,
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 1,
+            "fillOpacity": 4,
+            "spanNulls": false
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      }
+    },
+    {
+      "id": 13,
+      "type": "table",
+      "title": "Latest transport observations",
+      "description": "Time is the last source observation in the selected range. A stale row does not mean a session is still connected. Allow for Telegraf flush jitter.",
+      "datasource": {
+        "type": "influxdb",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 48,
+        "w": 24,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "rawQuery": true,
+          "resultFormat": "table",
+          "query": "SELECT last(\"version\") AS \"version\" FROM \"plank_transport\" WHERE $timeFilter AND \"host\" =~ /^${machine:regex}$/ AND \"workstation_id\" =~ /^${workstation:regex}$/ AND \"role\" =~ /^${role:regex}$/ GROUP BY \"host\", \"role\", \"slot_id\", \"workstation_id\"",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "${datasource}"
+          }
+        }
+      ],
+      "options": {
+        "showHeader": true
+      },
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      }
+    },
+    {
+      "id": 14,
+      "type": "table",
+      "title": "Transport session events",
+      "description": "created/ready/stopped/failed describe the transport lifecycle, not OS login success. Best-effort delivery can omit an event, especially at a process crash.",
+      "datasource": {
+        "type": "influxdb",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 56,
+        "w": 24,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "rawQuery": true,
+          "resultFormat": "table",
+          "query": "SELECT \"event\", \"version\", \"host\", \"role\", \"slot_id\", \"workstation_id\" FROM \"plank_session\" WHERE $timeFilter AND \"host\" =~ /^${machine:regex}$/ AND \"workstation_id\" =~ /^${workstation:regex}$/ AND \"role\" =~ /^${role:regex}$/ ORDER BY time DESC LIMIT 100",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "${datasource}"
+          }
+        }
+      ],
+      "options": {
+        "showHeader": true
+      },
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      }
+    }
+  ],
+  "annotations": {
+    "list": []
+  }
+}

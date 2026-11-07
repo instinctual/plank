@@ -15,6 +15,7 @@
   main-window connectivity checks and administrator-controlled targets.
   [Mac remote audio output](user/macos-audio-output.md) explains PLANK Output,
   volume controls and restoration of local playback.
+  [Application metrics](user/metrics.md) covers Telegraf, InfluxDB 2 and the Grafana dashboard.
 - [Desktop cleanup inventory](development/reviews/desktop-cleanup-inventory.md):
   removed components, retained callers and validation boundaries.
 - [Architecture](architecture/): media, input, authentication and lifecycle.
