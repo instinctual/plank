@@ -2,7 +2,9 @@
 #include "src/config.h"
 #include "src/platform/common.h"
 #include <gtest/gtest.h>
+#include <algorithm>
 #include <chrono>
+#include <cmath>
 #include <csignal>
 #include <cstdlib>
 #include <filesystem>
@@ -17,7 +19,7 @@ TEST(PulseRecovery, SilentServerDoesNotBlockCaptureCancellationOrTeardown) {
   char directory[] = "/tmp/plank-pulse-test.XXXXXX";
   ASSERT_NE(mkdtemp(directory), nullptr);
   const auto socket = std::string(directory) + "/native";
-  const auto module = "module-native-protocol-unix socket=" + socket + " auth-anonymous=1";
+  const auto module = "module-native-protocol-unix socket=" + socket + " auth-anonymous=1 auth-cookie=" + std::string(directory) + "/cookie";
   const pid_t child = fork();
   ASSERT_GE(child, 0);
   if (!child) {
@@ -28,7 +30,8 @@ TEST(PulseRecovery, SilentServerDoesNotBlockCaptureCancellationOrTeardown) {
     setenv("PULSE_COOKIE", (std::string(directory) + "/cookie").c_str(), 1);
     execlp("pulseaudio", "pulseaudio", "-n", "--daemonize=no", "--use-pid-file=no", "--disable-shm=yes",
            "--exit-idle-time=-1", "--log-target=stderr", "-L", module.c_str(), "-L",
-           "module-null-sink sink_name=plank-test rate=48000 channels=2", nullptr);
+           "module-null-sink sink_name=plank-test rate=48000 channels=2", "-L",
+           "module-sine sink=plank-test frequency=440", nullptr);
     _exit(127);
   }
   struct Cleanup {
@@ -45,7 +48,19 @@ TEST(PulseRecovery, SilentServerDoesNotBlockCaptureCancellationOrTeardown) {
   auto capture = control->microphone(mapping, 2, 48000, 240, false, false);
   ASSERT_NE(capture, nullptr);
   std::vector<float> samples(480);
-  ASSERT_EQ(capture->sample(samples, [] { return false; }), platf::capture_e::ok);
+  // A newly activated null sink can need more than one bounded sample call.
+  // Startup is separate from the strict cancellation/teardown limits below.
+  const auto receive_pcm = [&] {
+    const auto deadline = std::chrono::steady_clock::now() + 3s;
+    auto result = platf::capture_e::timeout;
+    while (result == platf::capture_e::timeout && std::chrono::steady_clock::now() < deadline)
+      result = capture->sample(samples, [&] { return std::chrono::steady_clock::now() >= deadline; });
+    return result;
+  };
+  ASSERT_EQ(receive_pcm(), platf::capture_e::ok);
+  EXPECT_TRUE(std::any_of(samples.begin(), samples.end(), [](float sample) {
+    return std::isfinite(sample) && std::abs(sample) > 0.0001f;
+  }));
   ASSERT_EQ(kill(child, SIGSTOP), 0);
   const auto began = std::chrono::steady_clock::now();
   auto status = platf::capture_e::ok;
@@ -63,5 +78,5 @@ TEST(PulseRecovery, SilentServerDoesNotBlockCaptureCancellationOrTeardown) {
   ASSERT_NE(control, nullptr);
   capture = control->microphone(mapping, 2, 48000, 240, false, false);
   ASSERT_NE(capture, nullptr);
-  EXPECT_EQ(capture->sample(samples, [] { return false; }), platf::capture_e::ok);
+  EXPECT_EQ(receive_pcm(), platf::capture_e::ok);
 }

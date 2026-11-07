@@ -32,7 +32,7 @@ No release publication, deployment or merge is implied by this branch.
 
 - Portable root packaging/privacy tests: 8/8 passed, including the repaired
   bootstrap fixture that executes the current FFmpeg identity validator.
-- CI product/cache/signing policy: 130 tests passed.
+- CI product/cache/signing policy: 131 tests passed.
 - Common-C lifecycle: 941 assertions, including simultaneous failure callbacks;
   AddressSanitizer/UndefinedBehaviorSanitizer pass. Common-C component suites pass.
 - Native X11 capture/color and CUDA-registration fixtures pass with sanitizers.
