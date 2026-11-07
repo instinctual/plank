@@ -4,13 +4,15 @@ Read `AGENTS.md` and the relevant build runbook first. Machine inventory,
 credentials and private captures stay outside Git. This file records current
 state; older detailed results remain in Git history and the artifact catalog.
 
-## Code review hardening — all candidates ready
+## Code review hardening — accepted and merged into main
 
-The operator authorized **every finding** from the full read-only review on a
-new branch, without intermediate approval stops. Root, Client, Linux Host,
-Client common-C and Kymux use **`code-review-hardening`**, based on main
-`b8a0f1a84f00b90e42c152f7b8600368bf858866`. Version is **1.4.10**. Work is
-committed and pushed; no merge, release publication or installation is requested.
+On November 7, 2026, the operator reported successful candidate testing and
+authorized commit, push and merge. **`code-review-hardening`** is merged into
+main at `2b4b935f23dd07bad7d63b2ee8f2d89eaa3891eb`. The merge tree exactly matches the
+accepted branch; no production code or dependency pin changed during merging.
+Version remains **1.4.10**. Client, Linux Host and Kymux are on their pushed
+`main` branches; common-C is on its maintained `plank/client` branch. The
+canonical parent checkout is on `main`. No release publication was requested.
 See [the implementation checklist](docs/development/plans/code-review-hardening.md).
 
 Current pins:
@@ -106,12 +108,14 @@ was disabled and no cancellation, loss or latency threshold was relaxed.
 
 All four original manifests and package hashes match the local catalog. Both
 Mac PKGs are signed, notarized and stapled. Downloads are cleaned up; logs,
-original manifests and qualification evidence remain. Next is operator
-installation/session acceptance, then an explicit merge or publication decision.
+original manifests and qualification evidence remain. Operator testing is now
+accepted and the code is merged. These installers retain their candidate names
+and original hashes. A mainline rebuild must create new artifacts; do not
+relabel the accepted candidates. This instruction did not request publication.
 
-## Main baseline — 1.4.09 packages ready, publication held
+## Previous mainline packages — 1.4.09, publication held
 
-Main remains `b8a0f1a8`. All four 1.4.09 packages are built from exact source
+The preceding main baseline was `b8a0f1a8`. All four 1.4.09 packages are built from exact source
 `6c9bf535338c72d40b5193b8c112282b2ffa591b` and retained in
 `artifacts/packages/releases/1.4.09/`; no release/tag or installation was made.
 The catalog's `releases` name denotes mainline provenance, not publication.
@@ -120,7 +124,7 @@ Pins: Client `1c54da5d0cfae834c9484c67c3519bad8024d263`, Linux Host
 `2281c3ed6dbf5779ec75dba15a8a4f165efba1fa`, Kymux
 `079e56477a0577c74fb643400668ac983662d3e4`.
 Successful runs: Linux Host 42309328630, Ubuntu 42309335146, signed Mac Host
-42309339041, signed Mac Client42309343325. Transport 42309346962 passed;
+42309339041, signed Mac Client 42309343325. Transport 42309346962 passed;
 its exact Mac test binary matched the qualified candidate. Original manifests,
 checksums and reports remain in `artifacts/qualification/mainline-1.4.09/`.
 
@@ -153,9 +157,10 @@ The hardening branch's signing permission is 65803900; retain it until retiremen
 The authorized development Mac is identified in private notes. Preserve Terminal
 and active sessions. Reference Macs are read-only unless reassigned. No active
 remote collector, loss injection or temporary probe remains from this pass.
-No package installation, reboot or service restart was performed.
-
-Installed acceptance still requires the exact candidate packages:
+No package installation, reboot or service restart was performed by the agent.
+The operator accepted the candidate testing without enumerating hardware or OS
+combinations. Retain the following platform-specific qualification matrix; the
+acceptance does not expand supported platforms or replace Chris's 26.7 checks:
 
 - Capture/encode and exact-format hardware decode/presentation, 10-bit color,
   4K/5K, fullscreen/window scaling, Retina/notch and multiple displays.

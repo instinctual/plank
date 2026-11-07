@@ -1,6 +1,7 @@
 # Code review hardening
 
 Branch: `code-review-hardening`, based on main `b8a0f1a8`.
+Accepted by the operator on November 7, 2026; merged into main at `2b4b935f23dd07bad7d63b2ee8f2d89eaa3891eb`.
 
 The operator requested implementation of every finding in the repository-wide
 review. Preserve current codec/color, persistent tablet, authentication, and
@@ -26,7 +27,8 @@ platform contracts. Build checks do not replace installed session acceptance.
 - [x] Run affected component, sanitizer, package and transport qualification.
 - [x] Record exact commits, artifacts, results and remaining installed-test gates.
 
-No release publication, deployment or merge is implied by this branch.
+The operator authorized and accepted the merge after testing. No release
+publication or additional deployment was requested.
 
 ## Verification
 
@@ -56,8 +58,10 @@ capture after the server resumes. Initial source startup has its own bounded
 three-second allowance; the pause/recovery limits are unchanged. This passed
 in 4.082s. Component tests now run before the full Linux media/RPM build.
 
-Installed-session acceptance remains separate and unperformed. No merge,
-publication or installation was made. A local ThreadSanitizer attempt could not link
+The operator reported successful candidate testing and accepted the merge.
+Detailed hardware/OS combinations were not specified; retain the platform
+qualification requirements in AGENTS.md. No release was published and no further
+installation was performed by the agent. A local ThreadSanitizer attempt could not link
 because that runtime is absent; this is not a ThreadSanitizer pass.
 
 The retained native Apple branch has its own protocol pin and is unchanged.
