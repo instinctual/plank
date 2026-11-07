@@ -168,15 +168,15 @@ async fn source(shared: &NativeShared, connection: &kyproto::Connection) -> Resu
         }))
         .await?;
     protocol
-        .send(AVPacket::Media(MediaPacket {
-            header: MediaPacketHeader {
+        .send(AVPacket::Media(MediaPacket::new(
+            MediaPacketHeader {
                 is_config: true,
                 is_key: true,
                 pts: 0,
                 size: 0,
             },
-            payload: Bytes::new(),
-        }))
+            Bytes::new(),
+        )))
         .await?;
     shared.camera.state.lock().unwrap().status = 2;
     loop {
@@ -184,15 +184,15 @@ async fn source(shared: &NativeShared, connection: &kyproto::Connection) -> Resu
         if let Some(packet) = shared.camera.pop() {
             let payload = packet.encode()?;
             protocol
-                .send(AVPacket::Media(MediaPacket {
-                    header: MediaPacketHeader {
+                .send(AVPacket::Media(MediaPacket::new(
+                    MediaPacketHeader {
                         is_config: false,
                         is_key: packet.flags & KEY_FRAME != 0,
                         pts: packet.capture_time_us,
                         size: payload.len() as u32,
                     },
                     payload,
-                }))
+                )))
                 .await?;
         } else {
             notified.await;
@@ -294,10 +294,8 @@ pub unsafe extern "C" fn plank_transport_native_camera_enable_version(
         if microphone_negotiated > 1 || !matches!(version, 1 | 2) {
             return PLANK_TRANSPORT_ERROR_INVALID_ARGUMENT;
         }
-        if !matches!(
-            endpoint.shared.state(),
-            EndpointState::SetupReady | EndpointState::Ready
-        ) || endpoint.shared.microphone.negotiated() != (microphone_negotiated != 0)
+        if !matches!(endpoint.shared.state(), EndpointState::Ready)
+            || endpoint.shared.microphone.negotiated() != (microphone_negotiated != 0)
         {
             return PLANK_TRANSPORT_ERROR_INVALID_STATE;
         }
@@ -536,13 +534,13 @@ mod tests {
         use std::net::UdpSocket;
         for version in [1, 2] {
             for microphone in [false, true] {
-                for setup in [false, true] {
+                for profile_validation in [false, true] {
                     let address = UdpSocket::bind("127.0.0.1:0")
                         .unwrap()
                         .local_addr()
                         .unwrap();
-                    let mut host = endpoint(address, true, setup);
-                    let mut client = endpoint(address, false, setup);
+                    let mut host = endpoint(address, true, profile_validation);
+                    let mut client = endpoint(address, false, profile_validation);
                     unsafe {
                         assert_eq!(
                             plank_transport_native_camera_enable(&mut *client, microphone as u32),
@@ -557,22 +555,12 @@ mod tests {
                             plank_transport_native_endpoint_start(&mut *client),
                             PLANK_TRANSPORT_OK
                         );
-                        if setup {
+                        if profile_validation {
                             wait_state(&client, EndpointState::PeerValidation).await;
                             assert_eq!(
                                 plank_transport_native_endpoint_approve_peer_certificate(
                                     &mut *client
                                 ),
-                                PLANK_TRANSPORT_OK
-                            );
-                            wait_state(&host, EndpointState::SetupReady).await;
-                            wait_state(&client, EndpointState::SetupReady).await;
-                            assert_eq!(
-                                plank_transport_native_endpoint_authorize_session(&mut *host),
-                                PLANK_TRANSPORT_OK
-                            );
-                            assert_eq!(
-                                plank_transport_native_endpoint_authorize_session(&mut *client),
                                 PLANK_TRANSPORT_OK
                             );
                         }
@@ -782,16 +770,6 @@ mod tests {
             wait_state(&client, EndpointState::PeerValidation).await;
             assert_eq!(
                 plank_transport_native_endpoint_approve_peer_certificate(&mut *client),
-                PLANK_TRANSPORT_OK
-            );
-            wait_state(&host, EndpointState::SetupReady).await;
-            wait_state(&client, EndpointState::SetupReady).await;
-            assert_eq!(
-                plank_transport_native_endpoint_authorize_session(&mut *host),
-                PLANK_TRANSPORT_OK
-            );
-            assert_eq!(
-                plank_transport_native_endpoint_authorize_session(&mut *client),
                 PLANK_TRANSPORT_OK
             );
             wait_state(&host, EndpointState::Ready).await;

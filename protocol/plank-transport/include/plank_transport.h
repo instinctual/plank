@@ -10,7 +10,7 @@
 extern "C" {
 #endif
 
-#define PLANK_TRANSPORT_ABI_VERSION 13u
+#define PLANK_TRANSPORT_ABI_VERSION 14u
 
 typedef struct PlankTransportNativeEndpoint PlankTransportNativeEndpoint;
 
@@ -19,17 +19,11 @@ typedef enum PlankTransportMode {
     PLANK_TRANSPORT_MODE_CLIENT = 2,
 } PlankTransportMode;
 
-typedef enum PlankTransportSessionMode {
-    PLANK_TRANSPORT_SESSION_ACTIVE = 0,
-    PLANK_TRANSPORT_SESSION_SETUP = 1,
-} PlankTransportSessionMode;
-
 typedef enum PlankTransportState {
     PLANK_TRANSPORT_STATE_INVALID = 0,
     PLANK_TRANSPORT_STATE_IDLE = 1,
     PLANK_TRANSPORT_STATE_STARTING = 2,
     PLANK_TRANSPORT_STATE_PEER_VALIDATION = 3,
-    PLANK_TRANSPORT_STATE_SETUP_READY = 4,
     PLANK_TRANSPORT_STATE_READY = 5,
     PLANK_TRANSPORT_STATE_STOPPING = 6,
     PLANK_TRANSPORT_STATE_STOPPED = 7,
@@ -63,7 +57,6 @@ typedef struct PlankTransportConfig {
     uint32_t handshake_timeout_ms;
     uint32_t idle_timeout_ms;
     uint32_t keep_alive_interval_ms;
-    uint32_t session_mode;
     /*
      * Maximum complete QUIC UDP payload, excluding outer IP/UDP headers.
      * Zero retains Quinn's default path policy. A nonzero value also limits
@@ -166,15 +159,6 @@ int32_t plank_transport_native_endpoint_peer_certificate(
         uint8_t *certificate, size_t certificate_capacity,
         size_t *certificate_size_out);
 int32_t plank_transport_native_endpoint_approve_peer_certificate(
-        PlankTransportNativeEndpoint *endpoint);
-
-/*
- * SETUP endpoints expose only reliable data while in SETUP_READY. After the
- * Host has completed PAM, ownership, display, and launch validation and sent
- * SESSION_READY, each peer authorizes its side of the same connection. Only
- * then are KyProto media and input endpoints registered and READY reached.
- */
-int32_t plank_transport_native_endpoint_authorize_session(
         PlankTransportNativeEndpoint *endpoint);
 
 int32_t plank_transport_native_video_send(

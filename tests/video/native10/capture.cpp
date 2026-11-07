@@ -11,6 +11,7 @@
 namespace {
 std::vector<int> calls;
 int fail_at = 0, mismatch = 0;
+bool pending_event = false, change_during_image = false;
 xcb_get_geometry_cookie_t geometry(xcb_connection_t*, xcb_drawable_t drawable) {
     calls.push_back(int(drawable)); return {drawable};
 }
@@ -22,7 +23,7 @@ xcb_shm_get_image_cookie_t image(xcb_connection_t*, xcb_drawable_t drawable,
     calls.push_back(3); return {3};
 }
 template<class T> T* reply(unsigned sequence, xcb_generic_error_t** error) {
-    assert((calls.size() >= 3 && calls[0] == 1 && calls[1] == 2 && calls[2] == 3));
+    assert((calls.size() >= 3 && calls[0] == 1 && calls[1] == 2 && calls[2] == 3) || (sequence == 3 && calls == std::vector<int>{3}));
     calls.push_back(int(sequence + 3));
     if (fail_at == int(sequence)) {
         *error = static_cast<xcb_generic_error_t*>(std::calloc(1, sizeof(xcb_generic_error_t)));
@@ -39,6 +40,7 @@ xcb_get_geometry_reply_t* geometry_reply(xcb_connection_t*, xcb_get_geometry_coo
 }
 xcb_shm_get_image_reply_t* image_reply(xcb_connection_t*, xcb_shm_get_image_cookie_t cookie, xcb_generic_error_t** error) {
     auto* r = reply<xcb_shm_get_image_reply_t>(cookie.sequence, error);
+    if (change_during_image) pending_event = true;
     if (r) { r->size = mismatch == 3 ? 4 : 16 * 10 * 4; r->depth = mismatch == 5 ? 24 : 30; }
     return r;
 }
@@ -52,6 +54,53 @@ void capture_test() {
         assert(result.geometry_wait_us >= 0 && result.image_wait_us >= 0);
     }
 }
+xcb_void_cookie_t watch(xcb_connection_t*, xcb_window_t window, uint32_t mask, const void* value) {
+    assert((window == 1 || window == 2) && mask == XCB_CW_EVENT_MASK);
+    assert(*static_cast<const uint32_t*>(value) == XCB_EVENT_MASK_STRUCTURE_NOTIFY);
+    return {window};
+}
+xcb_generic_error_t* check_watch(xcb_connection_t*, xcb_void_cookie_t) { return nullptr; }
+xcb_generic_event_t* poll_event(xcb_connection_t*) {
+    if (!pending_event) return nullptr;
+    pending_event = false;
+    auto* event = static_cast<xcb_generic_event_t*>(std::calloc(1, sizeof(xcb_generic_event_t)));
+    event->response_type = XCB_CONFIGURE_NOTIFY;
+    return event;
+}
+void geometry_events_test() {
+    platf::x11::capture_api_t api {geometry, geometry_reply, image, image_reply, watch, check_watch, poll_event};
+    platf::x11::capture_geometry_t cache;
+    assert(cache.subscribe(api, nullptr, 1, 2));
+    auto frame = [&] { calls.clear(); return cache.snapshot(api, nullptr, 1, 2, 4, 8, 16, 10, 128, 64, 17); };
+    fail_at = 0; mismatch = 0;
+    assert(frame().valid && calls.size() == 6);
+    assert(frame().valid && calls.size() == 2);
+    pending_event = true;
+    assert(frame().valid && calls.size() == 6);
+    change_during_image = true;
+    assert(!frame().valid && !cache.valid);
+    change_during_image = false;
+    assert(frame().valid && calls.size() == 6);
+    pending_event = true; mismatch = 1;
+    assert(!frame().valid && !cache.valid);
+    mismatch = 0;
+}
+
+void cached_capture_test() {
+    platf::x11::capture_api_t api {geometry, geometry_reply, image, image_reply};
+    // Steady state still verifies every image's depth/size and consumes errors.
+    fail_at = 0; mismatch = 0; calls.clear();
+    assert(platf::x11::capture_batch(api, nullptr, 1, 2, 4, 8, 16, 10, 128, 64, 17, false).valid);
+    assert((calls == std::vector<int>{3, 6}));
+    for (const int bad : {3, 5}) {
+        mismatch = bad; calls.clear();
+        assert(!platf::x11::capture_batch(api, nullptr, 1, 2, 4, 8, 16, 10, 128, 64, 17, false).valid);
+    }
+    mismatch = 0; fail_at = 3; calls.clear();
+    assert(!platf::x11::capture_batch(api, nullptr, 1, 2, 4, 8, 16, 10, 128, 64, 17, false).valid);
+    fail_at = 0;
+}
+
 void pixel_test() {
     std::mt19937 generator(1);
     for (const std::size_t width : {0U, 1U, 7U, 8U, 9U, 1023U, 1024U, 3840U, 5120U, 7681U}) {
@@ -102,4 +151,4 @@ void timing_test() {
     assert(summary.over_budget == count - 16666);
 }
 }
-int main() { capture_test(); pixel_test(); timing_test(); std::cout << "native10 capture, RGB10 precision and bounded timing passed\n"; }
+int main() { capture_test(); cached_capture_test(); geometry_events_test(); pixel_test(); timing_test(); std::cout << "native10 capture, RGB10 precision and bounded timing passed\n"; }

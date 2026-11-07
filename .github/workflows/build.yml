@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
     inputs:
       product:
-        description: Product to rebuild (all on ordinary push/PR)
+        description: Product to rebuild (affected products on push/PR)
         type: choice
         default: all
         options: [all, linux-host, linux-client, linux-client-vaapi-probe, macos-host, macos-client, macos-fullscreen-probe, dependency-tests]
@@ -59,12 +59,19 @@ jobs:
       scope: ${{ inputs.dependency_scope || 'all' }}
 
   policy:
+    outputs:
+      products: ${{ steps.affected.outputs.products }}
+      macos: ${{ steps.affected.outputs.macos }}
     runs-on: ubuntu-26.04
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          fetch-depth: 0
           persist-credentials: false
+      - name: Select affected products
+        id: affected
+        run: python3 scripts/ci/affected-products.py
       - name: Install source-gate test dependency
         run: sudo apt-get update && sudo apt-get install -y --no-install-recommends ripgrep
       - run: python3 -m unittest discover -s tests/ci -v
@@ -74,7 +81,7 @@ jobs:
         run: test "$(git rev-parse HEAD)" = "$EXPECTED_SOURCE_SHA"
 
   linux-host:
-    if: ${{ !inputs.product || inputs.product == 'all' || inputs.product == 'linux-host' }}
+    if: ${{ (!inputs.product && contains(fromJSON(needs.policy.outputs.products), 'linux-host')) || inputs.product == 'all' || inputs.product == 'linux-host' }}
     needs: policy
     runs-on: ubuntu-24.04
     container: rockylinux/rockylinux:9.7@sha256:53f4c6dcb34e1403bd93207351f0af9a593610faeb7165cb8a037346765199b0
@@ -140,7 +147,7 @@ jobs:
           REQUIRED_FFMPEG_CACHE: ${{ inputs.diagnostic_ffmpeg_cache }}
         run: |
           test "$CLEAN_BOOTSTRAP" != true
-          [[ "$REQUIRED_FFMPEG_CACHE" =~ ^plank-linux-client-ffmpeg-v2-[0-9a-f]{64}$ ]]
+          [[ "$REQUIRED_FFMPEG_CACHE" =~ ^plank-linux-client-ffmpeg-v3-[0-9a-f]{64}$ ]]
       - run: bash scripts/ci/install-linux-deps.sh client
       - name: Match the Client dependency fingerprint
         run: sudo apt-get install -y --no-install-recommends libvulkan-dev
@@ -168,7 +175,7 @@ jobs:
           retention-days: 7
 
   linux-client:
-    if: ${{ !inputs.product || inputs.product == 'all' || inputs.product == 'linux-client' }}
+    if: ${{ (!inputs.product && contains(fromJSON(needs.policy.outputs.products), 'linux-client')) || inputs.product == 'all' || inputs.product == 'linux-client' }}
     needs: policy
     runs-on: ubuntu-26.04
     timeout-minutes: 120
@@ -248,14 +255,14 @@ jobs:
           retention-days: 7
 
   macos:
-    if: ${{ !inputs.signed && (!inputs.product || inputs.product == 'all' || inputs.product == 'macos-host' || inputs.product == 'macos-client') }}
+    if: ${{ !inputs.signed && ((!inputs.product && needs.policy.outputs.macos != '[]') || inputs.product == 'all' || inputs.product == 'macos-host' || inputs.product == 'macos-client') }}
     needs: policy
     runs-on: xcode-27
     timeout-minutes: 120
     strategy:
       fail-fast: false
       matrix:
-        product: ${{ fromJSON(inputs.product == 'macos-host' && '["host"]' || inputs.product == 'macos-client' && '["client"]' || '["host", "client"]') }}
+        product: ${{ fromJSON(inputs.product == 'macos-host' && '["host"]' || inputs.product == 'macos-client' && '["client"]' || (inputs.product == 'all' && '["host", "client"]') || needs.policy.outputs.macos) }}
     env:
       PLANK_BUILD_JOBS: '3'
     steps:

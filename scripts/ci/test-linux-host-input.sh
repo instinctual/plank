@@ -27,4 +27,5 @@ fi
   --gtest_repeat=25 --gtest_shuffle --gtest_random_seed=837
 "$fixture_build/host-core-tests" --gtest_color=no \
   --gtest_repeat=25 --gtest_shuffle --gtest_random_seed=837
+timeout 20 "$fixture_build/audio-recovery" --gtest_color=no
 echo 'host_input_lifecycle_gate=pass hardware_acceptance=not-performed'

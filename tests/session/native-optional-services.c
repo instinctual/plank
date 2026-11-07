@@ -3,6 +3,7 @@
 #include "Connection.c"
 #include <stdio.h>
 #include <stdlib.h>
+#include <pthread.h>
 
 #define CHECK(x) do { checks++; if (!(x)) { \
     fprintf(stderr, "line %d: %s\n", __LINE__, #x); exit(1); } } while (0)
@@ -23,11 +24,6 @@ static void connectionTerminated(int error) { (void)error; CHECK(false); }
 int initializePlatform(void) { return 0; }
 void cleanupPlatform(void) {}
 void PltSleepMs(int ms) { (void)ms; }
-int PltCreateThread(const char* name, ThreadEntry entry, void* context, PLT_THREAD* thread) {
-    (void)name; (void)entry; (void)context; (void)thread;
-    CHECK(false); return -1;
-}
-void PltDetachThread(PLT_THREAD* thread) { (void)thread; CHECK(false); }
 void fixupMissingCallbacks(PDECODER_RENDERER_CALLBACKS* video,
                           PAUDIO_RENDERER_CALLBACKS* audio,
                           PCONNECTION_LISTENER_CALLBACKS* listener) {
@@ -121,7 +117,28 @@ static void exercise(bool linuxSession, int failure) {
     CHECK(videoDestroy <= 1 && audioDestroy <= 1 && inputDestroy <= 1 && controlDestroy <= 1);
 }
 
+static atomic_int notifications;
+static void countTermination(int error) { (void)error; atomic_fetch_add(&notifications, 1); }
+static void* failConcurrently(void* ignored) {
+    (void)ignored; ClInternalConnectionTerminated(-1); return NULL;
+}
+static void terminationTest(void) {
+    originalTerminationCallback = countTermination;
+    for (unsigned attempt = 0; attempt < 20; ++attempt) {
+        atomic_store(&notifications, 0);
+        atomic_store(&alreadyTerminated, false);
+        pthread_t producers[16];
+        for (unsigned i = 0; i < 16; ++i) CHECK(pthread_create(&producers[i], NULL, failConcurrently, NULL) == 0);
+        for (unsigned i = 0; i < 16; ++i) CHECK(pthread_join(producers[i], NULL) == 0);
+        CHECK(atomic_load(&notifications) == 1);
+        LiStopConnection();
+        ClInternalConnectionTerminated(-2);
+        CHECK(atomic_load(&notifications) == 1);
+    }
+}
+
 int main(void) {
+    terminationTest();
     PLANK_NATIVE_SESSION_CONFIGURATION c = configuration(true);
     CHECK(LiSetPlankNativeSessionConfiguration(&c) == 0);
     c.serviceFlags = 0;

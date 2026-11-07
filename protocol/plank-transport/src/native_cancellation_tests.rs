@@ -17,7 +17,11 @@ fn options() -> super::super::RuntimeOptions {
     }
 }
 
-pub(super) fn endpoint(address: SocketAddr, host: bool, setup: bool) -> Box<PlankTransportNativeEndpoint> {
+pub(super) fn endpoint(
+    address: SocketAddr,
+    host: bool,
+    profile_validation: bool,
+) -> Box<PlankTransportNativeEndpoint> {
     let config = if host {
         EndpointConfig::Server {
             bind_address: address,
@@ -28,26 +32,26 @@ pub(super) fn endpoint(address: SocketAddr, host: bool, setup: bool) -> Box<Plan
                 .unwrap()
                 .into(),
             session_token: TOKEN.into(),
-            setup_mode: setup,
+
             options: options(),
         }
     } else {
         EndpointConfig::Client {
             remote_address: address,
             server_name: "localhost".into(),
-            certificate_sha256: (!setup).then(|| {
+            certificate_sha256: (!profile_validation).then(|| {
                 std::env::var("SC_NATIVE_TEST_CERTIFICATE_SHA256")
                     .unwrap_or_else(|_| "00".repeat(32))
             }),
             session_token: TOKEN.into(),
-            setup_mode: setup,
+
             options: options(),
         }
     };
     Box::new(PlankTransportNativeEndpoint {
         config,
         mode: if host { 1 } else { 2 },
-        shared: Arc::new(NativeShared::new(setup && !host, setup, 150_000_000)),
+        shared: Arc::new(NativeShared::new(profile_validation && !host, 150_000_000)),
         worker: Mutex::new(None),
     })
 }
@@ -86,7 +90,7 @@ fn stop_checked(mut endpoint: Box<PlankTransportNativeEndpoint>, phase: &str) {
 
 #[tokio::test]
 async fn cancellation_is_durable_and_ignores_spurious_notifications() {
-    let shared = NativeShared::new(false, false, 150_000_000);
+    let shared = NativeShared::new(false, 150_000_000);
     let mut wait = std::pin::pin!(shared.shutdown_requested());
     let mut cx = TaskContext::from_waker(Waker::noop());
     shared.notify_all();
@@ -115,7 +119,7 @@ async fn cancellation_drops_the_in_flight_operation() {
             self.0.store(true, Ordering::Release);
         }
     }
-    let shared = NativeShared::new(false, false, 150_000_000);
+    let shared = NativeShared::new(false, 150_000_000);
     let dropped = AtomicBool::new(false);
     let (tx, rx) = tokio::sync::oneshot::channel();
     let operation = async {
@@ -134,8 +138,8 @@ async fn cancellation_drops_the_in_flight_operation() {
 }
 
 #[tokio::test]
-async fn failure_also_cancels_setup_and_preserves_the_original_error() {
-    let shared = NativeShared::new(false, false, 150_000_000);
+async fn failure_also_cancels_profile_validation_and_preserves_the_original_error() {
+    let shared = NativeShared::new(false, 150_000_000);
     shared.fail("original queue failure");
     assert!(
         shared
@@ -151,7 +155,7 @@ async fn failure_also_cancels_setup_and_preserves_the_original_error() {
         shared.status.lock().unwrap().error,
         "original queue failure"
     );
-    let shared = NativeShared::new(false, false, 150_000_000);
+    let shared = NativeShared::new(false, 150_000_000);
     shared.set_state(EndpointState::Stopping);
     shared.set_state(EndpointState::Ready);
     assert_eq!(shared.state(), EndpointState::Stopping);
@@ -162,12 +166,12 @@ async fn failure_also_cancels_setup_and_preserves_the_original_error() {
 
 #[test]
 fn stop_and_destroy_interrupt_real_silent_quic_handshakes() {
-    for setup in [false, true] {
+    for profile_validation in [false, true] {
         let blackhole = UdpSocket::bind("127.0.0.1:0").unwrap();
         blackhole
             .set_read_timeout(Some(Duration::from_secs(5)))
             .unwrap();
-        let mut endpoint = endpoint(blackhole.local_addr().unwrap(), false, setup);
+        let mut endpoint = endpoint(blackhole.local_addr().unwrap(), false, profile_validation);
         start(&mut endpoint);
         let mut packet = [0; 2048];
         blackhole
@@ -176,14 +180,15 @@ fn stop_and_destroy_interrupt_real_silent_quic_handshakes() {
         assert_eq!(endpoint.shared.state(), EndpointState::Starting);
         stop_checked(
             endpoint,
-            if setup {
-                "setup-client-tls"
+            if profile_validation {
+                "profile_validation-client-tls"
             } else {
                 "client-tls"
             },
         );
 
-        let mut endpoint = self::endpoint(blackhole.local_addr().unwrap(), false, setup);
+        let mut endpoint =
+            self::endpoint(blackhole.local_addr().unwrap(), false, profile_validation);
         let shared = Arc::downgrade(&endpoint.shared);
         start(&mut endpoint);
         let (tx, rx) = mpsc::channel();
@@ -273,15 +278,15 @@ pub(super) async fn wait_bound(address: SocketAddr, endpoint: &PlankTransportNat
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
 #[ignore = "run through scripts/test/run-plank-transport-native-loopback.sh"]
-async fn cancellation_interrupts_real_auth_endpoints_and_promotion() {
+async fn cancellation_interrupts_real_auth_endpoints_and_certificate_approval() {
     use kynet::Server;
 
     init_crypto_once();
     let hash = std::env::var("SC_NATIVE_TEST_CERTIFICATE_SHA256").unwrap();
-    for setup in [false, true] {
+    for profile_validation in [false, true] {
         // Listener waiting for its first peer; the address is reusable on stop.
         let address = unused_address();
-        let mut host = endpoint(address, true, setup);
+        let mut host = endpoint(address, true, profile_validation);
         start(&mut host);
         wait_bound(address, &host).await;
         stop_checked(host, "server-accept");
@@ -291,7 +296,7 @@ async fn cancellation_interrupts_real_auth_endpoints_and_promotion() {
             // TLS has completed, but the peer withholds either the KyProto
             // authentication record or all endpoint-ready acknowledgements.
             let address = unused_address();
-            let mut host = endpoint(address, true, setup);
+            let mut host = endpoint(address, true, profile_validation);
             start(&mut host);
             wait_bound(address, &host).await;
             let raw = tokio::time::timeout(
@@ -363,7 +368,7 @@ async fn cancellation_interrupts_real_auth_endpoints_and_promotion() {
                 &Default::default(),
             )
             .unwrap();
-            let mut client = endpoint(address, false, setup);
+            let mut client = endpoint(address, false, profile_validation);
             start(&mut client);
             let raw = tokio::time::timeout(Duration::from_secs(5), server.accept())
                 .await
@@ -398,37 +403,6 @@ async fn cancellation_interrupts_real_auth_endpoints_and_promotion() {
         }
     }
 
-    for stop_host in [false, true] {
-        let address = unused_address();
-        let mut host = endpoint(address, true, true);
-        let mut client = endpoint(address, false, true);
-        start(&mut host);
-        wait_bound(address, &host).await;
-        start(&mut client);
-        wait_state(&client, EndpointState::PeerValidation).await;
-        if !stop_host {
-            stop_checked(client, "peer-certificate-approval");
-            // Peer closure may legitimately have failed the other endpoint.
-            stop_endpoint(&host);
-            continue;
-        }
-        assert_eq!(
-            unsafe { plank_transport_native_endpoint_approve_peer_certificate(&mut *client) },
-            PLANK_TRANSPORT_OK
-        );
-        wait_state(&client, EndpointState::SetupReady).await;
-        wait_state(&host, EndpointState::SetupReady).await;
-        // Authorize only one side, so promotion cannot finish.
-        assert_eq!(
-            unsafe { plank_transport_native_endpoint_authorize_session(&mut *host) },
-            PLANK_TRANSPORT_OK
-        );
-        tokio::time::sleep(Duration::from_millis(50)).await;
-        stop_checked(host, "server-promotion");
-        stop_endpoint(&client);
-    }
-
-    // The client promotion path must also observe cancellation.
     let address = unused_address();
     let mut host = endpoint(address, true, true);
     let mut client = endpoint(address, false, true);
@@ -436,16 +410,6 @@ async fn cancellation_interrupts_real_auth_endpoints_and_promotion() {
     wait_bound(address, &host).await;
     start(&mut client);
     wait_state(&client, EndpointState::PeerValidation).await;
-    assert_eq!(
-        unsafe { plank_transport_native_endpoint_approve_peer_certificate(&mut *client) },
-        PLANK_TRANSPORT_OK
-    );
-    wait_state(&client, EndpointState::SetupReady).await;
-    assert_eq!(
-        unsafe { plank_transport_native_endpoint_authorize_session(&mut *client) },
-        PLANK_TRANSPORT_OK
-    );
-    tokio::time::sleep(Duration::from_millis(50)).await;
-    stop_checked(client, "client-promotion");
+    stop_checked(client, "peer-certificate-approval");
     stop_endpoint(&host);
 }

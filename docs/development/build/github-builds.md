@@ -1,7 +1,12 @@
 # GitHub-hosted builds
 
 `Hosted builds` compiles all four public products from clean Git worktrees.
-It runs on pushes, pull requests and manual dispatch. No self-hosted machine,
+It runs on pushes, pull requests and manual dispatch. Push/PR jobs select the
+affected products: Host/Client gitlinks and platform packaging select their
+consumers; shared or unrecognized changes select all four. Documentation-only
+changes run policy checks without building packages. Missing comparison history
+also selects all products. Manual `product=all` always forces full qualification.
+No self-hosted machine,
 deployment credential, private repository or signing secret is available to
 these jobs. Actions are pinned to commit IDs and receive read-only permissions.
 
@@ -48,6 +53,11 @@ input/reservation lifecycle for 25 shuffled repetitions without kernel devices.
 It verifies endpoint retention/replacement and shutdown, not real hid-wacom
 probing. Keep mouse/Wacom disconnect/reconnect qualification as a separate
 hardware gate.
+
+The isolated audio gate starts a temporary PulseAudio daemon, stalls it with
+SIGSTOP, and verifies capture cancellation, bounded cleanup and reconnection.
+It neither attaches to an installed user's audio server nor proves live audio
+quality on hardware.
 
 Feature builds retain their branch-qualified visible and package versions.
 These jobs do not install products or perform live display, audio, input,
@@ -326,22 +336,23 @@ overlapping directories from independent keys. Qt is outside that prefix.
 fingerprint hashes only its own preparation commands, versions, flags and
 required patches. Keep such inputs in the relevant recipe, not in the shared
 `bootstrap.sh` orchestration wrapper. The Host FFmpeg group additionally hashes
-the build-deps Git pin, tracked files and source gitlinks. Both Client library
+build-relevant tracked files and source gitlinks; documentation-only dependency commits do not invalidate libraries. Both Client library
 groups retain all FFmpeg patch inputs and build-path/sanitization helpers.
 
 Rust toolchain changes invalidate Rust and Cargo downloads; transport and
 vendor-test manifests/locks invalidate only their Cargo group. Linux Host
-library keys retain the exact installed package inventory; Mac keys retain
-SDK/compiler/build tools. Ubuntu keys use the qualified OS/architecture, actual
+library keys retain header, toolchain and runtime-library versions; Mac keys retain
+SDK/compiler/build tools without the runner image date or unrelated OS build identity. Ubuntu keys use the qualified OS/architecture, actual
 compiler/build-tool versions, development packages and relevant ABI/protocol
 packages, not the runner image date or unrelated desktop/runtime packages.
 Native development packages remain conservative inputs because FFmpeg
 auto-detects optional libraries. Unrelated PHP SDK packages are excluded: FFmpeg
 does not use them, and GitHub image updates can change PHP independently.
 Downloads/source-only groups do not depend on those C/C++ build tools.
-All keys remain product/platform/path-specific; Mac Client native/Qt keys
-retain the explicit deployment-target policy. Changes to the shared cache
-implementation itself invalidate all groups conservatively. Application-only
+All keys remain product/platform-specific; compiled-library keys retain exact
+build paths and Mac Client native/Qt keys retain the explicit deployment target.
+Rust/Cargo downloads and Boost sources are relocatable. Cache policy uses an
+explicit schema revision instead of hashing the orchestration helper itself. Application-only
 changes do not invalidate dependency keys. OS packages are still installed by
 the package manager on each disposable runner; CUDA architecture coverage and
 all dependency versions/build flags are unchanged.

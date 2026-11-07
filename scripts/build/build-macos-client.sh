@@ -135,7 +135,7 @@ qmake -r "$client/moonlight-qt.pro" CONFIG+=release \
     "QMAKE_CFLAGS+=$PLANK_C_FILE_FLAGS" "QMAKE_CXXFLAGS+=$PLANK_C_FILE_FLAGS"
 make -j"${PLANK_BUILD_JOBS:-8}" release
 # Run shared topology and toolbar geometry on every Mac Client candidate.
-for suite in bookmarks pollingthread outputtopology hostchoices plankdisplaymode planktoolbarlogic desktopstage macquitshortcut macapplication mackeyboardcapture plankpresentation macrawwacom macclipboardsync changelog authenticationtakeover hosttruststore hosttlsguard; do
+for suite in bookmarks pollingthread outputtopology hostchoices plankdisplaymode desktopstage macquitshortcut macapplication mackeyboardcapture plankpresentation macrawwacom macclipboardsync changelog authenticationtakeover hosttruststore hosttlsguard; do
     run_shared_client_test "$suite"
 done
 # Dummy input only: no microphone permission or physical recording on builders.

@@ -11,7 +11,7 @@
 extern "C" {
 #endif
 
-/* ASCII "PLS1": PLANK pre-session setup protocol version 1. */
+/* ASCII "PLS1": PLANK authenticated launch protocol version 1. */
 #define PLANK_TRANSPORT_SETUP_MAGIC 0x504c5331u
 #define PLANK_TRANSPORT_SETUP_VERSION 1u
 #define PLANK_TRANSPORT_SETUP_HEADER_SIZE 20u
@@ -20,31 +20,18 @@ extern "C" {
     (PLANK_TRANSPORT_SETUP_MAX_PACKET_SIZE - PLANK_TRANSPORT_SETUP_HEADER_SIZE)
 
 typedef enum PlankTransportSetupType {
-    PLANK_TRANSPORT_SETUP_SERVER_INFO_REQUEST = 1,
-    PLANK_TRANSPORT_SETUP_SERVER_INFO_RESPONSE = 2,
-    PLANK_TRANSPORT_SETUP_PAM_START = 3,
-    PLANK_TRANSPORT_SETUP_PAM_CHALLENGE = 4,
-    PLANK_TRANSPORT_SETUP_PAM_RESPOND = 5,
-    PLANK_TRANSPORT_SETUP_PAM_RESULT = 6,
-    PLANK_TRANSPORT_SETUP_TOPOLOGY_REQUEST = 7,
-    PLANK_TRANSPORT_SETUP_TOPOLOGY_RESPONSE = 8,
     PLANK_TRANSPORT_SETUP_LAUNCH_REQUEST = 9,
     PLANK_TRANSPORT_SETUP_LAUNCH_RESPONSE = 10,
-    PLANK_TRANSPORT_SETUP_SESSION_READY = 11,
     PLANK_TRANSPORT_SETUP_ERROR = 12,
 } PlankTransportSetupType;
 
 typedef enum PlankTransportSetupFlags {
     PLANK_TRANSPORT_SETUP_FLAG_RESPONSE = 0x0001u,
-    PLANK_TRANSPORT_SETUP_FLAG_SENSITIVE = 0x0002u,
 } PlankTransportSetupFlags;
 
 typedef enum PlankTransportSetupStatus {
     PLANK_TRANSPORT_SETUP_STATUS_OK = 0,
-    PLANK_TRANSPORT_SETUP_STATUS_CONTINUE = 1,
     PLANK_TRANSPORT_SETUP_STATUS_INVALID_REQUEST = 2,
-    PLANK_TRANSPORT_SETUP_STATUS_AUTHENTICATION_FAILED = 3,
-    PLANK_TRANSPORT_SETUP_STATUS_AUTHORIZATION_FAILED = 4,
     PLANK_TRANSPORT_SETUP_STATUS_BUSY = 5,
     PLANK_TRANSPORT_SETUP_STATUS_UNSUPPORTED = 6,
     PLANK_TRANSPORT_SETUP_STATUS_INTERNAL_ERROR = 7,
@@ -90,9 +77,8 @@ static inline int plank_transport_setup_encode(
         uint8_t *output, size_t output_capacity, size_t *output_size) {
     const size_t packet_size = PLANK_TRANSPORT_SETUP_HEADER_SIZE + payload_size;
 
-    if (type == 0 || request_id == 0 || output == NULL || output_size == NULL ||
-            (flags & ~(PLANK_TRANSPORT_SETUP_FLAG_RESPONSE |
-                       PLANK_TRANSPORT_SETUP_FLAG_SENSITIVE)) != 0 ||
+    if ((type != PLANK_TRANSPORT_SETUP_LAUNCH_REQUEST && type != PLANK_TRANSPORT_SETUP_LAUNCH_RESPONSE && type != PLANK_TRANSPORT_SETUP_ERROR) || request_id == 0 || output == NULL || output_size == NULL ||
+            (flags & ~PLANK_TRANSPORT_SETUP_FLAG_RESPONSE) != 0 ||
             (payload_size != 0 && payload == NULL) ||
             payload_size > PLANK_TRANSPORT_SETUP_MAX_PAYLOAD_SIZE ||
             output_capacity < packet_size) {
@@ -125,14 +111,15 @@ static inline int plank_transport_setup_decode(
             plank_transport_setup_read_u32(packet) != PLANK_TRANSPORT_SETUP_MAGIC ||
             plank_transport_setup_read_u16(packet + 4) !=
                 PLANK_TRANSPORT_SETUP_VERSION ||
-            plank_transport_setup_read_u16(packet + 6) == 0 ||
+            (plank_transport_setup_read_u16(packet + 6) != PLANK_TRANSPORT_SETUP_LAUNCH_REQUEST &&
+             plank_transport_setup_read_u16(packet + 6) != PLANK_TRANSPORT_SETUP_LAUNCH_RESPONSE &&
+             plank_transport_setup_read_u16(packet + 6) != PLANK_TRANSPORT_SETUP_ERROR) ||
             plank_transport_setup_read_u32(packet + 12) == 0) {
         return -1;
     }
 
     flags = plank_transport_setup_read_u16(packet + 8);
-    if ((flags & ~(PLANK_TRANSPORT_SETUP_FLAG_RESPONSE |
-                   PLANK_TRANSPORT_SETUP_FLAG_SENSITIVE)) != 0) {
+    if ((flags & ~PLANK_TRANSPORT_SETUP_FLAG_RESPONSE) != 0) {
         return -1;
     }
     payload_size = plank_transport_setup_read_u32(packet + 16);

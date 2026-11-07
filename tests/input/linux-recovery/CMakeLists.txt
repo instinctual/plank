@@ -42,6 +42,13 @@ set(BOOST_INCLUDE_LIBRARIES log thread filesystem asio endian format)
 add_subdirectory("${PLANK_BOOST_SOURCE_DIR}" boost EXCLUDE_FROM_ALL)
 find_package(Threads REQUIRED)
 enable_testing()
+add_executable(audio-recovery pulse-recovery.cpp logging.cpp
+  "${HOST}/src/platform/linux/audio.cpp")
+target_include_directories(audio-recovery PRIVATE "${HOST}" "${PLANK_FFMPEG_INCLUDE}" "${HOST}/third-party")
+target_link_libraries(audio-recovery PRIVATE gtest_main Boost::log Boost::thread Boost::filesystem
+  Boost::asio Boost::endian Boost::format Threads::Threads pulse)
+add_test(NAME audio-recovery COMMAND audio-recovery)
+set_tests_properties(audio-recovery PROPERTIES TIMEOUT 20)
 add_executable(input-recovery
   logging.cpp
   input-config.cpp

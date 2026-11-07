@@ -21,10 +21,6 @@ pub const VIDEO_ENDPOINT_ID: u16 = 0;
 pub const AUDIO_ENDPOINT_ID: u16 = 2;
 pub const INPUT_ENDPOINT_ID: u16 = 4;
 pub const DATA_ENDPOINT_ID: u16 = 6;
-pub const SETUP_DATA_ENDPOINT_ID: u16 = 0;
-pub const SETUP_VIDEO_ENDPOINT_ID: u16 = 2;
-pub const SETUP_AUDIO_ENDPOINT_ID: u16 = 4;
-pub const SETUP_INPUT_ENDPOINT_ID: u16 = 6;
 
 #[cfg(test)]
 #[path = "native_version_tests.rs"]
@@ -53,37 +49,6 @@ pub struct NativeClientProtocols {
     pub audio: AudioClientProtocol,
     pub input: InputProtocol,
     pub data: DataProtocol,
-}
-
-pub struct NativeSetupServerProtocols {
-    connection: Connection,
-    pub data: DataProtocol,
-}
-
-pub struct NativeSetupClientProtocols {
-    connection: Connection,
-    pub peer_certificate_der: Vec<u8>,
-    pub data: DataProtocol,
-}
-
-impl NativeSetupServerProtocols {
-    pub fn connection(&self) -> &Connection {
-        &self.connection
-    }
-
-    pub(crate) fn into_parts(self) -> (Connection, DataProtocol) {
-        (self.connection, self.data)
-    }
-}
-
-impl NativeSetupClientProtocols {
-    pub fn connection(&self) -> &Connection {
-        &self.connection
-    }
-
-    pub(crate) fn into_parts(self) -> (Connection, DataProtocol, Vec<u8>) {
-        (self.connection, self.data, self.peer_certificate_der)
-    }
 }
 
 impl NativeServerProtocols {
@@ -348,112 +313,6 @@ pub async fn connect_client(
         .context("timed out establishing native KyProto connection")?
 }
 
-pub async fn accept_setup_server(
-    server: &kynet::common::CommonServer,
-    expected_token: &str,
-    options: NativeOptions,
-) -> Result<NativeSetupServerProtocols> {
-    let raw_connection = tokio::time::timeout(options.handshake_timeout, server.accept())
-        .await
-        .context("timed out waiting for setup KyProto connection")??
-        .ok_or_else(|| anyhow!("setup KyProto listener closed"))?;
-    let unauthenticated = tokio::time::timeout(
-        options.handshake_timeout,
-        Connection::accept_with_auth(raw_connection),
-    )
-    .await
-    .context("timed out receiving setup KyProto marker")??;
-    if unauthenticated
-        .get_auth()
-        .token()
-        .as_bytes()
-        .ct_eq(expected_token.as_bytes())
-        .unwrap_u8()
-        != 1
-    {
-        unauthenticated.reject_authentication();
-        bail!("setup KyProto marker mismatch");
-    }
-    let connection = unauthenticated.accept_authentication().await?;
-    let (data_id, data_endpoint) = connection.register_data_endpoint().await?;
-    verify_endpoint_id(data_id, SETUP_DATA_ENDPOINT_ID, "setup data")?;
-    let data = tokio::time::timeout(options.handshake_timeout, data_endpoint.ready())
-        .await
-        .context("timed out starting setup data endpoint")??;
-    Ok(NativeSetupServerProtocols { connection, data })
-}
-
-pub async fn connect_setup_client(
-    remote_address: SocketAddr,
-    server_name: &str,
-    setup_marker: &str,
-    options: NativeOptions,
-) -> Result<NativeSetupClientProtocols> {
-    let connect = async {
-        let (raw_connection, peer_certificate_der) =
-            connect_raw_client(remote_address, server_name, None, options).await?;
-        let auth = ClientAuth::new(setup_marker)?;
-        let connection = Connection::connect_with_auth(raw_connection, &auth).await?;
-        let data_endpoint = connection.connect_data_endpoint(SETUP_DATA_ENDPOINT_ID)?;
-        let data = data_endpoint.ready().await?;
-        Ok::<_, anyhow::Error>(NativeSetupClientProtocols {
-            connection,
-            peer_certificate_der,
-            data,
-        })
-    };
-    tokio::time::timeout(options.handshake_timeout, connect)
-        .await
-        .context("timed out establishing setup KyProto connection")?
-}
-
-pub async fn promote_setup_server(
-    connection: &Connection,
-    options: NativeOptions,
-) -> Result<(VideoServerProtocol, AudioServerProtocol, InputProtocol)> {
-    let (video_id, video_endpoint) = connection
-        .register_video_endpoint(VideoProtocol::UnreliableFec)
-        .await?;
-    verify_endpoint_id(video_id, SETUP_VIDEO_ENDPOINT_ID, "setup video")?;
-    let (audio_id, audio_endpoint) = connection
-        .register_audio_endpoint(AudioProtocol::UnreliableFec)
-        .await?;
-    verify_endpoint_id(audio_id, SETUP_AUDIO_ENDPOINT_ID, "setup audio")?;
-    let (input_id, input_endpoint) = connection.register_input_endpoint().await?;
-    verify_endpoint_id(input_id, SETUP_INPUT_ENDPOINT_ID, "setup input")?;
-    let ready = async {
-        let video = video_endpoint.ready().await?;
-        let audio = audio_endpoint.ready().await?;
-        let input = input_endpoint.ready().await?;
-        Ok::<_, kyproto::ProtocolError>((video, audio, input))
-    };
-    let (video, audio, input) = tokio::time::timeout(options.handshake_timeout, ready)
-        .await
-        .context("timed out promoting server KyProto endpoints")??;
-    Ok((video, audio, input))
-}
-
-pub async fn promote_setup_client(
-    connection: &Connection,
-    options: NativeOptions,
-) -> Result<(VideoClientProtocol, AudioClientProtocol, InputProtocol)> {
-    let video_endpoint =
-        connection.connect_video_endpoint(SETUP_VIDEO_ENDPOINT_ID, VideoProtocol::UnreliableFec)?;
-    let audio_endpoint =
-        connection.connect_audio_endpoint(SETUP_AUDIO_ENDPOINT_ID, AudioProtocol::UnreliableFec)?;
-    let input_endpoint = connection.connect_input_endpoint(SETUP_INPUT_ENDPOINT_ID)?;
-    let ready = async {
-        let video = video_endpoint.ready().await?;
-        let audio = audio_endpoint.ready().await?;
-        let input = input_endpoint.ready().await?;
-        Ok::<_, kyproto::ProtocolError>((video, audio, input))
-    };
-    let (video, audio, input) = tokio::time::timeout(options.handshake_timeout, ready)
-        .await
-        .context("timed out promoting client KyProto endpoints")??;
-    Ok((video, audio, input))
-}
-
 #[cfg(test)]
 #[path = "test_loss_proxy.rs"]
 mod loss_proxy;
@@ -601,27 +460,27 @@ mod tests {
             .await
             .unwrap();
         microphone_source
-            .send(AVPacket::Media(MediaPacket {
-                header: MediaPacketHeader {
+            .send(AVPacket::Media(MediaPacket::new(
+                MediaPacketHeader {
                     is_config: true,
                     is_key: true,
                     pts: 0,
                     size: 0,
                 },
-                payload: Bytes::new(),
-            }))
+                Bytes::new(),
+            )))
             .await
             .unwrap();
         microphone_source
-            .send(AVPacket::Media(MediaPacket {
-                header: MediaPacketHeader {
+            .send(AVPacket::Media(MediaPacket::new(
+                MediaPacketHeader {
                     is_config: false,
                     is_key: false,
                     pts: 0,
                     size: microphone_payload.len() as u32,
                 },
-                payload: microphone_payload,
-            }))
+                microphone_payload,
+            )))
             .await
             .unwrap();
         tokio::time::timeout(options.handshake_timeout, async {
@@ -656,15 +515,15 @@ mod tests {
             .expect("failed to send native video codec packet");
         let video_config_payload = Bytes::from_static(b"annex-b-vps-sps-pps");
         server_video
-            .send(AVPacket::Media(MediaPacket {
-                header: MediaPacketHeader {
+            .send(AVPacket::Media(MediaPacket::new(
+                MediaPacketHeader {
                     is_config: true,
                     is_key: true,
                     pts: 0,
                     size: video_config_payload.len() as u32,
                 },
-                payload: video_config_payload.clone(),
-            }))
+                video_config_payload.clone(),
+            )))
             .await
             .expect("failed to send native video configuration packet");
         let video_payload = Bytes::from(
@@ -673,15 +532,15 @@ mod tests {
                 .collect::<Vec<_>>(),
         );
         server_video
-            .send(AVPacket::Media(MediaPacket {
-                header: MediaPacketHeader {
+            .send(AVPacket::Media(MediaPacket::new(
+                MediaPacketHeader {
                     is_config: false,
                     is_key: true,
                     pts: 90_000,
                     size: video_payload.len() as u32,
                 },
-                payload: video_payload.clone(),
-            }))
+                video_payload.clone(),
+            )))
             .await
             .expect("failed to send native RaptorQ video frame");
 
@@ -740,28 +599,28 @@ mod tests {
             .expect("failed to send native audio codec packet");
         let audio_config_payload = Bytes::from_static(b"OpusHead");
         server_audio
-            .send(AVPacket::Media(MediaPacket {
-                header: MediaPacketHeader {
+            .send(AVPacket::Media(MediaPacket::new(
+                MediaPacketHeader {
                     is_config: true,
                     is_key: true,
                     pts: 0,
                     size: audio_config_payload.len() as u32,
                 },
-                payload: audio_config_payload.clone(),
-            }))
+                audio_config_payload.clone(),
+            )))
             .await
             .expect("failed to send native audio configuration packet");
         let audio_payload = Bytes::from_static(b"plank-opus-packet");
         server_audio
-            .send(AVPacket::Media(MediaPacket {
-                header: MediaPacketHeader {
+            .send(AVPacket::Media(MediaPacket::new(
+                MediaPacketHeader {
                     is_config: false,
                     is_key: false,
                     pts: 960,
                     size: audio_payload.len() as u32,
                 },
-                payload: audio_payload.clone(),
-            }))
+                audio_payload.clone(),
+            )))
             .await
             .expect("failed to send native RaptorQ audio packet");
         assert!(matches!(
@@ -932,15 +791,15 @@ mod tests {
             .await
             .expect("failed to send loss-test codec packet");
         server_video
-            .send(AVPacket::Media(MediaPacket {
-                header: MediaPacketHeader {
+            .send(AVPacket::Media(MediaPacket::new(
+                MediaPacketHeader {
                     is_config: true,
                     is_key: true,
                     pts: 0,
                     size: 0,
                 },
-                payload: Bytes::new(),
-            }))
+                Bytes::new(),
+            )))
             .await
             .expect("failed to send loss-test config packet");
 
@@ -1033,15 +892,15 @@ mod tests {
                 tokio::time::sleep_until(due).await;
                 tokio::time::timeout_at(
                     due + FRAME_DEADLINE,
-                    server_video.send(AVPacket::Media(MediaPacket {
-                        header: MediaPacketHeader {
+                    server_video.send(AVPacket::Media(MediaPacket::new(
+                        MediaPacketHeader {
                             is_config: false,
                             is_key: frame_number == 0,
                             pts: frame_number as u64 * 1_500,
                             size: payload.len() as u32,
                         },
-                        payload: payload.clone(),
-                    })),
+                        payload.clone(),
+                    ))),
                 )
                 .await
                 .unwrap_or_else(|_| {

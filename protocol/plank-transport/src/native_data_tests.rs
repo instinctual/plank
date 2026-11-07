@@ -36,17 +36,19 @@ async fn reliable_data_backpressure_recovers_both_receivers() {
             )
             .unwrap();
             let (host, client) = tokio::join!(
-                native::accept_setup_server(&server, "data-pressure-test", options),
-                native::connect_setup_client(address, "localhost", "data-pressure-test", options),
+                native::accept_server(&server, "data-pressure-test", options),
+                native::connect_client(address, "localhost", None, "data-pressure-test", options),
             );
-            let (host_connection, host_data) = host.unwrap().into_parts();
-            let (client_connection, client_data, _) = client.unwrap().into_parts();
+            let (host_connection, _host_video, _host_audio, _host_input, host_data) =
+                host.unwrap().into_parts();
+            let (client_connection, _client_video, _client_audio, _client_input, client_data, _) =
+                client.unwrap().into_parts();
             let (mut send, recv) = if receiving_host {
                 (client_data.0, host_data.1)
             } else {
                 (host_data.0, client_data.1)
             };
-            let mut endpoint = endpoint(EndpointState::SetupReady);
+            let mut endpoint = endpoint(EndpointState::Ready);
             let shared = endpoint.shared.clone();
             let receiving = shared.clone();
             let receiver = tokio::spawn(async move {
@@ -78,7 +80,7 @@ async fn reliable_data_backpressure_recovers_both_receivers() {
             // reliable-data pressure has no arbitrary disconnect timer.
             tokio::time::sleep(Duration::from_millis(2100)).await;
             assert!(!receiver.is_finished());
-            assert_eq!(shared.state(), EndpointState::SetupReady);
+            assert_eq!(shared.state(), EndpointState::Ready);
             {
                 let queues = shared.queues.lock().unwrap();
                 assert_eq!(queues.data_receive.packets.len(), capacity);
@@ -134,7 +136,7 @@ async fn reliable_data_backpressure_recovers_both_receivers() {
 }
 
 fn endpoint(phase: EndpointState) -> PlankTransportNativeEndpoint {
-    let shared = Arc::new(NativeShared::new(false, true, 150_000_000));
+    let shared = Arc::new(NativeShared::new(false, 150_000_000));
     shared.set_state(phase);
     PlankTransportNativeEndpoint {
         config: EndpointConfig::Client {
@@ -142,7 +144,7 @@ fn endpoint(phase: EndpointState) -> PlankTransportNativeEndpoint {
             server_name: "localhost".into(),
             certificate_sha256: None,
             session_token: "test-only".into(),
-            setup_mode: true,
+
             options: super::super::RuntimeOptions {
                 handshake_timeout: Duration::from_secs(5),
                 idle_timeout: Duration::from_secs(5),
@@ -195,7 +197,7 @@ fn data_queue_keeps_packet_limit_and_rejects_invalid_sizes() {
 
 #[test]
 fn data_send_pressure_is_retryable_in_setup_and_active_phases() {
-    for phase in [EndpointState::SetupReady, EndpointState::Ready] {
+    for phase in [EndpointState::Ready] {
         let mut endpoint = endpoint(phase);
         let payload = vec![1; MAX_DATA_PACKET_SIZE];
         for _ in 0..8 {
@@ -445,7 +447,7 @@ async fn data_pressure_waits_for_a_successful_ffi_drain() {
 async fn cancelling_a_full_data_queue_is_prompt_and_preserves_queued_records() {
     use std::task::{Context, Poll, Waker};
     for failure in [false, true] {
-        let shared = NativeShared::new(false, false, 150_000_000);
+        let shared = NativeShared::new(false, 150_000_000);
         shared.set_state(EndpointState::Ready);
         for _ in 0..DATA_QUEUE_PACKET_CAPACITY {
             assert!(
@@ -484,7 +486,7 @@ async fn cancelling_a_full_data_queue_is_prompt_and_preserves_queued_records() {
 
 #[tokio::test]
 async fn invalid_data_sizes_are_rejected_without_waiting_or_allocation_in_the_queue() {
-    let shared = NativeShared::new(false, false, 150_000_000);
+    let shared = NativeShared::new(false, 150_000_000);
     for size in [0, MAX_DATA_PACKET_SIZE + 1] {
         assert!(
             push_data_receive(&shared, Bytes::from(vec![0; size]))

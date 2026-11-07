@@ -65,9 +65,7 @@ int main(int argc, char **argv) {
     client_config.server_name = argv[3];
     client_config.certificate_sha256 = profile_validation ? NULL : argv[6];
     client_config.max_udp_payload_size = PLANK_LOOPBACK_CLIENT_MTU;
-    server_config.session_mode = profile_validation ? PLANK_TRANSPORT_SESSION_SETUP :
-                                                      PLANK_TRANSPORT_SESSION_ACTIVE;
-    client_config.session_mode = server_config.session_mode;
+
 
     PlankTransportNativeEndpoint *server = NULL;
     PlankTransportNativeEndpoint *client = NULL;
@@ -149,56 +147,6 @@ int main(int argc, char **argv) {
             goto failure;
         }
 
-        for (attempt = 0; attempt < 700; ++attempt) {
-            if (plank_transport_native_endpoint_state(client) ==
-                    PLANK_TRANSPORT_STATE_SETUP_READY &&
-                plank_transport_native_endpoint_state(server) ==
-                    PLANK_TRANSPORT_STATE_SETUP_READY) {
-                break;
-            }
-            nanosleep(&pause, NULL);
-        }
-        if (plank_transport_native_endpoint_state(client) !=
-                PLANK_TRANSPORT_STATE_SETUP_READY ||
-            plank_transport_native_endpoint_state(server) !=
-                PLANK_TRANSPORT_STATE_SETUP_READY) {
-            fprintf(stderr, "setup endpoints did not reach setup-ready\n");
-            goto failure;
-        }
-
-        uint8_t setup_request[PLANK_TRANSPORT_SETUP_HEADER_SIZE] = {0};
-        uint8_t setup_received[PLANK_TRANSPORT_SETUP_HEADER_SIZE] = {0};
-        size_t setup_size = 0;
-        size_t setup_received_size = 0;
-        PlankTransportSetupPacket decoded_setup;
-        if (plank_transport_setup_encode(
-                PLANK_TRANSPORT_SETUP_SERVER_INFO_REQUEST, 0,
-                PLANK_TRANSPORT_SETUP_STATUS_OK, 1, NULL, 0,
-                setup_request, sizeof(setup_request), &setup_size) != 0 ||
-            plank_transport_native_data_send(client, setup_request, setup_size) !=
-                PLANK_TRANSPORT_OK ||
-            plank_transport_native_data_receive(
-                server, setup_received, sizeof(setup_received),
-                &setup_received_size, 5000) != PLANK_TRANSPORT_OK ||
-            plank_transport_setup_decode(
-                setup_received, setup_received_size, &decoded_setup) != 0 ||
-            decoded_setup.type != PLANK_TRANSPORT_SETUP_SERVER_INFO_REQUEST) {
-            fprintf(stderr, "pre-session setup request did not round trip\n");
-            goto failure;
-        }
-        if (plank_transport_native_input_send(
-                client, 1, (const uint8_t *)"blocked", 8) !=
-                PLANK_TRANSPORT_ERROR_INVALID_STATE) {
-            fprintf(stderr, "input was accepted before session authorization\n");
-            goto failure;
-        }
-        if (plank_transport_native_endpoint_authorize_session(server) !=
-                PLANK_TRANSPORT_OK ||
-            plank_transport_native_endpoint_authorize_session(client) !=
-                PLANK_TRANSPORT_OK) {
-            fprintf(stderr, "failed to authorize setup endpoints\n");
-            goto failure;
-        }
     }
     if (plank_transport_native_endpoint_wait_ready(client, 7000) !=
             PLANK_TRANSPORT_OK ||

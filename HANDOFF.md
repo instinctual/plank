@@ -4,6 +4,35 @@ Read `AGENTS.md` and the relevant build runbook first. Keep machine inventory,
 credentials and private captures outside Git. This file records current work;
 older candidate provenance remains in Git history and the artifact catalog.
 
+## Code review hardening — implementation and qualification in progress
+
+The operator requested every finding from the repository-wide read-only review
+be addressed on a new branch without intermediate approval stops. Root, Client,
+Linux Host, Client common-C and Kymux are on `code-review-hardening`, based on
+main `b8a0f1a8` and its exact pins below. Candidate version is **1.4.10**. Nothing
+from this branch has been merged, published or installed. Follow the checklist
+in `docs/development/plans/code-review-hardening.md` rather than treating edits
+as acceptance.
+
+Implemented work currently includes early HTTPS/control-message bounds,
+endpoint-isolated datagram routing, synchronous once-only common-C failure
+notifications owned by the producer lifecycle, complete transient Linux input
+reset, bounded caller-owned PulseAudio capture/control, removal of the unused
+alternate setup mode (C ABI14; shipping wire format unchanged), obsolete Client
+and Host code removal, product-aware CI selection, narrower dependency keys,
+and owned serialized video frames reused by FEC. Native X11 now subscribes to
+root/overlay structure events before caching geometry; every image still checks
+depth and SHM size, and racing structure changes invalidate the frame.
+
+Initial local checks: 130 CI policy tests pass; 67 transport unit tests pass
+(9 integration tests require explicit loopback fixtures); actual common-C
+session fixture reports941 checks including concurrent failure notifications;
+Native10 capture/color/event fixtures pass. Full common-C tests, optimized
+transport/loss gates, real PulseAudio stall integration, hosted packages and
+hardware checks remain in progress. No runtime result is implied by these
+initial source/component checks. GitHub remains the package builder; retain
+existing mainline1.4.09 artifacts below until candidate qualification finishes.
+
 ## Mainline 1.4.09 — release packages ready, publication held
 
 The operator authorized merging shared source-first FEC and building all four

@@ -33,7 +33,7 @@ def output(command):
 def dependency_inputs(root, product, component):
     if component not in COMPONENTS[product]:
         raise ValueError('Dependency does not belong to this product')
-    paths = {'scripts/ci/cache-dependencies.py'}
+    paths = set()
     pins = {}
     if component == 'rust':
         paths.update((RECIPES + 'rust.sh', 'rust-toolchain.toml'))
@@ -65,12 +65,13 @@ def dependency_inputs(root, product, component):
         paths.update((RECIPES + 'host-ffmpeg.sh',
                       'scripts/build/verify-host-dependency-patches.sh'))
         # FFmpeg/x264 are one jointly-built source/install tree.
-        pins['host-build-deps'] = output(['git', '-C', str(root / HOST_DEPS), 'rev-parse', 'HEAD'])
         for entry in output(['git', '-C', str(root / HOST_DEPS), 'ls-files', '--stage']).splitlines():
             metadata, name = entry.split('\t', 1)
             mode, revision, stage = metadata.split()
             if stage != '0':
                 raise ValueError('Unmerged dependency input')
+            if name.startswith(('.github/', 'docs/')) or name.endswith(('.md', '.rst')):
+                continue
             if mode == '160000':
                 pins[name] = revision
             else:
@@ -88,15 +89,16 @@ def fingerprint(root, deps, product, component, toolchain):
         tools['compiled'] = toolchain['compiled']
     if component == 'cargo':
         tools['rust'] = fingerprint(root, deps, product, 'rust', toolchain)
-    data = {'schema': 2, 'product': product, 'component': component,
-            'inputs': hashes, 'pins': pins, 'source_root': str(root),
-            'dependency_root': str(deps), 'toolchain': tools}
+    data = {'schema': 3, 'product': product, 'component': component,
+            'inputs': hashes, 'pins': pins, 'toolchain': tools}
+    if component in ('ffmpeg', 'native', 'qt'):
+        data.update(source_root=str(root), dependency_root=str(deps))
     if product == 'macos-client' and component in ('native', 'qt'):
         target = os.environ.get('PLANK_MAC_CLIENT_MIN_MACOS') or '15.0'
         if target != '15.0':
             raise ValueError('PLANK Client deployment target must be 15.0')
         data['deployment_target'] = target
-    return f'plank-{product}-{component}-v2-' + hashlib.sha256(
+    return f'plank-{product}-{component}-v3-' + hashlib.sha256(
         json.dumps(data, sort_keys=True).encode()).hexdigest()
 
 
@@ -127,7 +129,7 @@ def cache_paths(root, deps, product, component):
 
 def key_valid(key, product, component):
     return re.fullmatch(
-        f'plank-{re.escape(product)}-{re.escape(component)}-v2-[0-9a-f]{{64}}',
+        f'plank-{re.escape(product)}-{re.escape(component)}-v3-[0-9a-f]{{64}}',
         key or '') is not None
 
 
@@ -174,18 +176,14 @@ def toolchain_inputs(product):
     architecture = 'x86_64' if system == 'Linux' else 'arm64'
     if platform.system() != system or platform.machine() != architecture:
         raise ValueError('Cache requires the qualified product builder')
-    identity = {'architecture': architecture, 'runner_image': os.environ.get('ImageVersion', ''),
-                'os': Path('/etc/os-release').read_text() if system == 'Linux'
-                else output(['sw_vers', '-productVersion']) + '/' + output(['sw_vers', '-buildVersion'])}
-    if product == 'linux-client':
-        # A runner image rollout is not a dependency ABI change. Keep the
-        # qualified OS/architecture and actual build inputs, not image dates
-        # or descriptive /etc/os-release fields maintained by base-files.
-        release = dict(entry.split('=', 1) for entry in shlex.split(identity['os'], comments=True)
+    identity = {'architecture': architecture, 'os': 'Darwin'}
+    if system == 'Linux':
+        release = dict(entry.split('=', 1) for entry in shlex.split(Path('/etc/os-release').read_text(), comments=True)
                        if '=' in entry)
-        if (release.get('ID'), release.get('VERSION_ID')) != ('ubuntu', '26.04'):
-            raise ValueError('Client cache requires Ubuntu 26.04')
-        identity = {'architecture': architecture, 'os': 'ubuntu-26.04'}
+        expected = ('ubuntu', '26.04') if product == 'linux-client' else ('rocky', '9.7')
+        if (release.get('ID'), release.get('VERSION_ID')) != expected:
+            raise ValueError('Cache requires the qualified product OS')
+        identity['os'] = '-'.join(expected)
     commands = [['cmake', '--version'], ['ninja', '--version'], ['python3', '--version']]
     packages = []
     if product == 'macos-host':
@@ -198,7 +196,7 @@ def toolchain_inputs(product):
         if product == 'linux-host':
             commands += [['/opt/rh/gcc-toolset-14/root/usr/bin/gcc', '--version'],
                          ['/usr/local/cuda/bin/nvcc', '--version']]
-            packages = output(['rpm', '-qa']).splitlines()
+            packages = rocky_build_packages(output(['rpm', '-qa', '--qf', '%{NAME}=%{VERSION}-%{RELEASE}.%{ARCH}\n']).splitlines())
         else:
             commands += [['gcc', '--version'], ['g++', '--version'], ['ld', '--version'],
                          ['pkg-config', '--version']]
@@ -206,6 +204,20 @@ def toolchain_inputs(product):
                 ['dpkg-query', '-W', '-f=${binary:Package}=${Version}\n']).splitlines())
     return {'platform': identity, 'compiled': {
         'packages': sorted(packages), 'tools': [output(command) for command in commands]}}
+
+
+def rocky_build_packages(packages):
+    """Header/toolchain/library identities, excluding unrelated runner utilities."""
+    result = []
+    for entry in packages:
+        name, separator, version = entry.partition('=')
+        if not separator or not version:
+            raise ValueError('Invalid installed-package identity')
+        if (name.endswith(('-devel', '-headers')) or
+                re.match(r'^(?:lib|glibc|mesa|openssl|zlib|bzip2|xz|gcc|binutils|cuda|nasm|'
+                         r'gcc-toolset|systemd-libs|alsa-lib|pulseaudio-libs)', name)):
+            result.append(entry)
+    return sorted(result)
 
 
 def ubuntu_build_packages(packages):

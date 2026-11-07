@@ -134,7 +134,7 @@ BOOL PLANKMacPreviewRequestMatchesTopology(NSDictionary *request, NSDictionary *
              microphoneGeneration:(uint64_t)microphoneGeneration {
     if (!sessions || !topology || !capture || !input || !config ||
         config->struct_size != sizeof(*config) || config->abi_version != PLANK_TRANSPORT_ABI_VERSION ||
-        config->mode != PLANK_TRANSPORT_MODE_SERVER || config->session_mode != PLANK_TRANSPORT_SESSION_ACTIVE)
+        config->mode != PLANK_TRANSPORT_MODE_SERVER)
         return nil;
     PLANKMacAccountIdentity account = {0};
     if (![sessions authorizeToken:token peer:peer identity:&account]) return nil;

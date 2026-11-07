@@ -24,7 +24,7 @@ case "$role:$ID:$VERSION_ID" in
       libX11-devel libxcb-devel libXcomposite-devel libXcursor-devel libXfixes-devel \
       libXi-devel libXinerama-devel libXrandr-devel libXtst-devel libxkbcommon-devel \
       openssl-devel opus-devel \
-      pam-devel pulseaudio-libs-devel python3-devel systemd-devel
+      pam-devel pulseaudio pulseaudio-libs-devel python3-devel systemd-devel
     plank_verify_host_cuda
     /usr/local/cuda/bin/nvcc --version
     rpm -qa | sort

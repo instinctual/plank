@@ -109,7 +109,7 @@ feature 2 and call `plank_transport_native_camera_enable_version(..., 2)`.
 The original `camera_enable` entry point selects feature 1. Neither entry point
 negotiates a capability, grants capture consent or opens a camera. Version is
 fixed for the transport endpoint; a mismatched record disables only that camera
-lane. The additive C entry point changes no existing ABI-13 structures.
+lane. Camera submission uses the current shared transport C ABI.
 
 This is a transport candidate, not production advertising or a new Host release.
 The existing Mac Host advertises feature 1 only and Linux Host advertises neither.
