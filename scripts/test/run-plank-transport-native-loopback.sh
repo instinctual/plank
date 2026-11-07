@@ -54,40 +54,28 @@ if [[ ${SC_NATIVE_CARGO_PROFILE:-release} == release ]]; then
   bash "$repo_root/scripts/test/run-source-first-fec.sh" "${CARGO_TARGET_DIR:-$crate_dir/target}"
 fi
 
-cargo test "${cargo_profile_args[@]}" --locked --offline --manifest-path "$crate_dir/Cargo.toml" \
-  native::version_tests::incompatible_peers_fail_tls_before_setup_or_media \
-  -- --ignored --exact --nocapture
+# Exact test filters must execute a test, not report success with zero matches.
+run_ignored() {
+  cargo test "${cargo_profile_args[@]}" --locked --offline --manifest-path "$crate_dir/Cargo.toml" \
+    "$1" -- --ignored --exact --nocapture | tee "$test_tmp/result.log"
+  grep -q 'test result: ok. 1 passed;' "$test_tmp/result.log" || {
+    echo "Required integration test did not run: $1" >&2
+    return 1
+  }
+}
 
-cargo test "${cargo_profile_args[@]}" --locked --offline --manifest-path "$crate_dir/Cargo.toml" \
-  native::tests::native_kyproto_round_trip_preserves_all_initial_lanes \
-  -- --ignored --exact --nocapture
-
-cargo test "${cargo_profile_args[@]}" --locked --offline --manifest-path "$crate_dir/Cargo.toml" \
-  native_ffi::data_tests::reliable_data_backpressure_recovers_both_receivers \
-  -- --ignored --exact --nocapture
-
-cargo test "${cargo_profile_args[@]}" --locked --offline --manifest-path "$crate_dir/Cargo.toml" \
-  native_ffi::cancellation_tests::cancellation_interrupts_real_auth_endpoints_and_promotion \
-  -- --ignored --exact --nocapture
-
-cargo test "${cargo_profile_args[@]}" --locked --offline --manifest-path "$crate_dir/Cargo.toml" \
-  native_ffi::microphone_lane::tests::encrypted_ffi_microphone_mute_reopen_and_bounds \
-  -- --ignored --exact --nocapture
-
-cargo test "${cargo_profile_args[@]}" --locked --offline --manifest-path "$crate_dir/Cargo.toml" \
-  native_ffi::camera_lane::tests::encrypted_camera_with_and_without_microphone \
-  -- --ignored --exact --nocapture
-
-cargo test "${cargo_profile_args[@]}" --locked --offline --manifest-path "$crate_dir/Cargo.toml" \
-  native_ffi::camera_lane::tests::encrypted_version_mismatch_disables_only_camera \
-  -- --ignored --exact --nocapture
+run_ignored native::version_tests::incompatible_peers_fail_tls_before_setup_or_media
+run_ignored native::tests::native_kyproto_round_trip_preserves_all_initial_lanes
+run_ignored native_ffi::data_tests::reliable_data_backpressure_recovers_both_receivers
+run_ignored native_ffi::cancellation_tests::cancellation_interrupts_real_auth_endpoints_and_certificate_approval
+run_ignored native_ffi::microphone_lane::tests::encrypted_ffi_microphone_mute_reopen_and_bounds
+run_ignored native_ffi::camera_lane::tests::encrypted_camera_with_and_without_microphone
+run_ignored native_ffi::camera_lane::tests::encrypted_version_mismatch_disables_only_camera
 
 # Three required passes, not retries: set -e stops on the first failure.
 if [[ $performance == 1 ]]; then
   for loss_trial in 1 2 3; do
     echo "native_loss_matrix_trial=$loss_trial"
-    cargo test "${cargo_profile_args[@]}" --locked --offline --manifest-path "$crate_dir/Cargo.toml" \
-      native::tests::native_raptorq_survives_progressive_transport_loss_at_150_mbps \
-      -- --ignored --exact --nocapture
+    run_ignored native::tests::native_raptorq_survives_progressive_transport_loss_at_150_mbps
   done
 fi

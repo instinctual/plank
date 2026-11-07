@@ -411,8 +411,8 @@ int main(int argc, char **argv) {
         client_stats.input_packets_sent != 1 ||
         server_stats.input_packets_received != 1 ||
         server_stats.data_packets_sent != 1 ||
-        server_stats.data_packets_received != (profile_validation ? 2u : 1u) ||
-        client_stats.data_packets_sent != (profile_validation ? 2u : 1u) ||
+        server_stats.data_packets_received != 1 ||
+        client_stats.data_packets_sent != 1 ||
         client_stats.data_packets_received != 1 ||
         server_stats.video_send_drops != 0 ||
         client_stats.video_receive_drops != 0 ||
