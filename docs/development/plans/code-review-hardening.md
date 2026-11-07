@@ -23,12 +23,12 @@ platform contracts. Build checks do not replace installed session acceptance.
 - [x] Scope dependency cache keys to actual product dependency inputs.
 - [x] Eliminate redundant compressed-frame copies with bounded owned buffers.
 - [x] Evaluate Native X11 capture overhead without weakening resize/color checks.
-- [ ] Run affected component, sanitizer, package and transport qualification.
-- [ ] Record exact commits, artifacts, results and remaining installed-test gates.
+- [x] Run affected component, sanitizer, package and transport qualification.
+- [x] Record exact commits, artifacts, results and remaining installed-test gates.
 
 No release publication, deployment or merge is implied by this branch.
 
-## Verification recorded so far
+## Verification
 
 - Portable root packaging/privacy tests: 8/8 passed, including the repaired
   bootstrap fixture that executes the current FFmpeg identity validator.
@@ -46,8 +46,18 @@ No release publication, deployment or merge is implied by this branch.
 - Exact Rust integration filters now fail if they execute zero tests. The retired
   setup-promotion fixture is replaced by active certificate-approval cancellation.
 
-Package, Linux HTTPS/audio integration and live installed-session acceptance
-must be recorded separately. A local ThreadSanitizer attempt could not link
+All four package builds pass and are collected with original manifests and
+verified SHA256 under `artifacts/packages/candidates/1.4.10-code-review-hardening/`.
+Runs: Linux Host 42321629509; Ubuntu Client 42318113500; signed Mac Host 42317158306;
+signed Mac Client 42318465953. The actual Linux HTTPS/PAM and repeated input/crypto
+fixtures pass. The PulseAudio fixture captures real nonzero PCM, stops the server,
+requires capture cancellation within 500 ms and teardown within 1s, then confirms
+capture after the server resumes. Initial source startup has its own bounded
+three-second allowance; the pause/recovery limits are unchanged. This passed
+in 4.082s. Component tests now run before the full Linux media/RPM build.
+
+Installed-session acceptance remains separate and unperformed. No merge,
+publication or installation was made. A local ThreadSanitizer attempt could not link
 because that runtime is absent; this is not a ThreadSanitizer pass.
 
 The retained native Apple branch has its own protocol pin and is unchanged.

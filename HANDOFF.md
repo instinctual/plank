@@ -4,7 +4,7 @@ Read `AGENTS.md` and the relevant build runbook first. Machine inventory,
 credentials and private captures stay outside Git. This file records current
 state; older detailed results remain in Git history and the artifact catalog.
 
-## Code review hardening — final qualification in progress
+## Code review hardening — all candidates ready
 
 The operator authorized **every finding** from the full read-only review on a
 new branch, without intermediate approval stops. Root, Client, Linux Host,
@@ -51,7 +51,7 @@ GitHub package builds and original installers:
 | Ubuntu Client | `1576ed26` | `42318113500` | Passed, downloaded and verified |
 | Mac Client | `3b0550bf` | `42318465953` | Signed/stapled, downloaded and verified |
 | Mac Host | `49897540` | `42317158306` | Signed/stapled, downloaded and verified |
-| Linux Host | Next test commit | Pending dispatch | Corrected startup fixture; components precede RPM |
+| Linux Host | `91fd5954` | `42321629509` | Passed, downloaded and verified |
 
 Catalog: `artifacts/packages/candidates/1.4.10-code-review-hardening/`.
 Original builder manifests, logs and reports are in
@@ -61,12 +61,16 @@ with Qt layout. Later root differences are test fixtures/documentation or other
 products, not unrecorded modifications to already collected packages. Preserve
 each original manifest and hash; never relabel a package.
 
-Verified so far:
+Verification passed:
 
 - 131 CI policy tests, eight portable root packaging/privacy tests, common-C
   component suites and 941 lifecycle assertions pass. Common-C and Native10
   AddressSanitizer/UndefinedBehaviorSanitizer checks pass. Local ThreadSanitizer
   could not link because its runtime is absent; do not claim a TSan pass.
+- Linux HTTPS/PAM bounds and lifecycle tests pass. Input/crypto fixtures pass
+  25 shuffled repetitions. The actual PulseAudio backend captures a synthetic
+  tone, cancels within 500 ms while the daemon is stopped, cleans up within 1s,
+  and captures again after it resumes. This isolated fixture passed in 4.082s.
 - Default and diagnostic-feature Rust Clippy pass with warnings denied.
   Actual KyProto parser/state tests and native encrypted media/data/cancellation
   fixtures pass. Exact integration filters now reject a zero-test result.
@@ -94,10 +98,16 @@ removal; a UI assertion sampling delegates before layout; and an isolated
 PulseAudio fixture inheriting an unsuitable CI home directory. The latest Host fixture gives its daemon private runtime/state/cookie paths
 without changing HOME, uses a synthetic tone and allows bounded source startup
 separately from unchanged cancellation/teardown deadlines. A standalone daemon
-check measured first PCM at about2.1s; an immediate one-second expectation was
+check measured first PCM at about 2.1s; an immediate one-second expectation was
 incorrect. Component tests now run before the full media/RPM build. The preceding Host run passed compilation, HTTPS, input/crypto, transport
 and RPM checks but failed daemon startup before exercising audio recovery.
-Do not mark the final audio test passed until the corrected fixture succeeds.
+The corrected fixture and all final gates passed in run 42321629509. No test
+was disabled and no cancellation, loss or latency threshold was relaxed.
+
+All four original manifests and package hashes match the local catalog. Both
+Mac PKGs are signed, notarized and stapled. Downloads are cleaned up; logs,
+original manifests and qualification evidence remain. Next is operator
+installation/session acceptance, then an explicit merge or publication decision.
 
 ## Main baseline — 1.4.09 packages ready, publication held
 
