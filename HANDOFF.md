@@ -4,47 +4,80 @@ Read `AGENTS.md` and the relevant build runbook first. Machine inventory,
 credentials and private captures stay outside Git. This file records current
 state; older detailed results remain in Git history and the artifact catalog.
 
-## Metrics / Telegraf — in progress
+## Metrics / Telegraf — candidates ready; live collection pending
 
 Current branch: **`metrics-telegraf`**, based on accepted main `1d770bab`.
+Product source is `816b1e18`; subsequent notes do not change runtime code.
 The operator selected **InfluxDB 2**, existing **InfluxQL** Grafana queries,
 and existing local Telegraf agents for Linux Hosts/Clients. Macs need a separate
-agent installation. All deployment URLs, database/account details and credentials
-remain in private notes/provisioning. No production configuration has changed.
+agent installation. Deployment addresses, data-source identity and tokens remain
+in private notes/provisioning. No Host/Client/Telegraf deployment has changed.
 
-Candidate version **1.4.11** adds one shared, optional IPv4-loopback UDP exporter
-in the transport crate, Host and Client policy wiring, Client decoder windows,
-Telegraf's standard socket-listener input and an importable InfluxQL dashboard.
-Metrics default off; existing Client policy values are preserved on upgrade.
-No protocol/ABI layout, decoder, capture, input or audio behavior is intentionally
-changed. New C APIs are additive. No database SDK or runtime dependency is added.
-See [metrics configuration and schema](docs/user/metrics.md) and
-[the plan](docs/development/plans/metrics-telegraf.plan).
+Candidate **1.4.11** adds one shared, optional IPv4-loopback UDP exporter in the
+transport crate; policy wiring on both operating systems; actual Client decoder
+statistics windows; the standard Telegraf socket-listener input; and an InfluxQL
+dashboard. Metrics default off. Client upgrades preserve existing policy values.
+There is no new product dependency, transport lane, database credential or remote
+metrics listener in PLANK. New C APIs are additive; existing ABI layouts and the
+wire protocol are unchanged. See [configuration/schema](docs/user/metrics.md)
+and [the plan](docs/development/plans/metrics-telegraf.plan).
 
-Local validation so far: Rust metrics tests, Clippy with warnings denied,
-portable Client policy-upgrade tests and actual Telegraf 1.40.3 parsing pass.
-The C media/teardown fixture passes with metrics disabled and a non-reading
-collector; retained handles reject observations safely after endpoint teardown.
-Component commits: Client `8afbbcec`, Linux Host `8ca14f4e`. Kymux/common-C
-pins are unchanged. The shared hosted transport/loss tests passed in run `42402057626`. The exact
-shipping-feature Mac test executable also passed three 900-frame, 150 Mbps loss
-matrices on the authorized development Mac: zero unrecovered frames, maximum
-delivery 15.603 ms, p95 maximum 10.879 ms and maximum receive gap 25.347 ms.
-Terminal and Host processes were preserved and scratch files removed. Its hash
-is `0c8111ed818a2548acb22f59e7ee04f8ba77dc5e0d2d1b3a14026d3c258be43c`.
-This is isolated transport qualification, not installed-session acceptance.
+Pins: Client `8afbbcec` (including discovered-Host identity handling), Linux Host
+`8ca14f4e`. Kymux `9e1a7e30` and Client common-C `c7d1b831` remain unchanged.
+All four original installers, manifests and hashes are verified in
+`artifacts/packages/candidates/1.4.11-metrics-telegraf/`:
 
-Signed Mac Host run `42402260256` passed and is downloaded/verified in
-`artifacts/packages/candidates/1.4.11-metrics-telegraf/`. Original source is
-`47cd9501`; the preceding failure was a POSIX test-fixture loopback constant,
-replaced with portable `inet_pton`, not a product/runtime regression.
-Client discovered-workstation identity follow-up awaits its hosted builds.
-Other package checks and installed collection remain pending. The existing
-Grafana InfluxQL data source is healthy and accepted all 34 dashboard queries.
-The dashboard is created and verified in the existing metrics folder; the
-setup service account has been returned to Editor. No data source was changed.
-Operational addresses/tokens and deployment details stay in private notes.
-No merge or release is requested.
+| Product | Source root | Successful GitHub run |
+| --- | --- | --- |
+| Linux Host | `47cd9501` | `42402245179` |
+| Ubuntu Client | `816b1e18` | `42403727172` |
+| macOS Host, signed/stapled | `47cd9501` | `42402260256` |
+| macOS Client, signed/stapled | `816b1e18` | `42403746821` |
+
+Host code is identical at both roots; the later root updates only the Client
+pin and notes. Do not relabel or overwrite the collected installers. The earlier
+Mac Host failure was a strict-POSIX test-fixture loopback constant; portable
+`inet_pton` corrected it. No build gate was bypassed. The final Client follow-up
+uses the server UUID for discovered entries and the separately authenticated
+server UUID for manual bookmarks. Both Client builds pass at that final pin.
+
+Validation:
+
+- 131 CI policy tests and seven portable policy-upgrade tests pass. Rust's 75
+  default-feature unit tests and warnings-denied Clippy pass; macOS shipping
+  features and hosted platform/component/package checks also pass.
+- Eight metrics tests cover escaping, bounds, reset-safe rates, timing jitter,
+  accumulated windows, lock contention and absent/non-reading collectors.
+  Actual Telegraf 1.40.3 parses all eight generated fixture datagrams. No database
+  writes are involved in that test. C media/teardown fixtures pass with metrics
+  disabled and with a non-reading collector; retained media handles safely reject
+  observations after endpoint teardown. Mac configuration and Client policy
+  fixtures pass in their hosted builds, not inferred from Linux-only skips.
+- Hosted transport run `42402057626` passes parser/cancellation/reliable-data
+  checks, delayed-ACK/receiver-pause tests and three 900-frame loss matrices at
+  150 Mbps, with zero unrecovered frames.
+- Its exact Mac shipping-feature test executable passes the same three matrices
+  on the authorized development Mac: zero unrecovered frames, maximum delivery
+  15.603 ms, p95 maximum 10.879 ms and maximum receive gap 25.347 ms. Binary SHA256
+  `0c8111ed818a2548acb22f59e7ee04f8ba77dc5e0d2d1b3a14026d3c258be43c`.
+  Terminal and Host processes were preserved; remote scratch is removed. Kernel
+  drop counts are unavailable there. This is isolated transport qualification,
+  not acceptance of installed collection or an interactive A/V session.
+
+The existing Grafana data source is healthy and accepted all 34 dashboard
+queries. The 14-panel dashboard is created, moved into the existing metrics
+folder and read back successfully. The temporary setup account was returned to
+Editor, with Admin capabilities absent and dashboard access still working.
+No data-source settings were changed. No live PLANK metrics have been collected.
+
+Evidence is in `artifacts/qualification/metrics-telegraf-1.4.11/`. The branch's
+signing permission is `65875659`; remove it when retiring this branch.
+Next: obtain operator approval for the proposed development-Host/End-User-Client
+installation, configure the local Telegraf input and PLANK metrics, then verify
+real session data and populated graphs. End-User installation authorization is
+pending. The Mac also needs Telegraf; credentials stay outside Git. Do not
+interrupt an active session or install packages until that approval arrives.
+No merge or release publication is requested.
 
 ## Code review hardening — accepted and merged into main
 

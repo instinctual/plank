@@ -57,7 +57,9 @@ sessions. Exercise the real Telegraf parser with an isolated localhost listener
 and file output. Keep streaming/loss performance limits unchanged. Build all
 four candidates on hosted Actions and preserve the accepted main baseline.
 
-Live deployment and dashboard validation require reachable services and an
-authorized test endpoint. No live configuration or installation has occurred.
+The dashboard is deployed against the existing InfluxQL data source; all 34
+queries are accepted. Installed collection and populated-panel validation still
+require an authorized test endpoint. No Host/Client/Telegraf configuration or
+installation has occurred.
 No merge, release publication or change to existing system-metric collection
 is implied by creating this branch.
