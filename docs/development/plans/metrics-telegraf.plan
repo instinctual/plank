@@ -80,3 +80,25 @@ installation has not been run; its older package pins are not promoted to a
 candidate absent from the provisioning server.
 No merge, release publication or change to existing system-metric collection
 is implied by creating this branch.
+
+## Ubuntu Wacom activity follow-up
+
+The operator requested Wacom activity during active PLANK sessions, initially
+on Ubuntu Clients, plus a current activity view and history. Observe decoded pen
+events from the existing grabbed evdev descriptors for raw-HID forwarding and
+from the existing libinput pen path for normalized forwarding. Do not infer pen
+movement from generic HID traffic or change forwarding, tablet identity or input
+recovery. Resynchronize observation after evdev overflow and attachment changes.
+
+Export only aggregate movement/tip-down counts, last-activity age, observation
+availability and a one-minute recent-activity state. Reuse the existing bounded
+local metrics output; no per-event log writes, extra input thread or wire change.
+The dashboard labels states Tablet active / Tablet idle / No data. This is
+interaction telemetry, not a work-performance determination. Use per-Client
+aggregation across sessions, with a short freshness window and finite history
+gaps. No physical-workstation or macOS Client monitoring in this implementation.
+
+Candidate version is 1.4.12. The operator additionally authorized installation
+on another Ubuntu Client; deployment details and credentials stay private.
+Require hosted Client compilation, normal/sanitized Wacom fixtures, actual
+Telegraf parsing and live pen activity verification before installed acceptance.

@@ -7,12 +7,45 @@ state; older detailed results remain in Git history and the artifact catalog.
 ## Metrics / Telegraf — Linux deployment and dedicated bucket verified
 
 Current branch: **`metrics-telegraf`**, based on accepted main `1d770bab`.
-Product source is `816b1e18`; subsequent notes do not change runtime code.
+The installed 1.4.11 baseline uses product source `816b1e18`. The current
+1.4.12 follow-up adds Ubuntu pen-activity metrics and is awaiting hosted build
+and installed tablet acceptance. It does not change the input wire protocol.
 The operator selected **InfluxDB 2**, existing **InfluxQL** Grafana queries,
 and existing local Telegraf agents for Linux Hosts/Clients. Macs need a separate
 agent installation. Deployment addresses, data-source identity and tokens remain
 in private notes/provisioning. The operator authorized Linux-only installation;
 no Mac package or agent was installed.
+
+### Ubuntu pen activity — candidate being qualified
+
+The operator selected active PLANK sessions only and Ubuntu Clients first,
+including sessions to either Host OS. Client pin `94c8b76a` observes the kernel's
+decoded pen events from existing raw-HID evdev handles and the existing normalized
+libinput path. Forwarded reports, pressure/clicks, grabbing policy and persistent
+Host tablet identity are unchanged. Observation is bounded and optional; evdev
+overflow/attachment rebases cannot synthesize activity. Disabled metrics do not
+create an observer. No additional reader thread or per-motion disk logging.
+
+The shared exporter accepts only movement/tip-down counts and observation status.
+It adds aggregate fields to `plank_transport`, including last-activity age and
+state 0/1/2 for unavailable/idle/recent activity. Recent means within one minute.
+These are interaction observations, not productivity or attendance conclusions.
+Coordinates, strokes, pressure values and tool identifiers are not exported.
+
+Ten Rust metrics tests, actual Telegraf parsing of eight fixture datagrams,
+131 CI policy checks and warnings-denied Clippy for default and diagnostic
+features pass. A new pure pen-state fixture covers hover, pressure/status/touch
+exclusion, tip-down, eraser, overflow and resynchronization. Production adapter
+compilation and normal/sanitized Wacom gates will run on GitHub's Ubuntu worker.
+No new package or hardware acceptance is claimed yet.
+
+Grafana now has twelve panels and 26 visual queries: the existing ten performance
+views plus per-Client activity status tiles and a history timeline. Status uses
+a 30-second recent-data window and the most active state across sessions; the
+history uses ten-second buckets with finite gaps. Both new queries are accepted.
+They remain No data until a new Client sends activity fields; no synthetic data
+was written to the live database. The operator additionally authorized installing
+the candidate on another Ubuntu Client. Endpoint inventory/credentials are private.
 
 Candidate **1.4.11** adds one shared, optional IPv4-loopback UDP exporter in the
 transport crate; policy wiring on both operating systems; actual Client decoder
@@ -23,7 +56,7 @@ metrics listener in PLANK. New C APIs are additive; existing ABI layouts and the
 wire protocol are unchanged. See [configuration/schema](docs/user/metrics.md)
 and [the plan](docs/development/plans/metrics-telegraf.plan).
 
-Pins: Client `8afbbcec` (including discovered-Host identity handling), Linux Host
+Installed 1.4.11 pins: Client `8afbbcec` (including discovered-Host identity handling), Linux Host
 `8ca14f4e`. Kymux `9e1a7e30` and Client common-C `c7d1b831` remain unchanged.
 All four original installers, manifests and hashes are verified in
 `artifacts/packages/candidates/1.4.11-metrics-telegraf/`:
@@ -127,12 +160,30 @@ before system changes. Five credential/output tests, shell syntax and actual
 Telegraf profile parsing pass. No full appliance provisioner was executed, no
 fleet migration was performed, and package pins remain at their existing
 available versions. Application metrics require 1.4.11 or newer.
-The operator requested a commit checkpoint in both repositories. Dashboard and
-provisioning changes stay on their current branches; existing submodule pins
-are already committed and unchanged. Remaining provisioning acceptance is a
-fresh-appliance installation using an available metrics-capable package.
-Mac installation remains out of scope. No push, merge, new package build or
-release publication was requested for this checkpoint.
+The dashboard checkpoint `5fc6a88f` and private provisioning checkpoint `67ad7f5`
+are committed and pushed on their respective feature branches. Existing
+submodule pins are already committed and unchanged.
+
+Subsequent installer options are implemented locally in the private provisioner:
+`--channel`, `--influx-token-file`, and `--influx-token-stdin`. The operator
+withdrew the proposed upgrade-only option; that path and its documentation are
+removed. Normal installation still performs full appliance provisioning.
+Thirteen isolated tests pass, including secret input, channel validation,
+rejection of unsupported options and credential failure before system changes.
+No real provisioner was run. These new source/documentation edits remain
+uncommitted.
+
+Global `nodetype` now identifies the Linux test endpoints as `plank-host` and
+`plank-client`; fresh Client/Relay provisioning uses `plank-client` and
+`plank-relay`. The application `role` still drives the Host/Client session
+menus. Existing system-dashboard filters use the new labels only, following
+the operator's instruction to update endpoints without old-label alternatives.
+Fresh application and system samples with both new labels are verified.
+Only Telegraf was restarted; PLANK processes were preserved.
+
+Remaining provisioning acceptance is a fresh-appliance installation using an
+available metrics-capable package. Mac installation remains out of scope.
+No merge, new package build or release publication was requested.
 
 ## Code review hardening — accepted and merged into main
 

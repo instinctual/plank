@@ -61,7 +61,14 @@ product's queries. There is no separate Role menu or bookmark/UUID grouping.
 Measurements from multiple bookmarks on the same machine share its charts;
 existing mean, maximum and sum functions determine their aggregation.
 
-The ten performance panels use Grafana's visual InfluxQL editor. Fields,
+Telegraf's optional global `nodetype` tag serves a different purpose: grouping
+system metrics by the machine's primary use. For example, use `plank-host` or
+`plank-client` for Host workstations and Client appliances. That fixed machine
+classification does not replace the application's `role`; a machine running
+both products can still appear in both session menus. Keep system-dashboard
+filters aligned with the node labels configured on the endpoints.
+
+The ten performance panels and two tablet-activity views use Grafana's visual InfluxQL editor. Fields,
 functions, filters and grouping are editable through its controls. FEC uses the
 Math control to retain the source-count-weighted percentage. Every query uses
 `fill(none)`, so empty time buckets are omitted. Legends use Table mode with
@@ -96,6 +103,41 @@ elapsed interval. The first observation establishes a baseline and omits rates.
 Decoder windows accumulate raw counts and timing sums until export, even when
 the configured export interval is longer than one second. They are consumed
 once, not repeated at subsequent exports.
+
+## Wacom pen activity
+
+Ubuntu Client 1.4.12 and newer adds aggregate Wacom activity to `plank_transport`
+when metrics are enabled. Both raw-HID forwarding and the normalized pen path
+are covered, for sessions to Linux or macOS Hosts. macOS Client and local
+workstation tablet use are not included in this first implementation.
+
+Recording occurs only while PLANK session input is active and focused. It
+counts decoded pen-position changes (including hover and eraser use) and tip-down
+transitions. Repeated identical reports, touch, ExpressKeys, battery/status
+traffic, and state restored after reconnect are excluded. Coordinates, pressure
+values, device identifiers and strokes are never passed to the metrics exporter.
+
+| Field | Meaning |
+| --- | --- |
+| `pen_observed` | A pen source is currently being observed; false means unavailable, not measured inactivity |
+| `pen_motion_events_interval` | Position-change reports since the previous exported observation |
+| `pen_tip_down_events_interval` | Tip-down transitions during that interval |
+| `pen_last_activity_age_seconds` | Monotonic time since the last observed movement or tip-down; absent until activity occurs |
+| `pen_activity_state` | `0`: unavailable; `1`: observed idle; `2`: movement or tip-down within the preceding minute |
+
+The current activity tiles repeat for the selected Clients. Each uses the most
+active reported state in the latest 30-second collection window, allowing for
+Telegraf batching and multiple PLANK sessions on one Client. The history uses
+ten-second windows and disconnects gaps longer than 30 seconds instead of
+carrying a previous active state indefinitely. Queries retain `fill(none)`.
+Normal shutdown emits an unavailable state; an abrupt process or collector
+failure is represented by missing recent data. Use the one-second sampling
+default for these views. Longer configured sampling intervals can leave gaps.
+
+Green **Tablet active**, gray **Tablet idle**, and **No data** describe observed
+tablet interaction, not productivity, attendance or whether an application
+processed the input. Keyboard/mouse use and reviewing footage can occur without
+pen movement. No activity is fabricated when observation is unsupported or fails.
 
 Important distinctions:
 

@@ -12,6 +12,9 @@ if [[ ${PLANK_WACOM_SANITIZERS:-0} == 1 ]]; then
 fi
 read -r -a client_cflags <<< "$(pkg-config --cflags Qt6Gui libinput libudev wayland-client wayland-server)"
 read -r -a client_libs <<< "$(pkg-config --libs Qt6Gui libinput libudev wayland-client wayland-server)"
+"${CXX:-c++}" "${flags[@]}" "$source_dir/tests/linuxrawwacom/test_penmetrics.cpp" \
+  -o "$build_dir/pen-metrics"
+timeout 30 "$build_dir/pen-metrics"
 "${CXX:-c++}" "${flags[@]}" "$source_dir/tests/linuxrawwacom/test_reportworker.cpp" \
   -o "$build_dir/report-worker"
 timeout 30 "$build_dir/report-worker"

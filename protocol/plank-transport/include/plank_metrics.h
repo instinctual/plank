@@ -51,6 +51,16 @@ typedef struct PlankMetricsClientVideo {
     double host_latency_time_ms;
 } PlankMetricsClientVideo;
 
+/* Aggregate pen activity during an active Client session. No coordinates,
+ * pressure values, tool identifiers or stroke contents are accepted here.
+ * observed is 0/1 and describes whether the pen source is currently monitored. */
+typedef struct PlankMetricsPenActivity {
+    uint32_t struct_size;
+    uint32_t observed;
+    uint64_t motion_events;
+    uint64_t tip_down_events;
+} PlankMetricsPenActivity;
+
 /* Configure once before start. An optional handle lets the Client publish media
  * windows without holding a transport pointer across reconnect/teardown.
  * Metrics errors must never reject a PLANK session. No API here performs remote
@@ -61,6 +71,8 @@ int32_t plank_transport_native_metrics_stream_info(PlankTransportNativeEndpoint 
     const PlankMetricsStreamInfo *info);
 int32_t plank_metrics_client_video(PlankMetricsHandle *handle,
     const PlankMetricsClientVideo *window);
+int32_t plank_metrics_pen_activity(PlankMetricsHandle *handle,
+    const PlankMetricsPenActivity *activity);
 /* Destroy only after callers publishing through this handle have drained.
  * Endpoint sampling retains its own reference; shutdown does not join a new
  * metrics thread or wait for Telegraf. Null is accepted. */

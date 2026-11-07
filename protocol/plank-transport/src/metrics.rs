@@ -10,6 +10,7 @@ use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
 const MAX_DATAGRAM: usize = 4096;
 const MAX_TEXT: usize = 128;
+const PEN_ACTIVE_WINDOW: Duration = Duration::from_secs(60);
 
 #[cfg(test)]
 #[path = "metrics_tests.rs"]
@@ -54,6 +55,15 @@ pub struct PlankMetricsClientVideo {
     pub host_latency_time_ms: f64,
 }
 
+#[repr(C)]
+#[derive(Clone, Copy, Default)]
+pub struct PlankMetricsPenActivity {
+    pub struct_size: u32,
+    pub observed: u32,
+    pub motion_events: u64,
+    pub tip_down_events: u64,
+}
+
 pub struct PlankMetricsHandle(pub(crate) Arc<Reporter>);
 
 #[derive(Clone)]
@@ -74,12 +84,21 @@ struct HostWindow {
     latency_clamped: u64,
 }
 
+#[derive(Clone, Copy, Default)]
+struct PenWindow {
+    observed: bool,
+    motion_events: u64,
+    tip_down_events: u64,
+    last_activity: Option<Instant>,
+}
+
 #[derive(Default)]
 struct Cache {
     info: Option<StreamInfo>,
     client: Option<PlankMetricsClientVideo>,
     client_updated: Option<Instant>,
     host: HostWindow,
+    pen: Option<PenWindow>,
 }
 
 #[derive(Clone, Copy, Default)]
@@ -266,6 +285,14 @@ impl Reporter {
 
     pub(crate) fn finish(&self, failed: bool) {
         if !self.finished.swap(true, Ordering::AcqRel) {
+            let pen_observed = self.cache.try_lock().is_ok_and(|cache| cache.pen.is_some());
+            if pen_observed {
+                let mut point = self.point("plank_transport");
+                point.boolean("connected", false);
+                point.boolean("pen_observed", false);
+                point.integer("pen_activity_state", 0);
+                self.send(point);
+            }
             self.event(if failed { "failed" } else { "stopped" });
         }
     }
@@ -335,6 +362,30 @@ impl Reporter {
         total.render_time_ms += value.render_time_ms;
         total.host_latency_time_ms += value.host_latency_time_ms;
         cache.client_updated = Some(Instant::now());
+        Ok(true)
+    }
+
+    fn pen_activity(&self, value: &PlankMetricsPenActivity) -> Result<bool, ()> {
+        if self.server
+            || value.struct_size as usize != size_of::<PlankMetricsPenActivity>()
+            || value.observed > 1
+        {
+            return Err(());
+        }
+        if self.finished.load(Ordering::Acquire) {
+            return Ok(false);
+        }
+        let Ok(mut cache) = self.cache.try_lock() else {
+            self.observations_dropped.fetch_add(1, Ordering::Relaxed);
+            return Ok(false);
+        };
+        let pen = cache.pen.get_or_insert_with(PenWindow::default);
+        pen.observed = value.observed != 0;
+        pen.motion_events = pen.motion_events.saturating_add(value.motion_events);
+        pen.tip_down_events = pen.tip_down_events.saturating_add(value.tip_down_events);
+        if value.motion_events != 0 || value.tip_down_events != 0 {
+            pen.last_activity = Some(Instant::now());
+        }
         Ok(true)
     }
 
@@ -558,15 +609,47 @@ impl Sampler {
             );
         }
         let observation = r.cache.try_lock().ok().map(|mut cache| {
+            let pen = cache.pen.as_mut().map(|pen| {
+                let window = *pen;
+                pen.motion_events = 0;
+                pen.tip_down_events = 0;
+                window
+            });
             (
                 cache.info.clone(),
                 cache.client.take(),
                 cache.client_updated,
                 std::mem::take(&mut cache.host),
+                pen,
             )
         });
         // All application, endpoint and cache locks are released before I/O.
-        if let Some((info, client, updated, host)) = observation {
+        if let Some((info, client, updated, host, pen)) = observation {
+            if let Some(pen) = pen {
+                point.boolean("pen_observed", pen.observed);
+                let state = if !pen.observed {
+                    0 // unavailable, including focus loss/reconnect
+                } else if pen
+                    .last_activity
+                    .is_some_and(|last| now.saturating_duration_since(last) < PEN_ACTIVE_WINDOW)
+                {
+                    2 // recent pen activity, not a productivity judgment
+                } else {
+                    1 // observable, but no pen activity in the last minute
+                };
+                point.integer("pen_activity_state", state);
+                // Unsupported/inactive observation is unknown, not measured inactivity.
+                if pen.observed || pen.motion_events != 0 || pen.tip_down_events != 0 {
+                    point.integer("pen_motion_events_interval", pen.motion_events);
+                    point.integer("pen_tip_down_events_interval", pen.tip_down_events);
+                }
+                if let Some(last) = pen.last_activity {
+                    point.number(
+                        "pen_last_activity_age_seconds",
+                        now.saturating_duration_since(last).as_secs_f64(),
+                    );
+                }
+            }
             if let Some(info) = info {
                 point.integer("width", info.width as u64);
                 point.integer("height", info.height as u64);
@@ -672,6 +755,27 @@ pub unsafe extern "C" fn plank_metrics_client_video(
             return crate::PLANK_TRANSPORT_ERROR_INVALID_ARGUMENT;
         };
         match handle.0.client_video(window) {
+            Ok(true) => crate::PLANK_TRANSPORT_OK,
+            Ok(false) => crate::PLANK_TRANSPORT_DROPPED,
+            Err(()) => crate::PLANK_TRANSPORT_ERROR_INVALID_ARGUMENT,
+        }
+    })
+}
+
+/// # Safety
+/// Handle and activity must remain live during the call; destroy requires exclusive ownership.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn plank_metrics_pen_activity(
+    handle: *mut PlankMetricsHandle,
+    activity: *const PlankMetricsPenActivity,
+) -> i32 {
+    crate::catch_result(|| {
+        let (Some(handle), Some(activity)) =
+            (unsafe { handle.as_ref() }, unsafe { activity.as_ref() })
+        else {
+            return crate::PLANK_TRANSPORT_ERROR_INVALID_ARGUMENT;
+        };
+        match handle.0.pen_activity(activity) {
             Ok(true) => crate::PLANK_TRANSPORT_OK,
             Ok(false) => crate::PLANK_TRANSPORT_DROPPED,
             Err(()) => crate::PLANK_TRANSPORT_ERROR_INVALID_ARGUMENT,

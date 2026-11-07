@@ -98,6 +98,9 @@ def main():
             assert host["host_processing_mean_ms"] == 3 and host["host_processing_max_ms"] == 3.5
             media = next(r["fields"] for r in records if r["name"] == "plank_client_video")
             assert media["hardware_decoder"] is True and media["decode_ms"] == 2
+            pen = next(r["fields"] for r in records if "pen_activity_state" in r["fields"])
+            assert pen["pen_observed"] is True and pen["pen_activity_state"] == 2
+            assert pen["pen_motion_events_interval"] == 20 and pen["pen_tip_down_events_interval"] == 2
             assert "E!" not in logfile.read_text(), logfile.read_text()
             print(f"PASS: {len(records)} real PLANK datagrams parsed by Telegraf; no database writes")
         finally:

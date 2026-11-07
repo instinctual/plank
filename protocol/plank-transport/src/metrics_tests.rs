@@ -194,6 +194,119 @@ fn collector_absence_or_not_reading_does_not_block() {
     assert!(start.elapsed() < Duration::from_secs(5));
 }
 
+#[test]
+fn pen_counts_are_aggregated_once_and_inactive_observation_is_unknown() {
+    let (reporter, socket) = collector(false);
+    let mut sampler = Sampler::new(reporter.clone());
+    let observed = PlankMetricsPenActivity {
+        struct_size: size_of::<PlankMetricsPenActivity>() as u32,
+        observed: 1,
+        motion_events: 3,
+        tip_down_events: 1,
+    };
+    assert_eq!(reporter.pen_activity(&observed), Ok(true));
+    assert_eq!(
+        reporter.pen_activity(&PlankMetricsPenActivity {
+            motion_events: 2,
+            tip_down_events: 0,
+            ..observed
+        }),
+        Ok(true)
+    );
+    let now = Instant::now();
+    sampler.test_sample(PlankTransportNativeStats::default(), None, 0, now);
+    let point = receive(&socket);
+    assert!(point.contains("pen_observed=true"));
+    assert!(point.contains("pen_activity_state=2i"));
+    assert!(point.contains("pen_motion_events_interval=5i"));
+    assert!(point.contains("pen_tip_down_events_interval=1i"));
+    assert!(point.contains("pen_last_activity_age_seconds="));
+    receive(&socket); // ready
+    sampler.test_sample(
+        PlankTransportNativeStats::default(),
+        None,
+        0,
+        now + Duration::from_secs(1),
+    );
+    let idle = receive(&socket);
+    assert!(idle.contains("pen_motion_events_interval=0i"));
+    assert!(idle.contains("pen_tip_down_events_interval=0i"));
+
+    sampler.test_sample(
+        PlankTransportNativeStats::default(),
+        None,
+        0,
+        now + Duration::from_secs(61),
+    );
+    assert!(receive(&socket).contains("pen_activity_state=1i"));
+
+    assert_eq!(
+        reporter.pen_activity(&PlankMetricsPenActivity {
+            observed: 0,
+            motion_events: 0,
+            tip_down_events: 0,
+            ..observed
+        }),
+        Ok(true)
+    );
+    sampler.test_sample(
+        PlankTransportNativeStats::default(),
+        None,
+        0,
+        now + Duration::from_secs(62),
+    );
+    let unavailable = receive(&socket);
+    assert!(unavailable.contains("pen_observed=false"));
+    assert!(unavailable.contains("pen_activity_state=0i"));
+    assert!(!unavailable.contains("pen_motion_events_interval="));
+    assert!(!unavailable.contains("pen_tip_down_events_interval="));
+
+    reporter.finish(false);
+    assert!(receive(&socket).contains("pen_activity_state=0i"));
+    receive(&socket);
+    assert_eq!(reporter.pen_activity(&observed), Ok(false));
+    assert!(socket.recv(&mut [0; 1]).is_err());
+    let (fresh, _) = collector(false);
+    assert!(fresh.cache.lock().unwrap().pen.is_none());
+}
+
+#[test]
+fn pen_validation_and_contention_never_block_input() {
+    let (reporter, _) = collector(false);
+    let activity = PlankMetricsPenActivity {
+        struct_size: size_of::<PlankMetricsPenActivity>() as u32,
+        observed: 1,
+        motion_events: 1,
+        tip_down_events: 0,
+    };
+    let guard = reporter.cache.lock().unwrap();
+    assert_eq!(reporter.pen_activity(&activity), Ok(false));
+    assert_eq!(reporter.observations_dropped.load(Ordering::Relaxed), 1);
+    drop(guard);
+    assert!(
+        reporter
+            .pen_activity(&PlankMetricsPenActivity {
+                observed: 2,
+                ..activity
+            })
+            .is_err()
+    );
+    assert!(
+        reporter
+            .pen_activity(&PlankMetricsPenActivity {
+                struct_size: 0,
+                ..activity
+            })
+            .is_err()
+    );
+    let (server, _) = collector(true);
+    assert!(server.pen_activity(&activity).is_err());
+    assert_eq!(
+        unsafe { plank_metrics_pen_activity(std::ptr::null_mut(), &activity) },
+        crate::PLANK_TRANSPORT_ERROR_INVALID_ARGUMENT
+    );
+}
+
 // The standalone Telegraf integration runner requests this fixture file. All
 // lines come through the real exporter and localhost UDP, not a second encoder.
 #[test]
@@ -258,6 +371,14 @@ fn telegraf_fixture_serialization() {
             decode_time_ms: 120.0,
             render_time_ms: 60.0,
             ..Default::default()
+        })
+        .unwrap();
+    client
+        .pen_activity(&PlankMetricsPenActivity {
+            struct_size: size_of::<PlankMetricsPenActivity>() as u32,
+            observed: 1,
+            motion_events: 20,
+            tip_down_events: 2,
         })
         .unwrap();
     Sampler::new(client).test_sample(stats, Some(QueueDepths::default()), 0, time);
