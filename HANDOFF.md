@@ -11,8 +11,8 @@ and provisioning work. Parent merge `d2dd86af` matches the `metrics-telegraf` tr
 at `702782fa` exactly; Client `main` is `821e77da` and Linux Host `main` is
 `8ca14f4e`. Kymux and common-C pins are unchanged. The private provisioner's
 completed branch is merged into its default branch as well. No product code was
-changed while merging. Native Apple development and historical test branches
-remain separate from this work.
+changed while merging. Native Apple development and contributor Host test/signing
+branches remain separate from this work.
 
 The initial 1.4.11 baseline uses product source `816b1e18`. The 1.4.12 follow-up
 at `ffa0f92d` adds Ubuntu pen-activity metrics and is installed on both authorized
@@ -358,12 +358,29 @@ and [simplification plan](docs/development/plans/code-simplification.plan).
 
 ## Separate work and remaining acceptance
 
-Native Apple/AVP development and TestFlight automation remain on `native-builds`
-and the dedicated AVP branches. Their own protocol pin is unchanged; consult
-that branch's HANDOFF before resuming. When rebasing to C ABI 14, remove the native
-bridge's obsolete `config.session_mode` assignment and `SETUP_READY` allowance.
-Do not merge or delete those branches as part of desktop hardening. Contributor
-Mac test/signing branches remain; main protection was discussed, not enabled.
+Native Apple/AVP work is on `avp-dual-display` in both parent and Client, at
+`f96a1b81` and `7580c06f`. Its worktree directory is still named
+`build/worktrees/native-builds`. Earlier `apple-native-integration` and
+`native-builds` checkpoints are fully contained in that branch. Vision TestFlight
+0.1.0 (13.1) was delivered; actual headset acceptance remains pending. Consult
+that branch's HANDOFF before resuming and retain its own protocol pin. When
+rebasing to C ABI 14, remove the native bridge's obsolete `config.session_mode`
+assignment and `SETUP_READY` allowance. Do not merge or delete this work as part
+of desktop cleanup.
+
+The operator explicitly confirmed retaining both contributor Host test branches:
+
+| Branch | Retained purpose |
+| --- | --- |
+| `codex/macos26-host-test` | Chris's macOS 26.7 qualification baseline; still permitted in `macos-signing`. |
+| `macos-host-test` | Reviewed Host candidate used by the `/build-macos-host` approval workflow; still permitted in `macos-signing`. |
+
+Their source changes are already represented in main, but that does not retire
+their testing role. The live signing allowlist and approval registry were checked
+on November 7. Neither branch, its worktree nor its signing permission was
+removed. Keep them during branch cleanup; future candidate revisions still need
+the exact-SHA review/registry checks in the [build runbook](docs/development/build/github-builds.md).
+Main protection was discussed, not enabled.
 The hardening branch's signing permission is 65803900; retain it until retirement.
 
 The authorized development Mac is identified in private notes. Preserve Terminal

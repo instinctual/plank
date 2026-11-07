@@ -219,6 +219,13 @@ remain unchanged. See [GitHub's signing guidance](https://docs.github.com/en/act
 
 ### Approved contributor Host test builds
 
+Retain `codex/macos26-host-test` for the contributor's macOS 26.7 qualification
+baseline and `macos-host-test` for reviewed Host candidates. The operator has
+explicitly kept both branches and their signing access. Their code reaching main
+does not make them branch-cleanup candidates. Before retiring a contributor test
+workflow, review its approval registry, live environment branch policies and
+testing use with the operator.
+
 Chris (`cnoellert`) can request a signed macOS Host candidate by posting a new
 PR Conversation comment containing exactly:
 

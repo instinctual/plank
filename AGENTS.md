@@ -305,6 +305,12 @@ Every protocol change requires host and client tests, updated version/feature ne
 
 ## Commit & Pull Request Guidelines
 
+Before deleting a merged or superseded branch, check its contributor-testing
+role, workflow approval registry and live signing-environment policies. A branch
+can remain operationally required after its code reaches main. Retain approved
+contributor test branches until the operator explicitly retires that workflow;
+merge ancestry or patch equivalence alone is not sufficient for deletion.
+
 The root and both maintained forks have usable PLANK history. Follow
 their established short, imperative subjects with an optional subsystem prefix,
 such as `protocol: negotiate source bit depth`. Keep commits focused, commit
