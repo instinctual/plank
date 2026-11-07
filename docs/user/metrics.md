@@ -40,7 +40,7 @@ Add a separate `outputs.influxdb_v2` using the application-metrics destination
 and `namepass = ["plank_transport", "plank_client_video", "plank_session"]`.
 Add the same list as `namedrop` on the original output so application metrics
 are not duplicated there. Keep tokens in the administrator-managed Telegraf
-configuration, not PLANK configuration or the repository. The supplied input
+configuration, not PLANK configuration or this public repository. The supplied input
 also accepts only these three measurement names.
 
 ## Grafana

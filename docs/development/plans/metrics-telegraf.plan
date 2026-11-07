@@ -49,9 +49,13 @@ effort, not a reliable audit trail. No extra privileges are required.
 
 The private Ubuntu provisioner now has one PLANK product with Production/Beta
 package channels and Client/Relay input profiles. Fresh installations use one
-PLANK bucket for system and application metrics. The bucket write token is
-supplied outside Git, stored root-only, and rendered into a Telegraf-readable
-output. Credentials are prepared before provisioning changes the system.
+PLANK bucket for system and application metrics. The operator authorized the
+bucket write-only token in the permanently private provisioning repository's
+shared Telegraf output file. Installation copies that ordinary configuration
+as `root:telegraf`, mode `0640`, without a generator, prompt or separate token
+store. Only `--channel` and `--help` remain in the Client installer. No token or
+deployment value belongs in this public repository. Administrator and Grafana
+read tokens remain outside Git.
 Current flush interval 5s plus jitter 10s means
 samples reach the database in batches roughly 5–15s apart. Preserve this policy
 unless the operator requests a change; source samples can still be one second.
@@ -73,9 +77,10 @@ test endpoints' existing system-metrics buckets are preserved through
 application-only output filters. All 24 visual queries pass against the new
 bucket and return actual Host and Client observations. Historical buckets/data
 sources are retained. The Grafana setup account is back to Editor.
-No Mac deployment occurred. Private provisioner checks cover five credential/
-output tests, all shell syntax, actual Telegraf parsing for both input profiles,
-and unchanged network/tuning/authorization values. A full fresh-appliance
+No Mac deployment occurred. Private provisioner checks cover five isolated
+installer CLI tests, shell syntax and actual Telegraf parsing for both input
+profiles without database writes. The operator's intervening ping/process-input
+and ZeroTier cleanup commits were pulled and preserved. A full fresh-appliance
 installation has not been run; its older package pins are not promoted to a
 candidate absent from the provisioning server.
 No merge, release publication or change to existing system-metric collection

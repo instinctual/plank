@@ -137,8 +137,9 @@ Editor, with Admin capabilities absent and dashboard access still working.
 The operator then requested a dedicated PLANK bucket and unified private
 appliance provisioning. The new bucket retains the previous three-day retention
 policy and has its own InfluxQL mapping. Telegraf uses a bucket-scoped write
-token; Grafana uses a separate read-only token. Both credentials and the
-administrator token stay outside Git. All 24 visual queries pass against that
+token; Grafana uses a separate read-only token. Deployment credentials stay out
+of this public repository; the private provisioner policy is described below.
+All 24 visual queries pass against that
 new data source and return current Host and Client observations. Historical
 buckets and data sources remain intact. The operator retained full-resolution
 samples for three days; no downsampling was added. The supplied replacement
@@ -176,23 +177,23 @@ The private appliance repository's `plank-unified` branch removes obsolete
 product selection, duplicate branding/output profiles and retired launcher
 aliases. It retains Production/Beta channels, the effective network and tuning,
 and optional vendor helpers. Fresh Client/Relay provisioning uses the PLANK
-bucket for system and application metrics; token input is private and checked
-before system changes. Five credential/output tests, shell syntax and actual
-Telegraf profile parsing pass. No full appliance provisioner was executed, no
-fleet migration was performed, and package pins remain at their existing
-available versions. Application metrics require 1.4.11 or newer.
-The dashboard checkpoint `5fc6a88f` and private provisioning checkpoint `67ad7f5`
-are committed and pushed on their respective feature branches. Existing
-submodule pins are already committed and unchanged.
+bucket for system and application metrics. At the operator's explicit request,
+the permanently private appliance repository now holds one ordinary shared
+Telegraf output file containing its bucket-scoped write-only token. Installation
+copies that file as `root:telegraf`, mode `0640`. The Python generator, separate
+token store, token prompts and token CLI options are removed. Administrator and
+Grafana read tokens remain outside Git; no credential enters this public repo.
+`--channel production|beta` and `--help` remain. There is no upgrade-only option;
+normal installation still performs full appliance provisioning.
 
-The private provisioner now supports these scripted installer options:
-`--channel`, `--influx-token-file`, and `--influx-token-stdin`. The operator
-withdrew the proposed upgrade-only option; that path and its documentation are
-removed. Normal installation still performs full appliance provisioning.
-Thirteen isolated tests pass, including secret input, channel validation,
-rejection of unsupported options and credential failure before system changes.
-No real provisioner was run. The operator requested committing and pushing
-these source/documentation changes on the existing feature branches.
+The operator's latest private-repository commits were pulled before this change;
+their updated ping targets/process inputs and removed ZeroTier overrides are
+preserved. Five isolated installer CLI tests, shell syntax and real Telegraf
+parsing of both Client/Relay profiles pass without database writes. No full
+provisioner was executed, no fleet migration was performed, and package pins
+remain at their existing available versions. Application metrics require 1.4.11
+or newer; Wacom observations require Client 1.4.12 or newer. This provisioning
+simplification needs no Host/Client rebuild or runtime change.
 
 Global `nodetype` now identifies the Linux test endpoints as `plank-host` and
 `plank-client`; fresh Client/Relay provisioning uses `plank-client` and
