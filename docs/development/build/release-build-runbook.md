@@ -20,6 +20,14 @@ reuse compiler results, but tests, linking and packaging always run afresh.
 The other products still compile their application/transport objects fresh. See
 `github-builds.md` for cache boundaries and cold/warm qualification status.
 
+Cache schema3 uses actual dependency recipes, patches, source content and
+compiler/SDK/library identities. Documentation commits, unrelated installed
+utilities and runner-image rollout dates are excluded. Download-only Rust/Cargo/
+Boost inputs are relocatable; compiled libraries retain exact build paths and
+OS/deployment contracts. Changes to cache eligibility require an explicit schema
+revision; ordinary orchestration fixes must not invalidate all dependencies.
+The schema transition requires one initial population of the new keys.
+
 Before opening a new build branch, check cache visibility as well as dependency
 inputs. A manually dispatched Actions run can restore from its own branch or
 the default branch, not another feature branch even when it is an ancestor and

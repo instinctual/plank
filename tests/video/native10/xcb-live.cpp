@@ -67,13 +67,18 @@ int main() {
         const bool attached = error == nullptr; std::free(error); require(attached, "X server SHM attachment rejected");
         capture.attached = true;
         require(!shmctl(capture.segment, IPC_RMID, nullptr), "SHM retirement failed"); capture.segment = -1;
-        const platf::x11::capture_api_t api {xcb_get_geometry, xcb_get_geometry_reply, xcb_shm_get_image, xcb_shm_get_image_reply};
-        std::vector<double> baseline, batched;
-        for (int round = 0; round < 40; ++round) for (int i = 0; i < 2; ++i) {
-            const bool batch = (i + round) % 2;
+        const platf::x11::capture_api_t api {xcb_get_geometry, xcb_get_geometry_reply, xcb_shm_get_image, xcb_shm_get_image_reply, xcb_change_window_attributes_checked, xcb_request_check, xcb_poll_for_event};
+        platf::x11::capture_geometry_t cache;
+        require(cache.subscribe(api, capture.connection, capture.root, capture.overlay), "geometry subscription failed");
+        std::vector<double> baseline, batched, cached;
+        for (int round = 0; round < 40; ++round) for (int i = 0; i < 3; ++i) {
+            const int batch = (i + round) % 3;
             std::this_thread::sleep_for(std::chrono::milliseconds(16));
             const auto start = std::chrono::steady_clock::now();
-            if (batch) {
+            if (batch == 2) {
+                require(cache.snapshot(api, capture.connection, capture.root, capture.overlay, 0, 0,
+                    root.width, root.height, root.width, root.height, capture.id).valid, "cached reply validation failed");
+            } else if (batch) {
                 require(platf::x11::capture_batch(api, capture.connection, capture.root, capture.overlay, 0, 0,
                     root.width, root.height, root.width, root.height, capture.id).valid, "batched reply validation failed");
             } else {
@@ -88,12 +93,12 @@ int main() {
                 const bool valid = !error && reply && reply->depth == 30 && reply->size == bytes;
                 std::free(error); error = nullptr; std::free(reply); require(valid, "baseline reply validation failed");
             }
-            if (round >= 10) (batch ? batched : baseline).push_back(
+            if (round >= 10) (batch == 2 ? cached : batch ? batched : baseline).push_back(
                 std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - start).count());
         }
-        for (auto* values : {&baseline, &batched}) std::sort(values->begin(), values->end());
+        for (auto* values : {&baseline, &batched, &cached}) std::sort(values->begin(), values->end());
         std::cout << "depth30_geometry_and_shm=pass pixels_saved=0 size=" << root.width << 'x' << root.height
                   << " frames_per_case=" << baseline.size() << " original_median_ms=" << baseline[15]
-                  << " batched_median_ms=" << batched[15] << '\n';
+                  << " batched_median_ms=" << batched[15] << " cached_median_ms=" << cached[15] << '\n';
     } catch (const std::exception& error) { std::cerr << error.what() << '\n'; return 1; }
 }

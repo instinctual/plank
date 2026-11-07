@@ -4,22 +4,32 @@ use super::*;
 #[test]
 fn assembled_video_record_preserves_wire_bytes_and_owns_the_input() {
     let mut input = vec![0x5a; 4 * 1024 * 1024];
-    let record = video_record(0x0102030405060708, 0x1234, &input);
+    let record = video_record(0x0102030405060708, 0x1234, 90_000, true, &input).unwrap();
     input.fill(0);
-    assert_eq!(&record[..10], &[1, 2, 3, 4, 5, 6, 7, 8, 0x12, 0x34]);
-    assert_eq!(&record[10..VIDEO_METADATA_SIZE], &[0; 6]);
-    assert!(record[VIDEO_METADATA_SIZE..].iter().all(|&b| b == 0x5a));
-    let address = record.as_ptr();
+    assert_eq!(&record.payload[..10], &[1, 2, 3, 4, 5, 6, 7, 8, 0x12, 0x34]);
+    assert_eq!(&record.payload[10..VIDEO_METADATA_SIZE], &[0; 6]);
+    assert!(
+        record.payload[VIDEO_METADATA_SIZE..]
+            .iter()
+            .all(|&b| b == 0x5a)
+    );
+    let address = record.payload.as_ptr();
     let mut queue = VideoQueue::default();
-    let size = record.len();
+    let size = record.payload.len();
     assert_eq!(queue.push_back(record, size, VIDEO_SEND_CAPACITY), 0);
     let submitted = queue.pop_front().unwrap();
     assert_eq!(
-        submitted.as_ptr(),
+        submitted.payload.as_ptr(),
         address,
         "submission must move the original record"
     );
     assert_eq!(queue.bytes, 0);
+    let wire = submitted.into_serialized();
+    assert_eq!(
+        wire[12..].as_ptr(),
+        address,
+        "FEC must reuse the owned frame"
+    );
 }
 
 #[test]

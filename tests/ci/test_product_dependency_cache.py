@@ -64,9 +64,33 @@ class ProductDependencyCacheTests(unittest.TestCase):
         keys = self.keys()
         for name in ('packaging/VERSION', 'apps/host/macos/example.m',
                      'apps/client/app/example.cpp', 'scripts/ci/bootstrap.sh',
-                     'scripts/ci/build.sh', '.github/workflows/build.yml'):
+                     'scripts/ci/build.sh', '.github/workflows/build.yml', 'scripts/ci/cache-dependencies.py'):
             self.write(self.root / name, 'application or orchestration change')
             self.assertEqual(keys, self.keys())
+
+    def test_host_dependency_documentation_commit_preserves_libraries(self):
+        before = self.keys()
+        self.write(self.host_deps / 'README.md', 'documentation only')
+        subprocess.run(['git', '-C', str(self.host_deps), 'add', '.'], check=True)
+        subprocess.run(['git', '-C', str(self.host_deps), '-c', 'user.name=CI fixture',
+                        '-c', 'user.email=ci@example.org', 'commit', '-qm', 'Document build'], check=True)
+        self.assertEqual(before, self.keys())
+
+    def test_rocky_ignores_utilities_but_keeps_headers_and_runtime_libraries(self):
+        packages = ['gcc-toolset-14-gcc=14', 'openssl-libs=3', 'libX11-devel=1',
+                    'cuda-toolkit=13', 'pulseaudio-libs=16', 'git=2', 'vim-minimal=9']
+        selected = cache.rocky_build_packages(packages)
+        self.assertEqual(selected, sorted(packages[:5]))
+        self.assertEqual(selected, cache.rocky_build_packages(packages[:5] + ['git=3', 'vim-minimal=10']))
+        self.assertNotEqual(selected, cache.rocky_build_packages(['openssl-libs=4'] + packages[:1]))
+
+    def test_mac_image_rollout_does_not_invalidate_downloaded_inputs(self):
+        with patch.object(cache.platform, 'system', return_value='Darwin'), \
+             patch.object(cache.platform, 'machine', return_value='arm64'):
+            with patch.dict(cache.os.environ, {'ImageVersion': 'first'}):
+                before = cache.toolchain_inputs('macos-host')
+            with patch.dict(cache.os.environ, {'ImageVersion': 'second'}):
+                self.assertEqual(before, cache.toolchain_inputs('macos-host'))
 
     def test_transport_lock_and_manifest_only_invalidate_cargo(self):
         expected = {(product, 'cargo') for product in cache.PRODUCTS}
@@ -193,7 +217,8 @@ class ProductDependencyCacheTests(unittest.TestCase):
         self.assertEqual(len(set(keys.values())), len(keys))
         for (product, component), key in keys.items():
             self.assertTrue(cache.key_valid(key, product, component))
-            self.assertNotEqual(key, cache.fingerprint(
+            compare = self.assertNotEqual if component in ('ffmpeg', 'native', 'qt') else self.assertEqual
+            compare(key, cache.fingerprint(
                 self.root, self.deps / 'other', product, component, self.tools))
             self.assertNotEqual(key, self.key(product, component,
                 dict(self.tools, platform={'architecture': 'other'})))

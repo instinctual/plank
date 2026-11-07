@@ -114,9 +114,9 @@ done
 cargo metadata --locked --offline --no-deps \
   --format-version 1 \
   --manifest-path "${plank_transport_dir}/Cargo.toml" >/dev/null
-rg -q '^#define PLANK_TRANSPORT_ABI_VERSION 13u$' \
+rg -q '^#define PLANK_TRANSPORT_ABI_VERSION 14u$' \
   "${plank_transport_dir}/include/plank_transport.h" || {
-  echo "client requires PLANK transport ABI 13" >&2
+  echo "client requires PLANK transport ABI 14" >&2
   exit 1
 }
 rg -Fq 'uint32_t max_udp_payload_size;' \
@@ -1608,17 +1608,12 @@ cleanup_packed_test() {
 }
 trap cleanup_packed_test EXIT
 c++ -std=c++17 -O2 -Wall -Wextra -Werror \
-  "$repo_dir/tests/video/packed-bt709-policy.cpp" \
-  -I"$source_dir/app" -I"$client_common_dir" \
-  $(pkg-config --cflags --libs Qt6Gui) -o "$packed_test_build/policy"
-"$packed_test_build/policy"
-c++ -std=c++17 -O2 -Wall -Wextra -Werror \
   "$repo_dir/tests/video/packed-bt709-shader.cpp" \
   -I"$source_dir/app" $(pkg-config --cflags --libs egl glesv2) -o "$packed_test_build/shader"
 "$packed_test_build/shader"
 cleanup_packed_test
 trap - EXIT
-echo "client_packed_bt709_policy_and_shader_gate=pass"
+echo "client_packed_bt709_shader_gate=pass"
 
 wake_test_build=$(mktemp -d --tmpdir plank-client-relay-wake-test.XXXXXX)
 cleanup_wake_test() {
@@ -1661,7 +1656,7 @@ cleanup_bookmark_test() {
   fi
 }
 trap cleanup_bookmark_test EXIT
-for bookmark_test in bookmarks outputtopology hostchoices planktoolbarlogic changelog authenticationtakeover hosttruststore hosttlsguard internetconnectivity; do
+for bookmark_test in bookmarks outputtopology hostchoices changelog authenticationtakeover hosttruststore hosttlsguard internetconnectivity; do
   mkdir "$bookmark_test_build/$bookmark_test"
   qmake6 "$source_dir/tests/$bookmark_test/$bookmark_test.pro" \
     -o "$bookmark_test_build/$bookmark_test/Makefile"

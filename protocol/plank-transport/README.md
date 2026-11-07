@@ -10,13 +10,19 @@ and destroys it. Rust owns its Tokio runtime and worker threads; it does not
 call back into Host or Client C++ while a C++ lock is held. Error text remains
 owned by the endpoint and is copied into caller-provided storage.
 
-The native ABI provides the certificate-gated pre-session boundary. Session
-setup starts with a reliable KyProto data endpoint. The Client receives the
-peer leaf certificate, validates it against
-the PLANK certificate profile, and explicitly approves it before any
-application queue is enabled. PAM, ownership, display, and launch setup then
-run on that reliable endpoint. Video, audio, and input endpoints are registered
-on the same QUIC connection only after both peers authorize the session.
+The shipping Host exposes HTTPS authentication, ownership, topology and desktop
+reservation on the configured port, alongside native QUIC on UDP at that port.
+The Client establishes Host trust before credentials are sent over HTTPS, then
+uses the issued session token to authenticate QUIC. Native launch negotiation
+travels over the connection's reliable data endpoint before media starts.
+There is one endpoint lifecycle; the unused alternative pre-session/PAM-over-QUIC
+mode has been removed. The native C ABI is version14; its structure/API changes
+require rebuilding consumers, but the shipping media and launch wire formats
+are unchanged.
+
+A Client without an exact certificate fingerprint can still pause its native
+application queues for explicit certificate-profile validation. This is a
+transport qualification facility, not a replacement for HTTPS credential trust.
 
 The version-1 `LAUNCH_RESPONSE` JSON payload carries the exact accepted
 `video_format`, `host_feature_flags`, and
@@ -107,8 +113,8 @@ an older Client retains its existing TLS error reporting. Other certificate/TLS
 failures are not relabeled as version errors. The C ABI and setup-envelope
 version are unchanged; neither is the native FEC compatibility gate.
 
-`native_version_tests.rs` exercises rejection in both directions, for setup
-and direct-media entry points, plus unknown/missing ALPN rejection. The native
+`native_version_tests.rs` exercises rejection in both directions before launch
+or media registration, plus unknown/missing ALPN rejection. The native
 loopback runner requires these checks, matching-peer media byte equality and
 three controlled-loss matrices. KyProto's FEC tests include fixed repair-byte
 vectors, small-object repair-only recovery and multi-block/sub-block recovery.
@@ -118,11 +124,11 @@ No legacy RaptorQ crate is added to the product to perform compatibility tests.
 
 Native endpoint stop/destroy cancels the entire asynchronous lifecycle, not
 just active streaming: listener accept, QUIC/TLS handshake, KyProto
-authentication, endpoint-ready waits, certificate approval, pre-session setup,
-and setup-to-stream promotion all observe the same durable stop predicate.
+authentication, endpoint-ready waits and certificate approval all observe the
+same durable stop predicate.
 Stop issued before a phase begins is retained; unrelated notifications do not
 cancel a live endpoint. A recorded failure also cancels pending work while
-preserving its original error. Completed setup cannot revive a stopping,
+preserving its original error. Completed connection establishment cannot revive a stopping,
 stopped or failed endpoint.
 
 Cancellation drops the pending lifecycle future instead of waiting for its
@@ -238,7 +244,7 @@ between records, not inside a length prefix or payload.
 
 The PLANK reliable-data send and receive queues each retain at most 64 records
 and 8 MiB of payload, whichever limit is reached first. Both limits apply to
-setup/authentication and active sessions on both Host and Client platforms.
+launch negotiation and active sessions on both Host and Client platforms.
 At most one additional record (1 MiB) per direction is being read/written by
 the serial data task. These are application-payload bounds, not a claim about
 total RSS or Quinn's separately bounded stream/socket buffers.
@@ -275,8 +281,8 @@ scripts/test/run-plank-transport-native-ffi-loopback.sh
 ```
 
 The native C loopback verifies exact-fingerprint and certificate-profile trust,
-pre-session data with media/input blocked, explicit same-connection promotion,
-a 192-KiB key frame and metadata, raw Opus, Wacom-like input, and reliable data
+active endpoint registration, large key frames and metadata, raw Opus,
+Wacom-like input, and reliable data
 in both directions through real encrypted KyProto endpoints. The retired
 two-connection transport and its historical probes are no longer build inputs.
 

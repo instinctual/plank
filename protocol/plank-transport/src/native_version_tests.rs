@@ -64,8 +64,8 @@ fn peer_client(alpn: &[u8]) -> quinn::Endpoint {
 #[ignore = "run through scripts/test/run-plank-transport-native-loopback.sh"]
 async fn incompatible_peers_fail_tls_before_setup_or_media() {
     crate::init_crypto_once();
-    // Both native entry points: pre-session setup and direct media sessions.
-    for setup in [false, true] {
+    // Reject mismatches before any endpoint registration or launch request.
+    {
         for incompatible in [b"kymux".as_slice(), b"plank-native/3".as_slice()] {
             let peer = peer_server(incompatible).await;
             let address = peer.local_addr().unwrap();
@@ -77,11 +77,7 @@ async fn incompatible_peers_fail_tls_before_setup_or_media() {
                 );
             };
             let connect = async {
-                let result = if setup {
-                    connect_setup_client(address, "localhost", "version-test", options())
-                        .await
-                        .map(|_| ())
-                } else {
+                let result = {
                     connect_client(address, "localhost", None, "version-test", options())
                         .await
                         .map(|_| ())
@@ -119,11 +115,7 @@ async fn incompatible_peers_fail_tls_before_setup_or_media() {
             .unwrap();
             let client = peer_client(incompatible);
             let serve = async {
-                let result = if setup {
-                    accept_setup_server(&server, "version-test", options())
-                        .await
-                        .map(|_| ())
-                } else {
+                let result = {
                     accept_server(&server, "version-test", options())
                         .await
                         .map(|_| ())

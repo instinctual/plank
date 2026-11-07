@@ -23,7 +23,6 @@ pub enum EndpointState {
     Idle = 1,
     Starting = 2,
     PeerValidation = 3,
-    SetupReady = 4,
     Ready = 5,
     Stopping = 6,
     Stopped = 7,
@@ -37,7 +36,6 @@ pub(crate) enum EndpointConfig {
         certificate_path: PathBuf,
         private_key_path: PathBuf,
         session_token: String,
-        setup_mode: bool,
         options: RuntimeOptions,
     },
     Client {
@@ -45,7 +43,6 @@ pub(crate) enum EndpointConfig {
         server_name: String,
         certificate_sha256: Option<String>,
         session_token: String,
-        setup_mode: bool,
         options: RuntimeOptions,
     },
 }
@@ -67,7 +64,6 @@ pub struct PlankTransportConfig {
     pub handshake_timeout_ms: u32,
     pub idle_timeout_ms: u32,
     pub keep_alive_interval_ms: u32,
-    pub session_mode: u32,
     pub max_udp_payload_size: u32,
     pub initial_video_bitrate_kbps: u32,
     pub bind_address: *const c_char,
@@ -143,10 +139,6 @@ pub(crate) unsafe fn parse_config(config: *const PlankTransportConfig) -> Result
         initial_video_bitrate_bps: u64::from(config.initial_video_bitrate_kbps)
             .saturating_mul(1_000),
     };
-    if config.session_mode > 1 {
-        bail!("unsupported session_mode {}", config.session_mode);
-    }
-    let setup_mode = config.session_mode == 1;
     if options.keep_alive_interval >= options.idle_timeout {
         bail!("keep_alive_interval_ms must be less than idle_timeout_ms");
     }
@@ -172,7 +164,6 @@ pub(crate) unsafe fn parse_config(config: *const PlankTransportConfig) -> Result
                 certificate_path,
                 private_key_path,
                 session_token,
-                setup_mode,
                 options,
             })
         }
@@ -206,7 +197,6 @@ pub(crate) unsafe fn parse_config(config: *const PlankTransportConfig) -> Result
                 server_name,
                 certificate_sha256,
                 session_token,
-                setup_mode,
                 options,
             })
         }
@@ -229,7 +219,6 @@ mod tests {
             handshake_timeout_ms: 0,
             idle_timeout_ms: 0,
             keep_alive_interval_ms: 0,
-            session_mode: 0,
             max_udp_payload_size: 0,
             initial_video_bitrate_kbps: 0,
             bind_address: ptr::null(),
@@ -244,10 +233,9 @@ mod tests {
 
     #[test]
     fn public_header_abi_values_are_stable() {
-        assert_eq!(plank_transport_abi_version(), 13);
+        assert_eq!(plank_transport_abi_version(), 14);
         assert_eq!(EndpointState::Idle as u32, 1);
         assert_eq!(EndpointState::PeerValidation as u32, 3);
-        assert_eq!(EndpointState::SetupReady as u32, 4);
         assert_eq!(EndpointState::Failed as u32, 8);
         assert_eq!(PLANK_TRANSPORT_DROPPED, 2);
         assert_eq!(PLANK_TRANSPORT_ERROR_BUFFER_TOO_SMALL, -5);

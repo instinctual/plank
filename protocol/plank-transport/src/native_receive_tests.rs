@@ -137,7 +137,7 @@ const PAYLOAD_SIZE: usize = 4096;
 const SENTINEL: u32 = 0xfeed;
 
 fn endpoint(lane: Lane) -> PlankTransportNativeEndpoint {
-    let shared = Arc::new(NativeShared::new(false, false, 150_000_000));
+    let shared = Arc::new(NativeShared::new(false, 150_000_000));
     shared.set_state(EndpointState::Ready);
     // No worker/network is started: use the real synchronous C receive entry
     // points with queues filled by the production video/audio producer helpers.
@@ -147,7 +147,7 @@ fn endpoint(lane: Lane) -> PlankTransportNativeEndpoint {
             server_name: "localhost".into(),
             certificate_sha256: None,
             session_token: "test-only".into(),
-            setup_mode: false,
+
             options: super::super::RuntimeOptions {
                 handshake_timeout: Duration::from_secs(5),
                 idle_timeout: Duration::from_secs(5),

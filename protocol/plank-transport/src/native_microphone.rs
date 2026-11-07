@@ -37,7 +37,7 @@ impl Microphone {
     }
 
     // Camera allocation follows microphone allocation, not microphone ready.
-    // A missing microphone consumer cannot indefinitely block camera setup.
+    // A missing microphone consumer cannot indefinitely block camera profile_validation.
     pub(super) async fn wait_for_allocation(&self) -> Result<()> {
         tokio::time::timeout(Duration::from_secs(3), async {
             loop {
@@ -75,7 +75,10 @@ impl Microphone {
             || state.generation == 0
             || packet.generation != state.generation
             || (packet.capture_time_ns != 0) != state.timed
-            || (state.timed && state.last_capture.is_some_and(|last| packet.capture_time_ns <= last))
+            || (state.timed
+                && state
+                    .last_capture
+                    .is_some_and(|last| packet.capture_time_ns <= last))
             || state
                 .last_sample
                 .is_some_and(|last| packet.sample_time <= last)
@@ -130,15 +133,15 @@ async fn source(shared: &NativeShared, connection: &kyproto::Connection) -> Resu
         }))
         .await?;
     protocol
-        .send(AVPacket::Media(MediaPacket {
-            header: MediaPacketHeader {
+        .send(AVPacket::Media(MediaPacket::new(
+            MediaPacketHeader {
                 is_config: true,
                 is_key: true,
                 pts: 0,
                 size: 0,
             },
-            payload: Bytes::new(),
-        }))
+            Bytes::new(),
+        )))
         .await?;
     shared.microphone.state.lock().unwrap().status = 2;
     loop {
@@ -149,15 +152,15 @@ async fn source(shared: &NativeShared, connection: &kyproto::Connection) -> Resu
             anyhow::ensure!(pts < (1u64 << 61), "invalid microphone timestamp");
             let payload = packet.encode()?;
             protocol
-                .send(AVPacket::Media(MediaPacket {
-                    header: MediaPacketHeader {
+                .send(AVPacket::Media(MediaPacket::new(
+                    MediaPacketHeader {
                         is_config: false,
                         is_key: false,
                         pts,
                         size: payload.len() as u32,
                     },
                     payload,
-                }))
+                )))
                 .await?;
         } else {
             notified.await;
@@ -183,11 +186,15 @@ async fn sink(shared: &NativeShared, connection: &kyproto::Connection) -> Result
             AVPacket::Media(packet) if !packet.header.is_config => {
                 anyhow::ensure!(format_valid, "missing microphone codec");
                 let decoded = Packet::decode(packet.payload)?;
-                anyhow::ensure!(packet.header.pts == decoded.sample_time / 48,
-                    "inconsistent microphone media timestamp");
+                anyhow::ensure!(
+                    packet.header.pts == decoded.sample_time / 48,
+                    "inconsistent microphone media timestamp"
+                );
                 let packet = decoded;
-                anyhow::ensure!((packet.capture_time_ns != 0) == shared.microphone.state.lock().unwrap().timed,
-                    "unnegotiated microphone envelope");
+                anyhow::ensure!(
+                    (packet.capture_time_ns != 0) == shared.microphone.state.lock().unwrap().timed,
+                    "unnegotiated microphone envelope"
+                );
                 // In-flight pre-mute packets are expected, not a session error.
                 shared.microphone.push(packet, RECEIVE_PACKETS);
             }
@@ -239,21 +246,21 @@ pub unsafe extern "C" fn plank_transport_native_microphone_enable(
 /// Same endpoint lifetime and authenticated negotiation requirements as enable.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn plank_transport_native_microphone_enable_version(
-    endpoint: *mut PlankTransportNativeEndpoint, version: u32,
+    endpoint: *mut PlankTransportNativeEndpoint,
+    version: u32,
 ) -> i32 {
     catch_result(|| {
         let Some(endpoint) = (unsafe { endpoint.as_ref() }) else {
             return PLANK_TRANSPORT_ERROR_INVALID_ARGUMENT;
         };
-        if !matches!(version, 2 | 3) { return PLANK_TRANSPORT_ERROR_INVALID_ARGUMENT; }
+        if !matches!(version, 2 | 3) {
+            return PLANK_TRANSPORT_ERROR_INVALID_ARGUMENT;
+        }
         let _allocation = endpoint.shared.reverse_allocation.lock().unwrap();
         if endpoint.shared.camera.negotiated() {
             return PLANK_TRANSPORT_ERROR_INVALID_STATE;
         }
-        if !matches!(
-            endpoint.shared.state(),
-            EndpointState::SetupReady | EndpointState::Ready
-        ) {
+        if !matches!(endpoint.shared.state(), EndpointState::Ready) {
             return PLANK_TRANSPORT_ERROR_INVALID_STATE;
         }
         let mut state = endpoint.shared.microphone.state.lock().unwrap();
@@ -317,15 +324,28 @@ pub unsafe extern "C" fn plank_transport_native_microphone_send(
     data: *const u8,
     length: usize,
 ) -> i32 {
-    unsafe { plank_transport_native_microphone_send_timed(endpoint, generation, sample_time, 0, data, length) }
+    unsafe {
+        plank_transport_native_microphone_send_timed(
+            endpoint,
+            generation,
+            sample_time,
+            0,
+            data,
+            length,
+        )
+    }
 }
 
 /// # Safety
 /// Same input bounds and endpoint lifetime as send. Nonzero capture time requires schema3.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn plank_transport_native_microphone_send_timed(
-    endpoint: *mut PlankTransportNativeEndpoint, generation: u64, sample_time: u64,
-    capture_time_ns: u64, data: *const u8, length: usize,
+    endpoint: *mut PlankTransportNativeEndpoint,
+    generation: u64,
+    sample_time: u64,
+    capture_time_ns: u64,
+    data: *const u8,
+    length: usize,
 ) -> i32 {
     catch_result(|| {
         let Some(endpoint) = (unsafe { endpoint.as_ref() }) else {
@@ -362,16 +382,30 @@ pub unsafe extern "C" fn plank_transport_native_microphone_receive(
     capacity: usize,
     length: *mut usize,
 ) -> i32 {
-    unsafe { plank_transport_native_microphone_receive_timed(endpoint, generation, sample_time,
-        ptr::null_mut(), data, capacity, length) }
+    unsafe {
+        plank_transport_native_microphone_receive_timed(
+            endpoint,
+            generation,
+            sample_time,
+            ptr::null_mut(),
+            data,
+            capacity,
+            length,
+        )
+    }
 }
 
 /// # Safety
 /// Output storage must be writable. capture_time_ns may be null only on schema2.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn plank_transport_native_microphone_receive_timed(
-    endpoint: *mut PlankTransportNativeEndpoint, generation: *mut u64, sample_time: *mut u64,
-    capture_time_ns: *mut u64, data: *mut u8, capacity: usize, length: *mut usize,
+    endpoint: *mut PlankTransportNativeEndpoint,
+    generation: *mut u64,
+    sample_time: *mut u64,
+    capture_time_ns: *mut u64,
+    data: *mut u8,
+    capacity: usize,
+    length: *mut usize,
 ) -> i32 {
     catch_result(|| {
         let Some(endpoint) = (unsafe { endpoint.as_ref() }) else {
@@ -384,7 +418,9 @@ pub unsafe extern "C" fn plank_transport_native_microphone_receive_timed(
             return PLANK_TRANSPORT_ERROR_INVALID_ARGUMENT;
         }
         let mut state = endpoint.shared.microphone.state.lock().unwrap();
-        if state.timed && capture_time_ns.is_null() { return PLANK_TRANSPORT_ERROR_INVALID_ARGUMENT; }
+        if state.timed && capture_time_ns.is_null() {
+            return PLANK_TRANSPORT_ERROR_INVALID_ARGUMENT;
+        }
         while state
             .packets
             .front()
@@ -406,7 +442,9 @@ pub unsafe extern "C" fn plank_transport_native_microphone_receive_timed(
         unsafe {
             *generation = packet.generation;
             *sample_time = packet.sample_time;
-            if !capture_time_ns.is_null() { *capture_time_ns = packet.capture_time_ns; }
+            if !capture_time_ns.is_null() {
+                *capture_time_ns = packet.capture_time_ns;
+            }
             ptr::copy_nonoverlapping(packet.opus.as_ptr(), data, packet.opus.len());
         }
         PLANK_TRANSPORT_OK
@@ -435,7 +473,10 @@ mod tests {
         assert!(microphone.activate(1));
         // Match one maximum Client capture drain, with no sender scheduled yet.
         for index in 0..6 {
-            assert_eq!(microphone.push(packet(1, index), SEND_PACKETS), PLANK_TRANSPORT_OK);
+            assert_eq!(
+                microphone.push(packet(1, index), SEND_PACKETS),
+                PLANK_TRANSPORT_OK
+            );
         }
         for index in 0..6 {
             assert_eq!(microphone.pop().unwrap().sample_time, index * 480);
@@ -443,9 +484,15 @@ mod tests {
         assert!(microphone.pop().is_none());
         // A genuine stall still bounds memory and discards the oldest audio.
         for index in 6..12 {
-            assert_eq!(microphone.push(packet(1, index), SEND_PACKETS), PLANK_TRANSPORT_OK);
+            assert_eq!(
+                microphone.push(packet(1, index), SEND_PACKETS),
+                PLANK_TRANSPORT_OK
+            );
         }
-        assert_eq!(microphone.push(packet(1, 12), SEND_PACKETS), PLANK_TRANSPORT_DROPPED);
+        assert_eq!(
+            microphone.push(packet(1, 12), SEND_PACKETS),
+            PLANK_TRANSPORT_DROPPED
+        );
         assert_eq!(microphone.pop().unwrap().sample_time, 7 * 480);
         assert!(microphone.activate(0));
         assert!(microphone.pop().is_none());
@@ -491,17 +538,32 @@ mod tests {
     #[test]
     fn negotiated_timestamps_reject_mismatch_and_regression() {
         let microphone = Microphone::default();
-        { let mut state = microphone.state.lock().unwrap(); state.enabled = true; state.status = 2; state.timed = true; }
+        {
+            let mut state = microphone.state.lock().unwrap();
+            state.enabled = true;
+            state.status = 2;
+            state.timed = true;
+        }
         assert!(microphone.activate(1));
-        assert_eq!(microphone.push(packet(1,0), 6), PLANK_TRANSPORT_ERROR_INVALID_STATE);
-        let mut first = packet(1,0); first.capture_time_ns = 1_000_000_000;
+        assert_eq!(
+            microphone.push(packet(1, 0), 6),
+            PLANK_TRANSPORT_ERROR_INVALID_STATE
+        );
+        let mut first = packet(1, 0);
+        first.capture_time_ns = 1_000_000_000;
         assert_eq!(microphone.push(first, 6), PLANK_TRANSPORT_OK);
-        let mut next = packet(1,1); next.capture_time_ns = 999_999_999;
-        assert_eq!(microphone.push(next.clone(), 6), PLANK_TRANSPORT_ERROR_INVALID_STATE);
+        let mut next = packet(1, 1);
+        next.capture_time_ns = 999_999_999;
+        assert_eq!(
+            microphone.push(next.clone(), 6),
+            PLANK_TRANSPORT_ERROR_INVALID_STATE
+        );
         next.capture_time_ns = 1_010_000_000;
         assert_eq!(microphone.push(next, 6), PLANK_TRANSPORT_OK);
-        assert!(microphone.activate(0)); assert!(microphone.activate(2));
-        let mut reopened = packet(2,0); reopened.capture_time_ns = 1_020_000_000;
+        assert!(microphone.activate(0));
+        assert!(microphone.activate(2));
+        let mut reopened = packet(2, 0);
+        reopened.capture_time_ns = 1_020_000_000;
         assert_eq!(microphone.push(reopened, 6), PLANK_TRANSPORT_OK);
     }
 
@@ -510,13 +572,13 @@ mod tests {
     async fn encrypted_ffi_microphone_mute_reopen_and_bounds() {
         use super::super::cancellation_tests::{endpoint, wait_bound, wait_state};
         use std::net::UdpSocket;
-        for (setup, version) in [(false, 2), (true, 2), (false, 3), (true, 3)] {
+        for (profile_validation, version) in [(false, 2), (true, 2), (false, 3), (true, 3)] {
             let address = UdpSocket::bind("127.0.0.1:0")
                 .unwrap()
                 .local_addr()
                 .unwrap();
-            let mut host = endpoint(address, true, setup);
-            let mut client = endpoint(address, false, setup);
+            let mut host = endpoint(address, true, profile_validation);
+            let mut client = endpoint(address, false, profile_validation);
             unsafe {
                 assert_eq!(
                     plank_transport_native_microphone_enable(&mut *client),
@@ -531,20 +593,10 @@ mod tests {
                     plank_transport_native_endpoint_start(&mut *client),
                     PLANK_TRANSPORT_OK
                 );
-                if setup {
+                if profile_validation {
                     wait_state(&client, EndpointState::PeerValidation).await;
                     assert_eq!(
                         plank_transport_native_endpoint_approve_peer_certificate(&mut *client),
-                        PLANK_TRANSPORT_OK
-                    );
-                    wait_state(&host, EndpointState::SetupReady).await;
-                    wait_state(&client, EndpointState::SetupReady).await;
-                    assert_eq!(
-                        plank_transport_native_endpoint_authorize_session(&mut *host),
-                        PLANK_TRANSPORT_OK
-                    );
-                    assert_eq!(
-                        plank_transport_native_endpoint_authorize_session(&mut *client),
                         PLANK_TRANSPORT_OK
                     );
                 }
@@ -579,7 +631,11 @@ mod tests {
                         PLANK_TRANSPORT_OK
                     );
                     let input = [0xf4, 0xff, 0xfe];
-                    let capture = if version == 3 { generation * 1_000_000_000 } else { 0 };
+                    let capture = if version == 3 {
+                        generation * 1_000_000_000
+                    } else {
+                        0
+                    };
                     assert_eq!(
                         plank_transport_native_microphone_send_timed(
                             &mut *client,
@@ -625,7 +681,7 @@ mod tests {
                                         &mut *host,
                                         &mut received_generation,
                                         &mut timestamp,
-                                &mut capture_time,
+                                        &mut capture_time,
                                         output.as_mut_ptr(),
                                         output.len(),
                                         &mut size

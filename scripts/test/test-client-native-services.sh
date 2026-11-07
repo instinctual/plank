@@ -10,7 +10,7 @@ client_source=$(realpath "$2")
 common_source=$(realpath "$3")
 output=$(realpath -m "$4")
 mkdir "$output"
-cc -std=gnu11 -Wall -Wextra -Werror -Wno-unused-parameter -DNDEBUG \
+cc -pthread -std=gnu11 -Wall -Wextra -Werror -Wno-unused-parameter -DNDEBUG \
     -I"$common_source/src" "$root_source/tests/session/native-optional-services.c" \
     -o "$output/native-optional-services"
 "$output/native-optional-services"

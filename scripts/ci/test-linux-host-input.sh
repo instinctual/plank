@@ -1,17 +1,17 @@
 #!/usr/bin/env bash
-# Exercise production input handling with the fake virtual-HID backend.
-# The RPM has already been built with BUILD_TESTS=OFF; it is not repackaged.
+# Exercise production input, audio and crypto before the full media/RPM build.
+# No GPU or installed product is required; use the same pinned build inputs.
 set -euo pipefail
-host_build=${1:?configured Host build directory required}
+host_build=${1:?Host build output directory required}
 root=${PLANK_SOURCE_ROOT:?source worktree required}
 host_source="$root/apps/host/linux"
-ffmpeg_dir=$(sed -n 's/^FFMPEG_PREPARED_BINARIES:[^=]*=//p' "$host_build/CMakeCache.txt")
+ffmpeg_dir=${PLANK_HOST_FFMPEG_ROOT:?qualified prepared FFmpeg required}
 test -f "$ffmpeg_dir/include/libavutil/pixfmt.h"
 test -f "$ffmpeg_dir/lib/libavcodec.a"
 # Both fixtures compile production implementations directly. Avoid rebuilding
 # the entire CUDA/media Host merely to execute input and crypto test filters.
 fixture_build="$host_build/cmake-build-input-lifecycle"
-cxx_compiler=$(sed -n 's/^CMAKE_CXX_COMPILER:[^=]*=//p' "$host_build/CMakeCache.txt")
+cxx_compiler=/opt/rh/gcc-toolset-14/root/usr/bin/g++
 test -x "$cxx_compiler"
 cmake -S "$root/tests/input/linux-recovery" -B "$fixture_build" \
   -DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_COMPILER="$cxx_compiler" \
@@ -27,4 +27,5 @@ fi
   --gtest_repeat=25 --gtest_shuffle --gtest_random_seed=837
 "$fixture_build/host-core-tests" --gtest_color=no \
   --gtest_repeat=25 --gtest_shuffle --gtest_random_seed=837
+timeout 20 "$fixture_build/audio-recovery" --gtest_color=no
 echo 'host_input_lifecycle_gate=pass hardware_acceptance=not-performed'

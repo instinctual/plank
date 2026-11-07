@@ -27,7 +27,7 @@ case $macos_host_min_os in 27.0|26.7) ;; *) exit 2;; esac
 case $product in all|linux-host|linux-client|linux-client-vaapi-probe|macos-host|macos-client|macos-fullscreen-probe|dependency-tests) ;; *) exit 2 ;; esac
 [[ $product != linux-client-vaapi-probe || $clean_bootstrap == false ]] || exit 2
 if [[ $product == linux-client-vaapi-probe ]]; then
-  [[ $diagnostic_ffmpeg_cache =~ ^plank-linux-client-ffmpeg-v2-[0-9a-f]{64}$ ]] || exit 2
+  [[ $diagnostic_ffmpeg_cache =~ ^plank-linux-client-ffmpeg-v3-[0-9a-f]{64}$ ]] || exit 2
 else
   [[ -z $diagnostic_ffmpeg_cache ]] || exit 2
 fi

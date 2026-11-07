@@ -79,7 +79,7 @@ class DependencyCacheTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             root, deps = Path(tmp) / 'source', Path(tmp) / 'deps'
             product = 'macos-host'
-            keys = {c: f'plank-{product}-{c}-v2-' + '1' * 64 for c in cache.COMPONENTS[product]}
+            keys = {c: f'plank-{product}-{c}-v3-' + '1' * 64 for c in cache.COMPONENTS[product]}
             for name in ('cargo/bin/rustup', 'rustup/settings.toml'):
                 path = deps / name
                 path.parent.mkdir(parents=True, exist_ok=True)

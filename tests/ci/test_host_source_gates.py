@@ -28,6 +28,14 @@ class HostSourceGateTests(unittest.TestCase):
         self.assertIn("'/usr/(local/)?include/boost/'", build)
         self.assertIn('"$fixture_build/CMakeFiles/input-recovery.dir"', build)
 
+    def test_host_components_run_before_the_full_package_build(self):
+        build = (ROOT / 'scripts/ci/build.sh').read_text()
+        self.assertLess(build.index('scripts/ci/test-linux-host-input.sh'),
+                        build.index('scripts/package/build-host-rpm.sh'))
+        component = (ROOT / 'scripts/ci/test-linux-host-input.sh').read_text()
+        self.assertNotIn('CMakeCache.txt', component)
+        self.assertIn('PLANK_HOST_FFMPEG_ROOT', component)
+
     def test_macos_microphone_consumers_link_the_signing_requirement(self):
         for name in ('scripts/build/build-macos-host.sh',
                      'scripts/test/build-macos-preview.sh',

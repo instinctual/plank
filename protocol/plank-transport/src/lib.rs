@@ -14,7 +14,7 @@ pub mod native;
 pub mod native_ffi;
 pub mod rate_control;
 
-pub const ABI_VERSION: u32 = 13;
+pub const ABI_VERSION: u32 = 14;
 
 pub const PLANK_TRANSPORT_OK: i32 = 0;
 pub const PLANK_TRANSPORT_TIMEOUT: i32 = 1;

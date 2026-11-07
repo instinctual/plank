@@ -11,7 +11,7 @@ use super::{
 };
 use crate::rate_control::{PlankRateControllerFactory, TransportRatePolicy};
 use anyhow::{Context, Result, anyhow};
-use bytes::{BufMut, Bytes, BytesMut};
+use bytes::Bytes;
 use kymux_types::{
     AVPacket, CodecPacket, CodecPacketHeader, DataPacket, InputPacket, MAX_DATA_PACKET_SIZE,
     MediaPacket, MediaPacketHeader,
@@ -83,16 +83,28 @@ struct NativeVideoSubmission {
     codec: u32,
     flags: u32,
     pts: u64,
-    record: Bytes,
+    record: MediaPacket,
 }
 
-fn video_record(number: u64, latency: u16, payload: &[u8]) -> Bytes {
-    let mut record = BytesMut::with_capacity(VIDEO_METADATA_SIZE + payload.len());
-    record.put_u64(number);
-    record.put_u16(latency);
-    record.extend_from_slice(&[0; VIDEO_METADATA_SIZE - 10]);
-    record.extend_from_slice(payload);
-    record.freeze()
+fn video_record(
+    number: u64,
+    latency: u16,
+    pts: u64,
+    key: bool,
+    payload: &[u8],
+) -> std::io::Result<MediaPacket> {
+    let mut metadata = [0u8; VIDEO_METADATA_SIZE];
+    metadata[..8].copy_from_slice(&number.to_be_bytes());
+    metadata[8..10].copy_from_slice(&latency.to_be_bytes());
+    MediaPacket::from_slices(
+        MediaPacketHeader {
+            is_config: false,
+            is_key: key,
+            pts,
+            size: 0,
+        },
+        &[&metadata, payload],
+    )
 }
 
 // Charges are retired only when the same item is removed under the queue lock.
@@ -241,9 +253,6 @@ struct NativeShared {
     peer_certificate_approval_required: bool,
     peer_certificate_approved: AtomicBool,
     peer_certificate_approved_notify: tokio::sync::Notify,
-    setup_mode: bool,
-    session_authorized: AtomicBool,
-    session_authorized_notify: tokio::sync::Notify,
     queues: Mutex<NativeQueues>,
     video_send_notify: tokio::sync::Notify,
     audio_send_notify: tokio::sync::Notify,
@@ -263,11 +272,7 @@ struct NativeShared {
 }
 
 impl NativeShared {
-    fn new(
-        peer_certificate_approval_required: bool,
-        setup_mode: bool,
-        initial_video_bitrate_bps: u64,
-    ) -> Self {
+    fn new(peer_certificate_approval_required: bool, initial_video_bitrate_bps: u64) -> Self {
         Self {
             #[cfg(feature = "sender-timing")]
             sender_trace: sender_trace::Trace::default(),
@@ -282,9 +287,6 @@ impl NativeShared {
             peer_certificate_approval_required,
             peer_certificate_approved: AtomicBool::new(false),
             peer_certificate_approved_notify: tokio::sync::Notify::new(),
-            setup_mode,
-            session_authorized: AtomicBool::new(false),
-            session_authorized_notify: tokio::sync::Notify::new(),
             queues: Mutex::new(NativeQueues::default()),
             video_send_notify: tokio::sync::Notify::new(),
             audio_send_notify: tokio::sync::Notify::new(),
@@ -364,7 +366,6 @@ impl NativeShared {
         self.data_receive_changed.notify_all();
         self.stop_notify.notify_waiters();
         self.peer_certificate_approved_notify.notify_waiters();
-        self.session_authorized_notify.notify_waiters();
         self.video_send_notify.notify_waiters();
         self.audio_send_notify.notify_waiters();
         self.input_send_notify.notify_waiters();
@@ -460,12 +461,12 @@ async fn send_video(
             let trace_frame = sender_trace::Frame {
                 number: frame.frame_number,
                 key: frame.flags & VIDEO_FLAG_KEY != 0,
-                bytes: frame.record.len() - VIDEO_METADATA_SIZE,
+                bytes: frame.record.payload.len() - VIDEO_METADATA_SIZE,
                 depth: _queue_depth,
                 wire_bps: shared.rate_policy.active_wire_bps(),
                 drops: shared.stats.video_send_drops.load(Ordering::Relaxed),
             };
-            let payload_size = (frame.record.len() - VIDEO_METADATA_SIZE) as u64;
+            let payload_size = (frame.record.payload.len() - VIDEO_METADATA_SIZE) as u64;
             let submission = async {
                 if active_codec != Some(frame.codec) {
                     protocol
@@ -482,28 +483,18 @@ async fn send_video(
                 let key = frame.flags & VIDEO_FLAG_KEY != 0;
                 if key {
                     protocol
-                        .send(AVPacket::Media(MediaPacket {
-                            header: MediaPacketHeader {
+                        .send(AVPacket::Media(MediaPacket::new(
+                            MediaPacketHeader {
                                 is_config: true,
                                 is_key: true,
                                 pts: frame.pts,
                                 size: 0,
                             },
-                            payload: Bytes::new(),
-                        }))
+                            Bytes::new(),
+                        )))
                         .await?;
                 }
-                protocol
-                    .send(AVPacket::Media(MediaPacket {
-                        header: MediaPacketHeader {
-                            is_config: false,
-                            is_key: key,
-                            pts: frame.pts,
-                            size: frame.record.len() as u32,
-                        },
-                        payload: frame.record,
-                    }))
-                    .await?;
+                protocol.send(AVPacket::Media(frame.record)).await?;
                 Ok::<(), anyhow::Error>(())
             };
             #[cfg(feature = "sender-timing")]
@@ -556,29 +547,29 @@ async fn send_audio(
                     }))
                     .await?;
                 protocol
-                    .send(AVPacket::Media(MediaPacket {
-                        header: MediaPacketHeader {
+                    .send(AVPacket::Media(MediaPacket::new(
+                        MediaPacketHeader {
                             is_config: true,
                             is_key: true,
                             pts: packet.pts,
                             size: 0,
                         },
-                        payload: Bytes::new(),
-                    }))
+                        Bytes::new(),
+                    )))
                     .await?;
                 active_frame_samples = Some(packet.frame_samples);
             }
             let payload_size = packet.payload.len() as u64;
             protocol
-                .send(AVPacket::Media(MediaPacket {
-                    header: MediaPacketHeader {
+                .send(AVPacket::Media(MediaPacket::new(
+                    MediaPacketHeader {
                         is_config: false,
                         is_key: false,
                         pts: packet.pts,
                         size: packet.payload.len() as u32,
                     },
-                    payload: packet.payload,
-                }))
+                    packet.payload,
+                )))
                 .await?;
             shared
                 .stats
@@ -987,115 +978,6 @@ async fn hold_client(shared: Arc<NativeShared>, protocols: NativeClientProtocols
     }
 }
 
-async fn hold_setup_server(
-    shared: Arc<NativeShared>,
-    setup: native::NativeSetupServerProtocols,
-    options: super::RuntimeOptions,
-) -> Result<()> {
-    let stats_provider = setup.connection().stats_provider();
-    let (connection, data) = setup.into_parts();
-    let mut data_send = Box::pin(send_data(shared.clone(), data.0));
-    let mut data_receive = Box::pin(receive_data(shared.clone(), data.1));
-    let mut stats = Box::pin(sample_stats(shared.clone(), stats_provider));
-    shared.set_state(EndpointState::SetupReady);
-
-    loop {
-        if shared.session_authorized.load(Ordering::Acquire) {
-            break;
-        }
-        tokio::select! {
-            _ = shared.session_authorized_notify.notified() => {},
-            result = &mut data_send => return result.context("setup data sender failed"),
-            result = &mut data_receive => return result.context("setup data receiver failed"),
-            result = &mut stats => return result.context("setup stats sampler failed"),
-            result = connection.closed() => {
-                return result.context("setup KyProto connection closed");
-            }
-        }
-    }
-
-    let (video, audio, input) =
-        native::promote_setup_server(&connection, native_options(options)).await?;
-    let mut video = Box::pin(send_video(shared.clone(), video));
-    let mut audio = Box::pin(send_audio(shared.clone(), audio));
-    let mut input = Box::pin(receive_input(shared.clone(), input.1));
-    let mut microphone = Box::pin(microphone_lane::run(shared.clone(), &connection, false));
-    let mut camera = Box::pin(camera_lane::run(shared.clone(), &connection, false));
-    shared.set_state(EndpointState::Ready);
-    tokio::select! {
-        _ = &mut microphone => unreachable!("microphone lane remains isolated"),
-        _ = &mut camera => unreachable!("camera lane remains isolated"),
-        result = &mut video => result.context("native video sender failed"),
-        result = &mut audio => result.context("native audio sender failed"),
-        result = &mut input => result.context("native input receiver failed"),
-        result = &mut data_send => result.context("native data sender failed"),
-        result = &mut data_receive => result.context("native data receiver failed"),
-        result = &mut stats => result.context("native stats sampler failed"),
-        result = connection.closed() => result.context("native KyProto connection closed"),
-    }
-}
-
-async fn hold_setup_client(
-    shared: Arc<NativeShared>,
-    setup: native::NativeSetupClientProtocols,
-    options: super::RuntimeOptions,
-) -> Result<()> {
-    let stats_provider = setup.connection().stats_provider();
-    let (connection, data, peer_certificate_der) = setup.into_parts();
-    *shared.peer_certificate.lock().unwrap() = peer_certificate_der;
-    shared.set_state(EndpointState::PeerValidation);
-    loop {
-        if shared.peer_certificate_approved.load(Ordering::Acquire) {
-            break;
-        }
-        tokio::select! {
-            _ = shared.peer_certificate_approved_notify.notified() => {},
-            result = connection.closed() => {
-                return result.context("setup KyProto connection closed during certificate validation");
-            }
-        }
-    }
-
-    let mut data_send = Box::pin(send_data(shared.clone(), data.0));
-    let mut data_receive = Box::pin(receive_data(shared.clone(), data.1));
-    let mut stats = Box::pin(sample_stats(shared.clone(), stats_provider));
-    shared.set_state(EndpointState::SetupReady);
-    loop {
-        if shared.session_authorized.load(Ordering::Acquire) {
-            break;
-        }
-        tokio::select! {
-            _ = shared.session_authorized_notify.notified() => {},
-            result = &mut data_send => return result.context("setup data sender failed"),
-            result = &mut data_receive => return result.context("setup data receiver failed"),
-            result = &mut stats => return result.context("setup stats sampler failed"),
-            result = connection.closed() => {
-                return result.context("setup KyProto connection closed");
-            }
-        }
-    }
-
-    let (video, audio, input) =
-        native::promote_setup_client(&connection, native_options(options)).await?;
-    let mut video = Box::pin(receive_video(shared.clone(), video));
-    let mut audio = Box::pin(receive_audio(shared.clone(), audio));
-    let mut input = Box::pin(send_input(shared.clone(), input.0));
-    let mut microphone = Box::pin(microphone_lane::run(shared.clone(), &connection, true));
-    let mut camera = Box::pin(camera_lane::run(shared.clone(), &connection, true));
-    shared.set_state(EndpointState::Ready);
-    tokio::select! {
-        _ = &mut microphone => unreachable!("microphone lane remains isolated"),
-        _ = &mut camera => unreachable!("camera lane remains isolated"),
-        result = &mut video => result.context("native video receiver failed"),
-        result = &mut audio => result.context("native audio receiver failed"),
-        result = &mut input => result.context("native input sender failed"),
-        result = &mut data_send => result.context("native data sender failed"),
-        result = &mut data_receive => result.context("native data receiver failed"),
-        result = &mut stats => result.context("native stats sampler failed"),
-        result = connection.closed() => result.context("native KyProto connection closed"),
-    }
-}
-
 async fn run_server(
     shared: Arc<NativeShared>,
     bind_address: std::net::SocketAddr,
@@ -1175,73 +1057,6 @@ async fn run_client(
         .map(|_| ())
 }
 
-async fn run_setup_server(
-    shared: Arc<NativeShared>,
-    bind_address: std::net::SocketAddr,
-    certificate_path: &Path,
-    private_key_path: &Path,
-    setup_marker: &str,
-    options: super::RuntimeOptions,
-) -> Result<()> {
-    let Some((certificate, private_key)) = shared
-        .until_shutdown(async {
-            Ok((
-                kynet::cert::load_cert_from_pem_file(certificate_path).await?,
-                kynet::cert::load_private_key_from_pem_file(private_key_path).await?,
-            ))
-        })
-        .await?
-    else {
-        return Ok(());
-    };
-    let server_options = kynet::common::CommonServerOptions {
-        max_idle_timeout: Some(options.idle_timeout),
-        keep_alive_interval: Some(options.keep_alive_interval),
-        max_udp_payload_size: options.max_udp_payload_size,
-        congestion_controller_factory: Some(PlankRateControllerFactory::new(
-            shared.rate_policy.clone(),
-        )),
-    };
-    let server = kynet::Connection::start_server_on_addr(
-        bind_address,
-        vec![certificate],
-        private_key,
-        &server_options,
-    )?;
-    let result = shared
-        .until_shutdown(async {
-            let setup =
-                native::accept_setup_server(&server, setup_marker, native_options(options)).await?;
-            hold_setup_server(shared.clone(), setup, options).await
-        })
-        .await;
-    server.close(0, "PLANK setup endpoint stopping");
-    drain_server(&server).await;
-    result.map(|_| ())
-}
-
-async fn run_setup_client(
-    shared: Arc<NativeShared>,
-    remote_address: std::net::SocketAddr,
-    server_name: &str,
-    setup_marker: &str,
-    options: super::RuntimeOptions,
-) -> Result<()> {
-    shared
-        .until_shutdown(async {
-            let setup = native::connect_setup_client(
-                remote_address,
-                server_name,
-                setup_marker,
-                native_options(options),
-            )
-            .await?;
-            hold_setup_client(shared.clone(), setup, options).await
-        })
-        .await
-        .map(|_| ())
-}
-
 fn worker(config: EndpointConfig, shared: Arc<NativeShared>) {
     init_crypto_once();
     let runtime = match tokio::runtime::Builder::new_multi_thread()
@@ -1263,59 +1078,36 @@ fn worker(config: EndpointConfig, shared: Arc<NativeShared>) {
                 certificate_path,
                 private_key_path,
                 session_token,
-                setup_mode,
+
                 options,
             } => {
-                if setup_mode {
-                    run_setup_server(
-                        shared.clone(),
-                        bind_address,
-                        &certificate_path,
-                        &private_key_path,
-                        &session_token,
-                        options,
-                    )
-                    .await
-                } else {
-                    run_server(
-                        shared.clone(),
-                        bind_address,
-                        &certificate_path,
-                        &private_key_path,
-                        &session_token,
-                        options,
-                    )
-                    .await
-                }
+                run_server(
+                    shared.clone(),
+                    bind_address,
+                    &certificate_path,
+                    &private_key_path,
+                    &session_token,
+                    options,
+                )
+                .await
             }
             EndpointConfig::Client {
                 remote_address,
                 server_name,
                 certificate_sha256,
                 session_token,
-                setup_mode,
+
                 options,
             } => {
-                if setup_mode {
-                    run_setup_client(
-                        shared.clone(),
-                        remote_address,
-                        &server_name,
-                        &session_token,
-                        options,
-                    )
-                    .await
-                } else {
-                    run_client(
-                        shared.clone(),
-                        remote_address,
-                        &server_name,
-                        certificate_sha256.as_deref(),
-                        &session_token,
-                        options,
-                    )
-                    .await
-                }
+                run_client(
+                    shared.clone(),
+                    remote_address,
+                    &server_name,
+                    certificate_sha256.as_deref(),
+                    &session_token,
+                    options,
+                )
+                .await
             }
         }
     });
@@ -1362,10 +1154,7 @@ fn wait_for_state(shared: &NativeShared, timeout: Duration) -> EndpointState {
     let mut status = shared.status.lock().unwrap();
     while matches!(
         status.state,
-        EndpointState::Idle
-            | EndpointState::Starting
-            | EndpointState::PeerValidation
-            | EndpointState::SetupReady
+        EndpointState::Idle | EndpointState::Starting | EndpointState::PeerValidation
     ) {
         let remaining = deadline.saturating_duration_since(Instant::now());
         if remaining.is_zero() {
@@ -1489,13 +1278,11 @@ pub unsafe extern "C" fn plank_transport_native_endpoint_create(
             Ok(config) => config,
             Err(_) => return PLANK_TRANSPORT_ERROR_INVALID_ARGUMENT,
         };
-        let (mode, peer_certificate_approval_required, setup_mode) = match &config {
-            EndpointConfig::Server { setup_mode, .. } => (1, false, *setup_mode),
+        let (mode, peer_certificate_approval_required) = match &config {
+            EndpointConfig::Server { .. } => (1, false),
             EndpointConfig::Client {
-                certificate_sha256,
-                setup_mode,
-                ..
-            } => (2, certificate_sha256.is_none(), *setup_mode),
+                certificate_sha256, ..
+            } => (2, certificate_sha256.is_none()),
         };
         let initial_video_bitrate_bps = match &config {
             EndpointConfig::Server { options, .. } | EndpointConfig::Client { options, .. } => {
@@ -1507,7 +1294,6 @@ pub unsafe extern "C" fn plank_transport_native_endpoint_create(
             mode,
             shared: Arc::new(NativeShared::new(
                 peer_certificate_approval_required,
-                setup_mode,
                 initial_video_bitrate_bps,
             )),
             worker: Mutex::new(None),
@@ -1602,7 +1388,7 @@ pub unsafe extern "C" fn plank_transport_native_endpoint_peer_certificate(
         }
         if !matches!(
             endpoint.shared.state(),
-            EndpointState::PeerValidation | EndpointState::SetupReady | EndpointState::Ready
+            EndpointState::PeerValidation | EndpointState::Ready
         ) {
             return PLANK_TRANSPORT_ERROR_INVALID_STATE;
         }
@@ -1661,30 +1447,6 @@ pub unsafe extern "C" fn plank_transport_native_endpoint_approve_peer_certificat
 }
 
 /// # Safety
-/// `endpoint` must be a live setup endpoint returned by the create function.
-#[unsafe(no_mangle)]
-pub unsafe extern "C" fn plank_transport_native_endpoint_authorize_session(
-    endpoint: *mut PlankTransportNativeEndpoint,
-) -> i32 {
-    catch_result(|| {
-        let Some(endpoint) = (unsafe { endpoint.as_ref() }) else {
-            return PLANK_TRANSPORT_ERROR_INVALID_ARGUMENT;
-        };
-        if !endpoint.shared.setup_mode
-            || endpoint.shared.state() != EndpointState::SetupReady
-            || endpoint
-                .shared
-                .session_authorized
-                .swap(true, Ordering::AcqRel)
-        {
-            return PLANK_TRANSPORT_ERROR_INVALID_STATE;
-        }
-        endpoint.shared.session_authorized_notify.notify_one();
-        PLANK_TRANSPORT_OK
-    })
-}
-
-/// # Safety
 /// All non-null pointers must remain valid for the duration of this call.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn plank_transport_native_video_send(
@@ -1713,10 +1475,17 @@ pub unsafe extern "C" fn plank_transport_native_video_send(
         if endpoint.shared.state() != EndpointState::Ready {
             return PLANK_TRANSPORT_ERROR_INVALID_STATE;
         }
-        let record = video_record(info.frame_number, info.host_processing_latency, unsafe {
-            std::slice::from_raw_parts(payload, payload_size)
-        });
-        let size = record.len();
+        let record = match video_record(
+            info.frame_number,
+            info.host_processing_latency,
+            info.pts,
+            info.flags & VIDEO_FLAG_KEY != 0,
+            unsafe { std::slice::from_raw_parts(payload, payload_size) },
+        ) {
+            Ok(record) => record,
+            Err(_) => return PLANK_TRANSPORT_ERROR_INVALID_ARGUMENT,
+        };
+        let size = record.payload.len() + kymux_types::av::AVPacketHeader::SERIALIZED_SIZE;
         let dropped = endpoint.shared.queues.lock().unwrap().video_send.push_back(
             NativeVideoSubmission {
                 #[cfg(feature = "sender-timing")]
@@ -2055,10 +1824,7 @@ pub unsafe extern "C" fn plank_transport_native_data_send(
         if payload.is_null() || !(1..=MAX_DATA_PACKET_SIZE).contains(&payload_size) {
             return PLANK_TRANSPORT_ERROR_INVALID_ARGUMENT;
         }
-        if !matches!(
-            endpoint.shared.state(),
-            EndpointState::SetupReady | EndpointState::Ready
-        ) {
+        if !matches!(endpoint.shared.state(), EndpointState::Ready) {
             return PLANK_TRANSPORT_ERROR_INVALID_STATE;
         }
         let mut queues = endpoint.shared.queues.lock().unwrap();
