@@ -4,9 +4,16 @@ Read `AGENTS.md` and the relevant build runbook first. Machine inventory,
 credentials and private captures stay outside Git. This file records current
 state; older detailed results remain in Git history and the artifact catalog.
 
-## Metrics / Telegraf — Linux deployment and dedicated bucket verified
+## Metrics / Telegraf — merged into main; Linux collection verified
 
-Current branch: **`metrics-telegraf`**, based on accepted main `1d770bab`.
+Current branch: **`main`**. The operator authorized merging the completed metrics
+and provisioning work. Parent merge `d2dd86af` matches the `metrics-telegraf` tree
+at `702782fa` exactly; Client `main` is `821e77da` and Linux Host `main` is
+`8ca14f4e`. Kymux and common-C pins are unchanged. The private provisioner's
+completed branch is merged into its default branch as well. No product code was
+changed while merging. Native Apple development and historical test branches
+remain separate from this work.
+
 The initial 1.4.11 baseline uses product source `816b1e18`. The 1.4.12 follow-up
 at `ffa0f92d` adds Ubuntu pen-activity metrics and is installed on both authorized
 Ubuntu Clients. Real movement and tip-down records are verified on one endpoint;
@@ -205,7 +212,9 @@ Only Telegraf was restarted; PLANK processes were preserved.
 
 Remaining provisioning acceptance is a fresh-appliance installation using an
 available metrics-capable package. Mac installation remains out of scope.
-No merge, new package build or release publication was requested.
+The source merge does not replace those remaining checks. Existing candidates
+retain their original versions/provenance; no new mainline package build or
+release publication was requested.
 
 ## Code review hardening — accepted and merged into main
 
@@ -218,7 +227,7 @@ Version remains **1.4.10**. Client, Linux Host and Kymux are on their pushed
 accepted baseline remains on `main`; the current work is described above. No release publication was requested.
 See [the implementation checklist](docs/development/plans/code-review-hardening.md).
 
-Current pins:
+Accepted hardening baseline pins:
 
 - Client `669b792e70150b8f679a90a273059e2190ded7dc`.
 - Client common-C `c7d1b83143be1511735526ae8ce75a6d5c25f63c`.

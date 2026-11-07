@@ -1,6 +1,9 @@
 # PLANK metrics through Telegraf
 
-Branch: `metrics-telegraf`, based on accepted main `1d770bab`.
+Status: merged into `main` at `d2dd86af`, from `metrics-telegraf` based on
+accepted main `1d770bab`. Client/Linux Host changes and private provisioning are
+also merged into their default branches. The merge preserves the tested code;
+remaining deployment/acceptance limits are recorded in HANDOFF.
 
 The operator wants Host and Client metrics in InfluxDB 2 and the existing
 Grafana instance. After initial validation against the previous bucket, the
@@ -83,8 +86,8 @@ profiles without database writes. The operator's intervening ping/process-input
 and ZeroTier cleanup commits were pulled and preserved. A full fresh-appliance
 installation has not been run; its older package pins are not promoted to a
 candidate absent from the provisioning server.
-No merge, release publication or change to existing system-metric collection
-is implied by creating this branch.
+The operator authorized the source merges. A new mainline package build,
+release publication and further endpoint provisioning remain separate work.
 
 ## Ubuntu Wacom activity follow-up
 
