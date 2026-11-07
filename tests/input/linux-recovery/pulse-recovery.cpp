@@ -21,6 +21,11 @@ TEST(PulseRecovery, SilentServerDoesNotBlockCaptureCancellationOrTeardown) {
   const pid_t child = fork();
   ASSERT_GE(child, 0);
   if (!child) {
+    // Hosted containers may inherit a home directory owned by another UID.
+    // Isolate daemon state without changing HOME or touching a user's audio.
+    setenv("PULSE_RUNTIME_PATH", (std::string(directory) + "/runtime").c_str(), 1);
+    setenv("PULSE_STATE_PATH", (std::string(directory) + "/state").c_str(), 1);
+    setenv("PULSE_COOKIE", (std::string(directory) + "/cookie").c_str(), 1);
     execlp("pulseaudio", "pulseaudio", "-n", "--daemonize=no", "--use-pid-file=no", "--disable-shm=yes",
            "--exit-idle-time=-1", "--log-target=stderr", "-L", module.c_str(), "-L",
            "module-null-sink sink_name=plank-test rate=48000 channels=2", nullptr);
