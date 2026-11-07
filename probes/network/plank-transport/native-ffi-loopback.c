@@ -87,7 +87,8 @@ int main(int argc, char **argv) {
     if (profile_validation) {
         metrics_collector = socket(AF_INET, SOCK_DGRAM, 0);
         struct sockaddr_in sink = {0};
-        sink.sin_family = AF_INET; sink.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
+        sink.sin_family = AF_INET;
+        if (inet_pton(AF_INET, "127.0.0.1", &sink.sin_addr) != 1) goto failure;
         socklen_t sink_size = sizeof(sink);
         if (metrics_collector < 0 || bind(metrics_collector, (struct sockaddr *)&sink, sizeof(sink)) ||
             getsockname(metrics_collector, (struct sockaddr *)&sink, &sink_size)) goto failure;
