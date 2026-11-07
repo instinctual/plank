@@ -25,10 +25,26 @@ Local validation so far: Rust metrics tests, Clippy with warnings denied,
 portable Client policy-upgrade tests and actual Telegraf 1.40.3 parsing pass.
 The C media/teardown fixture passes with metrics disabled and a non-reading
 collector; retained handles reject observations safely after endpoint teardown.
-Component commits: Client `3314b184`, Linux Host `8ca14f4e`. Kymux/common-C
-pins are unchanged. Final hosted platform/package checks, installed-session performance and live
-InfluxDB/Grafana validation remain pending. InfluxDB health is reachable;
-Grafana currently times out from the builder. No merge or release is requested.
+Component commits: Client `8afbbcec`, Linux Host `8ca14f4e`. Kymux/common-C
+pins are unchanged. The shared hosted transport/loss tests passed in run `42402057626`. The exact
+shipping-feature Mac test executable also passed three 900-frame, 150 Mbps loss
+matrices on the authorized development Mac: zero unrecovered frames, maximum
+delivery 15.603 ms, p95 maximum 10.879 ms and maximum receive gap 25.347 ms.
+Terminal and Host processes were preserved and scratch files removed. Its hash
+is `0c8111ed818a2548acb22f59e7ee04f8ba77dc5e0d2d1b3a14026d3c258be43c`.
+This is isolated transport qualification, not installed-session acceptance.
+
+Signed Mac Host run `42402260256` passed and is downloaded/verified in
+`artifacts/packages/candidates/1.4.11-metrics-telegraf/`. Original source is
+`47cd9501`; the preceding failure was a POSIX test-fixture loopback constant,
+replaced with portable `inet_pton`, not a product/runtime regression.
+Client discovered-workstation identity follow-up awaits its hosted builds.
+Other package checks and installed collection remain pending. The existing
+Grafana InfluxQL data source is healthy and accepted all 34 dashboard queries.
+The dashboard is created and verified in the existing metrics folder; the
+setup service account has been returned to Editor. No data source was changed.
+Operational addresses/tokens and deployment details stay in private notes.
+No merge or release is requested.
 
 ## Code review hardening — accepted and merged into main
 
