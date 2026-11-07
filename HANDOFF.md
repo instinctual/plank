@@ -7,19 +7,20 @@ state; older detailed results remain in Git history and the artifact catalog.
 ## Metrics / Telegraf — Linux deployment and dedicated bucket verified
 
 Current branch: **`metrics-telegraf`**, based on accepted main `1d770bab`.
-The installed 1.4.11 baseline uses product source `816b1e18`. The current
-1.4.12 follow-up adds Ubuntu pen-activity metrics and is awaiting hosted build
-and installed tablet acceptance. It does not change the input wire protocol.
+The initial 1.4.11 baseline uses product source `816b1e18`. The 1.4.12 follow-up
+at `ffa0f92d` adds Ubuntu pen-activity metrics and is installed on both authorized
+Ubuntu Clients. Real movement and tip-down records are verified on one endpoint;
+the other has been reopened for its next connection. The input wire is unchanged.
 The operator selected **InfluxDB 2**, existing **InfluxQL** Grafana queries,
 and existing local Telegraf agents for Linux Hosts/Clients. Macs need a separate
 agent installation. Deployment addresses, data-source identity and tokens remain
 in private notes/provisioning. The operator authorized Linux-only installation;
 no Mac package or agent was installed.
 
-### Ubuntu pen activity — candidate being qualified
+### Ubuntu pen activity — built and installed; activity data verified
 
 The operator selected active PLANK sessions only and Ubuntu Clients first,
-including sessions to either Host OS. Client pin `94c8b76a` observes the kernel's
+including sessions to either Host OS. Client pin `821e77da` observes the kernel's
 decoded pen events from existing raw-HID evdev handles and the existing normalized
 libinput path. Forwarded reports, pressure/clicks, grabbing policy and persistent
 Host tablet identity are unchanged. Observation is bounded and optional; evdev
@@ -33,19 +34,39 @@ These are interaction observations, not productivity or attendance conclusions.
 Coordinates, strokes, pressure values and tool identifiers are not exported.
 
 Ten Rust metrics tests, actual Telegraf parsing of eight fixture datagrams,
-131 CI policy checks and warnings-denied Clippy for default and diagnostic
-features pass. A new pure pen-state fixture covers hover, pressure/status/touch
-exclusion, tip-down, eraser, overflow and resynchronization. Production adapter
-compilation and normal/sanitized Wacom gates will run on GitHub's Ubuntu worker.
-No new package or hardware acceptance is claimed yet.
+131 CI policy checks, seven policy-upgrade tests and warnings-denied Clippy for
+default/diagnostic features pass. Hosted run `42417299525` passes Ubuntu package,
+Qt/input/launcher/compositor and normal/sanitized Wacom gates, including the real
+adapter's USB/reconnect fixtures and new hover, tip, idle-report and observation
+resynchronization checks. The first run exposed stale Qt link-time doubles;
+updating those signatures did not change production behavior. Mac Client compile
+checks also pass. Mac Host functional recheck `42417299697` passes at the same
+Host source after an earlier C loopback timeout reported 91 lost QUIC packets.
+No limits were relaxed. A broader local unit run had two `/proc/net/udp` lookup
+failures in the test loss proxy; all five proxy tests pass in isolation/serial.
+Do not report that broader local parallel run as a complete pass.
 
-Grafana now has twelve panels and 26 visual queries: the existing ten performance
-views plus per-Client activity status tiles and a history timeline. Status uses
-a 30-second recent-data window and the most active state across sessions; the
-history uses ten-second buckets with finite gaps. Both new queries are accepted.
-They remain No data until a new Client sends activity fields; no synthetic data
-was written to the live database. The operator additionally authorized installing
-the candidate on another Ubuntu Client. Endpoint inventory/credentials are private.
+The operator removed the generic activity tiles and requested finer detail.
+Grafana now has eleven panels and 25 visual queries: ten performance views plus
+**Wacom Tablet Activity**, using movement/tip counts in one-second buckets with
+no activity hold. Missing samples are separate from measured idle. The revised
+query is accepted and returns genuine tablet records; no synthetic activity was
+written to the live database. This checkpoint records the final dashboard and
+documentation; the installed program does not need another rebuild for it.
+
+Verified package:
+`artifacts/packages/candidates/1.4.12-metrics-telegraf/linux/plank-client_1.4.12-metrics-telegraf_amd64.deb`
+from root `ffa0f92d44d439bdd0dcc8e5b23b09182d214156`, Client
+`821e77da8589a6f8d594b9d7a8b372791407f23f`.
+Package SHA256 `81b7d615ced79b7eb9f6b6c052a4afc28be970c1175bfc8009caa30ded359d3a`;
+installed/running Client SHA256 `5094ed287608b7f74bbcd6849f213b26261ec5476181cc082e59ae679acac9dc`.
+Original hosted manifest and normal/sanitizer/component reports are retained in
+`artifacts/qualification/pen-metrics-1.4.12/`. Both installed/running binaries
+match and saved settings are preserved. The second activation needed a later
+observation to see the process; no reinstall or duplicate launch was needed.
+Physical pen movement and tip contacts reach InfluxDB from the first Client.
+This verifies activity collection, not a new complete color/audio/input/pressure
+acceptance sweep. Endpoint inventory, root-only backups and credentials are private.
 
 Candidate **1.4.11** adds one shared, optional IPv4-loopback UDP exporter in the
 transport crate; policy wiring on both operating systems; actual Client decoder
@@ -98,8 +119,8 @@ Validation:
   drop counts are unavailable there. This is isolated transport qualification,
   not acceptance of installed collection or an interactive A/V session.
 
-The dedicated PLANK Grafana data source is healthy. The operator's dashboard cleanup
-is applied live and saved in the local repository copy: ten performance panels,
+The dedicated PLANK Grafana data source is healthy. The baseline performance view
+is applied live and saved in the repository: ten performance panels,
 24 direction-specific visual InfluxQL queries, `fill(none)`, Table legends with
 Last non-null values, and separate Hosts/Clients menus populated with machine
 names. Role, workstation UUID and bookmark selectors/grouping are removed.
@@ -164,14 +185,14 @@ The dashboard checkpoint `5fc6a88f` and private provisioning checkpoint `67ad7f5
 are committed and pushed on their respective feature branches. Existing
 submodule pins are already committed and unchanged.
 
-Subsequent installer options are implemented locally in the private provisioner:
+The private provisioner now supports these scripted installer options:
 `--channel`, `--influx-token-file`, and `--influx-token-stdin`. The operator
 withdrew the proposed upgrade-only option; that path and its documentation are
 removed. Normal installation still performs full appliance provisioning.
 Thirteen isolated tests pass, including secret input, channel validation,
 rejection of unsupported options and credential failure before system changes.
-No real provisioner was run. These new source/documentation edits remain
-uncommitted.
+No real provisioner was run. The operator requested committing and pushing
+these source/documentation changes on the existing feature branches.
 
 Global `nodetype` now identifies the Linux test endpoints as `plank-host` and
 `plank-client`; fresh Client/Relay provisioning uses `plank-client` and

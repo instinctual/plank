@@ -68,7 +68,7 @@ classification does not replace the application's `role`; a machine running
 both products can still appear in both session menus. Keep system-dashboard
 filters aligned with the node labels configured on the endpoints.
 
-The ten performance panels and two tablet-activity views use Grafana's visual InfluxQL editor. Fields,
+The ten performance panels and Wacom activity history use Grafana's visual InfluxQL editor. Fields,
 functions, filters and grouping are editable through its controls. FEC uses the
 Math control to retain the source-count-weighted percentage. Every query uses
 `fill(none)`, so empty time buckets are omitted. Legends use Table mode with
@@ -123,18 +123,18 @@ values, device identifiers and strokes are never passed to the metrics exporter.
 | `pen_motion_events_interval` | Position-change reports since the previous exported observation |
 | `pen_tip_down_events_interval` | Tip-down transitions during that interval |
 | `pen_last_activity_age_seconds` | Monotonic time since the last observed movement or tip-down; absent until activity occurs |
-| `pen_activity_state` | `0`: unavailable; `1`: observed idle; `2`: movement or tip-down within the preceding minute |
+| `pen_activity_state` | Diagnostic recent-activity state (`0`: unavailable, `1`: idle, `2`: activity within the preceding minute); the history panel uses the raw counts instead |
 
-The current activity tiles repeat for the selected Clients. Each uses the most
-active reported state in the latest 30-second collection window, allowing for
-Telegraf batching and multiple PLANK sessions on one Client. The history uses
-ten-second windows and disconnects gaps longer than 30 seconds instead of
-carrying a previous active state indefinitely. Queries retain `fill(none)`.
-Normal shutdown emits an unavailable state; an abrupt process or collector
-failure is represented by missing recent data. Use the one-second sampling
-default for these views. Longer configured sampling intervals can leave gaps.
+The **Wacom Tablet Activity** history sums movement and tip-down counts in
+one-second buckets, grouped by Client. A nonzero count is green; a measured zero
+is gray. There is no activity hold period and no generic current-status tile.
+The history disconnects missing samples after 1.5 seconds instead of carrying
+the last value indefinitely. Queries retain `fill(none)`. Use the one-second
+sampling default; longer configured sampling intervals leave gaps. Telegraf's
+existing buffering can delay delivery of the newest samples even though their
+timestamps and reporting intervals remain one second.
 
-Green **Tablet active**, gray **Tablet idle**, and **No data** describe observed
+**Tablet active**, **Tablet idle**, and **No data** describe observed
 tablet interaction, not productivity, attendance or whether an application
 processed the input. Keyboard/mouse use and reviewing footage can occur without
 pen movement. No activity is fabricated when observation is unsupported or fails.

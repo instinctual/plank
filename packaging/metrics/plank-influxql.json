@@ -67,10 +67,10 @@
   },
   "panels": [
     {
-      "id": 16,
-      "type": "stat",
-      "title": "Tablet activity \u2014 ${clients}",
-      "description": "Ubuntu Clients: green means a recent sample reported pen movement or tip-down within the preceding minute. Gray means observed idle. No data means observation is unavailable or no sample arrived in the last 30 seconds. Uses the most active state across this Client\u2019s sessions and that short collection window. This measures tablet interaction, not productivity.",
+      "id": 17,
+      "type": "state-timeline",
+      "title": "Wacom Tablet Activity",
+      "description": "Actual pen activity in each one-second reporting interval, with no active hold period. Green means movement or tip-down in that sample; gray means the pen source was observed with no activity. No data means it was not observed or a sample is missing. Includes focused active PLANK sessions on Ubuntu Clients only. Multiple sessions share a Client row. Telegraf buffering can delay the newest samples.",
       "datasource": {
         "type": "influxdb",
         "uid": "${datasource}"
@@ -78,157 +78,6 @@
       "gridPos": {
         "x": 0,
         "y": 0,
-        "w": 6,
-        "h": 5
-      },
-      "timeFrom": "30s",
-      "hideTimeOverride": false,
-      "targets": [
-        {
-          "refId": "A",
-          "datasource": {
-            "type": "influxdb",
-            "uid": "${datasource}"
-          },
-          "rawQuery": false,
-          "resultFormat": "time_series",
-          "alias": "$tag_host",
-          "measurement": "plank_transport",
-          "policy": "default",
-          "select": [
-            [
-              {
-                "type": "field",
-                "params": [
-                  "pen_activity_state"
-                ]
-              },
-              {
-                "type": "max",
-                "params": []
-              }
-            ]
-          ],
-          "groupBy": [
-            {
-              "type": "tag",
-              "params": [
-                "host"
-              ]
-            },
-            {
-              "type": "fill",
-              "params": [
-                "none"
-              ]
-            }
-          ],
-          "tags": [
-            {
-              "key": "role",
-              "operator": "=",
-              "value": "client"
-            },
-            {
-              "key": "host",
-              "operator": "=~",
-              "value": "/^${clients:regex}$/",
-              "condition": "AND"
-            }
-          ],
-          "orderByTime": "ASC"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "mappings": [
-            {
-              "type": "value",
-              "options": {
-                "0": {
-                  "text": "No data",
-                  "color": "#5b5b66",
-                  "index": 0
-                },
-                "1": {
-                  "text": "Tablet idle",
-                  "color": "#8e8e8e",
-                  "index": 1
-                },
-                "2": {
-                  "text": "Tablet active",
-                  "color": "#73BF69",
-                  "index": 2
-                }
-              }
-            },
-            {
-              "type": "special",
-              "options": {
-                "match": "null",
-                "result": {
-                  "text": "No data",
-                  "color": "#5b5b66",
-                  "index": 3
-                }
-              }
-            }
-          ],
-          "color": {
-            "mode": "thresholds"
-          },
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "#5b5b66",
-                "value": null
-              },
-              {
-                "color": "#8e8e8e",
-                "value": 1
-              },
-              {
-                "color": "#73BF69",
-                "value": 2
-              }
-            ]
-          },
-          "noValue": "No data",
-          "decimals": 0
-        },
-        "overrides": []
-      },
-      "options": {
-        "reduceOptions": {
-          "values": false,
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": ""
-        },
-        "orientation": "auto",
-        "textMode": "value",
-        "colorMode": "background",
-        "graphMode": "none",
-        "justifyMode": "auto"
-      },
-      "repeat": "clients",
-      "repeatDirection": "h",
-      "maxPerRow": 4
-    },
-    {
-      "id": 17,
-      "type": "state-timeline",
-      "title": "Wacom tablet activity \u2014 history",
-      "description": "Ubuntu Client pen activity in ten-second windows. Green means movement or tip-down within the preceding minute; gray means observable idle. No data means observation is unavailable. Gaps longer than 30 seconds are not carried forward as activity. Multiple sessions on one Client share a row. Local desktop use, coordinates and strokes are excluded.",
-      "datasource": {
-        "type": "influxdb",
-        "uid": "${datasource}"
-      },
-      "gridPos": {
-        "x": 0,
-        "y": 5,
         "w": 24,
         "h": 8
       },
@@ -249,12 +98,24 @@
               {
                 "type": "field",
                 "params": [
-                  "pen_activity_state"
+                  "pen_motion_events_interval"
                 ]
               },
               {
-                "type": "max",
+                "type": "sum",
                 "params": []
+              },
+              {
+                "type": "math",
+                "params": [
+                  "+ sum(\"pen_tip_down_events_interval\")"
+                ]
+              },
+              {
+                "type": "alias",
+                "params": [
+                  "Pen events"
+                ]
               }
             ]
           ],
@@ -262,7 +123,7 @@
             {
               "type": "time",
               "params": [
-                "10s"
+                "1s"
               ]
             },
             {
@@ -298,22 +159,26 @@
         "defaults": {
           "mappings": [
             {
-              "type": "value",
+              "type": "range",
               "options": {
-                "0": {
-                  "text": "No data",
-                  "color": "#5b5b66",
-                  "index": 0
-                },
-                "1": {
+                "from": 0,
+                "to": 0,
+                "result": {
                   "text": "Tablet idle",
                   "color": "#8e8e8e",
-                  "index": 1
-                },
-                "2": {
+                  "index": 0
+                }
+              }
+            },
+            {
+              "type": "range",
+              "options": {
+                "from": 1,
+                "to": 9223372036854775807,
+                "result": {
                   "text": "Tablet active",
                   "color": "#73BF69",
-                  "index": 2
+                  "index": 1
                 }
               }
             },
@@ -324,7 +189,7 @@
                 "result": {
                   "text": "No data",
                   "color": "#5b5b66",
-                  "index": 3
+                  "index": 2
                 }
               }
             }
@@ -333,30 +198,13 @@
             "mode": "fixed",
             "fixedColor": "#8e8e8e"
           },
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "#5b5b66",
-                "value": null
-              },
-              {
-                "color": "#8e8e8e",
-                "value": 1
-              },
-              {
-                "color": "#73BF69",
-                "value": 2
-              }
-            ]
-          },
           "noValue": "No data",
           "decimals": 0,
           "custom": {
             "lineWidth": 0,
             "fillOpacity": 90,
             "spanNulls": false,
-            "insertNulls": 30000
+            "insertNulls": 1500
           }
         },
         "overrides": [
@@ -368,7 +216,7 @@
             "properties": [
               {
                 "id": "custom.insertNulls",
-                "value": 30000
+                "value": 1500
               }
             ]
           }
@@ -405,7 +253,7 @@
       },
       "gridPos": {
         "x": 0,
-        "y": 13,
+        "y": 8,
         "w": 12,
         "h": 8
       },
@@ -580,7 +428,7 @@
       },
       "gridPos": {
         "x": 12,
-        "y": 13,
+        "y": 8,
         "w": 12,
         "h": 8
       },
@@ -755,7 +603,7 @@
       },
       "gridPos": {
         "x": 0,
-        "y": 21,
+        "y": 16,
         "w": 12,
         "h": 8
       },
@@ -864,7 +712,7 @@
       },
       "gridPos": {
         "x": 12,
-        "y": 21,
+        "y": 16,
         "w": 12,
         "h": 8
       },
@@ -1051,7 +899,7 @@
       },
       "gridPos": {
         "x": 0,
-        "y": 29,
+        "y": 24,
         "w": 12,
         "h": 8
       },
@@ -1292,7 +1140,7 @@
       },
       "gridPos": {
         "x": 12,
-        "y": 29,
+        "y": 24,
         "w": 12,
         "h": 8
       },
@@ -1533,7 +1381,7 @@
       },
       "gridPos": {
         "x": 0,
-        "y": 37,
+        "y": 32,
         "w": 12,
         "h": 8
       },
@@ -1708,7 +1556,7 @@
       },
       "gridPos": {
         "x": 12,
-        "y": 37,
+        "y": 32,
         "w": 12,
         "h": 8
       },
@@ -2015,7 +1863,7 @@
       },
       "gridPos": {
         "x": 0,
-        "y": 45,
+        "y": 40,
         "w": 12,
         "h": 8
       },
@@ -2256,7 +2104,7 @@
       },
       "gridPos": {
         "x": 12,
-        "y": 45,
+        "y": 40,
         "w": 12,
         "h": 8
       },
