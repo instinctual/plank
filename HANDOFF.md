@@ -8,11 +8,18 @@ state; older detailed results remain in Git history and the artifact catalog.
 
 Current branch: **`main`**. The operator authorized merging the completed metrics
 and provisioning work. Parent merge `d2dd86af` matches the `metrics-telegraf` tree
-at `702782fa` exactly; Client `main` is `821e77da` and Linux Host `main` is
-`8ca14f4e`. Kymux and common-C pins are unchanged. The private provisioner's
+at `702782fa` exactly. Client `main` is now `d8cdba22`, a changelog-only follow-up
+to tested production source `821e77da`; Linux Host `main` is `8ca14f4e`.
+Kymux and common-C pins are unchanged. The private provisioner's
 completed branch is merged into its default branch as well. No product code was
 changed while merging. Native Apple development and contributor Host test/signing
 branches remain separate from this work.
+
+The operator requested all four mainline 1.4.12 packages. Rebuild them through
+GitHub-hosted Actions with exact-input caches, signed/notarized Mac PKGs and
+original manifest/checksum collection. Package publication and endpoint
+installation are separate from this build request. Retain the original candidate
+artifacts; do not rename them into mainline packages.
 
 The initial 1.4.11 baseline uses product source `816b1e18`. The 1.4.12 follow-up
 at `ffa0f92d` adds Ubuntu pen-activity metrics and is installed on both authorized
@@ -213,8 +220,8 @@ Only Telegraf was restarted; PLANK processes were preserved.
 Remaining provisioning acceptance is a fresh-appliance installation using an
 available metrics-capable package. Mac installation remains out of scope.
 The source merge does not replace those remaining checks. Existing candidates
-retain their original versions/provenance; no new mainline package build or
-release publication was requested.
+retain their original versions/provenance. The mainline rebuild is now requested;
+release publication and further installations are not part of that request.
 
 ## Code review hardening — accepted and merged into main
 
