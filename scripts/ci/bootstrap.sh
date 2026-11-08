@@ -15,7 +15,13 @@ case $role in
 esac
 git -C "$PLANK_SOURCE_ROOT" submodule update --init third_party/kyber-kymux
 if [[ -n $product ]]; then
-  git -C "$PLANK_SOURCE_ROOT" submodule update --init --recursive "$product"
+  # Host packaging supplies exact version/commit metadata; build inputs do not
+  # need the forks' complete histories on every disposable runner.
+  if [[ $role = linux-host ]]; then
+    git -C "$PLANK_SOURCE_ROOT" submodule update --init --recursive --depth 1 "$product"
+  else
+    git -C "$PLANK_SOURCE_ROOT" submodule update --init --recursive "$product"
+  fi
 fi
 export CARGO_HOME="$PLANK_CARGO_ROOT" RUSTUP_HOME="$PLANK_RUSTUP_ROOT"
 export PATH="$CARGO_HOME/bin:$PATH"

@@ -120,10 +120,12 @@ def verify(work):
         rust = directory / 'probe.rs'
         rust.write_text('pub fn plank_cache_probe() -> u32 { 42 }\n')
         rust_env = dict(os.environ, CARGO_HOME=os.environ['PLANK_CARGO_ROOT'], RUSTUP_HOME=os.environ['PLANK_RUSTUP_ROOT'])
-        rustc = str(Path(os.environ['PLANK_CARGO_ROOT']) / 'bin/rustc')
+        rustup_rustc = str(Path(os.environ['PLANK_CARGO_ROOT']) / 'bin/rustc')
+        sysroot = subprocess.check_output([rustup_rustc, '--print', 'sysroot'], env=rust_env, text=True).strip()
+        rustc = str(Path(sysroot) / 'bin/rustc')
         for _ in range(2):
             subprocess.run([binary, rustc, '--crate-name', 'plank_cache_probe', '--crate-type=rlib',
-                            str(rust), '-o', str(directory / 'probe.rlib')], env=rust_env, check=True)
+                            '--emit=dep-info,link', '--out-dir', str(directory), str(rust)], env=rust_env, check=True)
         (directory / 'probe.c').write_text('int plank_cache_c_probe(void) { return 42; }\n')
         (directory / 'CMakeLists.txt').write_text('''cmake_minimum_required(VERSION 3.20)
 project(HostCacheProbe LANGUAGES C CXX CUDA)

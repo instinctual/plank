@@ -15,6 +15,18 @@ spec.loader.exec_module(cache)
 
 
 class ProductDependencyCacheTests(unittest.TestCase):
+    def test_host_source_preparation_keeps_exact_pins_without_full_history(self):
+        root = Path('/source-fixture')
+        with patch.object(cache.subprocess, 'run') as run:
+            cache.prepare_sources(root, 'linux-host')
+        commands = [call.args[0] for call in run.call_args_list]
+        self.assertEqual(commands, [
+            ['git', '-C', str(root), 'submodule', 'update', '--init', '--depth', '1', 'apps/host/linux'],
+            ['git', '-C', str(root / cache.HOST_DEPS.removesuffix('/third-party/build-deps')),
+             'submodule', 'update', '--init', '--recursive', '--depth', '1', 'third-party/build-deps'],
+        ])
+        self.assertTrue(all(call.kwargs['check'] for call in run.call_args_list))
+
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
         self.addCleanup(self.tmp.cleanup)

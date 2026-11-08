@@ -113,8 +113,11 @@ a trusted snapshot. No build tree, installed payload or signing material is
 cached. `--clean-bootstrap` disables compiler and dependency reuse. Bootstrap
 dependency keys and Ubuntu's existing compiler cache are unchanged.
 
-Cold/warm qualification is pending on `host-build-iteration`; record measured
-job times and cache statistics before claiming an iteration-speed improvement.
+The fast job passed in 50 seconds on its worker (13 seconds of component work),
+with probe binaries identical to the hardware-tested pair. Host source checkout
+uses exact shallow submodule revisions; it does not need full fork history.
+Cold/warm compiler-cache qualification remains pending on `host-build-iteration`;
+record real cache statistics and complete job times before claiming that speedup.
 See [the implementation and validation plan](../plans/host-build-iteration.plan).
 
 ## Local downloads and cleanup

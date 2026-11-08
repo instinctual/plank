@@ -54,7 +54,17 @@ cold and warm complete Host jobs at the same source. Require actual cache-hit
 statistics, all package gates and the correct visible/package version. Do not
 promise a duration or infer correctness from a high hit rate alone.
 
-Status: implementation and local policy/version fixtures are ready. Hosted fast
-job and full cold/warm cache qualification are pending. Native10 buffer-only
+Fast hosted job `42452469409` passed at root `7b0baa71`: worker duration 50 seconds,
+including 13 seconds for source preparation, normal/sanitized tests, version-policy
+compilation and probe builds. Both exported GPU probes are byte-identical to the
+already hardware-tested binaries. The first compiler-cache qualification was
+cancelled during dependency restore to correct the Rust smoke command to Cargo's
+supported `--emit`/`--out-dir` form before compiling the Host; a local real Rust
+invocation now verifies a cache hit.
+
+Host source preparation now fetches exact shallow submodule revisions instead
+of downloading full fork histories on each disposable worker. Source pins,
+prepared-dependency keys, patch validation and retained public Git history are
+unchanged. Full cold/warm cache qualification remains pending. Native10 buffer-only
 candidate 1.4.13 passed its full build after one unchanged retry of an existing
 zero-before-FEC-loss loopback assertion; retain that failure record separately.

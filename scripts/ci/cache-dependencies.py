@@ -245,10 +245,10 @@ def ubuntu_build_packages(packages):
 
 def prepare_sources(root, product):
     if product == 'linux-host':
-        subprocess.run(['git', '-C', str(root), 'submodule', 'update', '--init', 'apps/host/linux'], check=True)
+        subprocess.run(['git', '-C', str(root), 'submodule', 'update', '--init', '--depth', '1', 'apps/host/linux'], check=True)
         # Restored build trees contain relative .git pointers to these sources.
         subprocess.run(['git', '-C', str(root / 'apps/host/linux'), 'submodule', 'update',
-                        '--init', '--recursive', 'third-party/build-deps'], check=True)
+                        '--init', '--recursive', '--depth', '1', 'third-party/build-deps'], check=True)
     elif product.endswith('-client'):
         subprocess.run(['git', '-C', str(root), 'submodule', 'update', '--init', 'apps/client'], check=True)
 
