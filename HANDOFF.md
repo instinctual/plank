@@ -49,8 +49,9 @@ at the operator's request. Its changes are already incorporated through the
 tested reconciliation in main; the current Kymux pin contains its proposed
 commit. Linux Host #13 was reviewed and closed on November 5 because the unused
 Host Wayland capture code and `wayland-protocols` dependency had been removed.
-Its leftover Dependabot branch remains pending a separate cleanup instruction;
-it is not unfinished implementation work. See the closing explanations for
+Its obsolete Dependabot branch was also removed with operator approval on
+November 8. Neither PR represents unfinished implementation work. The Linux
+Host repository now retains only main. See the closing explanations for
 [#26](https://github.com/instinctual/plank/pull/26#issuecomment-6665787832) and
 [Host #13](https://github.com/instinctual/plank-host-linux/pull/13#issuecomment-6664157716).
 
