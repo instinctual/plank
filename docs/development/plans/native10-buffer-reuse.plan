@@ -8,7 +8,7 @@ true 10-bit capture is a separate future investigation. Preserve continuous
 full-frame capture, exact RGB10 identity, x264 and direct HEVC NVENC, private
 SHM permissions, and existing frame queues and GPU completion ordering.
 
-Branch: `native10-buffer-reuse`, based on root `6e0c96de` and Linux Host
+Former branch (retired after merging): `native10-buffer-reuse`, based on root `6e0c96de` and Linux Host
 `8ca14f4e`. Candidate version: `1.4.13-native10-buffer-reuse`. No Client,
 macOS, transport, dependency or protocol changes.
 

@@ -36,6 +36,15 @@ Package base version is 1.4.14; the latest published release remains 1.4.12.
 No new manual package build, installation or release was requested for this
 merge. Existing branch-qualified artifacts retain their original provenance.
 
+The operator retired 31 fully merged feature branches on November 8: eight in
+PLANK, eight in Linux Host and fifteen in Client, locally and on GitHub. Six
+matching `macos-signing` permissions were removed. No target had an active build,
+checked-out worktree or contributor approval. Accepted code remains in main;
+the Apple-native/AVP branches and both approved Host test branches retain their
+original refs, worktrees and signing access. The two closed Dependabot branches
+were outside this requested list and remain. All three canonical checkouts are
+clean on main; this cleanup changes documentation and branch metadata only.
+
 ## Fast Host iteration — qualified and merged
 
 The operator authorized a fast component path and Host compiler-output caching.
@@ -357,8 +366,8 @@ network/decode/render rates, decode timing and the hardware-decoder flag.
 Client system-metric delivery is also healthy. This verifies metric collection
 and queries, not a new interactive audio/video/input acceptance claim.
 
-Evidence is in `artifacts/qualification/metrics-telegraf-1.4.11/`. The branch's
-signing permission is `65875659`; remove it when retiring this branch.
+Evidence is in `artifacts/qualification/metrics-telegraf-1.4.11/`. The merged
+feature branch and its signing permission were retired on November 8.
 Root-only rollback backups are retained on both endpoints; transferred package
 and credential-bearing staging files are removed. Access details, raw live
 metrics and configuration backups are private, outside Git. The optional public
@@ -563,11 +572,11 @@ The operator explicitly confirmed retaining both contributor Host test branches:
 
 Their source changes are already represented in main, but that does not retire
 their testing role. The live signing allowlist and approval registry were checked
-on November 7. Neither branch, its worktree nor its signing permission was
+on November 8. Neither branch, its worktree nor its signing permission was
 removed. Keep them during branch cleanup; future candidate revisions still need
 the exact-SHA review/registry checks in the [build runbook](docs/development/build/github-builds.md).
 Main protection was discussed, not enabled.
-The hardening branch's signing permission is 65803900; retain it until retirement.
+The merged hardening branch and its signing permission were retired on November 8.
 
 The authorized development Mac is identified in private notes. Preserve Terminal
 and active sessions. Reference Macs are read-only unless reassigned. No active
