@@ -14,7 +14,7 @@ of the qualified changes, with no new production-code edits. Client main is
 metrics/provisioning work is already merged; the private
 appliance repository remains on `master`.
 
-## macOS startup configuration regression — correction in progress
+## macOS startup configuration regression — signed correction ready
 
 A read-only inspection of the authorized Mac after installing 1.4.14 and rebooting
 found the machine coordinator running but the sign-in worker repeatedly exiting
@@ -35,8 +35,22 @@ validator, retaining the existing type/integer-port checks. The native filesyste
 fixture now passes the complete parsed configuration plus identity through that
 same production validator, covering omitted/disabled/enabled/invalid optional
 metrics and malformed required fields. A source assembly guard requires startup
-to use it. Six local settings guards and 138 CI policy tests pass; native macOS
-tests and a signed Host candidate still need GitHub validation.
+to use it. Six local settings guards and 138 CI policy tests pass. Signed GitHub
+run `42531269265` passed from exact root
+`f837e8786665f55d0e07cb5463a0913c49ca3b85`, including the native filesystem/startup
+test (`startup_configuration_pass=1 metrics_default_off=1`). Dependencies were
+reused. Signing, notarization, stapling, Gatekeeper and package checks passed.
+
+Verified Host candidate:
+`artifacts/packages/candidates/1.4.15-macos-startup-config/macos/plank-host_1.4.15-macos-startup-config_arm64.pkg`,
+SHA256 `1714ae12436a20a5cdffb3e5469895e2d2bb38cad73822606e13978729c2774c`.
+Its original manifest, workflow metadata and validation report are under
+`artifacts/qualification/macos-startup-config-1.4.15/`. Archive/package hashes,
+source pins and the macOS 26.7 minimum target match. Download staging is removed.
+Installed startup/session acceptance remains pending: the authorized Mac's SSH
+account currently lacks unattended administrative installation access. No
+candidate is installed, merged or published; this does not clear the affected
+older Mac Host packages for deployment.
 
 The operator explicitly requires metrics disabled by default on macOS Host and
 Client. Both templates and implementations already default false; those defaults
