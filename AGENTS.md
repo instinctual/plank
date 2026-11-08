@@ -190,6 +190,15 @@ not copy old prepared trees. The Linux Host and Client builders are the canonica
 package builders. The hardware test Host and Development NUC are installation and
 hardware-test targets, not fallback build machines.
 
+For Native10 component experiments, use the hosted `linux-native10-tests` job
+before a full Host candidate build. It runs exact production-header fixtures
+and exports hardware probes without the full media dependencies. It does not
+replace package or installed-stream acceptance. The Linux Host compiler-output
+cache is separate from prepared dependencies: preserve clean source/build trees,
+per-object compiler/header/flag validation, fresh linking/tests, trusted-success
+cache saves and the full CUDA architecture set. Do not reuse candidate build
+trees or cached installers. See the build runbook for qualification status.
+
 Use clean Git worktrees as source snapshots. Reuse the prepared, Git-ignored
 host and client FFmpeg trees; creating a worktree does not recreate those build
 inputs. Desktop Clients no longer build, link or package SDL/SDL_ttf. Linux

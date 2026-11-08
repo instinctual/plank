@@ -92,4 +92,8 @@ They do not qualify installed x264/NVENC streaming. Sanitized binary hashes,
 source provenance and detailed measurements are retained under
 `artifacts/qualification/native10-buffer-reuse-1.4.13/`.
 
-Hosted integration/RPM gates and installed streaming acceptance remain pending.
+Hosted integration/RPM gates passed in run `42449585395`, attempt 2, at root
+`b57e0796`. Attempt 1 hit the previously observed zero-before-FEC-loss assertion
+(174 missing source symbols after exact video recovery); the unchanged retry
+passed every gate. No transport code or threshold changed. The 1.4.13 RPM is
+verified in the candidate catalog. Installed streaming acceptance remains pending.

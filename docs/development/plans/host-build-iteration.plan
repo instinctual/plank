@@ -1,0 +1,60 @@
+# Fast Linux Host iteration
+
+The operator approved a component-first iteration path and Host compiler-output
+caching after a small Native10 change repeatedly waited on full package builds.
+Branch `host-build-iteration` is based on the complete `native10-buffer-reuse`
+candidate. It preserves that work; GPU-resident capture remains deferred.
+
+## Two explicit paths
+
+`bash scripts/ci/dispatch.sh linux-native10-tests false` compiles the actual
+Native10 headers and hardware-only probes on a disposable Rocky 9.7 worker.
+Only GCC 14, sanitizer libraries, XCB declarations and the exact pinned CUDA
+declaration headers are needed. The job does not prepare FFmpeg, Boost, Rust,
+the encoder application or a package. It runs normal/sanitized tests and the
+real Host version-policy fixture, then exports probes with exact source/hash
+provenance. GPU probes still run only on authorized hardware; compilation is
+not hardware or installed-session acceptance.
+
+`bash scripts/ci/dispatch.sh linux-host false` remains the full candidate path.
+It performs the complete integration, input, audio, transport and RPM checks.
+None of those checks is skipped or weakened by a successful component run.
+For an explicitly component-only experiment, a `[skip ci]` commit can suppress
+automatic package jobs; dispatch the component workflow at the committed/pushed
+SHA. PR and candidate qualification still require the full applicable gates.
+
+## Compiler outputs
+
+Host-only `sccache` is pinned to version 0.19.0 and its official archive SHA-256.
+It is installed into job scratch after dependency bootstrap, never shipped.
+CMake C/C++/CUDA launchers and Cargo's Rust wrapper cache eligible compilation
+outputs. The qualified compiler choices, full CUDA architecture set, source
+checks, clean build directories, final linking and test execution are preserved.
+Uncacheable/linking operations continue normally. No CMake or Cargo build tree
+is restored.
+
+Snapshots have a 2 GiB bound and are saved only by successful trusted jobs.
+The namespace includes the toolchain, CUDA recipe, cache policy and stable
+builder paths; each compiler independently keys the source, headers and flags.
+Changes to package versions/commits do not discard all compiler outputs.
+Version metadata now affects only the two Host translation units that use it.
+The version fixture verifies new runtime identity and unchanged video compiler
+inputs across a version/commit change. Actual cache smoke checks require C++,
+CUDA and Rust hits and reject stale values after a header change.
+
+Ubuntu's existing compiler cache and every product's dependency cache are
+unchanged. Cache restore remains branch/default-branch-scoped on GitHub; new
+Host caching needs an initial population before a warm-build claim is valid.
+`--clean-bootstrap` bypasses both dependency and compiler reuse.
+
+## Qualification
+
+Record the fast job's elapsed time and exported probe provenance, then compare
+cold and warm complete Host jobs at the same source. Require actual cache-hit
+statistics, all package gates and the correct visible/package version. Do not
+promise a duration or infer correctness from a high hit rate alone.
+
+Status: implementation and local policy/version fixtures are ready. Hosted fast
+job and full cold/warm cache qualification are pending. Native10 buffer-only
+candidate 1.4.13 passed its full build after one unchanged retry of an existing
+zero-before-FEC-loss loopback assertion; retain that failure record separately.

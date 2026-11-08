@@ -1,8 +1,8 @@
 # PLANK Release Build Runbook
 
 For disposable GitHub-hosted workers, see [GitHub-hosted builds](github-builds.md).
-Hosted jobs reuse exact-input dependencies; Ubuntu also uses a separately
-validated compiler-output cache. Never reuse build trees, packages or signing
+Hosted jobs reuse exact-input dependencies; Linux Host and Ubuntu Client also
+use separately validated compiler-output caches. Never reuse build trees, packages or signing
 state. Use the dispatch helper's `--clean-bootstrap` third argument to bypass
 all cache restore and save when qualifying a fresh bootstrap.
 Those workflows establish the same OS, dependency, clean-source and package
@@ -15,10 +15,17 @@ have exact-input dependency caches. Linux Host retains prepared FFmpeg and
 Boost sources, Ubuntu Client retains patched FFmpeg, and macOS Client retains
 prepared libraries and Qt. The other three products also retain the pinned
 Rust toolchain and downloaded Cargo inputs; macOS Host uses native Apple media
-frameworks, so has no separate FFmpeg/Qt dependency build to cache. Ubuntu may
-reuse compiler results, but tests, linking and packaging always run afresh.
-The other products still compile their application/transport objects fresh. See
+frameworks, so has no separate FFmpeg/Qt dependency build to cache. The two Linux
+products may reuse compiler results, but tests, linking and packaging always
+run afresh. The Mac products still compile their application/transport objects fresh. See
 `github-builds.md` for cache boundaries and cold/warm qualification status.
+
+For Native10 optimization experiments, first dispatch
+`bash scripts/ci/dispatch.sh linux-native10-tests false`. This small Rocky job
+runs normal/sanitized production-header and version-policy fixtures and exports
+hardware probes without preparing full Host dependencies or making an RPM.
+Use `linux-host` when the change is ready for complete candidate qualification.
+The component job does not replace full package, transport or installed-session gates.
 
 Cache schema3 uses actual dependency recipes, patches, source content and
 compiler/SDK/library identities. Documentation commits, unrelated installed

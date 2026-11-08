@@ -5,13 +5,35 @@ credentials and private captures stay outside Git. This file records current
 state; older detailed results remain in Git history and the artifact catalog.
 
 Completed release, metrics and provisioning work is committed and merged into
-the maintained default branches. New Linux Host work is on `native10-buffer-reuse`;
+the maintained default branches. Current Root/Host work is on `host-build-iteration`,
+based on the completed `native10-buffer-reuse` candidate;
 the private appliance repository uses `master`. The final audit found clean
 working trees and no unpublished local commits, including retained worktrees.
 Native Apple development remains intentionally separate, and the contributor
 Host test/signing branches remain explicitly retained as detailed below.
 
-## Native10 buffer reuse — candidate in progress
+## Fast Host iteration — implementation ready for hosted qualification
+
+The operator authorized a fast component path and Host compiler-output caching.
+Root/Host branch `host-build-iteration` starts from buffer candidate root `b57e0796`
+/ Host `35a44af8`; Host `c71333d7` scopes package version/commit definitions to the
+only two translation units that consume them. Candidate base version is 1.4.14.
+No Client or macOS product source changed.
+
+`linux-native10-tests` runs normal/sanitized capture tests, actual version-policy
+compilation and exports hardware probes without preparing FFmpeg/Boost/Rust or
+building an RPM. The full Host job adds pinned sccache C/C++/CUDA/Rust output reuse,
+with clean source/build trees, final linking, all tests, full CUDA architecture
+coverage and trusted-success cache saves preserved. Ubuntu and dependency cache
+keys are unchanged. See [the plan](docs/development/plans/host-build-iteration.plan).
+
+137 local CI policy tests and the real CMake version-bump fixture pass. A small
+C++ cache invocation proves a hit with the pinned tool. Full hosted fast-job and
+cold/warm Host cache qualification are pending; do not claim a duration yet.
+The Native10-only 1.4.13 RPM is already verified below. No endpoint installation
+or session restart has occurred during this work.
+
+## Native10 buffer reuse — candidate built and isolated hardware comparison passed
 
 The operator approved buffer reuse first and explicitly skipped unchanged-screen
 filtering. GPU-resident capture remains a later investigation. Root/Host branch
@@ -38,7 +60,18 @@ The first GitHub run `42448939300` restored all four existing dependency caches,
 then stopped before application compilation because the newly enabled sanitizer
 gate lacked GCC 14 sanitizer development libraries. CI now installs these test-only
 prerequisites after dependency bootstrap; the product source is unchanged.
-Replacement hosted integration/package and installed stream acceptance are pending. Sanitized evidence is in `artifacts/qualification/native10-buffer-reuse-1.4.13/`;
+Replacement run `42449585395`, attempt 1, passed Native10/ASan/UBSan and compiled
+probes, then hit the same pre-existing zero-before-FEC-loss loopback assertion as
+mainline 1.4.12: exact video recovery followed by 174 missing source symbols.
+One unchanged job retry (attempt 2) passed all Host/package/input/audio/transport
+gates. No limits, tests or product code were changed for that retry.
+
+The verified package is
+`artifacts/packages/candidates/1.4.13-native10-buffer-reuse/linux/plank-host-1.4.13-0.native10_buffer_reuse.1.el9.x86_64.rpm`,
+SHA256 `0d6ee311beb97bab58fd2c5ac7d9fddbf47ad3a2cb8849f8c5eb37c2455033a4`,
+from root `b57e079663fad965d7b4ac6321dd85fff9e794fe` / Host `35a44af8`.
+Original manifests/probe hashes are retained and download staging is removed.
+Installed stream acceptance remains pending. Sanitized evidence is in `artifacts/qualification/native10-buffer-reuse-1.4.13/`;
 operational measurements and deployment details remain private.
 
 ## Mainline 1.4.12 — published

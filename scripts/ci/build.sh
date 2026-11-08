@@ -15,6 +15,7 @@ case $role in
     # neither FFmpeg nor Boost is built with sanitizer instrumentation.
     dnf install -y --setopt=install_weak_deps=False \
       gcc-toolset-14-libasan-devel gcc-toolset-14-libubsan-devel
+    python3 "$PLANK_SOURCE_ROOT/tests/packaging/test-host-build-version.py"
     CXX=/opt/rh/gcc-toolset-14/root/usr/bin/g++ PLANK_NATIVE10_SANITIZERS=1 \
       bash "$PLANK_SOURCE_ROOT/scripts/test/test-linux-native10.sh" "$PLANK_WORK_ROOT/native10-sanitizers"
     bash "$PLANK_SOURCE_ROOT/scripts/test/build-linux-native10-probes.sh" "$PLANK_ARTIFACT_ROOT/qualification/native10"

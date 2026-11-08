@@ -24,7 +24,7 @@ for option in "${@:3}"; do
 done
 case $macos_host_min_os in 27.0|26.7) ;; *) exit 2;; esac
 [[ $macos_host_min_os != 27.0 || $product == macos-host ]] || exit 2
-case $product in all|linux-host|linux-client|linux-client-vaapi-probe|macos-host|macos-client|macos-fullscreen-probe|dependency-tests) ;; *) exit 2 ;; esac
+case $product in all|linux-host|linux-native10-tests|linux-client|linux-client-vaapi-probe|macos-host|macos-client|macos-fullscreen-probe|dependency-tests) ;; *) exit 2 ;; esac
 [[ $product != linux-client-vaapi-probe || $clean_bootstrap == false ]] || exit 2
 if [[ $product == linux-client-vaapi-probe ]]; then
   [[ $diagnostic_ffmpeg_cache =~ ^plank-linux-client-ffmpeg-v3-[0-9a-f]{64}$ ]] || exit 2

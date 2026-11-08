@@ -89,6 +89,34 @@ gh workflow run build.yml --ref "$(git branch --show-current)" \
   -f source_sha="$(git rev-parse HEAD)"
 ```
 
+## Fast Native10 iteration and Linux Host compiler reuse
+
+For a capture-buffer experiment, dispatch the committed source with
+`bash scripts/ci/dispatch.sh linux-native10-tests false`. It uses the qualified
+Rocky/GCC toolchain, initializes only the necessary Host/header sources, runs
+normal/sanitized production-code fixtures and checks package-version freshness.
+Its artifact contains small GPU probes, source commits and checksums. It does
+not build FFmpeg, Boost, Rust or an RPM and never runs a GPU test on the hosted
+worker. Run the exact probe on authorized hardware, then dispatch the full
+`linux-host` job when an installable candidate is needed.
+
+The full Host job uses a separate compiler-output cache for C/C++, NVCC and
+eligible Rust compilations. Checksum-pinned sccache 0.19.0 lives only in job
+scratch. CMake/Cargo retain qualified compiler selection and the full CUDA
+architecture set. Per-object compiler/source/header/flag keys validate reuse;
+clean source/build directories, final linking and all tests still run. Runtime
+version metadata affects only the two source files that consume it.
+
+The Host cache is bounded at 2 GiB. Only successful trusted jobs save snapshots;
+PRs can read their permitted branch/default-branch cache scope but cannot publish
+a trusted snapshot. No build tree, installed payload or signing material is
+cached. `--clean-bootstrap` disables compiler and dependency reuse. Bootstrap
+dependency keys and Ubuntu's existing compiler cache are unchanged.
+
+Cold/warm qualification is pending on `host-build-iteration`; record measured
+job times and cache statistics before claiming an iteration-speed improvement.
+See [the implementation and validation plan](../plans/host-build-iteration.plan).
+
 ## Local downloads and cleanup
 
 Use one task-specific staging directory under `build/` when downloading hosted
