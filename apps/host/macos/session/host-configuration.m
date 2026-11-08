@@ -87,6 +87,20 @@ NSString *PLANKMacReadWorkstationUUID(NSData *data) {
     return state[@"UUID"];
 }
 
+BOOL PLANKMacHostConfigurationValidForStartup(NSDictionary *config) {
+    // The parser validates administrator keys and supplies optional defaults.
+    // Validate the values needed to start the listener, not the total number
+    // of parsed settings: adding optional metrics must not block access.
+    return [config isKindOfClass:NSDictionary.class] &&
+        [config[@"Address"] isKindOfClass:NSString.class] &&
+        [config[@"Name"] isKindOfClass:NSString.class] &&
+        [config[@"UUID"] isKindOfClass:NSString.class] &&
+        [config[@"Port"] isKindOfClass:NSNumber.class] &&
+        CFGetTypeID((__bridge CFTypeRef)config[@"Port"]) != CFBooleanGetTypeID() &&
+        [config[@"Port"] doubleValue] == [config[@"Port"] unsignedShortValue] &&
+        [config[@"Port"] unsignedShortValue] != 0;
+}
+
 NSDictionary *PLANKMacReadHostConfiguration(NSString *configDirectory, NSString *stateDirectory,
                                            uid_t owner, BOOL privateFixture) {
     mode_t directoryMode = privateFixture ? 0700 : 0755, fileMode = privateFixture ? 0600 : 0644;

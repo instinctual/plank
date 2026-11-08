@@ -4,7 +4,9 @@ Read `AGENTS.md` and the relevant build runbook first. Machine inventory,
 credentials and private captures stay outside Git. This file records current
 state; older detailed results remain in Git history and the artifact catalog.
 
-The parent and Linux Host checkouts are on `main`. The operator approved merging
+Current root branch is `macos-startup-config`, based on main `a08bd447`.
+Candidate version is 1.4.15. The Linux Host and Client checkouts remain on main.
+The operator approved merging
 `native10-buffer-reuse` and `host-build-iteration`; parent main includes their
 tested checkpoint `5db5e16e`, with Linux Host `c71333d7`. This was a fast-forward
 of the qualified changes, with no new production-code edits. Client main is
@@ -12,7 +14,39 @@ of the qualified changes, with no new production-code edits. Client main is
 metrics/provisioning work is already merged; the private
 appliance repository remains on `master`.
 
-Current task is complete: all four 1.4.14 mainline installers were built on
+## macOS startup configuration regression — correction in progress
+
+A read-only inspection of the authorized Mac after installing 1.4.14 and rebooting
+found the machine coordinator running but the sign-in worker repeatedly exiting
+with `configuration-values`; the connection port was closed. Configuration,
+workstation identity and installed signature checks passed. Metrics were omitted
+from the administrator configuration and therefore disabled.
+
+Metrics commit `510ccae1` added a defaulted internal dictionary field. The complete
+configuration now has eight fields including UUID, but graphical startup retained
+an exact seven-field check. This rejects both sign-in and desktop startup even
+with metrics disabled. Treat macOS Host 1.4.11 through 1.4.14 as affected; the
+1.4.14 Mac Host is not qualified for deployment or publication despite passing
+the earlier component/package checks. Linux Host and Client runtime code are
+unaffected.
+
+The correction replaces the count check with a shared startup-required-values
+validator, retaining the existing type/integer-port checks. The native filesystem
+fixture now passes the complete parsed configuration plus identity through that
+same production validator, covering omitted/disabled/enabled/invalid optional
+metrics and malformed required fields. A source assembly guard requires startup
+to use it. Six local settings guards and 138 CI policy tests pass; native macOS
+tests and a signed Host candidate still need GitHub validation.
+
+The operator explicitly requires metrics disabled by default on macOS Host and
+Client. Both templates and implementations already default false; those defaults
+remain unchanged. The Client's existing policy regression verifies the default,
+so no Client code or update is needed. No target configuration, service or installed
+package was modified during diagnosis. Private evidence stays outside Git.
+
+## Previous mainline build — macOS Host startup failure subsequently found
+
+All four 1.4.14 mainline installers were built on
 GitHub and collected locally, with both Mac PKGs signed, notarized and stapled.
 The operator requested release packages; no GitHub release or endpoint
 installation was performed. Package source is

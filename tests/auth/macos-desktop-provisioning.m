@@ -58,10 +58,37 @@ int main(void) {
         write();
         NSDictionary *automatic = PLANKMacReadHostConfiguration(public, public, getuid(), NO);
         assert(automatic);
+        assert(PLANKMacHostConfigurationValidForStartup(automatic));
+        assert(![automatic[@"Metrics"][@"Enabled"] boolValue]);
         char hostname[256] = {0};
         assert(!gethostname(hostname, sizeof(hostname)));
         assert([automatic[@"Name"] isEqual:[NSString stringWithUTF8String:hostname]]);
         assert([automatic[@"UUID"] isEqual:config[@"UUID"]]);
+        // Exercise the complete file-reader -> startup contract, including the
+        // UUID added after INI parsing. The old seven-field guard rejected it
+        // even when the administrator did not enable metrics.
+        for (NSString *settings in @[@"[metrics]\nmetrics_enabled=false\n",
+                                     @"[metrics]\nmetrics_enabled=true\n",
+                                     @"[metrics]\nmetrics_enabled=true\nmetrics_port=0\n"]) {
+            assert([settings writeToFile:ini atomically:YES encoding:NSUTF8StringEncoding error:NULL]);
+            assert(!chmod(ini.fileSystemRepresentation, 0644));
+            NSDictionary *loaded = PLANKMacReadHostConfiguration(public, public, getuid(), NO);
+            assert(PLANKMacHostConfigurationValidForStartup(loaded));
+            BOOL enabled = [settings isEqual:@"[metrics]\nmetrics_enabled=true\n"];
+            assert([loaded[@"Metrics"][@"Enabled"] boolValue] == enabled);
+        }
+        assert(!PLANKMacHostConfigurationValidForStartup(nil));
+        assert(!PLANKMacHostConfigurationValidForStartup((id)@[]));
+        for (NSString *required in @[@"Address", @"Name", @"UUID", @"Port"]) {
+            NSMutableDictionary *missing = [automatic mutableCopy];
+            [missing removeObjectForKey:required];
+            assert(!PLANKMacHostConfigurationValidForStartup(missing));
+        }
+        for (id port in @[@YES, @0, @(-1), @65536, @28989.5, @"28989", NSNull.null]) {
+            NSMutableDictionary *invalid = [automatic mutableCopy];
+            invalid[@"Port"] = port;
+            assert(!PLANKMacHostConfigurationValidForStartup(invalid));
+        }
         assert(!PLANKMacReadHostConfiguration(public, public, 0, NO));
         config[@"UUID"] = @"invalid"; write();
         assert(!PLANKMacReadHostConfiguration(public, public, getuid(), NO));
@@ -72,7 +99,7 @@ int main(void) {
         assert(!symlink(keyPath.fileSystemRepresentation, path.fileSystemRepresentation));
         assert(!PLANKMacReadHostConfiguration(public, public, getuid(), NO));
         assert([fm removeItemAtPath:root error:NULL]);
-        puts("desktop_provisioning_pass=1 distinct_keys=1 preserve_keys=1 unsafe_paths_denied=1 permissions_unchanged=1");
+        puts("desktop_provisioning_pass=1 distinct_keys=1 preserve_keys=1 unsafe_paths_denied=1 permissions_unchanged=1 startup_configuration_pass=1 metrics_default_off=1");
     }
     return 0;
 }

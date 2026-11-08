@@ -8,6 +8,11 @@ HOST = ROOT / "apps/host/macos"
 
 
 class HostSettings(unittest.TestCase):
+    def test_graphical_startup_uses_the_configuration_contract(self):
+        main = (HOST / "session/host-main.m").read_text()
+        self.assertIn("PLANKMacHostConfigurationValidForStartup(config)", main)
+        self.assertNotRegex(main, r"config\.count\s*(?:!=|==)")
+
     def test_configuration_reaches_transport_without_changing_setup_deadline(self):
         main = (HOST / "session/host-main.m").read_text()
         runtime = (HOST / "session/host-runtime.m").read_text()
@@ -47,6 +52,9 @@ class HostSettings(unittest.TestCase):
         for value in ("ping_timeout = 10000", "publish_session_user = false", "BEFORE authentication",
                       "200 through 120000", "Unreachable host timeout", "LoginWindow"):
             self.assertIn(value, template)
+        self.assertIn("metrics_enabled = false", template)
+        client_template = (ROOT / "packaging/client/config/plank-client.conf").read_text()
+        self.assertIn("metrics_enabled = false", client_template)
 
     def test_hostname_reference_uses_an_optional_override(self):
         template = (ROOT / "packaging/host/macos/config/plank-host.conf").read_text()

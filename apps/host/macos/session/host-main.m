@@ -220,12 +220,7 @@ static int graphical(const char *service, NSString *role, NSString *directory, B
     NSMutableData *certificatePEM = readPrivate(fd, "cert.pem"), *keyPEM = readPrivate(fd, "key.pem");
     close(fd);
     NSDictionary *config = publicConfiguration ?: PLANKMacReadHostConfiguration(directory, directory, geteuid(), YES);
-    if (![config isKindOfClass:NSDictionary.class] || config.count != 7 ||
-        ![config[@"Address"] isKindOfClass:NSString.class] || ![config[@"Name"] isKindOfClass:NSString.class] ||
-        ![config[@"UUID"] isKindOfClass:NSString.class] || ![config[@"Port"] isKindOfClass:NSNumber.class] ||
-        CFGetTypeID((__bridge CFTypeRef)config[@"Port"]) == CFBooleanGetTypeID() ||
-        [config[@"Port"] doubleValue] != [config[@"Port"] unsignedShortValue] ||
-        [config[@"Port"] unsignedShortValue] == 0) return startupFailure("configuration-values");
+    if (!PLANKMacHostConfigurationValidForStartup(config)) return startupFailure("configuration-values");
     if (!samePEM(certificatePEM, certificateBytes, @"CERTIFICATE")) return startupFailure("certificate-files");
     if (!samePEM(keyPEM, keyBytes, @"RSA PRIVATE KEY")) return startupFailure("private-key-files");
     SecCertificateRef certificate = SecCertificateCreateWithData(NULL, (__bridge CFDataRef)certificateBytes);
