@@ -26,9 +26,20 @@ measurements. See [scope and qualification](docs/development/plans/native10-buff
 
 Normal and ASan/UBSan behavioral fixtures pass, including burst reuse, failed
 allocation, owned-buffer safety, pageable overflow and display replacement.
-131 CI policy tests pass. Hardware-only probes compile; hosted package and
-real SHM/CUDA comparison remain pending. No Host installation or session restart
-has occurred. Operational measurements and deployment details remain private.
+131 CI policy tests pass. Standalone hardware probes from exact root `e54e5639`
+/ Host `35a44af8` passed real SHM/CUDA comparisons: at 5120x2160, four real-time
+idle/burst cycles used six initial allocations/no retirements, versus 21/15 with
+the prior policy. Warm acquisition median was 0.002335 ms versus 10.146 ms. All
+uploaded RGB10 bits matched and the pin budget returned to zero. This isolates
+buffer work; it is not a frame-rate or whole-stream latency claim. The active
+Host process remained unchanged, with no installation or session restart.
+
+The first GitHub run `42448939300` restored all four existing dependency caches,
+then stopped before application compilation because the newly enabled sanitizer
+gate lacked GCC 14 sanitizer development libraries. CI now installs these test-only
+prerequisites after dependency bootstrap; the product source is unchanged.
+Replacement hosted integration/package and installed stream acceptance are pending. Sanitized evidence is in `artifacts/qualification/native10-buffer-reuse-1.4.13/`;
+operational measurements and deployment details remain private.
 
 ## Mainline 1.4.12 — published
 

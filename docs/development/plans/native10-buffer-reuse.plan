@@ -63,6 +63,33 @@ concurrently. Pixel conversion and CUDA synchronization are unchanged.
   and reconnect cleanup remain separate acceptance checks. Synthetic pool timings
   must not be presented as a measured frame-rate or GNOME CPU improvement.
 
-Status: portable and sanitizer fixtures pass; 131 CI policy tests pass. Hardware
-probes compile with warnings treated as errors. Hosted package and hardware
-comparison results are pending. No installed service has been changed.
+Portable and sanitizer fixtures pass; 131 CI policy tests pass. Hardware probes
+compile with warnings treated as errors. The qualified Rocky builder produced
+standalone probes from exact root `e54e5639` / Host `35a44af8`; the installable
+RPM is built separately on GitHub. Initial run `42448939300` restored all four
+dependency caches but lacked the newly required GCC 14 ASan/UBSan development
+libraries. CI now installs those test-only packages after dependency bootstrap,
+without rebuilding or changing the uninstrumented cached dependencies. No product
+source change or relaxed sanitizer gate was needed.
+
+The hardware-only comparison passed on the qualified NVIDIA GPU/595.104.02 with
+an existing graphical workload active. Four real-time idle/burst cycles per case:
+
+| Frame size | Retention | Allocations / idle retirements | Warm acquire median | Warm acquire p95 |
+| --- | --- | --- | --- | --- |
+| 3840x2160 | Previous policy | 29 / 21 | 7.842 ms | 18.622 ms |
+| 3840x2160 | Eight buffers | 8 / 0 | 0.002234 ms | 0.014338 ms |
+| 5120x2160 | Previous policy | 21 / 15 | 10.146 ms | 16.295 ms |
+| 5120x2160 | Six buffers | 6 / 0 | 0.002335 ms | 0.004258 ms |
+
+Every RGB10 upload/readback matched bit-for-bit; SHM permissions and final pin
+budget release passed. The separate pinned/pageable upload probe also passed
+at both sizes. No X11 capture, service installation or session restart was
+performed; the running Host process was preserved and remote scratch removed.
+These measurements demonstrate avoided allocation cost under the tested demand
+pattern, not a reduction of the complete capture/encode latency by that amount.
+They do not qualify installed x264/NVENC streaming. Sanitized binary hashes,
+source provenance and detailed measurements are retained under
+`artifacts/qualification/native10-buffer-reuse-1.4.13/`.
+
+Hosted integration/RPM gates and installed streaming acceptance remain pending.
