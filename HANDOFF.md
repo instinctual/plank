@@ -12,10 +12,12 @@ of the qualified changes, with no new production-code edits. Client main is
 metrics/provisioning work is already merged; the private
 appliance repository remains on `master`.
 
-Current task: build all four 1.4.14 mainline installers on GitHub, including
-signed/notarized Mac PKGs, then verify and collect them locally. Reuse qualified
-dependency caches and Host compiler outputs. The operator requested release
-packages; GitHub publication and endpoint installation are separate actions.
+Current task is complete: all four 1.4.14 mainline installers were built on
+GitHub and collected locally, with both Mac PKGs signed, notarized and stapled.
+The operator requested release packages; no GitHub release or endpoint
+installation was performed. Package source is
+`0c197608ff6498663e8b9631732adfa13d53e2c8`, with Host `c71333d7`, Client
+`bfc3d47e` and Kymux `9e1a7e30`. Later documentation commits are not package source.
 
 The operator paused the Native10 tearing investigation on November 8 and
 requested deletion of `native10-coherence`. That branch is removed locally and
@@ -39,8 +41,37 @@ HTTP 504 failures downloading Gitleaks before scanning. These build checks are
 separate from installed-session acceptance and signed release packaging.
 
 Package base version is 1.4.14; the latest published release remains 1.4.12.
-The requested 1.4.14 mainline build is now being prepared. Existing
-branch-qualified artifacts retain their original provenance.
+The 1.4.14 packages are ready in `artifacts/packages/releases/1.4.14/`:
+
+| Product | Successful workflow | Package |
+| --- | --- | --- |
+| Linux Host | `42496514834` | `linux/plank-host-1.4.14-1.el9.x86_64.rpm` |
+| Ubuntu Client | `42496517856` | `linux/plank-client_1.4.14_amd64.deb` |
+| macOS Host | `42496520517` | `macos/plank-host_1.4.14_arm64.pkg` |
+| macOS Client | `42496522964` | `macos/plank-client_1.4.14_arm64.pkg` |
+
+All four workflows passed on their first attempt. Original builder manifests,
+package sizes/SHA-256 values and source pins match the collected catalog; the
+combined `SHA256SUMS` passes. Both Mac installers passed Gatekeeper checks,
+with Host minimum 26.7 and Client minimum 15. All four reused dependency caches;
+Linux Host compiler hits include 339 C/C++, 151 Rust and six CUDA compilations,
+and Client hits include 325 C/C++ and 66 Rust compilations. No failed-build retry
+or test threshold change was needed.
+
+Linux transport passed three 900-frame matrices at 150 Mbps, with zero unrecovered
+frames/source symbols and zero proxy kernel drops. Hosted Mac functional checks
+passed. Transport sources are identical to published 1.4.12, whose hardware
+qualification is retained; no new Mac performance soak or installed-session
+acceptance was performed for these packages. Existing Native10 buffer acceptance
+is recorded below; the tearing limitation remains unchanged.
+
+Evidence, recursive pins, original manifests and Qt compositor/input reports are
+in `artifacts/qualification/mainline-1.4.14/`; raw CI logs are retained privately.
+Package download/extraction staging was removed. Release notes are in
+[docs/releases/1.4.14.md](docs/releases/1.4.14.md), and the same short Host changes
+are bundled in the Client changelog. Existing candidate artifacts retain their
+original identities. Publishing remains a separate requested action; if approved,
+tag the exact package source above rather than a later documentation checkpoint.
 
 The operator retired 31 fully merged feature branches on November 8: eight in
 PLANK, eight in Linux Host and fifteen in Client, locally and on GitHub. Six
