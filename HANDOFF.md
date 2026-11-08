@@ -4,6 +4,49 @@ Read `AGENTS.md` and the relevant build runbook first. Machine inventory,
 credentials and private captures stay outside Git. This file records current
 state; older detailed results remain in Git history and the artifact catalog.
 
+## Mainline 1.4.12 — four verified packages, publication held
+
+All four packages were rebuilt on GitHub from exact main source
+`0cf0923b952685f918ceed53c8f39391de0e0651`. Client pin `d8cdba22` adds only the
+1.4.12 changelog to tested production source `821e77da`; Linux Host remains
+`8ca14f4e`, Kymux `9e1a7e30` and Client common-C `c7d1b831`.
+
+| Product | Successful workflow | Package |
+| --- | --- | --- |
+| Linux Host | `42430611389`, attempt 2 | `linux/plank-host-1.4.12-1.el9.x86_64.rpm` |
+| Ubuntu Client | `42430613670` | `linux/plank-client_1.4.12_amd64.deb` |
+| macOS Host | `42430616032` | `macos/plank-host_1.4.12_arm64.pkg` |
+| macOS Client | `42430618497` | `macos/plank-client_1.4.12_arm64.pkg` |
+
+Catalog: `artifacts/packages/releases/1.4.12/`. All four original builder hashes,
+source commits and gitlinks match; the combined `SHA256SUMS` check passes. Both
+Mac PKGs are signed, notarized and stapled, with Gatekeeper verification passed.
+Host minimum is 26.7; Client minimum is 15.0. Exact-input dependencies were reused
+for all four products, including Host FFmpeg/Boost and Client FFmpeg/Qt.
+
+The first Linux Host attempt failed the initial-lane loopback assertion expecting
+zero missing source symbols before FEC: it observed 42 after the entire video
+payload had already recovered byte-for-byte. The same test passed in the separate
+transport run. One unchanged retry passed the full Host gate, including that
+assertion and all three loss matrices. No source, test or threshold was changed.
+This suggests transient loopback loss/timing; kernel loss was not measured in
+that failing case. Retain the first-failure record rather than presenting it as
+a first-attempt pass.
+
+Transport workflow `42430620413` passed on Linux and macOS. Its exact Mac test
+binary, SHA256 `999dd66f6d26a8aaf00019fa4c50aadf573472ec47f8fd4aaedc2bfafbb5942b`,
+also passed three 900-frame, 150 Mbps matrices on the authorized development Mac:
+zero unrecovered frames, maximum delivery 21.853 ms, worst p95 11.152 ms and
+maximum receive gap 30.431 ms. Host/Terminal processes were preserved and scratch
+was removed. Mac kernel drop counts remain unavailable.
+
+Original manifests, recursive source pins, cache/signing checks, Qt/input test
+reports and sanitized performance/failure records are retained in
+`artifacts/qualification/mainline-1.4.12/`. Raw operational logs stay private.
+Package gates and loopback qualification do not replace installed hardware
+acceptance. No new product was installed, no release tag was created and no
+GitHub release was published. Existing branch candidates retain their provenance.
+
 ## Metrics / Telegraf — merged into main; Linux collection verified
 
 Current branch: **`main`**. The operator authorized merging the completed metrics
@@ -15,11 +58,8 @@ completed branch is merged into its default branch as well. No product code was
 changed while merging. Native Apple development and contributor Host test/signing
 branches remain separate from this work.
 
-The operator requested all four mainline 1.4.12 packages. Rebuild them through
-GitHub-hosted Actions with exact-input caches, signed/notarized Mac PKGs and
-original manifest/checksum collection. Package publication and endpoint
-installation are separate from this build request. Retain the original candidate
-artifacts; do not rename them into mainline packages.
+The requested mainline 1.4.12 package rebuild is complete as recorded above.
+Package publication and endpoint installation remain separate from this request.
 
 The initial 1.4.11 baseline uses product source `816b1e18`. The 1.4.12 follow-up
 at `ffa0f92d` adds Ubuntu pen-activity metrics and is installed on both authorized
@@ -220,8 +260,8 @@ Only Telegraf was restarted; PLANK processes were preserved.
 Remaining provisioning acceptance is a fresh-appliance installation using an
 available metrics-capable package. Mac installation remains out of scope.
 The source merge does not replace those remaining checks. Existing candidates
-retain their original versions/provenance. The mainline rebuild is now requested;
-release publication and further installations are not part of that request.
+retain their original versions/provenance. Mainline packages are now built and
+verified; release publication and further installations are not part of that request.
 
 ## Code review hardening — accepted and merged into main
 
