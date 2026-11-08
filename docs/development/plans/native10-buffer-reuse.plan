@@ -1,0 +1,68 @@
+# Native X11 capture buffer reuse
+
+## Scope
+
+The operator approved bounded buffer reuse first, followed by validation.
+Unchanged-screen/damage filtering is explicitly out of scope. GPU-resident
+true 10-bit capture is a separate future investigation. Preserve continuous
+full-frame capture, exact RGB10 identity, x264 and direct HEVC NVENC, private
+SHM permissions, and existing frame queues and GPU completion ordering.
+
+Branch: `native10-buffer-reuse`, based on root `6e0c96de` and Linux Host
+`8ca14f4e`. Candidate version: `1.4.13-native10-buffer-reuse`. No Client,
+macOS, transport, dependency or protocol changes.
+
+## Implementation
+
+The existing twelve-slot image pool remains lazy and bounded. Native10 keeps
+already acquired buffers available within a 256 MiB retention floor: eight
+3840x2160 images or six 5120x2160 images. It does not allocate that many buffers
+ahead or enqueue additional frames. Temporary demand above this floor retains
+the existing three-second high-water policy and twelve-slot ceiling. NvFBC
+uses the original zero-floor policy.
+
+CUDA-registered images are selected before pageable images, and idle pageable
+overflow is retired first. A still-owned pageable overflow image cannot displace
+an otherwise reusable registered buffer. Once consumers release the overflow,
+the pool returns to its retention floor. The independent, process-wide CUDA pin
+budget remains 256 MiB, including images held across capture generations.
+Registration failures still use the existing pageable path. x264 images use
+the same SHM retention without CUDA registration or GPU roundtrips.
+
+The production pool is extracted into a portable header for behavioral tests.
+Moving an existing list node now uses splice, avoiding an allocation on reuse.
+Display reinitialization releases pool references and clears usage history;
+images still held by an encoder retain their existing shared lifetime.
+
+`native10_pool_acquire` includes allocation, reuse, trimming and backpressure.
+`native10_capture_total` now includes that stage; the frame timestamp remains
+at actual XShm acquisition, so allocation time is not represented as an older
+captured frame. Per-allocation logs report total allocation and CUDA-registration
+durations; the completed capture reports allocations, retirements and peak slots.
+Dummy encoder initialization no longer updates capture-thread timing arrays
+concurrently. Pixel conversion and CUDA synchronization are unchanged.
+
+## Validation
+
+- Normal and ASan/UBSan Native10 fixtures cover exact RGB10 values, geometry
+  errors, CUDA registration rollback, byte/count bounds, warm reuse, allocation
+  failure, full-pool backpressure, consumer ownership, display replacement and
+  pageable overflow/pinned-buffer preference.
+- A deterministic twenty-burst fixture reproduces 101 allocations/100 retirements
+  with the prior zero-floor policy versus six allocations/no retirements with
+  six retained images. This proves allocation behavior, not streaming latency.
+- Hosted Linux Host CI runs the sanitizer suite and compiles two hardware-only
+  SHM/CUDA probes into its qualification artifact. No GPU probe runs on CI.
+- `pool-upload` compares the production policies with real SHM, CUDA registration,
+  real four-second gaps and synthetic RGB10 uploads at 3840x2160 and 5120x2160.
+  It checks every uploaded bit, owner-only SHM and complete pin-budget release.
+  It does not open X11, read/save desktop pixels or change a session.
+- The regular `upload` probe checks pinned/pageable uploads independently.
+- Full Host build, package, input, audio and transport gates remain mandatory.
+  Exact-package installed x264/HEVC streaming, fullscreen playback, display changes
+  and reconnect cleanup remain separate acceptance checks. Synthetic pool timings
+  must not be presented as a measured frame-rate or GNOME CPU improvement.
+
+Status: portable and sanitizer fixtures pass; 131 CI policy tests pass. Hardware
+probes compile with warnings treated as errors. Hosted package and hardware
+comparison results are pending. No installed service has been changed.

@@ -11,6 +11,9 @@ case $role in
     export PLANK_HOST_FFMPEG_BUILD="$PLANK_SOURCE_ROOT/apps/host/linux/third-party/build-deps/build"
     export PLANK_HOST_FFMPEG_ROOT="$PLANK_DEP_ROOT/host-ffmpeg"
     export PLANK_BOOST_SOURCE_DIR="$PLANK_DEP_ROOT/boost-1.92.0"
+    CXX=/opt/rh/gcc-toolset-14/root/usr/bin/g++ PLANK_NATIVE10_SANITIZERS=1 \
+      bash "$PLANK_SOURCE_ROOT/scripts/test/test-linux-native10.sh" "$PLANK_WORK_ROOT/native10-sanitizers"
+    bash "$PLANK_SOURCE_ROOT/scripts/test/build-linux-native10-probes.sh" "$PLANK_ARTIFACT_ROOT/qualification/native10"
     mkdir -p "$PLANK_SOURCE_ROOT/apps/host/linux/cmake-build-ffmpeg-x264rgb-install" "$PLANK_WORK_ROOT/tmp"
     ln -s "$PLANK_HOST_FFMPEG_ROOT" "$PLANK_SOURCE_ROOT/apps/host/linux/cmake-build-ffmpeg-x264rgb-install/ffmpeg"
     bash "$PLANK_SOURCE_ROOT/scripts/ci/test-linux-host-input.sh" "$PLANK_WORK_ROOT/host-build"

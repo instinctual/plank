@@ -5,11 +5,30 @@ credentials and private captures stay outside Git. This file records current
 state; older detailed results remain in Git history and the artifact catalog.
 
 Completed release, metrics and provisioning work is committed and merged into
-the maintained default branches. Canonical product checkouts are on `main`;
+the maintained default branches. New Linux Host work is on `native10-buffer-reuse`;
 the private appliance repository uses `master`. The final audit found clean
 working trees and no unpublished local commits, including retained worktrees.
 Native Apple development remains intentionally separate, and the contributor
 Host test/signing branches remain explicitly retained as detailed below.
+
+## Native10 buffer reuse — candidate in progress
+
+The operator approved buffer reuse first and explicitly skipped unchanged-screen
+filtering. GPU-resident capture remains a later investigation. Root/Host branch
+`native10-buffer-reuse` starts at root `6e0c96de` / Host `8ca14f4e`; candidate
+version is `1.4.13-native10-buffer-reuse`. Client and transport pins are unchanged.
+
+Native10 lazily retains reusable SHM within a 256 MiB floor, preferring existing
+CUDA registrations. The twelve-slot ceiling, CUDA pin cap, frame queues, actual
+capture cadence, x264/NVENC conversion and synchronization remain unchanged.
+Pool/registration timing now exposes costs previously excluded from capture
+measurements. See [scope and qualification](docs/development/plans/native10-buffer-reuse.plan).
+
+Normal and ASan/UBSan behavioral fixtures pass, including burst reuse, failed
+allocation, owned-buffer safety, pageable overflow and display replacement.
+131 CI policy tests pass. Hardware-only probes compile; hosted package and
+real SHM/CUDA comparison remain pending. No Host installation or session restart
+has occurred. Operational measurements and deployment details remain private.
 
 ## Mainline 1.4.12 — published
 

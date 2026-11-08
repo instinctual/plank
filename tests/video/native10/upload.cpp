@@ -2,8 +2,8 @@
 // no X server, screen contents, display configuration, encoder or service changes.
 #include "src/platform/linux/cuda_host_registration.h"
 #include <cstdio>
-#define FFNV_LOG_FUNC(ctx, msg, ...) std::fprintf(stderr, msg, ##__VA_ARGS__)
-#define FFNV_DEBUG_LOG_FUNC(ctx, msg, ...) do {} while (0)
+#define FFNV_LOG_FUNC(ctx, msg, ...) do { (void)(ctx); std::fprintf(stderr, msg, ##__VA_ARGS__); } while (0)
+#define FFNV_DEBUG_LOG_FUNC(ctx, msg, ...) do { (void)(ctx); } while (0)
 #include <ffnvcodec/dynlink_loader.h>
 #include <sys/shm.h>
 #include <algorithm>
@@ -24,7 +24,7 @@ struct Frame {
     void* data = reinterpret_cast<void*>(-1);
     CUdeviceptr device = 0;
     CUstream stream = nullptr;
-    std::unique_ptr<cuda::host_memory_registration_t> registration;
+    std::unique_ptr<cuda::host_memory_registration_t> registration {};
     ~Frame() {
         if (stream) driver->cuStreamSynchronize(stream);
         registration.reset();
