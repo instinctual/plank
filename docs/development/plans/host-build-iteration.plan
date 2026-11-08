@@ -5,6 +5,11 @@ caching after a small Native10 change repeatedly waited on full package builds.
 Branch `host-build-iteration` is based on the complete `native10-buffer-reuse`
 candidate. It preserves that work; GPU-resident capture remains deferred.
 
+The operator approved merging this work and its buffer-reuse base into parent
+and Linux Host `main` on November 8. The qualified code checkpoint is parent
+`5db5e16e` / Host `c71333d7`; the separate `native10-coherence` diagnostics remain
+unmerged. This merge does not relabel existing candidate packages or publish a release.
+
 ## Two explicit paths
 
 `bash scripts/ci/dispatch.sh linux-native10-tests false` compiles the actual

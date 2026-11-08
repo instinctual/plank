@@ -4,15 +4,26 @@ Read `AGENTS.md` and the relevant build runbook first. Machine inventory,
 credentials and private captures stay outside Git. This file records current
 state; older detailed results remain in Git history and the artifact catalog.
 
-Completed release, metrics and provisioning work is committed and merged into
-the maintained default branches. Current Root/Host work is on `host-build-iteration`,
-based on the completed `native10-buffer-reuse` candidate;
-the private appliance repository remains on `master`. The current feature work
-is committed/pushed separately and has not been merged or released.
-Native Apple development remains intentionally separate, and the contributor
-Host test/signing branches remain explicitly retained as detailed below.
+The parent and Linux Host checkouts are on `main`. The operator approved merging
+`native10-buffer-reuse` and `host-build-iteration`; parent main includes their
+tested checkpoint `5db5e16e`, with Linux Host `c71333d7`. This was a fast-forward
+of the qualified changes, with no new production-code edits. Client main remains
+`d8cdba22`. Earlier metrics/provisioning work is already merged; the private
+appliance repository remains on `master`.
 
-## Fast Host iteration — qualified; committed/pushed, not merged
+The tearing investigation remains separate on `native10-coherence` at `931641c1`.
+Its probes, NvFBC reference repair and detailed findings are not part of this
+merge. Raw pre-encoder mixing was reproduced, but no production fix is established.
+All diagnostic processes/windows/staging were cleaned up; the operator's NvFBC
+session was left running. Consult that branch's HANDOFF/plan and private notes
+before resuming. Native Apple development and contributor Host test/signing
+branches remain retained as detailed below; no branch was deleted.
+
+Package base version is 1.4.14; the latest published release remains 1.4.12.
+No new manual package build, installation or release was requested for this
+merge. Existing branch-qualified artifacts retain their original provenance.
+
+## Fast Host iteration — qualified and merged
 
 The operator authorized a fast component path and Host compiler-output caching.
 Root/Host branch `host-build-iteration` starts from buffer candidate root `b57e0796`
@@ -51,7 +62,7 @@ Host. Manifests, statistics, timings and binary comparisons are retained in
 `42452541232` was cancelled during dependency restore to correct the Rust smoke
 command before application compilation; that diagnostic run produced no candidate.
 
-## Native10 buffer reuse — installed HEVC session accepted
+## Native10 buffer reuse — merged; installed HEVC session accepted
 
 The operator approved buffer reuse first and explicitly skipped unchanged-screen
 filtering. GPU-resident capture remains a later investigation. Root/Host branch

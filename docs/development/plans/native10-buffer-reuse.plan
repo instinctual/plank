@@ -12,6 +12,10 @@ Branch: `native10-buffer-reuse`, based on root `6e0c96de` and Linux Host
 `8ca14f4e`. Candidate version: `1.4.13-native10-buffer-reuse`. No Client,
 macOS, transport, dependency or protocol changes.
 
+The operator accepted installed HEVC playback and approved merging this work
+through `host-build-iteration` into parent and Linux Host `main` on November 8.
+The separate tearing investigation is not part of that merge.
+
 ## Implementation
 
 The existing twelve-slot image pool remains lazy and bounded. Native10 keeps
