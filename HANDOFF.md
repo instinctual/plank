@@ -14,7 +14,7 @@ of the qualified changes, with no new production-code edits. Client main is
 metrics/provisioning work is already merged; the private
 appliance repository remains on `master`.
 
-## macOS startup configuration regression — signed correction ready
+## macOS startup configuration regression — installed startup verified
 
 A read-only inspection of the authorized Mac after installing 1.4.14 and rebooting
 found the machine coordinator running but the sign-in worker repeatedly exiting
@@ -47,16 +47,23 @@ SHA256 `1714ae12436a20a5cdffb3e5469895e2d2bb38cad73822606e13978729c2774c`.
 Its original manifest, workflow metadata and validation report are under
 `artifacts/qualification/macos-startup-config-1.4.15/`. Archive/package hashes,
 source pins and the macOS 26.7 minimum target match. Download staging is removed.
-Installed startup/session acceptance remains pending: the authorized Mac's SSH
-account currently lacks unattended administrative installation access. No
-candidate is installed, merged or published; this does not clear the affected
-older Mac Host packages for deployment.
+The operator authorized installation on the development Mac. The exact PKG
+installed successfully; the installed executable matches the package payload
+(SHA256 `4b9702ed3fe0ef88b0b97124408265ca0778197c88e3ba1c117c5f90ab963131`),
+and its signature passes. The machine and sign-in workers remain running, with
+repeated HTTP 200 responses from the control endpoint. The sign-in log confirms
+the listener is ready on all IPv4 interfaces. Metrics remain disabled with no
+listener on the default metrics port. Configuration and workstation identity
+hashes are unchanged. No reboot was performed; temporary installation files
+were removed after verification. Interactive desktop/session acceptance remains
+pending. The branch is not merged or published, and this does not clear the
+affected older Mac Host packages for deployment.
 
 The operator explicitly requires metrics disabled by default on macOS Host and
 Client. Both templates and implementations already default false; those defaults
 remain unchanged. The Client's existing policy regression verifies the default,
-so no Client code or update is needed. No target configuration, service or installed
-package was modified during diagnosis. Private evidence stays outside Git.
+so no Client code or update is needed. Diagnosis was read-only; the subsequent
+installation used the normal signed PKG. Private evidence stays outside Git.
 
 ## Previous mainline build — macOS Host startup failure subsequently found
 
