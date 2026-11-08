@@ -41,9 +41,18 @@ PLANK, eight in Linux Host and fifteen in Client, locally and on GitHub. Six
 matching `macos-signing` permissions were removed. No target had an active build,
 checked-out worktree or contributor approval. Accepted code remains in main;
 the Apple-native/AVP branches and both approved Host test branches retain their
-original refs, worktrees and signing access. The two closed Dependabot branches
-were outside this requested list and remain. All three canonical checkouts are
+original refs, worktrees and signing access. All three canonical checkouts are
 clean on main; this cleanup changes documentation and branch metadata only.
+
+The obsolete Kymux Dependabot branch from PLANK #26 was then separately removed
+at the operator's request. Its changes are already incorporated through the
+tested reconciliation in main; the current Kymux pin contains its proposed
+commit. Linux Host #13 was reviewed and closed on November 5 because the unused
+Host Wayland capture code and `wayland-protocols` dependency had been removed.
+Its leftover Dependabot branch remains pending a separate cleanup instruction;
+it is not unfinished implementation work. See the closing explanations for
+[#26](https://github.com/instinctual/plank/pull/26#issuecomment-6665787832) and
+[Host #13](https://github.com/instinctual/plank-host-linux/pull/13#issuecomment-6664157716).
 
 ## Fast Host iteration — qualified and merged
 
