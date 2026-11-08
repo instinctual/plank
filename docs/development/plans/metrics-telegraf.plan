@@ -87,9 +87,9 @@ and ZeroTier cleanup commits were pulled and preserved. A full fresh-appliance
 installation has not been run; its older package pins are not promoted to a
 candidate absent from the provisioning server.
 The operator authorized the source merges and a mainline package rebuild.
-All four 1.4.12 installers are built and verified; HANDOFF records the exact
-source, workflow attempts and qualification limits. GitHub release publication
-and further endpoint provisioning remain separate work.
+All four 1.4.12 installers are built, verified and published in `v1.4.12`;
+HANDOFF records the exact source, workflow attempts and qualification limits.
+Publication does not perform further endpoint provisioning or hardware acceptance.
 
 ## Ubuntu Wacom activity follow-up
 

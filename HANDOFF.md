@@ -4,7 +4,14 @@ Read `AGENTS.md` and the relevant build runbook first. Machine inventory,
 credentials and private captures stay outside Git. This file records current
 state; older detailed results remain in Git history and the artifact catalog.
 
-## Mainline 1.4.12 — four verified packages, publication held
+## Mainline 1.4.12 — published
+
+[PLANK 1.4.12](https://github.com/instinctual/plank/releases/tag/v1.4.12) is the
+latest published release. Tag `v1.4.12` points to the exact package source below.
+All six uploaded assets (four installers, checksums and manifest), their sizes
+and GitHub SHA-256 digests match the verified local files. Release notes are in
+[docs/releases/1.4.12.md](docs/releases/1.4.12.md). The published checksums and
+manifest use flat download filenames; the local catalog keeps platform folders.
 
 All four packages were rebuilt on GitHub from exact main source
 `0cf0923b952685f918ceed53c8f39391de0e0651`. Client pin `d8cdba22` adds only the
@@ -44,8 +51,8 @@ Original manifests, recursive source pins, cache/signing checks, Qt/input test
 reports and sanitized performance/failure records are retained in
 `artifacts/qualification/mainline-1.4.12/`. Raw operational logs stay private.
 Package gates and loopback qualification do not replace installed hardware
-acceptance. No new product was installed, no release tag was created and no
-GitHub release was published. Existing branch candidates retain their provenance.
+acceptance. Publication did not install or upgrade any endpoint. Existing branch
+candidates retain their original provenance.
 
 ## Metrics / Telegraf — merged into main; Linux collection verified
 
@@ -58,8 +65,8 @@ completed branch is merged into its default branch as well. No product code was
 changed while merging. Native Apple development and contributor Host test/signing
 branches remain separate from this work.
 
-The requested mainline 1.4.12 package rebuild is complete as recorded above.
-Package publication and endpoint installation remain separate from this request.
+The requested mainline 1.4.12 package rebuild and subsequent publication are
+complete as recorded above. Further endpoint installation is separate work.
 
 The initial 1.4.11 baseline uses product source `816b1e18`. The 1.4.12 follow-up
 at `ffa0f92d` adds Ubuntu pen-activity metrics and is installed on both authorized
@@ -260,8 +267,9 @@ Only Telegraf was restarted; PLANK processes were preserved.
 Remaining provisioning acceptance is a fresh-appliance installation using an
 available metrics-capable package. Mac installation remains out of scope.
 The source merge does not replace those remaining checks. Existing candidates
-retain their original versions/provenance. Mainline packages are now built and
-verified; release publication and further installations are not part of that request.
+retain their original versions/provenance. Mainline packages are now built,
+verified and published. Further installations and hardware acceptance remain
+separate work.
 
 ## Code review hardening — accepted and merged into main
 
