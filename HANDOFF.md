@@ -4,6 +4,13 @@ Read `AGENTS.md` and the relevant build runbook first. Machine inventory,
 credentials and private captures stay outside Git. This file records current
 state; older detailed results remain in Git history and the artifact catalog.
 
+Completed release, metrics and provisioning work is committed and merged into
+the maintained default branches. Canonical product checkouts are on `main`;
+the private appliance repository uses `master`. The final audit found clean
+working trees and no unpublished local commits, including retained worktrees.
+Native Apple development remains intentionally separate, and the contributor
+Host test/signing branches remain explicitly retained as detailed below.
+
 ## Mainline 1.4.12 — published
 
 [PLANK 1.4.12](https://github.com/instinctual/plank/releases/tag/v1.4.12) is the
