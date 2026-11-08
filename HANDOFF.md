@@ -7,9 +7,15 @@ state; older detailed results remain in Git history and the artifact catalog.
 The parent and Linux Host checkouts are on `main`. The operator approved merging
 `native10-buffer-reuse` and `host-build-iteration`; parent main includes their
 tested checkpoint `5db5e16e`, with Linux Host `c71333d7`. This was a fast-forward
-of the qualified changes, with no new production-code edits. Client main remains
-`d8cdba22`. Earlier metrics/provisioning work is already merged; the private
+of the qualified changes, with no new production-code edits. Client main is
+`bfc3d47e`, adding only the 1.4.14 changelog to accepted `d8cdba22`. Earlier
+metrics/provisioning work is already merged; the private
 appliance repository remains on `master`.
+
+Current task: build all four 1.4.14 mainline installers on GitHub, including
+signed/notarized Mac PKGs, then verify and collect them locally. Reuse qualified
+dependency caches and Host compiler outputs. The operator requested release
+packages; GitHub publication and endpoint installation are separate actions.
 
 The operator paused the Native10 tearing investigation on November 8 and
 requested deletion of `native10-coherence`. That branch is removed locally and
@@ -33,8 +39,8 @@ HTTP 504 failures downloading Gitleaks before scanning. These build checks are
 separate from installed-session acceptance and signed release packaging.
 
 Package base version is 1.4.14; the latest published release remains 1.4.12.
-No new manual package build, installation or release was requested for this
-merge. Existing branch-qualified artifacts retain their original provenance.
+The requested 1.4.14 mainline build is now being prepared. Existing
+branch-qualified artifacts retain their original provenance.
 
 The operator retired 31 fully merged feature branches on November 8: eight in
 PLANK, eight in Linux Host and fifteen in Client, locally and on GitHub. Six
