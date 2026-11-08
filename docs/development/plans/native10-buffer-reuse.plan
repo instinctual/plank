@@ -96,4 +96,21 @@ Hosted integration/RPM gates passed in run `42449585395`, attempt 2, at root
 `b57e0796`. Attempt 1 hit the previously observed zero-before-FEC-loss assertion
 (174 missing source symbols after exact video recovery); the unchanged retry
 passed every gate. No transport code or threshold changed. The 1.4.13 RPM is
-verified in the candidate catalog. Installed streaming acceptance remains pending.
+verified in the candidate catalog and installed on the authorized hardware Host.
+Installed/private-binary and running-supervisor hashes match; administrator
+configuration was preserved. The operator confirmed normal playback after reconnect.
+
+Installed Native10/HEVC NVENC at 5120x2160 ran for approximately 19 minutes:
+68,450 captured frames, two pool allocations, zero retirements, pool waits or
+allocation failures. Mean encoded-packet cadence was 16.6674 ms (approximately
+60 fps). Pool acquisition p95 was 0.000741 ms; the maximum 9.44843 ms includes
+startup allocation. Six-minute process/GPU sampling saw no additional capture
+allocations/reinitializations and stable Host RSS. After reconnect, only the two
+current 42.1875 MiB SHM images remain, with no accumulated old segments.
+
+This supports keeping the bounded-reuse change as stall prevention. XShm readback
+remains the dominant cost: mean 8.73731 ms, recent-window p95 7.95417 ms in this
+session. Earlier baseline samples used a different interval/workload; no sustained
+CPU, FPS or total-latency improvement is claimed. x264 has portable buffer/color
+coverage but no new installed-session acceptance from this test. Raw operational
+records remain private; sanitized values are in the qualification catalog.

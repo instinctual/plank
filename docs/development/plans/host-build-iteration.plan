@@ -65,6 +65,26 @@ invocation now verifies a cache hit.
 Host source preparation now fetches exact shallow submodule revisions instead
 of downloading full fork histories on each disposable worker. Source pins,
 prepared-dependency keys, patch validation and retained public Git history are
-unchanged. Full cold/warm cache qualification remains pending. Native10 buffer-only
+unchanged. Full cold/warm cache qualification passed at exact root `eb2f8c38` / Host
+`c71333d7`. Both jobs ran the full input/audio/transport/package gates:
+
+| Job | Run | Worker duration | Build/test/package step |
+| --- | --- | --- | --- |
+| Cold compiler cache | `42453181286` | 15m58s | 11m52s |
+| Warm compiler cache | `42454396831` | 6m43s | 3m07s |
+
+Warm results: C/C++ 339 hits/57 misses, Rust 151/1, and NVCC 6/0; CUDA's device
+sub-stages also reused outputs. Fresh link operations and noncacheable compiler
+probes still run. Both runs report four C++ cache-error counters and zero cache
+read/write errors/timeouts. The same counter is reproducible with an intentional
+preprocessing failure, and configure logs contain expected negative feature
+checks. Preserve these diagnostics instead of reporting zero cache errors.
+All three installed Host binary digests are identical between cold and warm RPMs.
+
+The verified warm RPM is in `artifacts/packages/candidates/1.4.14-host-build-iteration/`;
+SHA256 `cf75408a0873d22d30587037f6c4674d5e53a63cb4ce0fd4427cad4d3fac08a2`.
+It is not installed; the accepted buffer-only 1.4.13 candidate remains on the test
+Host. Original manifests, compiler statistics, job timings and binary comparisons
+are retained in `artifacts/qualification/host-build-iteration-1.4.14/`. Native10 buffer-only
 candidate 1.4.13 passed its full build after one unchanged retry of an existing
 zero-before-FEC-loss loopback assertion; retain that failure record separately.

@@ -7,12 +7,12 @@ state; older detailed results remain in Git history and the artifact catalog.
 Completed release, metrics and provisioning work is committed and merged into
 the maintained default branches. Current Root/Host work is on `host-build-iteration`,
 based on the completed `native10-buffer-reuse` candidate;
-the private appliance repository uses `master`. The final audit found clean
-working trees and no unpublished local commits, including retained worktrees.
+the private appliance repository remains on `master`. The current feature work
+is committed/pushed separately and has not been merged or released.
 Native Apple development remains intentionally separate, and the contributor
 Host test/signing branches remain explicitly retained as detailed below.
 
-## Fast Host iteration — implementation ready for hosted qualification
+## Fast Host iteration — qualified; committed/pushed, not merged
 
 The operator authorized a fast component path and Host compiler-output caching.
 Root/Host branch `host-build-iteration` starts from buffer candidate root `b57e0796`
@@ -27,13 +27,31 @@ with clean source/build trees, final linking, all tests, full CUDA architecture
 coverage and trusted-success cache saves preserved. Ubuntu and dependency cache
 keys are unchanged. See [the plan](docs/development/plans/host-build-iteration.plan).
 
-137 local CI policy tests and the real CMake version-bump fixture pass. A small
-C++ cache invocation proves a hit with the pinned tool. Full hosted fast-job and
-cold/warm Host cache qualification are pending; do not claim a duration yet.
-The Native10-only 1.4.13 RPM is already verified below. No endpoint installation
-or session restart has occurred during this work.
+138 local CI policy tests and the real CMake version-bump fixture pass. Hosted
+fast run `42452469409` finished in 50 seconds on the worker, with 13 seconds for
+component work. Its two GPU probes are byte-identical to the hardware-tested pair.
+Host source preparation fetches exact shallow revisions instead of full fork
+histories; dependency source pins, keys and patch validation remain unchanged.
 
-## Native10 buffer reuse — candidate built and isolated hardware comparison passed
+Cold run `42453181286` and warm run `42454396831` both passed all full Host gates
+at root `eb2f8c3855454e6b71b1fe6af7fce80e97bea7b5` / Host `c71333d7`:
+worker duration **15m58s → 6m43s**, build/test/package step **11m52s → 3m07s**.
+Warm reuse: C/C++ 339 hits/57 misses, Rust 151/1, NVCC 6/0. Both jobs report four
+C++ cache-error counters; the counter also includes expected preprocessing
+failures, reproduced with a negative fixture. Cache read/write errors and
+timeouts were zero. The complete diagnostics are retained. All three installed
+Host binary digests are identical between cold and warm RPMs.
+
+Verified warm package:
+`artifacts/packages/candidates/1.4.14-host-build-iteration/linux/plank-host-1.4.14-0.host_build_iteration.1.el9.x86_64.rpm`,
+SHA256 `cf75408a0873d22d30587037f6c4674d5e53a63cb4ce0fd4427cad4d3fac08a2`.
+It is not installed; the tested buffer-only 1.4.13 package remains on the hardware
+Host. Manifests, statistics, timings and binary comparisons are retained in
+`artifacts/qualification/host-build-iteration-1.4.14/`. A first cache-build attempt
+`42452541232` was cancelled during dependency restore to correct the Rust smoke
+command before application compilation; that diagnostic run produced no candidate.
+
+## Native10 buffer reuse — installed HEVC session accepted
 
 The operator approved buffer reuse first and explicitly skipped unchanged-screen
 filtering. GPU-resident capture remains a later investigation. Root/Host branch
@@ -71,8 +89,27 @@ The verified package is
 SHA256 `0d6ee311beb97bab58fd2c5ac7d9fddbf47ad3a2cb8849f8c5eb37c2455033a4`,
 from root `b57e079663fad965d7b4ac6321dd85fff9e794fe` / Host `35a44af8`.
 Original manifests/probe hashes are retained and download staging is removed.
-Installed stream acceptance remains pending. Sanitized evidence is in `artifacts/qualification/native10-buffer-reuse-1.4.13/`;
-operational measurements and deployment details remain private.
+The exact RPM is installed on the authorized test Host. All three private
+binaries and the running supervisor match the package; administrator configuration
+is unchanged. Flame stayed open. The completed Native10/HEVC NVENC 5120x2160
+session captured 68,450 frames over approximately 19 minutes, averaging 16.6674 ms
+between encoded packets (approximately 60 fps). It used two pool allocations,
+with zero retirements, unavailable polls or allocation failures. Pool acquisition
+p95 was 0.000741 ms; initial allocation accounts for the 9.44843 ms maximum.
+
+Six-minute CPU/GPU/log observation found no extra allocations or capture
+reinitializations, stable Host RSS and continuing transient compositor load.
+After the requested reconnect, only the two current SHM segments remain. The
+operator reported **playback normal**. This supports avoiding repeated buffer
+allocation stalls; it does not establish a matched-workload FPS, CPU or total
+latency improvement. XShm readback remains dominant. Installed x264 acceptance
+was not repeated; its buffer/color fixtures pass. No Client update is required.
+
+Remote observation and installation scratch were removed; a root-only config
+rollback backup remains. Sanitized evidence is in
+`artifacts/qualification/native10-buffer-reuse-1.4.13/`; operational records and
+deployment details remain private. Do not resume damage filtering (#2); GPU-
+resident capture (#3) remains separate future work.
 
 ## Mainline 1.4.12 — published
 

@@ -116,8 +116,11 @@ dependency keys and Ubuntu's existing compiler cache are unchanged.
 The fast job passed in 50 seconds on its worker (13 seconds of component work),
 with probe binaries identical to the hardware-tested pair. Host source checkout
 uses exact shallow submodule revisions; it does not need full fork history.
-Cold/warm compiler-cache qualification remains pending on `host-build-iteration`;
-record real cache statistics and complete job times before claiming that speedup.
+Cold/warm qualification passed on `host-build-iteration`: full worker duration
+15m58s to 6m43s; build/test/package step 11m52s to 3m07s. Both ran every candidate
+gate and produced identical Host binary digests. Warm reuse included 339 C/C++,
+151 Rust and six NVCC hits. These are measured results for this source, not a
+fixed build-time guarantee; fresh linking, tests and worker setup still take time.
 See [the implementation and validation plan](../plans/host-build-iteration.plan).
 
 ## Local downloads and cleanup
