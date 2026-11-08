@@ -14,7 +14,8 @@ macOS, transport, dependency or protocol changes.
 
 The operator accepted installed HEVC playback and approved merging this work
 through `host-build-iteration` into parent and Linux Host `main` on November 8.
-The separate tearing investigation is not part of that merge.
+The separate tearing investigation is not part of that merge. It was subsequently
+paused and its diagnostic branch deleted; the accepted buffer reuse remains on main.
 
 ## Implementation
 

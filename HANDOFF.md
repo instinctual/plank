@@ -11,13 +11,26 @@ of the qualified changes, with no new production-code edits. Client main remains
 `d8cdba22`. Earlier metrics/provisioning work is already merged; the private
 appliance repository remains on `master`.
 
-The tearing investigation remains separate on `native10-coherence` at `931641c1`.
-Its probes, NvFBC reference repair and detailed findings are not part of this
-merge. Raw pre-encoder mixing was reproduced, but no production fix is established.
-All diagnostic processes/windows/staging were cleaned up; the operator's NvFBC
-session was left running. Consult that branch's HANDOFF/plan and private notes
-before resuming. Native Apple development and contributor Host test/signing
-branches remain retained as detailed below; no branch was deleted.
+The operator paused the Native10 tearing investigation on November 8 and
+requested deletion of `native10-coherence`. That branch is removed locally and
+on GitHub; its experimental probes and capture changes were not merged. The
+accepted buffer-reuse and build improvements remain on main.
+
+Known limitation: real numbered playback can contain mixed raw frames before
+encoding. Extra copies, GPU/X11 fences, refresh alignment and temporary NVIDIA
+composition changes did not reliably fix it. The matched source-fence control
+still mixed 5/450 frames; the composition option also failed. Do not present
+earlier short clean samples as acceptance or silently substitute 8-bit capture.
+Detailed evidence is retained in private notes and the local qualification
+catalog. All observers/staging are removed, the exact original display settings
+are restored, and Host/Flame processes were preserved. Resume only with operator
+direction and a concrete new lead. Native Apple and approved contributor
+test/signing branches remain retained; none depended on the retired branch.
+
+Mainline Hosted `42467203193` passed all four products; Clipboard `42467203177`
+passed. Privacy `42467203179` passed on its third unchanged attempt after two
+HTTP 504 failures downloading Gitleaks before scanning. These build checks are
+separate from installed-session acceptance and signed release packaging.
 
 Package base version is 1.4.14; the latest published release remains 1.4.12.
 No new manual package build, installation or release was requested for this
