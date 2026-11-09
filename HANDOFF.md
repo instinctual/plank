@@ -8,21 +8,20 @@ the focused plans and the artifact catalog.
 
 ## Current state
 
-PLANK **1.4.15 is published** at
-[GitHub Releases](https://github.com/instinctual/plank/releases/tag/v1.4.15).
-The operator authorized merging the `macos-shared-directory` fix into main and
-publishing 1.4.16. Prepare all four packages from the exact mainline commit;
-never relabel the installed candidate. Linux Host and Kymux sources are unchanged;
-the Client update is bundled release notes only. The earlier startup correction
-from `macos-startup-config` is already merged and published in 1.4.15.
+PLANK **1.4.16 is published** at
+[GitHub Releases](https://github.com/instinctual/plank/releases/tag/v1.4.16).
+The `macos-shared-directory` fix is merged into main. Root, Linux Host, Client
+and Kymux canonical checkouts are on main. Linux Host and Kymux sources are
+unchanged; the Client update is bundled release notes only. All four mainline
+packages are built and published. No additional deployment is queued.
 
-## Active work — shared system directory permissions
+## Installed shared-directory correction
 
 Read-only diagnosis found a third-party installer changed
 `/Library/Application Support` to root:admin 0775. PLANK's strict ancestor check
 then rejected system identity loading when the desktop worker restarted. The
 PLANK directories, keys and administrator configuration were correctly protected.
-The older deployed candidate and current 1.4.15 contain the same check.
+The older deployed candidate and 1.4.15 contain the same check.
 
 The correction allows only root:admin 0775 on that exact parent while opening
 the canonical `/Library/Application Support/PLANK` system state. Protected leaf
@@ -59,19 +58,19 @@ the repaired condition without modifying another application's shared directory.
 Installed interactive-session acceptance is still pending. Evidence and builder
 manifests are in `artifacts/qualification/macos-shared-directory-1.4.16`; raw
 machine/CI data and access details remain private. Local and target staging are
-removed. Mainline merge, builds and release are now authorized; no additional
-deployment is requested. Preserve the affected user's desktop and never reboot
-automatically. The temporary exact-branch signing permission remains until this
-branch is retired.
+removed. The installed candidate remains in place; publication did not install
+the mainline PKG. Preserve the affected user's desktop and never reboot
+automatically. The merged feature branch and its temporary exact-branch signing
+permission remain until the branch is retired.
 
 The annotated release tag points to the exact package source
-`529f4ce2fffc9fdef2f9f09ec981844a742149d3`. Later root commits update documentation;
+`a90bf46edcc3817719ffa3b13fc5cb0238032a34`. Later root commits update documentation;
 do not move the tag or relabel installers to match them.
 
 | Source | Release revision |
 | --- | --- |
 | Linux Host | `c71333d72cf43843a79a77df82f521547682d6c5` |
-| Client | `8faa3274b9258789ad714b8d16c5ff72e13afe5c` |
+| Client | `a5d66f7730c0418e3c66af5fde5e33b8acb627bd` |
 | Kymux | `9e1a7e304abe4ad6b42a7a10ef41eae2b16fb31f` |
 | Client common-C | `c7d1b83143be1511735526ae8ce75a6d5c25f63c` |
 
@@ -80,9 +79,9 @@ Native Apple/AVP development remains separate; see the retained-branches section
 
 ## Published packages and validation
 
-All four packages are in `artifacts/packages/releases/1.4.15/` and attached
+All four packages are in `artifacts/packages/releases/1.4.16/` and attached
 to the GitHub release. Original builder manifests, package/source hashes and
-combined checksums match. All build jobs passed on their first attempt.
+combined checksums match. All final workflow conclusions are successful.
 Both Mac PKGs are signed, notarized, stapled and Gatekeeper-accepted.
 The public manifest/checksums use download basenames; the local catalog retains
 platform-relative paths. All six published asset sizes and digests were verified
@@ -90,10 +89,10 @@ before and after publication.
 
 | Product | Successful workflow | Package |
 | --- | --- | --- |
-| Linux Host | `42538556286` | `linux/plank-host-1.4.15-1.el9.x86_64.rpm` |
-| Ubuntu Client | `42538556286` | `linux/plank-client_1.4.15_amd64.deb` |
-| macOS Host | `42538578630` | `macos/plank-host_1.4.15_arm64.pkg` |
-| macOS Client | `42538581633` | `macos/plank-client_1.4.15_arm64.pkg` |
+| Linux Host | `42695212447` | `linux/plank-host-1.4.16-1.el9.x86_64.rpm` |
+| Ubuntu Client | `42695212447` | `linux/plank-client_1.4.16_amd64.deb` |
+| macOS Host | `42695260868` | `macos/plank-host_1.4.16_arm64.pkg` |
+| macOS Client | `42695276364` | `macos/plank-client_1.4.16_arm64.pkg` |
 
 Host targets remain Rocky 9.7 and macOS 26.7+; Clients remain Ubuntu 26.04
 and macOS 15+. Apple packages are Apple Silicon. SDK27 build/regression gates
@@ -109,11 +108,21 @@ That exact test executable's SHA256 is
 evidence remains in `artifacts/qualification/mainline-1.4.12/`.
 No new Mac performance soak or mainline package installation was performed.
 
+The initial unsigned Mac Host job failed the unchanged
+`native_kyproto_round_trip_preserves_all_initial_lanes` test while waiting five
+seconds for its video frame. The independent signed Host build passed that test.
+After the other push jobs completed, only the failed job was rerun; retry
+`129432469818` passed with identical source and thresholds. No automatic retry
+loop or weakened test was introduced. The cause of the single timeout remains
+unestablished; preserve its evidence rather than labeling it a proven runner
+fault. The original Linux packages and both signed packages passed first attempt.
+
 Current evidence, recursive source pins, Qt compositor/input reports and
-publication metadata are in `artifacts/qualification/mainline-1.4.15/`.
+publication metadata are in `artifacts/qualification/mainline-1.4.16/`.
 Raw CI logs remain private. Download staging has been removed.
-[Release notes](docs/releases/1.4.15.md) describe the startup fix, Native10 buffer
-reuse, faster builds and the unresolved tearing limitation.
+[Release notes](docs/releases/1.4.16.md) describe the directory-permission fix,
+validation and retained Native10 tearing limitation. Release ID is `439643730`;
+annotated tag object is `37b038f7296aef15a348adac5ac691a922f044ef`.
 
 ## Installed macOS startup correction
 
@@ -165,7 +174,7 @@ also reuse validated compiler outputs; Mac application/transport objects compile
 fresh. Clean source/build directories, fresh linking, tests, package verification,
 signing and full CUDA architecture coverage remain mandatory.
 
-For 1.4.15, compiler hits were Host **337 C/C++, 151 Rust, six CUDA** and
+For 1.4.16, compiler hits were Host **337 C/C++, 151 Rust, six CUDA** and
 Client **250 C/C++, 66 Rust**. Earlier matched Host cache qualification reduced
 worker time from **15m58s to 6m43s**, with identical Host binary digests.
 These are observations, not promised build durations. The four Host C/C++ cache
