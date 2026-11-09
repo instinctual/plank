@@ -17,7 +17,17 @@ added only the 1.4.14 changelog to accepted `d8cdba22`. Earlier
 metrics/provisioning work is already merged; the private
 appliance repository remains on `master`.
 
-## Mainline 1.4.15 — release packages ready, unpublished
+## Mainline 1.4.15 — published
+
+The operator authorized merge and publication. The correction is in main, and
+[PLANK 1.4.15](https://github.com/instinctual/plank/releases/tag/v1.4.15) is the
+latest published release. Annotated tag `v1.4.15` resolves to the exact package
+source `529f4ce2fffc9fdef2f9f09ec981844a742149d3`, not a documentation checkpoint.
+All four installers, the public manifest and `SHA256SUMS` are uploaded; all six
+GitHub asset sizes and digests match the verified local files. The public
+metadata uses download basenames, while the original local catalog retains
+platform-relative paths. Publication records are under the qualification
+directory's `publication/` subdirectory.
 
 The requested Linux Host RPM, Ubuntu Client DEB and both signed macOS PKGs are
 in `artifacts/packages/releases/1.4.15/`. All build jobs passed on their first
@@ -46,11 +56,9 @@ Evidence and Qt compositor/input reports are retained under
 `artifacts/qualification/mainline-1.4.15/`; raw CI logs remain private. Download
 staging is removed. Release notes in `docs/releases/1.4.15.md` include the
 previously unpublished Native10 buffer/build improvements and startup fix.
-No mainline package was installed and no GitHub release was published. The
+No mainline package was installed during publication. The
 startup candidate remains installed on the authorized Mac; its sign-in startup
-verification does not replace interactive desktop-session acceptance. If later
-authorized to publish, tag the exact package source `529f4ce2`, not a later
-documentation checkpoint. The latest published release remains 1.4.12.
+verification does not replace interactive desktop-session acceptance.
 
 ## macOS startup configuration regression — installed startup verified
 
@@ -94,9 +102,8 @@ the listener is ready on all IPv4 interfaces. Metrics remain disabled with no
 listener on the default metrics port. Configuration and workstation identity
 hashes are unchanged. No reboot was performed; temporary installation files
 were removed after verification. Interactive desktop/session acceptance remains
-pending. The correction is now merged into main for 1.4.15; no GitHub release
-has been published. This does not clear the affected older Mac Host packages
-for deployment.
+pending. The correction is merged into main and published in 1.4.15. This does
+not clear the affected older Mac Host packages for deployment.
 
 The operator explicitly requires metrics disabled by default on macOS Host and
 Client. Both templates and implementations already default false; those defaults
@@ -134,7 +141,7 @@ passed. Privacy `42467203179` passed on its third unchanged attempt after two
 HTTP 504 failures downloading Gitleaks before scanning. These build checks are
 separate from installed-session acceptance and signed release packaging.
 
-The preceding package build used 1.4.14; the latest published release remains 1.4.12.
+The preceding package build used 1.4.14; 1.4.12 was the published release at that time.
 The 1.4.14 packages are ready in `artifacts/packages/releases/1.4.14/`:
 
 | Product | Successful workflow | Package |
