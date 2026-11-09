@@ -37,6 +37,7 @@ class Configuration(unittest.TestCase):
         result = subprocess.run([BINARY, mode, str(self.config), str(self.state),
             str(CLIENT_TEMPLATE if mode == "client" else HOST_TEMPLATE)], capture_output=True, text=True, timeout=10)
         self.assertEqual(result.returncode == 0, success, result.stderr)
+        return result
 
     def legacy(self, **changes):
         values = dict(Address="0.0.0.0", Port=29999, Name="Example workstation", UUID=self.uuid)
@@ -230,6 +231,23 @@ class Configuration(unittest.TestCase):
         self.invoke(success=False)
         self.config.chmod(0o755)
         self.invoke()
+
+    def test_other_writable_ancestors_rejected_with_diagnostic(self):
+        parent = self.root / "Application Support"
+        parent.mkdir(mode=0o755)
+        self.state = parent / "PLANK"
+        self.invoke()
+        before = self.snapshot()
+        for mode in (0o775, 0o777, 0o1777):
+            parent.chmod(mode)
+            for operation in ("host-check", "host-prepare", "host-finish"):
+                result = self.invoke(operation, success=False)
+                self.assertIn("PLANK configuration directory rejected:", result.stderr)
+                self.assertIn(str(parent), result.stderr)
+            self.assertEqual(parent.stat().st_mode & 0o7777, mode)
+            self.assertEqual(self.snapshot(), before)
+        parent.chmod(0o755)
+        self.invoke("host-check")
 
     def test_symlink_files_and_parents_rejected(self):
         outside = self.root / "outside"

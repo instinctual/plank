@@ -11,6 +11,9 @@ xcrun clang "${flags[@]}" "$source_root/scripts/package/macos-configure.m" \
 xcrun clang "${flags[@]}" "$source_root/tests/packaging/macos-host-configuration.m" \
     "$source_root/apps/host/macos/session/host-configuration.m" -framework Foundation -o "$output/parser"
 "$output/parser"
+xcrun clang "${flags[@]}" "$source_root/tests/packaging/macos-configuration-paths.m" \
+    -framework Foundation -o "$output/paths"
+"$output/paths"
 xcrun clang -std=c11 -mmacosx-version-min="$MACOSX_DEPLOYMENT_TARGET" -Wall -Wextra -Werror -Werror=unguarded-availability -Werror=unguarded-availability-new \
     -I"$source_root/apps/host/macos/session" "$source_root/tests/network/macos-host-timeout.c" -o "$output/timeouts"
 "$output/timeouts"

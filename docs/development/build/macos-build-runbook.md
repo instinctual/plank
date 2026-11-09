@@ -113,6 +113,16 @@ to Developer ID transition; that is not proof that TCC grants survive. Test the
 transition with the user available for permissions. Do not widen the signed
 worker-to-worker XPC requirement to compensate for a packaging/signing change.
 
+The shared `/Library/Application Support` parent may be root:admin mode0775
+after another product's installer runs. The native configuration walker permits
+that exact ancestor only when opening PLANK's canonical system state, and the
+PKG/uninstaller preflight permits the same root:admin0775 parent. Neither changes
+the shared directory. PLANK-owned directories/files keep their existing strict
+ownership/mode checks; symlinks, wrong owners/groups and world-writable parents
+remain rejected. `configuration-files.h` and `pkg-common.sh` both enforce this
+boundary, with native policy and shell/installer fixtures. An error now names the
+rejected directory rather than leaving only a generic desktop-provisioning exit.
+
 There is no custom rollback database or growing set of old application copies.
 On installation failure, inspect Installer Log and rerun the signed installer;
 existing configuration and keys are not overwritten. Do not claim macOS Installer

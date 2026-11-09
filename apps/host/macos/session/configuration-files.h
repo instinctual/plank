@@ -2,8 +2,46 @@
 #pragma once
 #import <Foundation/Foundation.h>
 #include <fcntl.h>
+#include <grp.h>
+#include <stdio.h>
+#include <string.h>
 #include <sys/stat.h>
 #include <unistd.h>
+
+static inline BOOL plank_config_directory_metadata(NSString *path, NSUInteger component,
+                                                   NSUInteger count, const struct stat *st,
+                                                   uid_t owner, mode_t mode) {
+    if (!S_ISDIR(st->st_mode) || (st->st_uid != 0 && st->st_uid != owner)) return NO;
+    // Other installers may make this shared system parent admin-writable.
+    // Permit only root:admin 0775 on this exact ancestor of our system state;
+    // never extend the exception to PLANK itself, /etc, or a lookalike path.
+    BOOL sharedParent = component == 2 && [path isEqual:@"/Library/Application Support/PLANK"];
+    if (st->st_mode & 0022) {
+        if (sharedParent) {
+            if (owner != 0 || st->st_uid != 0 || (st->st_mode & 07777) != 0775) return NO;
+            struct group admin, *found = NULL;
+            char buffer[16384];
+            if (getgrnam_r("admin", &admin, buffer, sizeof(buffer), &found) ||
+                !found || st->st_gid != admin.gr_gid) return NO;
+        } else if (!(st->st_uid == 0 && (st->st_mode & S_ISVTX))) {
+            return NO;
+        }
+    }
+    return component != count - 1 || (st->st_uid == owner && (st->st_mode & 07777) == mode);
+}
+
+static inline void plank_config_directory_failure(NSArray<NSString *> *parts, NSUInteger component,
+                                                  const struct stat *st, int error) {
+    NSString *directory = [NSString pathWithComponents:[parts subarrayWithRange:NSMakeRange(0, component + 1)]];
+    if (st) {
+        fprintf(stderr, "PLANK configuration directory rejected: %s (uid=%lu gid=%lu mode=%04o)\n",
+            directory.fileSystemRepresentation, (unsigned long)st->st_uid,
+            (unsigned long)st->st_gid, (unsigned int)(st->st_mode & 07777));
+    } else if (error != ENOENT) {
+        fprintf(stderr, "PLANK configuration directory unavailable: %s (%s)\n",
+            directory.fileSystemRepresentation, strerror(error));
+    }
+}
 
 // No symlink traversal, including intermediate components. Production callers
 // use /private/etc explicitly because macOS's /etc is a system symlink.
@@ -20,10 +58,17 @@ static inline int plank_config_directory(NSString *path, uid_t owner, mode_t mod
         int next = openat(fd, part.fileSystemRepresentation, O_RDONLY | O_DIRECTORY | O_NOFOLLOW | O_CLOEXEC);
         int saved = errno; close(fd); fd = next; errno = saved;
         struct stat st;
-        if (fd < 0) break;
-        if (fstat(fd, &st) || (st.st_uid != 0 && st.st_uid != owner) ||
-            ((st.st_mode & 0022) && !(st.st_uid == 0 && (st.st_mode & S_ISVTX))) ||
-            (i == parts.count - 1 && (st.st_uid != owner || (st.st_mode & 07777) != mode))) {
+        if (fd < 0) {
+            plank_config_directory_failure(parts, i, NULL, saved);
+            errno = saved; break;
+        }
+        if (fstat(fd, &st)) {
+            saved = errno; close(fd);
+            plank_config_directory_failure(parts, i, NULL, saved);
+            errno = saved; return -1;
+        }
+        if (!plank_config_directory_metadata(path, i, parts.count, &st, owner, mode)) {
+            plank_config_directory_failure(parts, i, &st, EPERM);
             close(fd); errno = EPERM; return -1;
         }
     }

@@ -9,6 +9,21 @@ reject() { if ( "$@" ) >/dev/null 2>&1; then fail "Expected rejection: $*"; fi; 
 for script in pkg-common.sh pkg-preinstall pkg-postinstall uninstall.sh; do
     /bin/bash -n "$root/packaging/host/macos/$script"; ok
 done
+# Same shared-parent boundary as native configuration loading. Only metadata
+# is supplied here; no system directory is created, chmodded or removed.
+safe_directory_metadata '/Library/Application Support' 0 80 775; ok
+safe_directory_metadata '/Library/Application Support' 0 80 755; ok
+safe_directory_metadata '/Library/Application Support/PLANK' 0 80 755; ok
+safe_directory_metadata '/Applications' 0 80 775; ok
+reject safe_directory_metadata '/Library/Application Support' 501 80 775
+reject safe_directory_metadata '/Library/Application Support' 0 20 775
+for mode in 777 1777 1775 2775 770; do
+    reject safe_directory_metadata '/Library/Application Support' 0 80 "$mode"
+done
+for directory in '/Library/Application Support/PLANK' '/Library/Application Support-other' /Library /private/etc/plank; do
+    reject safe_directory_metadata "$directory" 0 80 775
+done
+reject safe_directory_metadata '/Applications' 0 80 777
 # Exercise the exact uninstall entry point with destructive commands replaced
 # only in this fixture. Never execute the product uninstaller in these tests.
 (

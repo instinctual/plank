@@ -31,19 +31,26 @@ minimum_macos='@MIN_MACOS@'
 fail() { echo "PLANK: $*" >&2; exit 1; }
 present() { [[ -e $1 || -L $1 ]]; }
 
-# All writable product paths have root-only writers. Check parents too, not
-# just the leaf; /Applications is Apple's root:admin writable exception.
+# All writable product paths have root-only writers. Check parents too, with
+# narrow root:admin exceptions for Apple's shared system directories.
+safe_directory_metadata() {
+    local path=$1 owner=$2 group=$3 mode=$4
+    [[ $owner = 0 ]] || fail "Directory is not root-owned: $path"
+    (( (8#$mode & 0002) == 0 )) || fail "World-writable directory: $path"
+    if (( (8#$mode & 0020) != 0 )); then
+        [[ $path = /Applications && $group = 80 ]] && return 0
+        [[ $path = '/Library/Application Support' && $group = 80 && $mode = 775 ]] ||
+            fail "Group-writable directory: $path (uid=$owner gid=$group mode=$mode)"
+    fi
+}
+
 safe_directory() {
     local path=$1 mode owner group
     [[ $path = /* && $path != / ]] || fail "Invalid product directory: $path"
     if [[ ${path%/*} != '' ]]; then safe_directory "${path%/*}"; fi
     [[ -d $path && ! -L $path ]] || fail "Unsafe directory: $path"
     read -r owner group mode < <(/usr/bin/stat -f '%u %g %Lp' "$path")
-    [[ $owner = 0 ]] || fail "Directory is not root-owned: $path"
-    (( (8#$mode & 0002) == 0 )) || fail "World-writable directory: $path"
-    if (( (8#$mode & 0020) != 0 )); then
-        [[ $path = /Applications && $group = 80 ]] || fail "Group-writable directory: $path"
-    fi
+    safe_directory_metadata "$path" "$owner" "$group" "$mode"
 }
 
 safe_file() {

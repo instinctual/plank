@@ -10,9 +10,36 @@ the focused plans and the artifact catalog.
 
 PLANK **1.4.15 is published** at
 [GitHub Releases](https://github.com/instinctual/plank/releases/tag/v1.4.15).
-The root, Linux Host, Client and Kymux canonical checkouts are on main.
-The startup correction from `macos-startup-config` is merged. No product change,
-build, deployment or diagnostic run is pending automatically.
+The root is on `macos-shared-directory`, based on main `df1ba7ba`; Linux Host,
+Client and Kymux remain on main. The operator authorized a macOS Host correction
+and installation on the affected Mac. Candidate version is 1.4.16. The earlier
+startup correction from `macos-startup-config` is already merged and published.
+
+## Active work — shared system directory permissions
+
+Read-only diagnosis found a third-party installer changed
+`/Library/Application Support` to root:admin 0775. PLANK's strict ancestor check
+then rejected system identity loading when the desktop worker restarted. The
+PLANK directories, keys and administrator configuration were correctly protected.
+The older deployed candidate and current 1.4.15 contain the same check.
+
+The correction allows only root:admin 0775 on that exact parent while opening
+the canonical `/Library/Application Support/PLANK` system state. Protected leaf
+directories, config/key ownership, no-symlink traversal and file/link checks
+remain enforced. The installer/uninstaller shell preflight has a second
+permission check; it receives the matching narrow exception. Neither path
+changes the shared directory's permissions. Rejections now name the directory
+and its metadata. Metrics remain disabled by default.
+
+Native metadata-policy fixtures cover the accepted parent and unsafe owners,
+groups, modes, lookalike paths and leaves. Real installer filesystem fixtures
+check other writable ancestors, preserved files and precise diagnostics. Portable
+installer tests pass 41 checks; local source-policy tests pass 138 checks. Native
+tests and the signed package still require GitHub validation. Two Mac-only
+permission fixtures were skipped locally and must run on the Mac worker.
+No affected-target changes have been made yet. Access, evidence and installation
+authorization remain in private notes. No merge or release is requested for
+this candidate; preserve the affected user's desktop and never reboot automatically.
 
 The annotated release tag points to the exact package source
 `529f4ce2fffc9fdef2f9f09ec981844a742149d3`. Later root commits update documentation;
