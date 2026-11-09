@@ -4,15 +4,29 @@ Read `AGENTS.md` and the relevant build runbook first. Machine inventory,
 credentials and private captures stay outside Git. This file records current
 state; older detailed results remain in Git history and the artifact catalog.
 
-Current root branch is `macos-startup-config`, based on main `a08bd447`.
-Candidate version is 1.4.15. The Linux Host and Client checkouts remain on main.
-The operator approved merging
+Current root branch is `main`, including the installed macOS startup correction
+from `macos-startup-config` through `883aae34`. Version is 1.4.15; all four
+mainline release packages are being rebuilt on GitHub at the operator's request.
+The Linux Host and Client checkouts also remain on main. Client `8faa3274`
+adds only the 1.4.15 release note to `bfc3d47e`; its runtime code is unchanged.
+The operator previously approved merging
 `native10-buffer-reuse` and `host-build-iteration`; parent main includes their
 tested checkpoint `5db5e16e`, with Linux Host `c71333d7`. This was a fast-forward
-of the qualified changes, with no new production-code edits. Client main is
-`bfc3d47e`, adding only the 1.4.14 changelog to accepted `d8cdba22`. Earlier
+of the qualified changes, with no new production-code edits. Client `bfc3d47e`
+added only the 1.4.14 changelog to accepted `d8cdba22`. Earlier
 metrics/provisioning work is already merged; the private
 appliance repository remains on `master`.
+
+## Mainline 1.4.15 — release packages in progress
+
+Build the Linux Host RPM, Ubuntu Client DEB and both signed macOS PKGs from the
+same pushed main revision. Reuse verified dependency/compiler caches, retain
+fresh linking and all existing package gates, and collect original manifests
+and checksums under `artifacts/packages/releases/1.4.15/`. Release notes are in
+`docs/releases/1.4.15.md`; they include the previously unpublished Native10 buffer
+and build improvements as well as the startup correction. GitHub publication
+and new endpoint installations are separate from this package-build request.
+The installed startup candidate remains on the authorized Mac.
 
 ## macOS startup configuration regression — installed startup verified
 
@@ -56,8 +70,9 @@ the listener is ready on all IPv4 interfaces. Metrics remain disabled with no
 listener on the default metrics port. Configuration and workstation identity
 hashes are unchanged. No reboot was performed; temporary installation files
 were removed after verification. Interactive desktop/session acceptance remains
-pending. The branch is not merged or published, and this does not clear the
-affected older Mac Host packages for deployment.
+pending. The correction is now merged into main for 1.4.15; no GitHub release
+has been published. This does not clear the affected older Mac Host packages
+for deployment.
 
 The operator explicitly requires metrics disabled by default on macOS Host and
 Client. Both templates and implementations already default false; those defaults
@@ -95,7 +110,7 @@ passed. Privacy `42467203179` passed on its third unchanged attempt after two
 HTTP 504 failures downloading Gitleaks before scanning. These build checks are
 separate from installed-session acceptance and signed release packaging.
 
-Package base version is 1.4.14; the latest published release remains 1.4.12.
+The preceding package build used 1.4.14; the latest published release remains 1.4.12.
 The 1.4.14 packages are ready in `artifacts/packages/releases/1.4.14/`:
 
 | Product | Successful workflow | Package |
