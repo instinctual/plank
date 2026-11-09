@@ -404,7 +404,8 @@ or miss independently. Save skips exact hits, and job-local hit bookkeeping is
 not cached. The narrow Rust/Cargo allowlist excludes credentials/configuration
 and compiled target objects. Dependency caches never contain application,
 package or signing state. Ubuntu's separate per-object compiler cache is
-described below; the other product jobs still compile application sources fresh.
+described below; Linux Host compiler reuse is documented above. Both Mac
+products still compile application and transport objects fresh.
 
 Mac Host's cache avoids Rust installation/downloads, not application or
 transport compilation. Do not promise the same improvement as caching FFmpeg.
@@ -541,6 +542,15 @@ failed job's first error, not the final nonzero-exit summary.
 Use `bash scripts/ci/dispatch.sh linux-host` (or another product) after pushing.
 It requires a clean, fully pushed branch and passes its exact expected SHA.
 The policy job rejects a stale dispatch revision before costly bootstrap.
+
+Before dispatching, inspect existing runs for that exact source SHA. If its
+automatic push already started or successfully completed an applicable Linux
+product job, use that job's verified package instead of starting a duplicate.
+Record the workflow/job and original manifest as usual. A prior revision's
+package or a skipped product is not a substitute. Signed Mac installers still
+require their separate explicit signing dispatches. The 1.4.15 release used
+one automatic push for both Linux packages and one signed dispatch per Mac
+product, with every applicable test and package gate retained.
 
 ### macOS 26.7 Host build
 
