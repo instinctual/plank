@@ -5,8 +5,8 @@ credentials and private captures stay outside Git. This file records current
 state; older detailed results remain in Git history and the artifact catalog.
 
 Current root branch is `main`, including the installed macOS startup correction
-from `macos-startup-config` through `883aae34`. Version is 1.4.15; all four
-mainline release packages are being rebuilt on GitHub at the operator's request.
+from `macos-startup-config` through `883aae34`. All four mainline 1.4.15 packages
+are built and verified from exact root `529f4ce2fffc9fdef2f9f09ec981844a742149d3`.
 The Linux Host and Client checkouts also remain on main. Client `8faa3274`
 adds only the 1.4.15 release note to `bfc3d47e`; its runtime code is unchanged.
 The operator previously approved merging
@@ -17,16 +17,40 @@ added only the 1.4.14 changelog to accepted `d8cdba22`. Earlier
 metrics/provisioning work is already merged; the private
 appliance repository remains on `master`.
 
-## Mainline 1.4.15 — release packages in progress
+## Mainline 1.4.15 — release packages ready, unpublished
 
-Build the Linux Host RPM, Ubuntu Client DEB and both signed macOS PKGs from the
-same pushed main revision. Reuse verified dependency/compiler caches, retain
-fresh linking and all existing package gates, and collect original manifests
-and checksums under `artifacts/packages/releases/1.4.15/`. Release notes are in
-`docs/releases/1.4.15.md`; they include the previously unpublished Native10 buffer
-and build improvements as well as the startup correction. GitHub publication
-and new endpoint installations are separate from this package-build request.
-The installed startup candidate remains on the authorized Mac.
+The requested Linux Host RPM, Ubuntu Client DEB and both signed macOS PKGs are
+in `artifacts/packages/releases/1.4.15/`. All build jobs passed on their first
+attempt from the exact source above; original manifests, SHA-256 values, source
+pins and the combined checksums are verified. Both Mac PKGs are signed,
+notarized, stapled and Gatekeeper-accepted, with Host minimum 26.7 and Client 15.
+
+| Product | Successful workflow | Package |
+| --- | --- | --- |
+| Linux Host | `42538556286` | `linux/plank-host-1.4.15-1.el9.x86_64.rpm` |
+| Ubuntu Client | `42538556286` | `linux/plank-client_1.4.15_amd64.deb` |
+| macOS Host | `42538578630` | `macos/plank-host_1.4.15_arm64.pkg` |
+| macOS Client | `42538581633` | `macos/plank-client_1.4.15_arm64.pkg` |
+
+The automatic main push supplied the Linux packages; only signed Mac builds
+were separately dispatched. Privacy and clipboard gates also passed. All four
+reused dependency caches; Linux Host compiler hits were 337 C/C++, 151 Rust and
+six CUDA compilations, and Ubuntu Client hits were 250 C/C++ and 66 Rust.
+Fresh linking and all package gates ran. Linux transport passed all three
+900-frame, 150 Mbps loss matrices with zero unrecovered data and zero proxy
+kernel drops. Hosted Mac functional checks and the new complete-configuration
+startup regression passed. Transport code is unchanged from 1.4.12, whose
+hardware qualification is retained; no new Mac performance soak was performed.
+
+Evidence and Qt compositor/input reports are retained under
+`artifacts/qualification/mainline-1.4.15/`; raw CI logs remain private. Download
+staging is removed. Release notes in `docs/releases/1.4.15.md` include the
+previously unpublished Native10 buffer/build improvements and startup fix.
+No mainline package was installed and no GitHub release was published. The
+startup candidate remains installed on the authorized Mac; its sign-in startup
+verification does not replace interactive desktop-session acceptance. If later
+authorized to publish, tag the exact package source `529f4ce2`, not a later
+documentation checkpoint. The latest published release remains 1.4.12.
 
 ## macOS startup configuration regression — installed startup verified
 
