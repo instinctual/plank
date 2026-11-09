@@ -10,10 +10,11 @@ the focused plans and the artifact catalog.
 
 PLANK **1.4.15 is published** at
 [GitHub Releases](https://github.com/instinctual/plank/releases/tag/v1.4.15).
-The root is on `macos-shared-directory`, based on main `df1ba7ba`; Linux Host,
-Client and Kymux remain on main. The operator authorized a macOS Host correction
-and installation on the affected Mac. Candidate version is 1.4.16. The earlier
-startup correction from `macos-startup-config` is already merged and published.
+The operator authorized merging the `macos-shared-directory` fix into main and
+publishing 1.4.16. Prepare all four packages from the exact mainline commit;
+never relabel the installed candidate. Linux Host and Kymux sources are unchanged;
+the Client update is bundled release notes only. The earlier startup correction
+from `macos-startup-config` is already merged and published in 1.4.15.
 
 ## Active work — shared system directory permissions
 
@@ -58,9 +59,10 @@ the repaired condition without modifying another application's shared directory.
 Installed interactive-session acceptance is still pending. Evidence and builder
 manifests are in `artifacts/qualification/macos-shared-directory-1.4.16`; raw
 machine/CI data and access details remain private. Local and target staging are
-removed. No merge or release is requested. Preserve the affected user's desktop
-and never reboot automatically. The temporary exact-branch signing permission
-remains until this branch is retired.
+removed. Mainline merge, builds and release are now authorized; no additional
+deployment is requested. Preserve the affected user's desktop and never reboot
+automatically. The temporary exact-branch signing permission remains until this
+branch is retired.
 
 The annotated release tag points to the exact package source
 `529f4ce2fffc9fdef2f9f09ec981844a742149d3`. Later root commits update documentation;
