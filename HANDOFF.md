@@ -31,15 +31,36 @@ permission check; it receives the matching narrow exception. Neither path
 changes the shared directory's permissions. Rejections now name the directory
 and its metadata. Metrics remain disabled by default.
 
-Native metadata-policy fixtures cover the accepted parent and unsafe owners,
-groups, modes, lookalike paths and leaves. Real installer filesystem fixtures
-check other writable ancestors, preserved files and precise diagnostics. Portable
-installer tests pass 41 checks; local source-policy tests pass 138 checks. Native
-tests and the signed package still require GitHub validation. Two Mac-only
-permission fixtures were skipped locally and must run on the Mac worker.
-No affected-target changes have been made yet. Access, evidence and installation
-authorization remain in private notes. No merge or release is requested for
-this candidate; preserve the affected user's desktop and never reboot automatically.
+Candidate source is `ee30bffa3fd3fd4d137d619e3e9c43017155576f`. Signed Host run
+`42691123177` passed native path-policy, real configuration-filesystem,
+complete-startup, permissions and installer gates. Signing, notarization,
+stapling and Gatekeeper checks passed. Native fixtures cover the accepted parent
+and unsafe owners, groups, modes, lookalike paths and leaves; filesystem fixtures
+retain the negative writable-ancestor and link checks. Portable installer tests
+pass 41 checks; local source-policy tests pass 138 checks. Mac-only fixtures
+skipped locally ran on the hosted Mac worker.
+
+Package:
+`artifacts/packages/candidates/1.4.16-macos-shared-directory/macos/plank-host_1.4.16-macos-shared-directory_arm64.pkg`.
+SHA256: `733095c2dc0154c7ba43370cb67512c9553362f5ed7453c5acdbae78d48eac5a`.
+Installed executable SHA256:
+`87c3821be72409607134f9fb8613cafdba1a94e72ddc4fe3e0ccb11a3915d787`.
+
+The exact signed package is installed on the authorized affected Mac. FileVault
+was unexpectedly enabled; the operator separately authorized disabling it, and
+the installer ran only after the OS reported it off. No reboot or logout was
+performed. The desktop worker remains running on its first launch, and local
+and network `/serverinfo` requests return HTTP 200. Configuration, workstation
+identity and machine/user private-key hashes are unchanged. The shared parent
+remains root:admin0775 and the PLANK leaf root:admin0755. This directly exercises
+the repaired condition without modifying another application's shared directory.
+
+Installed interactive-session acceptance is still pending. Evidence and builder
+manifests are in `artifacts/qualification/macos-shared-directory-1.4.16`; raw
+machine/CI data and access details remain private. Local and target staging are
+removed. No merge or release is requested. Preserve the affected user's desktop
+and never reboot automatically. The temporary exact-branch signing permission
+remains until this branch is retired.
 
 The annotated release tag points to the exact package source
 `529f4ce2fffc9fdef2f9f09ec981844a742149d3`. Later root commits update documentation;
