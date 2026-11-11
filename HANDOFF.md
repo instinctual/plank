@@ -8,15 +8,18 @@ the focused plans and the artifact catalog.
 
 ## Current state
 
-Work is on `macos-display-sleep`, based on main `ede61eb80ffb27e4447f67eacc0a114bbd04d170`.
-Candidate **1.4.18-macos-display-sleep** is built, signed and installed on the
+The operator authorized commit, push and release. `macos-display-sleep` is
+merged into main, and **1.4.18 mainline publication is in progress**. All four
+packages must be freshly built from the release source before publication.
+The signed **1.4.18-macos-display-sleep** candidate remains installed on the
 operator-authorized affected Mac. PLANK's machine and desktop services restarted;
-the OS desktop and WindowServer remained running. Main and the latest published
-release remain **1.4.16**. No merge or publication was requested.
+the OS desktop and WindowServer remained running. The latest published release remains **1.4.16** until the new artifacts pass
+verification. No additional remote installation was requested.
 
 Exact candidate source: `fb5cff4b63004c387313dbbf68cbaf3420737d64`.
-Subsequent commits update documentation only. Linux Host, Client and transport
-pins remain those in the previous baseline table below.
+The mainline Client pin is now `121ed3eb6daffb116f33194074109e2bdad9a38c`
+(bundled release notes only). Linux Host and transport pins are unchanged.
+Mainline production Host code matches the installed candidate.
 
 Preparation wakes the console before display creation/mode changes, waits for
 active/non-sleeping output, and bounds retries of the same display identity.
@@ -339,8 +342,9 @@ branches were deleted; neither dependency PR is unfinished work.
 
 ## Next work and qualification limits
 
-Wait for the operator's next task. No rebuild, remote probe or rollback is
-required to complete this checkpoint. The useful remaining check for the startup
+Finish the four mainline builds, verify and collect their exact artifacts,
+then publish 1.4.18 as authorized. Do not relabel candidate packages or perform
+an additional deployment as part of publication. The useful remaining check for the startup
 fix is a normal interactive connection through login into the desktop, when the
 operator chooses to test it. Preserve Terminal and active sessions on the
 authorized development Mac; never reboot automatically.
