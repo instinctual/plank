@@ -9,32 +9,58 @@ the focused plans and the artifact catalog.
 ## Current state
 
 Work is on `macos-display-sleep`, based on main `ede61eb80ffb27e4447f67eacc0a114bbd04d170`.
-The operator authorized a Host fix for idle display sleep interrupting sessions
-and preventing later resolution preparation. Candidate version is **1.4.18**;
-main and the latest published release remain **1.4.16**. No merge or publication
-is requested for this candidate.
+Candidate **1.4.18-macos-display-sleep** is built, signed and installed on the
+operator-authorized affected Mac. PLANK's machine and desktop services restarted;
+the OS desktop and WindowServer remained running. Main and the latest published
+release remain **1.4.16**. No merge or publication was requested.
 
-Preparation now wakes the console before display creation/mode changes, waits
-for active/non-sleeping output, and bounds same-identity registration retries.
-Preparation and active sessions hold scoped idle-display-sleep protection with
-cleanup before asynchronous capture drain. No power preference, Client, Linux
-Host or protocol change is included. See
+Exact candidate source: `fb5cff4b63004c387313dbbf68cbaf3420737d64`.
+Subsequent commits update documentation only. Linux Host, Client and transport
+pins remain those in the previous baseline table below.
+
+Preparation wakes the console before display creation/mode changes, waits for
+active/non-sleeping output, and bounds retries of the same display identity.
+A failed first setup can still wake the desktop and allow topology/preparation
+to retry. Preparation and active streams hold scoped idle-display-sleep
+protection, released on all exit paths before asynchronous capture drain.
+There are no power-preference, Client, Linux Host or protocol changes. See
 [the focused plan](docs/development/plans/macos-display-sleep.md).
 
-Local source-policy tests pass (138 CI tests and applicable Host settings,
-target and permission gates); Mac-only cases are explicitly skipped here and
-must run on GitHub. Native wake/readiness and QUIC-session lifecycle regression
-fixtures are added. Initial signed run `43117788345` tests source `6532eb7d`
-(1.4.17); a subsequent review also repairs wake-only recovery after a failed
-first mode preparation. Build the complete 1.4.18 revision before distribution. Do not call
-this installed acceptance. Preserve the affected Mac's desktop; no service
-restart, logout, reboot or installation has occurred for this task.
+Signed GitHub run `43119531407`, job `130856272898`, passed native display
+recovery (37 scenarios), physical/headless readiness (9 cases/378 checks), and
+real QUIC/synthetic capture lifecycle (26 scenarios/941 checks), plus the normal
+Host/package gates. Signing, notarization, stapling and Gatekeeper passed.
+The 138-test CI source-policy gate, privacy and clipboard workflows passed.
+Initial run `43117788345` passed the earlier 1.4.17 revision; it is superseded
+and was neither collected for distribution nor installed. Automatic broad push
+builds were canceled in favor of the explicit Host-only signed jobs.
 
-A brief operator-authorized OS wake cleared the observed duplicate virtual-display
-registration; the existing worker then successfully created its fixed-identity
-output. No process restart was needed. This establishes wake-related recovery,
-not acceptance of the candidate. Evidence and target access remain outside Git;
-read the private notes README for the display-sleep investigation entry.
+Package:
+`artifacts/packages/candidates/1.4.18-macos-display-sleep/macos/plank-host_1.4.18-macos-display-sleep_arm64.pkg`.
+SHA256: `ae8912f49f009bae948d7b6eb7c4aed96b6da62bf0f9fe5bd9efc9bbec3eca4a`.
+Installed executable SHA256:
+`1fc88609f2b3ce5cad69670bde0584fba74801e27bb0731c411bab59166ac02e`.
+Both match the exact hosted build. Original manifest and validation evidence are
+in `artifacts/qualification/macos-display-sleep-1.4.18/`.
+
+The installed Host reports the correct version, both roles have new running
+PIDs, and local HTTPS serverinfo returns 200. Post-start logs show successful
+desktop mode preparation and no new startup, wake/protection or preparation
+failure. Configuration and machine-key hashes, console user, WindowServer and
+boot time are unchanged. No logout/reboot or global power setting change occurred.
+Local download staging and remote installation staging were removed.
+
+Installed interactive acceptance is still pending: connect after display sleep,
+check the requested resolution, keep a session idle beyond the display timer,
+and verify assertion release after disconnect. Do not treat startup checks or
+synthetic tests as that acceptance. Preserve the user's desktop and do not
+induce logout/reboot or explicit sleep without authorization.
+
+A brief operator-requested OS wake before the fix cleared the observed stale
+virtual-display registration without restarting the old worker. Raw evidence,
+access and deployment records remain outside Git; read the private notes README.
+The exact `macos-display-sleep` signing permission remains while this candidate
+is under review; retire it with the branch after checking live testing roles.
 
 ## Previous published baseline
 
