@@ -148,11 +148,14 @@ static BOOL supportedAPI(void) {
 - (void)recoverWithValidity:(BOOL (^)(void))valid completion:(void (^)(BOOL))completion {
     NSAssert(NSThread.isMainThread, @"Display recovery belongs to the graphical main queue");
     if (!completion) return;
-    if (_busy || !valid || !valid() ||
-            (_display && (!self.displayID || !_readyWidth || !_readyHeight))) {
+    if (_busy || !valid || !valid() || (_display && !self.displayID)) {
         completion(NO); return;
     }
-    BOOL localDesktop = !_display || (self.mirrorHostDisplays && !_layout.pending);
+    // A cancelled first preparation may own a display without a verified mode.
+    // Wake the desktop so topology can be read and preparation retried; do not
+    // invent a last-known mode or permanently block subsequent connections.
+    BOOL localDesktop = !_display || !_readyWidth || !_readyHeight ||
+        (self.mirrorHostDisplays && !_layout.pending);
     CGDirectDisplayID target = localDesktop ? CGMainDisplayID() : self.displayID;
     if (displayAwake(target)) { completion(YES); return; }
     NSLog(@"PLANK authenticated display recovery starting: owned=%d", _display != nil);

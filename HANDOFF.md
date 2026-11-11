@@ -10,7 +10,7 @@ the focused plans and the artifact catalog.
 
 Work is on `macos-display-sleep`, based on main `ede61eb80ffb27e4447f67eacc0a114bbd04d170`.
 The operator authorized a Host fix for idle display sleep interrupting sessions
-and preventing later resolution preparation. Candidate version is **1.4.17**;
+and preventing later resolution preparation. Candidate version is **1.4.18**;
 main and the latest published release remain **1.4.16**. No merge or publication
 is requested for this candidate.
 
@@ -24,15 +24,17 @@ Host or protocol change is included. See
 Local source-policy tests pass (138 CI tests and applicable Host settings,
 target and permission gates); Mac-only cases are explicitly skipped here and
 must run on GitHub. Native wake/readiness and QUIC-session lifecycle regression
-fixtures are added; hosted execution and signed packaging are next. Do not call
+fixtures are added. Initial signed run `43117788345` tests source `6532eb7d`
+(1.4.17); a subsequent review also repairs wake-only recovery after a failed
+first mode preparation. Build the complete 1.4.18 revision before distribution. Do not call
 this installed acceptance. Preserve the affected Mac's desktop; no service
 restart, logout, reboot or installation has occurred for this task.
 
 A brief operator-authorized OS wake cleared the observed duplicate virtual-display
 registration; the existing worker then successfully created its fixed-identity
 output. No process restart was needed. This establishes wake-related recovery,
-not acceptance of the candidate. Evidence and target access remain private in
-`mac16-resolution-20261111.json` and its referenced audit directory.
+not acceptance of the candidate. Evidence and target access remain outside Git;
+read the private notes README for the display-sleep investigation entry.
 
 ## Previous published baseline
 

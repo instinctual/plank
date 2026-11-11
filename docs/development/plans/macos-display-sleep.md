@@ -20,6 +20,8 @@ Private machine evidence is retained outside Git.
   main-queue ownership. Retry rejected registration at most once per 250 ms
   inside that deadline, always using the same identity. Do not manufacture
   another monitor, restart WindowServer or change sleep preferences.
+- A failed first preparation can wake the existing desktop without inventing
+  a previously successful mode, allowing topology and preparation to retry.
 - Hold `PreventUserIdleDisplaySleep` during preparation and during an
   authenticated stream's connection/streaming lifetime. Release it on every
   failure, cancellation, stop and abandoned-owner path, before capture drain.

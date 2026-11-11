@@ -406,7 +406,32 @@ static void step(PLANKMacDesktopDisplay *display, unsigned index) {
             return NSProcessInfo.processInfo.systemUptime < deadline;
         } completion:^(BOOL ok) {
             assert(!ok && applications == before && wakes == releases + failedWakes && protections == unprotections);
-            puts("macos_display_recovery=pass checks=36 synthetic_only=1 wake_before_modes=1 sleep_cleanup=1"); exit(0);
+            next();
+        }]; break;
+    }
+    case 36: {
+        // Failed first preparation must still permit wake-only topology
+        // recovery; no successful mode has been recorded for this owner yet.
+        asleep = NO; active = online = YES; refuseMode = YES;
+        PLANKMacDesktopDisplay *fresh = [PLANKMacDesktopDisplay new];
+        NSTimeInterval deadline = NSProcessInfo.processInfo.systemUptime + .2;
+        [fresh prepareWidth:3840 height:2160 valid:^BOOL {
+            return NSProcessInfo.processInfo.systemUptime < deadline;
+        } completion:^(BOOL ok) {
+            assert(!ok && fresh.displayID == 42);
+            unsigned before = applications, beforeSelect = selections;
+            refuseMode = NO; bootstrapID = 42; active = NO; asleep = YES;
+            dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 100*NSEC_PER_MSEC), dispatch_get_main_queue(), ^{
+                active = YES; asleep = NO;
+            });
+            [fresh recoverWithValidity:valid completion:^(BOOL awake) {
+                assert(awake && applications == before && selections == beforeSelect);
+                [fresh prepareWidth:3840 height:2160 valid:valid completion:^(BOOL ready) {
+                    assert(ready && pixelWidth == 3840 && applications == before);
+                    assert(wakes == releases + failedWakes && protections == unprotections);
+                    puts("macos_display_recovery=pass checks=37 synthetic_only=1 wake_before_modes=1 sleep_cleanup=1"); exit(0);
+                }];
+            }];
         }]; break;
     }
     default: abort();
