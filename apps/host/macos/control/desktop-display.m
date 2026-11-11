@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 #import "desktop-display.h"
 #import "display-layout.h"
+#import "display-power.h"
 #import <objc/runtime.h>
-#import <IOKit/pwr_mgt/IOPMLib.h>
 #include <math.h>
 #include <stdatomic.h>
 #include <string.h>
@@ -42,6 +42,21 @@ static BOOL presetMode(unsigned width, unsigned height) {
         if (modes[i][0] == width && modes[i][1] == height) return YES;
     return NO;
 }
+static BOOL displayAwake(CGDirectDisplayID display) {
+    return display && CGDisplayIsActive(display) && !CGDisplayIsAsleep(display);
+}
+static IOPMAssertionID wakeDisplay(void) {
+    IOPMAssertionID activity = kIOPMNullAssertionID;
+    // A remote operator is using the console, not merely a network service.
+    // Match real remote input's console wake, without posting any input event.
+    IOReturn result = IOPMAssertionDeclareUserActivity(CFSTR("PLANK authenticated display preparation"),
+        kIOPMUserActiveLocal, &activity);
+    if (result != kIOReturnSuccess) NSLog(@"PLANK display wake request failed: %d", result);
+    return activity;
+}
+typedef NS_ENUM(unsigned, PLANKDisplayCreation) {
+    PLANKDisplayCreated, PLANKDisplayCreationPending, PLANKDisplayCreationFailed
+};
 static BOOL currentModeMatches(CGDirectDisplayID display, unsigned width, unsigned height, unsigned scale) {
     CGDisplayModeRef mode = CGDisplayCopyDisplayMode(display);
     if (!mode) return NO;
@@ -90,8 +105,8 @@ static BOOL supportedAPI(void) {
     BOOL restored = !_layout || [_layout restore];
     return restored && !_layoutNeedsRetirement;
 }
-- (BOOL)createWidth:(unsigned)width height:(unsigned)height scale:(unsigned)scale {
-    if (!supportedAPI()) { NSLog(@"PLANK virtual display API signature unavailable"); return NO; }
+- (PLANKDisplayCreation)createWidth:(unsigned)width height:(unsigned)height scale:(unsigned)scale {
+    if (!supportedAPI()) { NSLog(@"PLANK virtual display API signature unavailable"); return PLANKDisplayCreationFailed; }
     PLANKMacDisplayDescriptor *descriptor = [[NSClassFromString(@"CGVirtualDisplayDescriptor") alloc] init];
     descriptor.name = _signIn ? @"PLANK Sign In" : @"PLANK Desktop";
     descriptor.maxPixelsWide = 8192;
@@ -100,10 +115,13 @@ static BOOL supportedAPI(void) {
     descriptor.vendorID = 0xF0F0; descriptor.productID = 2; descriptor.serialNum = _signIn ? 2 : 1;
     descriptor.queue = dispatch_get_main_queue();
     _display = [[NSClassFromString(@"CGVirtualDisplay") alloc] initWithDescriptor:descriptor];
-    if (!_display) { NSLog(@"PLANK virtual display descriptor rejected"); return NO; }
-    if (![self applyModesWidth:width height:height scale:scale]) { _display = nil; return NO; }
+    // Wake can retire an old registration asynchronously. Retry the same
+    // identity within preparation's deadline; never add a replacement monitor
+    // with a different serial or disturb another display owner.
+    if (!_display) return PLANKDisplayCreationPending;
+    if (![self applyModesWidth:width height:height scale:scale]) { _display = nil; return PLANKDisplayCreationFailed; }
     atomic_store(&_displayID, _display.displayID);
-    return self.displayID != kCGNullDirectDisplay;
+    return self.displayID != kCGNullDirectDisplay ? PLANKDisplayCreated : PLANKDisplayCreationFailed;
 }
 - (BOOL)applyModesWidth:(unsigned)width height:(unsigned)height scale:(unsigned)scale {
     NSMutableArray *available = [NSMutableArray array];
@@ -136,57 +154,52 @@ static BOOL supportedAPI(void) {
     }
     BOOL localDesktop = !_display || (self.mirrorHostDisplays && !_layout.pending);
     CGDirectDisplayID target = localDesktop ? CGMainDisplayID() : self.displayID;
-    if (target && CGDisplayIsActive(target)) { completion(YES); return; }
+    if (displayAwake(target)) { completion(YES); return; }
     NSLog(@"PLANK authenticated display recovery starting: owned=%d", _display != nil);
-    // Report an authenticated remote user, not a synthetic keyboard/mouse event.
-    // No global power preference or permanent sleep assertion is installed.
-    IOPMAssertionID activity = kIOPMNullAssertionID;
-    IOReturn wake = IOPMAssertionDeclareUserActivity(CFSTR("PLANK authenticated display recovery"),
-                                                   kIOPMUserActiveRemote, &activity);
-    if (wake != kIOReturnSuccess) NSLog(@"PLANK display wake request failed: %d", wake);
+    if (!localDesktop) {
+        [self prepareWidth:_readyWidth height:_readyHeight scale:_readyScale valid:valid completion:^(BOOL ready) {
+            NSLog(@"PLANK owned display recovery %@", ready ? @"ready" : @"not ready");
+            completion(ready);
+        }];
+        return;
+    }
+    IOPMAssertionID activity = wakeDisplay();
     // Never reapply CGVirtualDisplay settings to an existing offline output.
     // SDK/OS 27 can abort WindowServer in GenerateModeListForDisplay on that
     // path. Wake asynchronously, then wait for the same output to return; the
-    // bounded prepare loop only selects modes once it is online. Do not create
+    // bounded prepare loop only selects modes once it is online and awake. Do not create
     // a duplicate output or claim recovery of a permanently removed display.
     if (!valid()) {
         if (activity != kIOPMNullAssertionID) IOPMAssertionRelease(activity);
         completion(NO); return;
     }
-    if (localDesktop) {
-        // Before the first bookmark preparation there is no owned virtual
-        // output. Topology must first describe the existing desktop so the
-        // Client can request preparation. Wake only; never change a physical
-        // mode or invent a bootstrap resolution to break that dependency.
-        _busy = YES;
-        NSTimeInterval deadline = NSProcessInfo.processInfo.systemUptime + 2.5;
-        dispatch_source_t timer = dispatch_source_create(DISPATCH_SOURCE_TYPE_TIMER, 0, 0, dispatch_get_main_queue());
-        dispatch_source_set_timer(timer, DISPATCH_TIME_NOW, 50*NSEC_PER_MSEC, 5*NSEC_PER_MSEC);
-        dispatch_source_set_event_handler(timer, ^{
-            BOOL allowed = valid();
-            CGDirectDisplayID current = CGMainDisplayID();
-            BOOL ready = allowed && current && CGDisplayIsActive(current);
-            if (ready || !allowed || NSProcessInfo.processInfo.systemUptime >= deadline) {
-                dispatch_source_cancel(timer);
-                dispatch_source_set_event_handler(timer, nil);
-                self->_busy = NO;
-                if (activity != kIOPMNullAssertionID) IOPMAssertionRelease(activity);
-                NSLog(@"PLANK bootstrap display recovery %@", ready ? @"ready" : @"not ready");
-                completion(ready);
-            }
-        });
-        dispatch_resume(timer);
-        return;
-    }
-    [self prepareWidth:_readyWidth height:_readyHeight scale:_readyScale valid:valid completion:^(BOOL ready) {
-        if (activity != kIOPMNullAssertionID) IOPMAssertionRelease(activity);
-        NSLog(@"PLANK owned display recovery %@", ready ? @"ready" : @"not ready");
-        completion(ready);
-    }];
+    // Before the first bookmark preparation there is no owned virtual
+    // output. Topology must first describe the existing desktop so the
+    // Client can request preparation. Wake only; never change a physical
+    // mode or invent a bootstrap resolution to break that dependency.
+    _busy = YES;
+    NSTimeInterval deadline = NSProcessInfo.processInfo.systemUptime + 2.5;
+    dispatch_source_t timer = dispatch_source_create(DISPATCH_SOURCE_TYPE_TIMER, 0, 0, dispatch_get_main_queue());
+    dispatch_source_set_timer(timer, DISPATCH_TIME_NOW, 50*NSEC_PER_MSEC, 5*NSEC_PER_MSEC);
+    dispatch_source_set_event_handler(timer, ^{
+        BOOL allowed = valid();
+        CGDirectDisplayID current = CGMainDisplayID();
+        BOOL ready = allowed && displayAwake(current);
+        if (ready || !allowed || NSProcessInfo.processInfo.systemUptime >= deadline) {
+            dispatch_source_cancel(timer);
+            dispatch_source_set_event_handler(timer, nil);
+            self->_busy = NO;
+            if (activity != kIOPMNullAssertionID) IOPMAssertionRelease(activity);
+            NSLog(@"PLANK bootstrap display recovery %@", ready ? @"ready" : @"not ready");
+            completion(ready);
+        }
+    });
+    dispatch_resume(timer);
+    return;
 }
 - (BOOL)selectWidth:(unsigned)width height:(unsigned)height scale:(unsigned)scale {
     CGDirectDisplayID display = self.displayID;
-    if (!CGDisplayIsOnline(display) || CGDisplayIsInMirrorSet(display)) return NO;
+    if (!CGDisplayIsOnline(display) || !displayAwake(display) || CGDisplayIsInMirrorSet(display)) return NO;
     if (_configuredScale != scale ||
         (!presetMode(width, height) && (_dynamicWidth != width || _dynamicHeight != height))) {
         if (![self applyModesWidth:width height:height scale:scale]) return NO;
@@ -224,36 +237,63 @@ static BOOL supportedAPI(void) {
     if (_busy || !valid || !completion || !valid() || (scale != 1 && scale != 2) || !PLANKMacDesktopModeSupported(width, height)) {
         if (completion) completion(NO); return;
     }
-    if (self.mirrorHostDisplays && !_signIn) {
-        if (!_layout) _layout = [PLANKMacDisplayLayout new];
-        if (![_layout beginExcludingDisplay:self.displayID]) { _layoutNeedsRetirement = YES; completion(NO); return; }
-    }
-    if (!_display && ![self createWidth:width height:height scale:scale]) {
-        if (_layout) _layoutNeedsRetirement = YES;
-        [self restoreLayout]; completion(NO); return;
-    }
     _busy = YES;
+    // Wake first, even when Quartz still calls a sleeping/stale output online.
+    // Hold idle-sleep protection for the whole bounded preparation. Streaming
+    // takes its own assertion; no idle Host or unauthenticated probe owns one.
+    IOPMAssertionID protection = PLANKMacPreventIdleDisplaySleep(CFSTR("PLANK display preparation"));
+    IOPMAssertionID activity = protection != kIOPMNullAssertionID ? wakeDisplay() : kIOPMNullAssertionID;
+    if (protection == kIOPMNullAssertionID || activity == kIOPMNullAssertionID || !valid()) {
+        PLANKMacReleaseDisplayAssertion(&activity);
+        PLANKMacReleaseDisplayAssertion(&protection);
+        _busy = NO; completion(NO); return;
+    }
     NSLog(@"PLANK desktop mode preparing: %ux%u scale=%u display=%u", width, height, scale, self.displayID);
-    __block BOOL selected = NO, consolidated = NO, attempted = NO, adopted = !_layout;
+    __block BOOL initialized = NO, selected = NO, consolidated = NO, attempted = NO, adopted = NO;
+    __block unsigned creationAttempts = 0;
+    __block NSTimeInterval nextCreation = 0;
     NSTimeInterval deadline = NSProcessInfo.processInfo.systemUptime + 6;
     dispatch_source_t timer = dispatch_source_create(DISPATCH_SOURCE_TYPE_TIMER, 0, 0, dispatch_get_main_queue());
-    dispatch_source_set_timer(timer, DISPATCH_TIME_NOW, 50*NSEC_PER_MSEC, 5*NSEC_PER_MSEC);
+    dispatch_source_set_timer(timer, dispatch_time(DISPATCH_TIME_NOW, 50*NSEC_PER_MSEC), 50*NSEC_PER_MSEC, 5*NSEC_PER_MSEC);
     dispatch_source_set_event_handler(timer, ^{
         BOOL allowed = valid();
+        NSTimeInterval now = NSProcessInfo.processInfo.systemUptime;
+        if (allowed && !initialized) {
+            BOOL localDesktop = !self->_display || (self.mirrorHostDisplays && !self->_layout.pending);
+            CGDirectDisplayID target = localDesktop ? CGMainDisplayID() : self.displayID;
+            // A genuinely headless first launch has no output to wait for.
+            // Existing outputs must wake before layout snapshots or changes.
+            if (!target || displayAwake(target)) {
+                initialized = YES;
+                if (self.mirrorHostDisplays && !self->_signIn) {
+                    if (!self->_layout) self->_layout = [PLANKMacDisplayLayout new];
+                    if (![self->_layout beginExcludingDisplay:self.displayID]) {
+                        self->_layoutNeedsRetirement = YES; allowed = NO;
+                    }
+                }
+                adopted = !self->_layout;
+            }
+        }
+        if (allowed && initialized && !self->_display && now >= nextCreation) {
+            creationAttempts++;
+            PLANKDisplayCreation result = [self createWidth:width height:height scale:scale];
+            if (result == PLANKDisplayCreationFailed) allowed = NO;
+            nextCreation = now + .25;
+        }
         CGDirectDisplayID display = self.displayID;
         // Creation returns an ID before WindowServer necessarily exposes its
         // UUID. Wait inside the existing bounded preparation loop; never change
         // modes or consolidate physical screens before ownership is identified.
-        if (allowed && !adopted && CGDisplayIsOnline(display))
+        if (allowed && initialized && display && !adopted && CGDisplayIsOnline(display))
             adopted = [_layout adoptDisplay:display];
-        if (allowed && adopted && !selected) selected = [self selectWidth:width height:height scale:scale];
+        if (allowed && initialized && display && adopted && !selected) selected = [self selectWidth:width height:height scale:scale];
         if (allowed && selected && _layout.pending && !attempted) {
             attempted = YES; consolidated = [_layout activateDisplay:display];
         }
         if (attempted && !consolidated) allowed = NO;
         BOOL ready = allowed && selected && (!_layout.pending || (consolidated && [_layout matchesDisplay:display])) &&
-            CGDisplayIsActive(display) && currentModeMatches(display, width, height, scale);
-        if (ready || !allowed || NSProcessInfo.processInfo.systemUptime >= deadline) {
+            displayAwake(display) && currentModeMatches(display, width, height, scale);
+        if (ready || !allowed || now >= deadline) {
             dispatch_source_cancel(timer);
             dispatch_source_set_event_handler(timer, nil);
             self->_busy = NO;
@@ -265,10 +305,14 @@ static BOOL supportedAPI(void) {
             else {
                 // Without a verified UUID the output cannot safely be parked
                 // during restoration. Retiring its owner releases it instead.
-                if (!adopted) self->_layoutNeedsRetirement = YES;
+                if (self->_layout && initialized && !adopted) self->_layoutNeedsRetirement = YES;
                 if (![self restoreLayout]) NSLog(@"PLANK display mirroring restoration requires worker retirement");
-                NSLog(@"PLANK desktop mode not ready: identified=%d selected=%d authorized=%d", adopted, selected, allowed);
+                NSLog(@"PLANK desktop mode not ready: initialized=%d identified=%d selected=%d authorized=%d creation-attempts=%u awake=%d",
+                    initialized, adopted, selected, allowed, creationAttempts, displayAwake(display));
             }
+            IOPMAssertionID wakeAssertion = activity, sleepAssertion = protection;
+            PLANKMacReleaseDisplayAssertion(&wakeAssertion);
+            PLANKMacReleaseDisplayAssertion(&sleepAssertion);
             completion(ready);
         }
     });

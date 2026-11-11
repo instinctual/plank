@@ -3,10 +3,11 @@
 #import <Foundation/Foundation.h>
 #import <CoreGraphics/CoreGraphics.h>
 
-// One experimental virtual display per graphical-agent lifetime. No root
+// One fixed-identity virtual display per graphical-agent lifetime. No root
 // helper or public socket. Opt-in display mirroring leases temporarily mirror
 // physical displays using app-lifetime Quartz configuration. Agent process exit
-// is the removal boundary on SDK 27; do not pretend releasing the object removes it.
+// normally removes it; WindowServer can defer that cleanup until display wake.
+// Authenticated preparation wakes first and bounds retries of the same identity.
 @interface PLANKMacDesktopDisplay : NSObject
 // Distinct display identity, with the same selectable modes as the desktop.
 - (instancetype)initForSignIn;

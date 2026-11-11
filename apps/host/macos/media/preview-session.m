@@ -6,6 +6,7 @@
 #import "microphone-session.h"
 #import "camera-session.h"
 #import "media-features.h"
+#import "display-power.h"
 #include "stream-diagnostics.h"
 #include "plank_transport_control.h"
 #include "plank_transport_input.h"
@@ -93,6 +94,7 @@ BOOL PLANKMacPreviewRequestMatchesTopology(NSDictionary *request, NSDictionary *
     BOOL _changingBitrate;
     uint64_t _bitrateDue, _bitrateFirstRequest, _bitrateDeadline;
     BOOL _captureStarted;
+    IOPMAssertionID _displaySleepAssertion;
     uint64_t _captureDeadline;
     NSMutableArray *_stopCallbacks;
     PLANKMacInputTiming _inputWaitTiming, _inputDeliveryTiming;
@@ -206,6 +208,10 @@ BOOL PLANKMacPreviewRequestMatchesTopology(NSDictionary *request, NSDictionary *
     dispatch_async(_queue, ^{
         if (self.state != PLANKMacPreviewPrepared) return;
         self.state = PLANKMacPreviewConnecting;
+        self->_displaySleepAssertion = PLANKMacPreventIdleDisplaySleep(CFSTR("PLANK active remote session"));
+        if (self->_displaySleepAssertion == kIOPMNullAssertionID) {
+            [self stopOnQueueForReason:@"display-sleep-protection-failed"]; return;
+        }
         if (plank_transport_native_endpoint_start(self->_endpoint) != PLANK_TRANSPORT_OK) {
             [self stopOnQueueForReason:@"transport-start-failed"]; return;
         }
@@ -514,6 +520,9 @@ BOOL PLANKMacPreviewRequestMatchesTopology(NSDictionary *request, NSDictionary *
         (unsigned long long)_inputDeliveryTiming.count, (unsigned long long)_inputDeliveryTiming.slow,
         (double)_inputDeliveryTiming.maximum / NSEC_PER_MSEC);
     self.state = PLANKMacPreviewStopping;
+    // Release before framework drain: a delayed capture callback must not keep
+    // an abandoned session's display awake indefinitely.
+    PLANKMacReleaseDisplayAssertion(&_displaySleepAssertion);
     [_clipboard stop];
     [_microphone stop]; _microphone = nil;
     [_camera stop]; _camera = nil;
@@ -551,6 +560,7 @@ BOOL PLANKMacPreviewRequestMatchesTopology(NSDictionary *request, NSDictionary *
     for (void (^callback)(void) in callbacks) callback();
 }
 - (void)dealloc {
+    PLANKMacReleaseDisplayAssertion(&_displaySleepAssertion);
     [_clipboard stop];
     [_sessions endStreamLease:_lease];
     if (_watch) dispatch_source_cancel(_watch);

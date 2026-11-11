@@ -8,6 +8,34 @@ the focused plans and the artifact catalog.
 
 ## Current state
 
+Work is on `macos-display-sleep`, based on main `ede61eb80ffb27e4447f67eacc0a114bbd04d170`.
+The operator authorized a Host fix for idle display sleep interrupting sessions
+and preventing later resolution preparation. Candidate version is **1.4.17**;
+main and the latest published release remain **1.4.16**. No merge or publication
+is requested for this candidate.
+
+Preparation now wakes the console before display creation/mode changes, waits
+for active/non-sleeping output, and bounds same-identity registration retries.
+Preparation and active sessions hold scoped idle-display-sleep protection with
+cleanup before asynchronous capture drain. No power preference, Client, Linux
+Host or protocol change is included. See
+[the focused plan](docs/development/plans/macos-display-sleep.md).
+
+Local source-policy tests pass (138 CI tests and applicable Host settings,
+target and permission gates); Mac-only cases are explicitly skipped here and
+must run on GitHub. Native wake/readiness and QUIC-session lifecycle regression
+fixtures are added; hosted execution and signed packaging are next. Do not call
+this installed acceptance. Preserve the affected Mac's desktop; no service
+restart, logout, reboot or installation has occurred for this task.
+
+A brief operator-authorized OS wake cleared the observed duplicate virtual-display
+registration; the existing worker then successfully created its fixed-identity
+output. No process restart was needed. This establishes wake-related recovery,
+not acceptance of the candidate. Evidence and target access remain private in
+`mac16-resolution-20261111.json` and its referenced audit directory.
+
+## Previous published baseline
+
 PLANK **1.4.16 is published** at
 [GitHub Releases](https://github.com/instinctual/plank/releases/tag/v1.4.16).
 The `macos-shared-directory` fix is merged into main. Root, Linux Host, Client

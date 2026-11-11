@@ -11,7 +11,7 @@ static unsigned checks, creations, activations, selections, commits, virtualIden
 static NSMutableDictionary *screens, *transaction;
 static NSArray *available;
 static BOOL online, identified, authorized;
-static unsigned identity;
+static unsigned identity, powerAssertions;
 static CGDirectDisplayID mainID;
 
 @interface TestMode : NSObject
@@ -87,6 +87,7 @@ CGDirectDisplayID CGDisplayMirrorsDisplay(CGDirectDisplayID d) { return [screens
 boolean_t CGDisplayIsAlwaysInMirrorSet(CGDirectDisplayID d) { (void)d; return false; }
 boolean_t CGDisplayIsOnline(CGDirectDisplayID d) { return screens[@(d)] && (d != 7 || online); }
 boolean_t CGDisplayIsActive(CGDirectDisplayID d) { return CGDisplayIsOnline(d); }
+boolean_t CGDisplayIsAsleep(CGDirectDisplayID d) { (void)d; return false; }
 boolean_t CGDisplayIsInMirrorSet(CGDirectDisplayID d) {
     if (CGDisplayMirrorsDisplay(d)) return true;
     for (NSDictionary *s in screens.allValues) if ([s[@"mirror"] unsignedIntValue] == d) return true;
@@ -131,10 +132,18 @@ CGError CGCompleteDisplayConfiguration(CGDisplayConfigRef c,CGConfigureOption o)
     commits++;screens=transaction;transaction=nil;return kCGErrorSuccess;
 }
 IOReturn IOPMAssertionDeclareUserActivity(CFStringRef name,IOPMUserActiveType type,IOPMAssertionID *result) {
-    (void)name;(void)type;(void)result;CHECK(NO);return kIOReturnError;
+    CHECK(name && type == kIOPMUserActiveLocal && *result == kIOPMNullAssertionID);
+    *result=19; powerAssertions++; return kIOReturnSuccess;
 }
-IOReturn IOPMAssertionRelease(IOPMAssertionID value) { (void)value;CHECK(NO);return kIOReturnError; }
+IOReturn IOPMAssertionCreateWithName(CFStringRef type, IOPMAssertionLevel level, CFStringRef name, IOPMAssertionID *result) {
+    CHECK(CFEqual(type,kIOPMAssertionTypePreventUserIdleDisplaySleep) && level==kIOPMAssertionLevelOn && name);
+    CHECK(*result==kIOPMNullAssertionID); *result=20; powerAssertions++; return kIOReturnSuccess;
+}
+IOReturn IOPMAssertionRelease(IOPMAssertionID value) {
+    CHECK((value==19 || value==20) && powerAssertions); powerAssertions--; return kIOReturnSuccess;
+}
 static void reset(BOOL physical) {
+    CHECK(powerAssertions==0);
     screens=physical ? [@{@1:screen(2560,1440,0),@2:screen(1920,1200,-1920)} mutableCopy] : [NSMutableDictionary new];
     transaction=nil;available=nil;online=identified=NO;authorized=YES;identity=7;
     creations=activations=selections=commits=virtualIdentityQueries=createdSerial=0;
@@ -149,6 +158,7 @@ static void step(unsigned index) {
         "physical-default", "headless-default-reconnect", "headless-mirroring-reconnect",
         "headless-sign-in", "headless-timeout", "headless-cancel"
     };
+    CHECK(powerAssertions==0);
     if (index == sizeof(names)/sizeof(names[0])) {
         printf("display_readiness=PASS checks=%u cases=%u synthetic_quartz=1 installed_acceptance=0\n",checks,index);
         exit(0);
