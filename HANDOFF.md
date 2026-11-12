@@ -1,228 +1,127 @@
 # PLANK handoff
 
-Read `AGENTS.md` and the relevant build runbook first. This file is the current
-checkpoint, not a chronological transcript. Private machine inventory, credentials
-and captures remain outside Git. Earlier detailed results are preserved in
-[the preceding checkpoint](https://github.com/instinctual/plank/blob/5f2d700c/HANDOFF.md),
+Read `AGENTS.md` and the relevant build runbook first. This is the current
+checkpoint; private deployment data stays outside Git. Earlier detailed results
+are preserved in [the preceding checkpoint](https://github.com/instinctual/plank/blob/af3b5e2d/HANDOFF.md),
 the focused plans and the artifact catalog.
 
 ## Current state
 
-The operator authorized commit, push and release. `macos-display-sleep` is
-merged into main, and **1.4.18 mainline publication is in progress**. All four
-packages must be freshly built from the release source before publication.
-The signed **1.4.18-macos-display-sleep** candidate remains installed on the
-operator-authorized affected Mac. PLANK's machine and desktop services restarted;
-the OS desktop and WindowServer remained running. The latest published release remains **1.4.16** until the new artifacts pass
-verification. No additional remote installation was requested.
+**PLANK 1.4.18 is published** at
+[GitHub Releases](https://github.com/instinctual/plank/releases/tag/v1.4.18).
+The operator authorized commit, push and release. `macos-display-sleep` is merged
+into main; root, Linux Host, Client and Kymux canonical checkouts are on main.
+All four packages were freshly built from main and published. The Client update
+is bundled release notes only; Linux Host and transport runtime sources are
+unchanged. No additional deployment is queued.
 
-Exact candidate source: `fb5cff4b63004c387313dbbf68cbaf3420737d64`.
-The mainline Client pin is now `121ed3eb6daffb116f33194074109e2bdad9a38c`
-(bundled release notes only). Linux Host and transport pins are unchanged.
-Mainline production Host code matches the installed candidate.
-
-Preparation wakes the console before display creation/mode changes, waits for
-active/non-sleeping output, and bounds retries of the same display identity.
-A failed first setup can still wake the desktop and allow topology/preparation
-to retry. Preparation and active streams hold scoped idle-display-sleep
-protection, released on all exit paths before asynchronous capture drain.
-There are no power-preference, Client, Linux Host or protocol changes. See
-[the focused plan](docs/development/plans/macos-display-sleep.md).
-
-Signed GitHub run `43119531407`, job `130856272898`, passed native display
-recovery (37 scenarios), physical/headless readiness (9 cases/378 checks), and
-real QUIC/synthetic capture lifecycle (26 scenarios/941 checks), plus the normal
-Host/package gates. Signing, notarization, stapling and Gatekeeper passed.
-The 138-test CI source-policy gate, privacy and clipboard workflows passed.
-Initial run `43117788345` passed the earlier 1.4.17 revision; it is superseded
-and was neither collected for distribution nor installed. Automatic broad push
-builds were canceled in favor of the explicit Host-only signed jobs.
-
-Package:
-`artifacts/packages/candidates/1.4.18-macos-display-sleep/macos/plank-host_1.4.18-macos-display-sleep_arm64.pkg`.
-SHA256: `ae8912f49f009bae948d7b6eb7c4aed96b6da62bf0f9fe5bd9efc9bbec3eca4a`.
-Installed executable SHA256:
-`1fc88609f2b3ce5cad69670bde0584fba74801e27bb0731c411bab59166ac02e`.
-Both match the exact hosted build. Original manifest and validation evidence are
-in `artifacts/qualification/macos-display-sleep-1.4.18/`.
-
-The installed Host reports the correct version, both roles have new running
-PIDs, and local HTTPS serverinfo returns 200. Post-start logs show successful
-desktop mode preparation and no new startup, wake/protection or preparation
-failure. Configuration and machine-key hashes, console user, WindowServer and
-boot time are unchanged. No logout/reboot or global power setting change occurred.
-Local download staging and remote installation staging were removed.
-
-Installed interactive acceptance is still pending: connect after display sleep,
-check the requested resolution, keep a session idle beyond the display timer,
-and verify assertion release after disconnect. Do not treat startup checks or
-synthetic tests as that acceptance. Preserve the user's desktop and do not
-induce logout/reboot or explicit sleep without authorization.
-
-A brief operator-requested OS wake before the fix cleared the observed stale
-virtual-display registration without restarting the old worker. Raw evidence,
-access and deployment records remain outside Git; read the private notes README.
-The exact `macos-display-sleep` signing permission remains while this candidate
-is under review; retire it with the branch after checking live testing roles.
-
-## Previous published baseline
-
-PLANK **1.4.16 is published** at
-[GitHub Releases](https://github.com/instinctual/plank/releases/tag/v1.4.16).
-The `macos-shared-directory` fix is merged into main. Root, Linux Host, Client
-and Kymux canonical checkouts are on main. Linux Host and Kymux sources are
-unchanged; the Client update is bundled release notes only. All four mainline
-packages are built and published. No additional deployment is queued.
-
-## Installed shared-directory correction
-
-Read-only diagnosis found a third-party installer changed
-`/Library/Application Support` to root:admin 0775. PLANK's strict ancestor check
-then rejected system identity loading when the desktop worker restarted. The
-PLANK directories, keys and administrator configuration were correctly protected.
-The older deployed candidate and 1.4.15 contain the same check.
-
-The correction allows only root:admin 0775 on that exact parent while opening
-the canonical `/Library/Application Support/PLANK` system state. Protected leaf
-directories, config/key ownership, no-symlink traversal and file/link checks
-remain enforced. The installer/uninstaller shell preflight has a second
-permission check; it receives the matching narrow exception. Neither path
-changes the shared directory's permissions. Rejections now name the directory
-and its metadata. Metrics remain disabled by default.
-
-Candidate source is `ee30bffa3fd3fd4d137d619e3e9c43017155576f`. Signed Host run
-`42691123177` passed native path-policy, real configuration-filesystem,
-complete-startup, permissions and installer gates. Signing, notarization,
-stapling and Gatekeeper checks passed. Native fixtures cover the accepted parent
-and unsafe owners, groups, modes, lookalike paths and leaves; filesystem fixtures
-retain the negative writable-ancestor and link checks. Portable installer tests
-pass 41 checks; local source-policy tests pass 138 checks. Mac-only fixtures
-skipped locally ran on the hosted Mac worker.
-
-Package:
-`artifacts/packages/candidates/1.4.16-macos-shared-directory/macos/plank-host_1.4.16-macos-shared-directory_arm64.pkg`.
-SHA256: `733095c2dc0154c7ba43370cb67512c9553362f5ed7453c5acdbae78d48eac5a`.
-Installed executable SHA256:
-`87c3821be72409607134f9fb8613cafdba1a94e72ddc4fe3e0ccb11a3915d787`.
-
-The exact signed package is installed on the authorized affected Mac. FileVault
-was unexpectedly enabled; the operator separately authorized disabling it, and
-the installer ran only after the OS reported it off. No reboot or logout was
-performed. The desktop worker remains running on its first launch, and local
-and network `/serverinfo` requests return HTTP 200. Configuration, workstation
-identity and machine/user private-key hashes are unchanged. The shared parent
-remains root:admin0775 and the PLANK leaf root:admin0755. This directly exercises
-the repaired condition without modifying another application's shared directory.
-
-Installed interactive-session acceptance is still pending. Evidence and builder
-manifests are in `artifacts/qualification/macos-shared-directory-1.4.16`; raw
-machine/CI data and access details remain private. Local and target staging are
-removed. The installed candidate remains in place; publication did not install
-the mainline PKG. Preserve the affected user's desktop and never reboot
-automatically. The merged feature branch and its temporary exact-branch signing
-permission remain until the branch is retired.
-
-The annotated release tag points to the exact package source
-`a90bf46edcc3817719ffa3b13fc5cb0238032a34`. Later root commits update documentation;
-do not move the tag or relabel installers to match them.
+The annotated release tag points to package source
+`cd8b6936f9215b69e18918a3161ba4300c0284ff`.
+Tag object: `7829ba31cc7019b4136f5202e41db661eaa2edf0`.
+Later commits update documentation; never move the tag or relabel installers.
+Release ID: `442328108`.
 
 | Source | Release revision |
 | --- | --- |
 | Linux Host | `c71333d72cf43843a79a77df82f521547682d6c5` |
-| Client | `a5d66f7730c0418e3c66af5fde5e33b8acb627bd` |
+| Client | `121ed3eb6daffb116f33194074109e2bdad9a38c` |
 | Kymux | `9e1a7e304abe4ad6b42a7a10ef41eae2b16fb31f` |
 | Client common-C | `c7d1b83143be1511735526ae8ce75a6d5c25f63c` |
 
 The Client changes after accepted runtime `821e77da` are release notes only.
-Native Apple/AVP development remains separate; see the retained-branches section.
+Native Apple/AVP remains separate; retain its branches as described below.
+
+## Display wake correction and installed candidate
+
+Authenticated preparation now wakes the console before creating or changing
+displays, waits for active/non-sleeping output, and bounds retries of the same
+virtual-display identity. A failed first setup can still wake the desktop and
+allow topology/preparation to retry. Preparation and active streams hold scoped
+idle-display-sleep protection, released on all exit paths before capture drain.
+Power preferences, screen-lock security, identity and protocol are unchanged.
+See [the focused plan](docs/development/plans/macos-display-sleep.md).
+
+The exact **1.4.18-macos-display-sleep** candidate remains installed on the
+authorized affected Mac; publication did not replace it with the mainline PKG.
+Candidate source: `fb5cff4b63004c387313dbbf68cbaf3420737d64`.
+Package:
+`artifacts/packages/candidates/1.4.18-macos-display-sleep/macos/plank-host_1.4.18-macos-display-sleep_arm64.pkg`.
+Package SHA256:
+`ae8912f49f009bae948d7b6eb7c4aed96b6da62bf0f9fe5bd9efc9bbec3eca4a`.
+Installed executable SHA256:
+`1fc88609f2b3ce5cad69670bde0584fba74801e27bb0731c411bab59166ac02e`.
+
+The operator authorized installation and PLANK restart. Both services restarted,
+HTTPS serverinfo returned 200, and logs showed successful resolution preparation.
+Configuration and machine-key hashes, console user, WindowServer and boot time
+were preserved. No logout, reboot or global power setting change occurred.
+A later read-only observation found the 5120×2160 session still running with the
+PLANK idle-display assertion held for 10m58s and no logged display failure or
+stream stop. This does not prove a deliberately idle or asleep-reconnect test.
+
+Interactive sleep/reconnect/idle-timer acceptance and assertion release after
+an installed disconnect remain unrecorded. Do not induce logout/reboot or explicit
+sleep without authorization. A pre-fix five-second OS wake cleared the stale
+registration without restarting the old worker. Raw evidence and access are
+private; use the private notes README. Remote install staging is removed.
 
 ## Published packages and validation
 
-All four packages are in `artifacts/packages/releases/1.4.16/` and attached
-to the GitHub release. Original builder manifests, package/source hashes and
-combined checksums match. All final workflow conclusions are successful.
-Both Mac PKGs are signed, notarized, stapled and Gatekeeper-accepted.
-The public manifest/checksums use download basenames; the local catalog retains
-platform-relative paths. All six published asset sizes and digests were verified
-before and after publication.
+All four installers are in `artifacts/packages/releases/1.4.18/` and attached
+to the release with the source manifest and checksums. All six asset sizes and
+SHA-256 digests were verified before and after publication. Public checksums and
+manifest use basenames; the local catalog retains platform-relative paths.
+Both Mac packages are signed, notarized, stapled and Gatekeeper-accepted.
 
-| Product | Successful workflow | Package |
+| Product | Successful workflow | Artifact attempt |
 | --- | --- | --- |
-| Linux Host | `42695212447` | `linux/plank-host-1.4.16-1.el9.x86_64.rpm` |
-| Ubuntu Client | `42695212447` | `linux/plank-client_1.4.16_amd64.deb` |
-| macOS Host | `42695260868` | `macos/plank-host_1.4.16_arm64.pkg` |
-| macOS Client | `42695276364` | `macos/plank-client_1.4.16_arm64.pkg` |
+| Linux Host | `43121785326` | `linux-host-43121785326-2` |
+| Ubuntu Client | `43121785326` | `linux-client-43121785326-1` |
+| macOS Host | `43121831964` | `signed-macos-host-43121831964-2` |
+| macOS Client | `43121836018` | `signed-macos-client-43121836018-1` |
 
-Host targets remain Rocky 9.7 and macOS 26.7+; Clients remain Ubuntu 26.04
-and macOS 15+. Apple packages are Apple Silicon. SDK27 build/regression gates
-remain; Chris owns macOS 26.7 installed validation.
+Host targets remain Rocky 9.7/macOS 26.7+; Clients remain Ubuntu 26.04/macOS 15+.
+Apple packages are Apple Silicon. SDK 27 gates remain; Chris owns macOS 26.7
+installed validation. New 26.7 acceptance was not recorded for this correction.
 
-Privacy and clipboard gates passed. Linux transport passed three 900-frame,
-150 Mbps loss matrices with zero unrecovered data and zero proxy kernel drops.
-Hosted Mac functional checks and the complete-configuration startup regression
-passed. Transport sources are unchanged from 1.4.12; its retained Mac hardware
-qualification covered three identical-load matrices with zero unrecovered frames.
-That exact test executable's SHA256 is
-`999dd66f6d26a8aaf00019fa4c50aadf573472ec47f8fd4aaedc2bfafbb5942b`;
-evidence remains in `artifacts/qualification/mainline-1.4.12/`.
-No new Mac performance soak or mainline package installation was performed.
+Native Mac tests passed 37 display recovery scenarios, nine readiness cases
+(378 checks) and 26 real-QUIC/synthetic capture session scenarios (941 checks).
+The 138-test CI source policy, privacy, clipboard, package and Client
+compositor/input/launcher gates passed. Linux transport passed three 900-frame
+150 Mbps loss matrices with zero unrecovered frames and zero proxy kernel drops.
 
-The initial unsigned Mac Host job failed the unchanged
-`native_kyproto_round_trip_preserves_all_initial_lanes` test while waiting five
-seconds for its video frame. The independent signed Host build passed that test.
-After the other push jobs completed, only the failed job was rerun; retry
-`129432469818` passed with identical source and thresholds. No automatic retry
-loop or weakened test was introduced. The cause of the single timeout remains
-unestablished; preserve its evidence rather than labeling it a proven runner
-fault. The original Linux packages and both signed packages passed first attempt.
+Initial Linux Host and signed Mac Host jobs failed the unchanged native round-trip
+test at `native.rs:583`: payload recovery was exact, but a zero-missing-source-symbol
+assertion observed 45 and seven symbols before FEC. One targeted retry per failed
+job passed with identical source, assertions and limits; successful sibling jobs
+were retained. The independent unsigned Mac Host also passed. The cause remains
+unestablished. No test was weakened or automatic retry loop added. Preserve this
+as an unresolved test-reliability observation, not a proven runner defect.
 
-Current evidence, recursive source pins, Qt compositor/input reports and
-publication metadata are in `artifacts/qualification/mainline-1.4.16/`.
-Raw CI logs remain private. Download staging has been removed.
-[Release notes](docs/releases/1.4.16.md) describe the directory-permission fix,
-validation and retained Native10 tearing limitation. Release ID is `439643730`;
-annotated tag object is `37b038f7296aef15a348adac5ac691a922f044ef`.
+Transport sources are unchanged from 1.4.12, whose retained development Mac
+qualification passed three identical-load matrices with no unrecovered frames.
+Its exact executable SHA256 is
+`999dd66f6d26a8aaf00019fa4c50aadf573472ec47f8fd4aaedc2bfafbb5942b`.
+No new Mac transport performance soak or mainline package installation occurred.
+Evidence is in `artifacts/qualification/mainline-1.4.18/` and the candidate's
+qualification directory; raw CI/deployment logs remain private. Download staging
+is removed. [Release notes](docs/releases/1.4.18.md) record the fix and limits.
 
-## Installed macOS startup correction
+## Earlier startup fixes and deployment boundaries
 
-The authorized development Mac last had the signed
-**1.4.15-macos-startup-config** candidate installed, not the later mainline PKG.
-Installation succeeded without rebooting. The installed executable matches the
-package payload, its signature passes, machine/sign-in workers stay running and
-the control endpoint responds HTTP 200. Configuration and workstation identity
-hashes are unchanged. Interactive login-to-desktop/session acceptance has not
-yet been recorded for this correction.
+The shared Application Support permission correction and optional-metrics startup
+correction remain in main; see releases [1.4.16](docs/releases/1.4.16.md) and
+[1.4.15](docs/releases/1.4.15.md). They retain protected PLANK paths and default-off
+Mac metrics. Do not deploy Mac Host 1.4.11–1.4.14, whose fixed-count configuration
+startup regression is superseded. Deployment details and earlier candidate
+hashes are preserved in private inventory and the preceding checkpoint.
 
-Candidate source: `f837e8786665f55d0e07cb5463a0913c49ca3b85`.
-Signed build: `42531269265`.
-Package:
-`artifacts/packages/candidates/1.4.15-macos-startup-config/macos/plank-host_1.4.15-macos-startup-config_arm64.pkg`.
-Package SHA256:
-`1714ae12436a20a5cdffb3e5469895e2d2bb38cad73822606e13978729c2774c`.
-Installed executable SHA256:
-`4b9702ed3fe0ef88b0b97124408265ca0778197c88e3ba1c117c5f90ab963131`.
-
-Cause: metrics commit `510ccae1` added a defaulted internal configuration field.
-The complete dictionary gained an eighth field, including UUID, while graphical
-startup still required exactly seven. The worker rejected valid configuration
-even with metrics off. Host 1.4.11–1.4.14 are affected; do not deploy or publish
-the older Mac Host installers based on their earlier successful package checks.
-
-The fix validates startup-required fields instead of dictionary size. Existing
-type, integer-port, file-permission, identity and strict INI checks remain.
-The native filesystem fixture now tests the complete reader/identity/startup
-boundary, including omitted, disabled, enabled and invalid optional metrics.
-Both candidate and mainline builds report
-`startup_configuration_pass=1 metrics_default_off=1`.
-
-**Metrics must default off on macOS Host and Client.** Both implementations and
-templates already do, and the fix preserves that behavior. The target's metrics
-configuration was disabled. Metrics use UDP export to a local Telegraf listener;
-a closed TCP port is not evidence about that UDP collector.
-
-Access details, installed-state observations and pending session acceptance are
-in private notes. Installation staging is removed and the supplied sudo password
-was not persisted. No additional deployment or reboot is queued.
+The authorized development Mac's last observed installation remains the earlier
+1.4.15 startup candidate; this release did not access or upgrade it. Metrics use
+UDP export to Telegraf; a closed TCP port does not diagnose the UDP collector.
+The merged `macos-display-sleep`, `macos-shared-directory` and
+`macos-startup-config` branches and their exact signing permissions remain.
+Check live approvals and testing roles before any later retirement.
 
 ## Build workflow to preserve
 
@@ -233,7 +132,7 @@ also reuse validated compiler outputs; Mac application/transport objects compile
 fresh. Clean source/build directories, fresh linking, tests, package verification,
 signing and full CUDA architecture coverage remain mandatory.
 
-For 1.4.16, compiler hits were Host **337 C/C++, 151 Rust, six CUDA** and
+For 1.4.18, compiler hits were Host **337 C/C++, 151 Rust, six CUDA** and
 Client **250 C/C++, 66 Rust**. Earlier matched Host cache qualification reduced
 worker time from **15m58s to 6m43s**, with identical Host binary digests.
 These are observations, not promised build durations. The four Host C/C++ cache
@@ -342,11 +241,9 @@ branches were deleted; neither dependency PR is unfinished work.
 
 ## Next work and qualification limits
 
-Finish the four mainline builds, verify and collect their exact artifacts,
-then publish 1.4.18 as authorized. Do not relabel candidate packages or perform
-an additional deployment as part of publication. The useful remaining check for the startup
-fix is a normal interactive connection through login into the desktop, when the
-operator chooses to test it. Preserve Terminal and active sessions on the
+Publication is complete. Wait for the operator's next task; no rebuild, remote
+probe or additional deployment is queued. The remaining check for the display-wake fix is a deliberate sleep/reconnect
+and idle-timer session test when the operator chooses to run it. Preserve Terminal and active sessions on the
 authorized development Mac; never reboot automatically.
 
 Package/loopback results are not blanket installed hardware acceptance. Retain
