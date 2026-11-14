@@ -119,9 +119,6 @@ hashes are preserved in private inventory and the preceding checkpoint.
 The authorized development Mac's last observed installation remains the earlier
 1.4.15 startup candidate; this release did not access or upgrade it. Metrics use
 UDP export to Telegraf; a closed TCP port does not diagnose the UDP collector.
-The merged `macos-display-sleep`, `macos-shared-directory` and
-`macos-startup-config` branches and their exact signing permissions remain.
-Check live approvals and testing roles before any later retirement.
 
 ## Build workflow to preserve
 
@@ -233,11 +230,23 @@ C ABI 14 requires removing the obsolete `config.session_mode` assignment and
 
 Retain `codex/macos26-host-test` and `macos-host-test`: both serve approved
 contributor testing/signing workflows even though their source changes are in
-main. Their signing/approval policies were checked on November 8. Main protection
-was discussed, not enabled. `macos-startup-config` is fully merged but its branch
-and temporary signing permission remain; inspect live policies before retiring it.
-The 31 previously approved obsolete branches and the old #26/#13 dependency
-branches were deleted; neither dependency PR is unfinished work.
+main. Their signing/approval policies were rechecked on November 14. Main
+protection was discussed, not enabled.
+
+The operator authorized retiring **21 merged branches and three PLANK2 branches**
+on November 14. Cleanup removed 23 remote and 17 local branch refs across the
+parent, Kymux, common-C, build-deps and libvirtualhid repositories; one Kymux
+branch existed only locally. PLANK2 is retired; its separate repository was not
+modified. Native Apple/AVP, contributor-test, production/default and open
+dependency-PR branches were preserved. Retained Native Apple dependency pins
+remain reachable through production branches. Working trees, production gitlinks
+and the release tag were unchanged.
+
+Eight obsolete `macos-signing` deployment-branch permissions were removed.
+Only `main`, `codex/macos26-host-test` and `macos-host-test` remain allowed;
+the contributor approval registry is unchanged. Exact deleted refs and policy
+IDs are recorded in the private audit directory. This was branch/policy and
+documentation housekeeping; no package rebuild or deployment was needed.
 
 ## Next work and qualification limits
 
