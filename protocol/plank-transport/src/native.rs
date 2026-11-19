@@ -574,6 +574,8 @@ mod tests {
         assert_eq!(received_video.header.pts, 90_000);
         assert_eq!(received_video.payload, video_payload);
         let video_protocol_stats = client_connection.protocol_stats();
+        eprintln!("native_roundtrip_receive_buffer={:?}",
+            client_connection.stats_provider().connection_stats().await.udp_receive_buffer);
         assert!(
             video_protocol_stats
                 .video_fec_source_symbols
@@ -811,6 +813,9 @@ mod tests {
         let expected_payload = payload.clone();
         let sender_stats = server_connection.stats_provider();
         let receiver_stats = client_connection.stats_provider();
+        eprintln!("fec_loss_socket_buffers sender={:?} receiver={:?}",
+            sender_stats.connection_stats().await.udp_receive_buffer,
+            receiver_stats.connection_stats().await.udp_receive_buffer);
         let submitted_count = Arc::new(std::sync::atomic::AtomicU64::new(0));
         let submitted_time_us = Arc::new(std::sync::atomic::AtomicU64::new(0));
         let receive_progress = submitted_count.clone();

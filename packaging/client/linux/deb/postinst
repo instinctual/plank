@@ -11,6 +11,14 @@ fi
 if [ "$1" = configure ] || [ "$1" = abort-upgrade ] || \
    [ "$1" = abort-deconfigure ] || [ "$1" = abort-remove ]; then
   if [ -z "${DPKG_ROOT:-}" ]; then
+    # Apply only this key, honoring sysctl.d administrator overrides. Preserve
+    # an already larger running ceiling and every application's default buffer.
+    if [ -r /proc/sys/net/core/rmem_max ] &&
+       read -r plank_receive_limit < /proc/sys/net/core/rmem_max &&
+       [ "$plank_receive_limit" -lt 4194304 ] &&
+       [ -x /usr/lib/systemd/systemd-sysctl ]; then
+      /usr/lib/systemd/systemd-sysctl --prefix=/net/core/rmem_max || true
+    fi
     if [ -x /usr/bin/udevadm ]; then
       /usr/bin/udevadm control --reload-rules || true
       /usr/bin/udevadm trigger --action=change \

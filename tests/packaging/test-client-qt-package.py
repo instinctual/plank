@@ -28,6 +28,8 @@ class QtPackageTests(unittest.TestCase):
         (self.stage / 'usr/libexec/plank-client-update-policy').chmod(0o755)
         self.tangent_rule = (ROOT / 'packaging/client/linux/udev/70-plank-client-tangent.rules').read_text()
         self.write('usr/lib/udev/rules.d/70-plank-client-tangent.rules', self.tangent_rule)
+        self.receive_policy = (ROOT / 'packaging/common/linux/10-plank-receive-buffer.conf').read_text()
+        self.write('etc/sysctl.d/10-plank-receive-buffer.conf', self.receive_policy)
         template = (ROOT / 'packaging/client/config/plank-client.conf').read_text()
         self.write('usr/share/doc/plank-client/client.conf.example', template)
         self.write('etc/plank/client.conf', template)
@@ -40,7 +42,7 @@ class QtPackageTests(unittest.TestCase):
                         'Architecture: amd64\nMaintainer: Fixture <fixture@example.invalid>\n'
                         'Description: Uninstalled package fixture\n')
         self.write('DEBIAN/control', self.control)
-        self.write('DEBIAN/conffiles', '/etc/plank/client.conf\n')
+        self.write('DEBIAN/conffiles', '/etc/plank/client.conf\n/etc/sysctl.d/10-plank-receive-buffer.conf\n')
         for name in ('postinst', 'postrm'):
             self.write('DEBIAN/' + name, (ROOT / 'packaging/client/linux/deb' / name).read_text())
             (self.stage / 'DEBIAN' / name).chmod(0o755)
@@ -91,6 +93,16 @@ class QtPackageTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'unexpected directory'):
             AUDIT.validate(self.package())
 
+    def test_receive_policy_is_exact_and_does_not_change_other_network_defaults(self):
+        path = 'etc/sysctl.d/10-plank-receive-buffer.conf'
+        self.write(path, self.receive_policy + 'net.core.rmem_default = 4194304\n')
+        with self.assertRaisesRegex(ValueError, 'policy upgrade input'):
+            AUDIT.validate(self.package())
+        self.write(path, self.receive_policy)
+        self.write('etc/sysctl.d/99-unrelated.conf', 'net.core.wmem_max = 4194304\n')
+        with self.assertRaisesRegex(ValueError, 'outside Client namespace'):
+            AUDIT.validate(self.package())
+
     def test_rejects_replacement_metadata(self):
         self.write('DEBIAN/control', self.control + 'Replaces: unrelated-product\n')
         with self.assertRaisesRegex(ValueError, 'Replaces'):
@@ -134,10 +146,14 @@ class QtPackageTests(unittest.TestCase):
         self.write('DEBIAN/control', self.control.replace('1.2.00', '1.1.039'))
         self.write('usr/bin/plank-client', 'old client\n')
         (self.stage / 'usr/lib/udev/rules.d/70-plank-client-tangent.rules').unlink()
+        (self.stage / 'etc/sysctl.d/10-plank-receive-buffer.conf').unlink()
+        self.write('DEBIAN/conffiles', '/etc/plank/client.conf\n')
         previous = self.package('previous')
         self.write('DEBIAN/control', self.control)
         self.write('usr/bin/plank-client', 'Qt client\n')
         self.write('usr/lib/udev/rules.d/70-plank-client-tangent.rules', self.tangent_rule)
+        self.write('etc/sysctl.d/10-plank-receive-buffer.conf', self.receive_policy)
+        self.write('DEBIAN/conffiles', '/etc/plank/client.conf\n/etc/sysctl.d/10-plank-receive-buffer.conf\n')
         # Package default changed; the administrator's conffile still wins.
         self.write('etc/plank/client.conf', 'new default\n')
         candidate = self.package('candidate')
@@ -155,6 +171,7 @@ class QtPackageTests(unittest.TestCase):
                                      'internet_check_enabled=false\n',
             'home/test/.config/Instinctual/PLANK.conf': 'bookmarks and preferences\n',
             'home/test/.local/share/PLANK/pinned-host.pem': 'existing trusted certificate\n',
+            'etc/sysctl.d/10-plank-receive-buffer.conf': '# administrator ceiling\nnet.core.rmem_max = 16777216\n',
         }
         for name, content in preserved.items():
             target = install_root / name

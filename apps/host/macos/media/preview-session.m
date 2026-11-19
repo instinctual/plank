@@ -240,6 +240,11 @@ BOOL PLANKMacPreviewRequestMatchesTopology(NSDictionary *request, NSDictionary *
             [self stopOnQueueForReason:@"transport-ended"]; return;
         }
         if (self.state == PLANKMacPreviewConnecting && !_captureStarted && state == PLANK_TRANSPORT_STATE_READY) {
+            uint64_t receiveRequested = 0, receiveReported = 0;
+            if (plank_transport_native_endpoint_udp_receive_buffer(_endpoint,
+                &receiveRequested, &receiveReported) == PLANK_TRANSPORT_OK)
+                NSLog(@"PLANK QUIC UDP receive buffer: requested bytes=%llu OS-reported bytes=%llu",
+                    (unsigned long long)receiveRequested, (unsigned long long)receiveReported);
             if (![_sessions activateStreamLease:_lease]) { [self stopOnQueueForReason:@"lease-activation-failed"]; return; }
             if (_microphoneEnabled && plank_transport_native_microphone_enable_version(_endpoint, _microphoneSchema) != PLANK_TRANSPORT_OK)
                 NSLog(@"PLANK microphone endpoint could not be enabled; video and output audio remain available");

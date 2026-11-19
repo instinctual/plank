@@ -217,6 +217,24 @@ int main(int argc, char **argv) {
         goto failure;
     }
 
+    uint64_t receive_requested = 0, receive_reported = 0;
+    if (plank_transport_native_endpoint_udp_receive_buffer(NULL,
+            &receive_requested, &receive_reported) != PLANK_TRANSPORT_ERROR_INVALID_ARGUMENT)
+        goto failure;
+    if (plank_transport_native_endpoint_udp_receive_buffer(client,
+            &receive_requested, &receive_requested) != PLANK_TRANSPORT_ERROR_INVALID_ARGUMENT)
+        goto failure;
+    PlankTransportNativeEndpoint *receive_endpoints[] = {server, client};
+    for (size_t i = 0; i < 2; ++i) {
+        if (plank_transport_native_endpoint_udp_receive_buffer(receive_endpoints[i],
+                &receive_requested, &receive_reported) != PLANK_TRANSPORT_OK ||
+            receive_requested != 4u * 1024u * 1024u || receive_reported == 0)
+            goto failure;
+        printf("native_udp_receive_buffer role=%s requested=%llu os_reported=%llu\n",
+            i == 0 ? "server" : "client", (unsigned long long)receive_requested,
+            (unsigned long long)receive_reported);
+    }
+
     /* Optional peripherals use their own reliable endpoint on this connection.
      * The record is the schema1 Ready vector; no USB device is opened here. */
     const uint8_t tangent_ready[] = {'P','T','N','G',1,2,2,0,0,0,0,0,0,0,0,3};

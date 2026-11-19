@@ -48,6 +48,8 @@ fi
 # Dependency tests are not included by an ordinary product cargo test. Run the
 # actual audio/video FEC parsers and receiver state machines with our lockfile.
 cargo test "${cargo_profile_args[@]}" --locked --offline --manifest-path "$crate_dir/Cargo.toml" \
+  -p plank-transport -p kynet --lib driver::udp_socket:: -- --nocapture
+cargo test "${cargo_profile_args[@]}" --locked --offline --manifest-path "$crate_dir/Cargo.toml" \
   -p plank-transport -p kyproto --lib protocol::driver::av
 
 if [[ ${SC_NATIVE_CARGO_PROFILE:-release} == release ]]; then

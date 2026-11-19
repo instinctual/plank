@@ -146,6 +146,12 @@ int32_t plank_transport_native_endpoint_wait_ready(
         PlankTransportNativeEndpoint *endpoint, uint32_t timeout_ms);
 uint32_t plank_transport_native_endpoint_state(
         const PlankTransportNativeEndpoint *endpoint);
+/* Per-socket kernel receive limit, available once READY. Values are bytes;
+ * OS-reported SO_RCVBUF includes Linux's doubled bookkeeping allowance.
+ * Does not change the wire protocol or any existing ABI structure. */
+int32_t plank_transport_native_endpoint_udp_receive_buffer(
+        const PlankTransportNativeEndpoint *endpoint,
+        uint64_t *requested_bytes, uint64_t *os_reported_bytes);
 
 /*
  * A Client config with certificate_sha256 == NULL pauses in PEER_VALIDATION.

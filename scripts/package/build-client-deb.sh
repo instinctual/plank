@@ -129,11 +129,13 @@ install -D -m 0755 "$moonlight_binary" \
 strip --strip-debug "$stage_dir/usr/bin/$client_package"
 install -D -m 0644 "$repo_dir/packaging/client/config/plank-client.conf" \
   "$stage_dir/etc/plank/$client_config"
+install -D -m 0644 "$repo_dir/packaging/common/linux/10-plank-receive-buffer.conf" \
+  "$stage_dir/etc/sysctl.d/10-plank-receive-buffer.conf"
 install -D -m 0644 "$repo_dir/packaging/client/config/plank-client.conf" \
   "$stage_dir/usr/share/doc/$client_package/client.conf.example"
 install -D -m 0755 "$repo_dir/packaging/client/linux/update-policy.py" \
   "$stage_dir/usr/libexec/plank-client-update-policy"
-printf '%s\n' "/etc/plank/$client_config" \
+printf '%s\n' "/etc/plank/$client_config" '/etc/sysctl.d/10-plank-receive-buffer.conf' \
   >"$stage_dir/DEBIAN/conffiles"
 install -D -m 0644 \
   "$desktop_source" \

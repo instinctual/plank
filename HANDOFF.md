@@ -8,7 +8,23 @@ the focused plans and the artifact catalog.
 ## Current state
 
 Active development is on **`tangent-panel-forwarding`**, based on main
-`4a1c1046`. Candidate **1.4.19-tangent-panel-forwarding** runtime source is
+`4a1c1046`. The operator approved a shared 4 MiB QUIC receive-buffer request
+after the transport investigation below. **1.4.20-tangent-panel-forwarding**
+adds that request, requested/granted-size diagnostics in both products, and an
+administrator-editable Linux receive-ceiling policy. Default application
+buffers, send budgets, FEC and test thresholds are unchanged. The real C ABI
+roundtrip and local functional tests passed; the sustained local loss matrix
+still failed with the OS capping both sockets at 425984 reported bytes and
+586 unplanned proxy drops. Local sudo is unavailable; do not ask for builder
+repairs or weaken gates. Hosted qualification is pending. No endpoint has been
+upgraded and no merge/release is authorized.
+Current child revisions are Host `883b96ae`, Client `633ba511`, Kymux `4ee4654`.
+Validation passed 103 Client-feature Rust tests (11 integration fixtures handled
+separately), 146 CI/policy tests, the real socket-grant test, Clippy, and both
+C ABI trust modes. The isolated Debian install/upgrade fixtures run on Ubuntu;
+their absence on the local Rocky builder is not a pass.
+
+The preceding **1.4.19-tangent-panel-forwarding** runtime source is
 `59e0d3d1e9474489b7bfa5eb4863298af3f9954c`, with Linux Host `044d5012` and
 Client `eb493571`. All are pushed; Kymux and common-C retain the release pins
 below. No main merge or release is authorized for this task.
@@ -67,9 +83,9 @@ cause. The single targeted Host-only retry of run `44477575419` retained identic
 source/limits and successful sibling jobs, but failed the other existing
 `native.rs:583` assertion: 37 missing source symbols before FEC, despite exact
 reconstructed video. Do not rerun repeatedly or install the superseded Host RPM.
-The operator has been asked whether to expand this task to investigate the
-transport qualification prerequisite or pause here. No production network setting,
-gate relaxation or automatic retry loop was introduced. The broader local functional runner also encountered the previously
+The operator subsequently authorized the receive-buffer correction. No deployed
+machine setting, gate relaxation or automatic retry loop was introduced.
+The broader preceding local functional runner also encountered the previously
 observed `native.rs:583` before-FEC counter assertion despite byte-exact payload
 reconstruction. Full results and temporary hardware-access details remain in
 private notes, outside Git.

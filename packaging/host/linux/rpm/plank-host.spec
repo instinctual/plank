@@ -55,6 +55,12 @@ cp -a payload/. %{buildroot}/
 /usr/bin/chmod 0600 /var/lib/plank/plank-state.json || exit 1
 %systemd_post plank-pam-broker.service plank-display-prepare.service plank-host.service
 /usr/bin/systemctl preset plank-display-prepare.service >/dev/null 2>&1 || :
+if [ -r /proc/sys/net/core/rmem_max ] && \
+   read -r plank_receive_limit < /proc/sys/net/core/rmem_max && \
+   [ "$plank_receive_limit" -lt 4194304 ]; then
+  /usr/lib/systemd/systemd-sysctl --prefix=/net/core/rmem_max \
+    >>/var/log/plank/host-install.log 2>&1 || :
+fi
 /usr/bin/udevadm control --reload-rules >/dev/null 2>&1 || :
 /usr/sbin/modprobe uhid >/dev/null 2>&1 || :
 # Only our exact module participates in weak-module installation. No repository,
@@ -93,6 +99,7 @@ printf '%%s\n' '/lib/modules/%{plank_usbip_kernel}/extra/plank/vhci-hcd.ko.xz' |
 /usr/lib/modules/%{plank_usbip_kernel}/extra/plank/vhci-hcd.ko.xz
 /etc/pam.d/plank-host
 %config(noreplace) /etc/plank/host.conf
+%config(noreplace) /etc/sysctl.d/10-plank-receive-buffer.conf
 %config(noreplace) /etc/logrotate.d/plank-host
 %dir %attr(0755,root,root) /etc/plank
 %dir %attr(0700,root,root) /etc/plank/tls

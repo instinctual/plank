@@ -3,6 +3,27 @@
 Branch: `tangent-panel-forwarding`, based on main `4a1c1046` (PLANK 1.4.18).
 Status: initial KnobX1 compatibility gate passed; candidate integration in progress.
 
+## Receive-buffer qualification prerequisite
+
+The operator approved the shared native QUIC receive-buffer correction after
+the existing loss test failed during candidate qualification. Both native socket
+constructors now request 4 MiB and retain the actual OS-reported result for
+startup diagnostics. This is kernel receive headroom; it adds no application
+pacing or intentional playback wait and does not change FEC or wire negotiation.
+The introspection C API is additive; existing ABI structures and ALPN are unchanged.
+
+Candidate 1.4.20 also packages the editable Linux receive-ceiling policy described
+in the release runbook. Installation applies only that sysctl prefix when the
+running ceiling is below the target; higher running values and application
+defaults are preserved. Package fixtures exercise those conditions and conffile
+preservation. Mac sockets use their ordinary OS policy and report any cap.
+
+Local C ABI tests passed with explicit granted sizes. The local 150 Mbps matrix
+still failed under its restrictive kernel ceiling (425984 reported bytes), with
+additional proxy drops. This is not accepted performance qualification. Hosted
+tests must retain all loss/latency limits and show their actual socket grants;
+no retry loop or blanket increase of system buffer defaults is permitted.
+
 ## Recorded qualification
 
 The operator authorized the hardware-test Host and confirmed **jog, Play/Stop

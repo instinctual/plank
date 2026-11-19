@@ -11,6 +11,7 @@ PACKAGE = 'plank-client'
 DESKTOP = 'la.instinctual.Plank.Client'
 EXACT = {
     'usr/bin/plank-client', 'etc/plank/client.conf',
+    'etc/sysctl.d/10-plank-receive-buffer.conf',
     'usr/libexec/plank-client-update-policy',
     'usr/share/doc/plank-client/client.conf.example',
     f'usr/share/applications/{DESKTOP}.desktop',
@@ -72,6 +73,7 @@ def validate(package):
                                {f'usr/share/applications/{DESKTOP}.desktop',
                                 'usr/libexec/plank-client-update-policy',
                                 'usr/lib/udev/rules.d/70-plank-client-tangent.rules',
+                                'etc/sysctl.d/10-plank-receive-buffer.conf',
                                 'usr/share/doc/plank-client/client.conf.example'}, True)
     if not EXACT.issubset(names):
         raise ValueError('Client package is missing required files')
@@ -81,6 +83,7 @@ def validate(package):
     for installed, source in (
             ('usr/libexec/plank-client-update-policy', 'packaging/client/linux/update-policy.py'),
             ('usr/lib/udev/rules.d/70-plank-client-tangent.rules', 'packaging/client/linux/udev/70-plank-client-tangent.rules'),
+            ('etc/sysctl.d/10-plank-receive-buffer.conf', 'packaging/common/linux/10-plank-receive-buffer.conf'),
             ('usr/share/doc/plank-client/client.conf.example', 'packaging/client/config/plank-client.conf')):
         if metadata[installed] != (ROOT / source).read_text():
             raise ValueError('incorrect Client policy upgrade input')
@@ -92,7 +95,8 @@ def validate(package):
     if any(line.startswith(('MimeType=', 'DBusActivatable=')) for line in desktop):
         raise ValueError('Client must not introduce activation/URL handlers')
     control_names, control = read_tar(package, '--ctrl-tarfile', {'conffiles', 'postinst', 'postrm'})
-    if control.get('conffiles', '').strip() != '/etc/plank/client.conf':
+    if control.get('conffiles', '').splitlines() != [
+            '/etc/plank/client.conf', '/etc/sysctl.d/10-plank-receive-buffer.conf']:
         raise ValueError('incorrect Client conffile ownership')
     if control_names - {'control', 'conffiles', 'md5sums', 'postinst', 'postrm'}:
         raise ValueError('unexpected package lifecycle hook')

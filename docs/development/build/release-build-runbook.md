@@ -310,6 +310,25 @@ least the deliberate loss. Any frame failure remains a failure, regardless of
 proxy drops. Do not loosen assertions, add retries, tune machine-wide sysctls,
 or change product pacing/FEC/latency to hide a fixture limitation.
 
+The shared QUIC socket path requests 4 MiB of kernel receive headroom and records
+the actual `SO_RCVBUF` result. Linux reports twice the requested value to account
+for kernel overhead; a successful setsockopt can still be capped by `rmem_max`.
+Qualification prints the granted sender/receiver limits. Do not mistake a
+requested size for a granted size or relax loss/latency assertions when capped.
+The policy adds capacity without deliberately waiting to fill the socket.
+
+Linux Host/Client packages own the administrator-editable
+`/etc/sysctl.d/10-plank-receive-buffer.conf`, which sets only `net.core.rmem_max`
+to 4194304. They preserve an already higher running ceiling during installation
+and otherwise apply only that sysctl prefix, honoring later sysctl.d overrides.
+`rmem_default`, send buffers and network-device queues are unchanged. Keep a
+higher administrator ceiling in this file or a later sysctl.d file; normal boot
+ordering applies. Removal does not shrink live socket buffers or reset running
+kernel values. DEB removal retains conffiles; purge removes the policy. No Client
+service, autostart entry, privileged runtime helper or forced-buffer capability
+is introduced. Candidate package fixtures must verify conffile preservation and
+the absence of changes to unrelated network defaults.
+
 For native transport lifecycle changes, run the Rust completion tests and the
 real C ABI stress runner on Linux and the dedicated Mac:
 `bash scripts/test/run-peer-close-stress.sh ABSOLUTE_ARCHIVE NEW_OUTPUT 50`.

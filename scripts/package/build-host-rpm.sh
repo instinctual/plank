@@ -73,6 +73,8 @@ install -D -m 0644 "$repo_dir/packaging/host/linux/pam/plank-host" \
   "$payload_dir/etc/pam.d/plank-host"
 install -D -m 0644 "$repo_dir/packaging/host/linux/config/plank-host.conf" \
   "$payload_dir/etc/plank/host.conf"
+install -D -m 0644 "$repo_dir/packaging/common/linux/10-plank-receive-buffer.conf" \
+  "$payload_dir/etc/sysctl.d/10-plank-receive-buffer.conf"
 install -D -m 0644 "$repo_dir/packaging/host/linux/logrotate/plank-host" \
   "$payload_dir/etc/logrotate.d/plank-host"
 if rg -n '^\[video\]$|^[[:space:]]*(capture|encoder)[[:space:]]*=' \
@@ -249,4 +251,6 @@ mkdir "$work_dir/final-payload"
 )
 python3 "$repo_dir/scripts/test/check-package-build-paths.py" "$work_dir/final-payload"
 python3 "$usbip_stager" --verify-payload "$work_dir/final-payload"
+cmp "$repo_dir/packaging/common/linux/10-plank-receive-buffer.conf" \
+  "$work_dir/final-payload/etc/sysctl.d/10-plank-receive-buffer.conf"
 plank_collect_package "$repo_dir" host linux x86_64 rocky-9.7 "$rpm_file"

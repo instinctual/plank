@@ -300,6 +300,7 @@ struct NativeShared {
     data_receive_changed: Condvar,
     data_receive_space: tokio::sync::Notify,
     stats: NativeStats,
+    udp_receive_buffer: std::sync::OnceLock<kynet::UdpReceiveBuffer>,
     metrics: std::sync::OnceLock<Arc<crate::metrics::Reporter>>,
     rate_policy: Arc<TransportRatePolicy>,
     microphone: microphone_lane::Microphone,
@@ -336,6 +337,7 @@ impl NativeShared {
             data_receive_changed: Condvar::new(),
             data_receive_space: tokio::sync::Notify::new(),
             stats: NativeStats::default(),
+            udp_receive_buffer: std::sync::OnceLock::new(),
             metrics: std::sync::OnceLock::new(),
             rate_policy: TransportRatePolicy::new(initial_video_bitrate_bps),
             microphone: microphone_lane::Microphone::default(),
@@ -968,6 +970,9 @@ fn active_lane_result(result: Result<()>, lane: &str) -> Result<()> {
 
 async fn hold_server(shared: Arc<NativeShared>, protocols: NativeServerProtocols) -> Result<()> {
     let stats_provider = protocols.connection().stats_provider();
+    if let Some(buffer) = stats_provider.connection_stats().await.udp_receive_buffer {
+        let _ = shared.udp_receive_buffer.set(buffer);
+    }
     let (connection, video, audio, input, data) = protocols.into_parts();
     let mut video = Box::pin(send_video(shared.clone(), video));
     let mut audio = Box::pin(send_audio(shared.clone(), audio));
@@ -995,6 +1000,9 @@ async fn hold_server(shared: Arc<NativeShared>, protocols: NativeServerProtocols
 
 async fn hold_client(shared: Arc<NativeShared>, protocols: NativeClientProtocols) -> Result<()> {
     let stats_provider = protocols.connection().stats_provider();
+    if let Some(buffer) = stats_provider.connection_stats().await.udp_receive_buffer {
+        let _ = shared.udp_receive_buffer.set(buffer);
+    }
     let (connection, video, audio, input, data, peer_certificate_der) = protocols.into_parts();
     *shared.peer_certificate.lock().unwrap() = peer_certificate_der;
     if shared.peer_certificate_approval_required {
@@ -1945,6 +1953,32 @@ pub unsafe extern "C" fn plank_transport_native_data_receive(
             endpoint.shared.data_receive_space.notify_one();
         }
         result
+    })
+}
+
+/// # Safety
+/// Both outputs must name distinct writable u64 storage; `endpoint` remains live.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn plank_transport_native_endpoint_udp_receive_buffer(
+    endpoint: *const PlankTransportNativeEndpoint,
+    requested_bytes: *mut u64,
+    os_reported_bytes: *mut u64,
+) -> i32 {
+    catch_result(|| {
+        if requested_bytes == os_reported_bytes {
+            return PLANK_TRANSPORT_ERROR_INVALID_ARGUMENT;
+        }
+        let (Some(endpoint), Some(requested), Some(reported)) = (unsafe {
+            (endpoint.as_ref(), requested_bytes.as_mut(), os_reported_bytes.as_mut())
+        }) else {
+            return PLANK_TRANSPORT_ERROR_INVALID_ARGUMENT;
+        };
+        let Some(buffer) = endpoint.shared.udp_receive_buffer.get() else {
+            return PLANK_TRANSPORT_TIMEOUT;
+        };
+        *requested = buffer.requested_bytes as u64;
+        *reported = buffer.reported_bytes as u64;
+        PLANK_TRANSPORT_OK
     })
 }
 
