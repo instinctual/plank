@@ -10,4 +10,6 @@ if { [ "$1" = remove ] || [ "$1" = purge ]; } && \
     --subsystem-match=hidraw || true
   /usr/bin/udevadm trigger --action=change \
     --subsystem-match=input || true
+  /usr/bin/udevadm trigger --action=change --subsystem-match=usb \
+    --attr-match=idVendor=04d8 --attr-match=idProduct=fa1a || true
 fi
