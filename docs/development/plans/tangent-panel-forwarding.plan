@@ -1,7 +1,9 @@
 # Tangent panel forwarding
 
 Branch: `tangent-panel-forwarding`, based on main `4a1c1046` (PLANK 1.4.18).
-Status: initial KnobX1 compatibility gate passed; candidate integration in progress.
+Status: initial KnobX1 compatibility gate passed; candidate integration and
+hosted packaging complete. Installed product qualification awaits Client
+installation authorization.
 
 ## Receive-buffer qualification prerequisite
 
@@ -23,6 +25,26 @@ still failed under its restrictive kernel ceiling (425984 reported bytes), with
 additional proxy drops. This is not accepted performance qualification. Hosted
 tests must retain all loss/latency limits and show their actual socket grants;
 no retry loop or blanket increase of system buffer defaults is permitted.
+
+At exact source `2687e09a`, hosted run `44486242662` passed both Linux packages
+and both unsigned Mac regression builds. Both Linux installers are downloaded,
+their provenance and payloads verified, and collected under candidate 1.4.20.
+All 17 Debian package fixtures passed on Ubuntu, including preservation of the
+administrator's configuration and receive-ceiling override.
+Supplemental transport run `44487124852` passed both platforms. Each Linux
+qualification ran three 900-frame/150 Mbps matrices with zero unrecovered frames
+and zero measured proxy kernel drops, despite a capped OS-reported 2 MiB receive
+size. Linux reports doubled kernel accounting; that is not a full 4 MiB grant.
+
+The exact GitHub-built Mac executable, SHA256
+`70b0ecadc4f39e1f42daa75458fbfd4d51a7e4841977b65099aff2462e38d2b9`,
+passed the unchanged three-matrix gate on the authorized development Mac with
+the full 4 MiB request granted. All 2700 frames recovered; worst phase p95 delivery
+was 11.564 ms, maximum delivery 20.013 ms and maximum receive gap 28.003 ms.
+Global settings and desktop processes were preserved. The Mac has no measured
+proxy kernel-drop count. These results qualify transport behavior, not installed
+panel forwarding; Linux policy activation and the exact libusb/QUIC product
+path still require the authorized hardware pair.
 
 ## Recorded qualification
 
@@ -75,8 +97,8 @@ packaging tests; and the 12 probe tests. The Host's constrained service namespac
 could open the attach attribute without broad capabilities. A further bounded
 header-only probe captured ordinary TangentHub enumeration/HID setup and ended
 cleanly; no input report contents or serial strings were recorded. Its setup
-sequence is now a regression fixture. Exact hosted packages and installed
-libusb/QUIC forwarding are still pending; do not equate these checks with
+sequence is now a regression fixture. Installed libusb/QUIC forwarding is still
+pending; do not equate these checks with
 candidate acceptance or qualification of real Tk/Kb/Bt panels.
 
 Further tests cover the actual encrypted channel's failure propagation: a local
