@@ -2033,6 +2033,7 @@ fn stop_endpoint(endpoint: &PlankTransportNativeEndpoint) -> i32 {
         && worker.join().is_err()
     {
         endpoint.shared.fail("native KyProto worker panicked");
+        endpoint.shared.tangent.stop_worker();
         drop(worker_slot);
         if let Some(metrics) = endpoint.shared.metrics.get() { metrics.finish(true); }
         return PLANK_TRANSPORT_ERROR_PANIC;

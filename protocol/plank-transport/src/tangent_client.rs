@@ -20,6 +20,7 @@ struct Physical {
 }
 impl Drop for Physical {
     fn drop(&mut self) {
+        let _ = self.handle.set_auto_detach_kernel_driver(false);
         let _ = self.handle.release_interface(0);
         if self.handle.active_configuration().ok() != Some(self.original_configuration) {
             let _ = self
@@ -82,6 +83,7 @@ impl Physical {
         if original_kernel_driver {
             physical.handle.detach_kernel_driver(0)?;
         }
+        physical.handle.set_auto_detach_kernel_driver(true)?;
         physical.handle.claim_interface(0)?;
         let mut report = [0; 27];
         anyhow::ensure!(
@@ -115,12 +117,16 @@ impl Physical {
                 // usbfs requires releasing the interface for SET_CONFIGURATION.
                 // Keep the original kernel driver detached during this short
                 // transaction; Drop restores it on every normal/error exit.
+                self.handle.set_auto_detach_kernel_driver(false)?;
                 let _ = self.handle.release_interface(0);
                 let result = if value == 0 {
                     self.handle.unconfigure()
                 } else {
                     self.handle.set_active_configuration(value as u8)
                 };
+                // SET_CONFIGURATION can bind a new local HID interface. Let
+                // libusb detach that exact interface again when claiming it.
+                self.handle.set_auto_detach_kernel_driver(true)?;
                 let claim = if value != 0 || result.is_err() {
                     self.handle.claim_interface(0)
                 } else {

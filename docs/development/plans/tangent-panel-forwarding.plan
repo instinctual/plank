@@ -45,8 +45,10 @@ implementation or its libusb Client exporter.
   signature; a finished-RPM digest gate verifies the original bytes. The small
   driver inputs have an independent dependency cache. Standard weak-modules
   handling updates/removes only PLANK's module links, without initramfs rebuilds.
+  Ubuntu's application-only libusb development headers are installed after
+  media dependency bootstrap/sealing, so they do not invalidate FFmpeg inputs.
 
-Local validation passed 100 Rust tests (nine separate encrypted-network tests
+Local validation initially passed 100 Rust tests (nine separate encrypted-network tests
 excluded by their existing harness), including 23 Tangent tests; 143 CI policy/
 packaging tests; and the 12 probe tests. The Host's constrained service namespace
 could open the attach attribute without broad capabilities. A further bounded
@@ -55,6 +57,21 @@ cleanly; no input report contents or serial strings were recorded. Its setup
 sequence is now a regression fixture. Exact hosted packages and installed
 libusb/QUIC forwarding are still pending; do not equate these checks with
 candidate acceptance or qualification of real Tk/Kb/Bt panels.
+
+Further tests cover the actual encrypted channel's failure propagation: a local
+USB backend failure closes its reliable streams and retires the peer's panel
+lane while the ordinary data lane still delivers. The logical-session lease
+test proves exclusion survives endpoint replacement and rejects unsafe paths.
+Terminal panel-lane failures currently require a session reconnect; automatic
+lane replacement within an otherwise live QUIC connection is not implemented.
+Physical unplug/replug uses per-device generations without closing the lane.
+
+The broader local functional runner stopped at the pre-existing `native.rs:583`
+zero-before-FEC-loss assertion (30 missing source symbols), after exact video
+payload reconstruction. That test and the native/FEC implementation are unchanged
+from main. The new panel-isolation test passed independently. Retain this as a
+failed qualification attempt; do not weaken the assertion or describe the whole
+functional runner as passed. Hosted package gates still run unchanged.
 
 The signed ELRepo `kmod-usbip-0.0-12.el9_7.elrepo.x86_64.rpm` installed and loaded
 on the existing Rocky 9.7 kernel without a kernel/NVIDIA update or reboot.

@@ -67,6 +67,7 @@ run_ignored() {
 run_ignored native::version_tests::incompatible_peers_fail_tls_before_setup_or_media
 run_ignored native::tests::native_kyproto_round_trip_preserves_all_initial_lanes
 run_ignored native_ffi::data_tests::reliable_data_backpressure_recovers_both_receivers
+run_ignored native_ffi::tangent_lane::tests::encrypted_panel_failure_closes_only_its_streams
 run_ignored native_ffi::cancellation_tests::cancellation_interrupts_real_auth_endpoints_and_certificate_approval
 run_ignored native_ffi::microphone_lane::tests::encrypted_ffi_microphone_mute_reopen_and_bounds
 run_ignored native_ffi::camera_lane::tests::encrypted_camera_with_and_without_microphone

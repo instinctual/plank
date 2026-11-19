@@ -25,6 +25,9 @@ case $role in
     TMPDIR="$PLANK_WORK_ROOT/tmp" bash "$PLANK_SOURCE_ROOT/scripts/package/build-host-rpm.sh" "$PLANK_WORK_ROOT/host-build" "$PLANK_WORK_ROOT/host-package"
     ;;
   linux-client)
+    # Application-only USB headers: install after sealing prepared media
+    # dependencies so Tangent support does not invalidate the FFmpeg cache.
+    sudo apt-get install -y --no-install-recommends libusb-1.0-0-dev
     python3 "$PLANK_SOURCE_ROOT/tests/packaging/test-client-policy-upgrade.py"
     source "$PLANK_SOURCE_ROOT/scripts/package/client-package-identity.sh"
     plank_client_package_identity

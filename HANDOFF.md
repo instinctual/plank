@@ -38,10 +38,28 @@ claim the SSH proof qualifies the new production integration. No release or
 main merge is authorized for this task; Client candidate installation needs
 operator authorization before touching an end-user endpoint.
 
-Candidate child revisions: Linux Host `f6d28766`, Client `d0422594`; Kymux and
+Candidate child revisions: Linux Host `e310579c`, Client `d0422594`; Kymux and
 common-C retain the release pins below. The real C ABI loopback passed both
 certificate trust modes with the optional panel lane, media and ordinary input;
 short receives preserved the queued record and peer-close delivery stayed bounded.
+
+Follow-up checks passed 101 Rust unit tests (10 harness-dependent tests excluded),
+including 24 Tangent cases, plus the real encrypted panel-failure isolation test.
+USB configuration changes now reclaim the exact HID interface if the kernel
+binds it again. Local backend failure closes the reliable panel streams so the
+peer removes its virtual devices. The temporary Client kernel exporter was
+unloaded after verifying restored local ownership; only the test Host's driver
+prerequisite remains installed. Terminal panel-lane errors currently require
+session reconnect; automatic lane replacement within live QUIC is still absent.
+
+The broad local functional runner failed the existing `native.rs:583` assertion
+with 30 source symbols missing before FEC after byte-exact video reconstruction.
+The test and native/FEC path are unchanged from main; the independent Tangent
+isolation check passed. Record the full runner as failed, not accepted. No
+threshold was weakened or blind retry performed. Initial hosted run
+`44469164958` is for source `277783e7`; its Mac regression builds passed and Linux
+jobs are still running. That initial source predates the follow-up cleanup fixes;
+do not install those artifacts as the final candidate.
 
 **PLANK 1.4.18 is published** at
 [GitHub Releases](https://github.com/instinctual/plank/releases/tag/v1.4.18).

@@ -53,6 +53,7 @@ pub(super) struct Tangent {
     changed: tokio::sync::Notify,
     space: tokio::sync::Notify,
     received: Condvar,
+    failed: tokio::sync::Notify,
     worker: Mutex<Option<std::thread::JoinHandle<()>>>,
 }
 impl Tangent {
@@ -160,6 +161,7 @@ impl Tangent {
         state.send = Queue::default();
         state.receive = Queue::default();
         self.received.notify_all();
+        self.failed.notify_one();
     }
 }
 
@@ -186,6 +188,7 @@ async fn connected(
     .context("Tangent endpoint readiness timed out")??;
     {
         let mut state = shared.tangent.state.lock().unwrap();
+        anyhow::ensure!(state.status == 1, "Tangent backend stopped during setup");
         state.status = 2;
         shared.tangent.received.notify_all();
     }
@@ -289,6 +292,34 @@ pub struct PlankTransportTangentClient {
     lease: Arc<std::fs::File>,
 }
 
+#[cfg(all(target_os = "linux", feature = "tangent-client"))]
+fn claim_client_lease(directory: &std::path::Path) -> Result<std::fs::File> {
+    use std::os::unix::fs::{MetadataExt, OpenOptionsExt};
+    let metadata = directory.metadata()?;
+    let uid = unsafe { libc::geteuid() };
+    anyhow::ensure!(
+        metadata.is_dir() && metadata.uid() == uid && metadata.mode() & 0o077 == 0,
+        "unprotected runtime directory"
+    );
+    let lease = std::fs::OpenOptions::new()
+        .read(true)
+        .write(true)
+        .create(true)
+        .mode(0o600)
+        .custom_flags(libc::O_NOFOLLOW | libc::O_CLOEXEC)
+        .open(directory.join("plank-tangent-panels.lock"))?;
+    let metadata = lease.metadata()?;
+    anyhow::ensure!(
+        metadata.is_file()
+            && metadata.uid() == uid
+            && metadata.nlink() == 1
+            && metadata.mode() & 0o077 == 0,
+        "unprotected panel ownership file"
+    );
+    lease.try_lock()?;
+    Ok(lease)
+}
+
 /// # Safety
 /// Output must point to writable storage. No physical device is opened here.
 #[unsafe(no_mangle)]
@@ -304,35 +335,12 @@ pub unsafe extern "C" fn plank_transport_tangent_client_create(
         }
         #[cfg(all(target_os = "linux", feature = "tangent-client"))]
         {
-            use std::os::unix::fs::{MetadataExt, OpenOptionsExt};
             let create = || -> Result<std::fs::File> {
                 let directory = std::path::PathBuf::from(
                     std::env::var_os("XDG_RUNTIME_DIR")
                         .ok_or_else(|| anyhow!("missing user runtime directory"))?,
                 );
-                let metadata = directory.metadata()?;
-                let uid = unsafe { libc::geteuid() };
-                anyhow::ensure!(
-                    metadata.is_dir() && metadata.uid() == uid && metadata.mode() & 0o077 == 0,
-                    "unprotected runtime directory"
-                );
-                let lease = std::fs::OpenOptions::new()
-                    .read(true)
-                    .write(true)
-                    .create(true)
-                    .mode(0o600)
-                    .custom_flags(libc::O_NOFOLLOW | libc::O_CLOEXEC)
-                    .open(directory.join("plank-tangent-panels.lock"))?;
-                let metadata = lease.metadata()?;
-                anyhow::ensure!(
-                    metadata.is_file()
-                        && metadata.uid() == uid
-                        && metadata.nlink() == 1
-                        && metadata.mode() & 0o077 == 0,
-                    "unprotected panel ownership file"
-                );
-                lease.try_lock()?;
-                Ok(lease)
+                claim_client_lease(&directory)
             };
             match create() {
                 Ok(lease) => unsafe {
@@ -422,7 +430,13 @@ pub(super) async fn run(shared: Arc<NativeShared>, connection: &kyproto::Connect
         }
         changed.await;
     }
-    let _result = connected(&shared, connection, client).await;
+    // Drop both reliable streams if the local USB backend fails, so its peer
+    // promptly removes the corresponding virtual devices too. Keeping the
+    // transport task alive with only a failed queue would strand peer URBs.
+    tokio::select! {
+        _result = connected(&shared, connection, client) => {},
+        _ = shared.tangent.failed.notified() => {},
+    }
     shared.tangent.fail();
     // Do not end hold_client/hold_server because an optional peripheral failed.
     std::future::pending::<()>().await;
@@ -570,6 +584,40 @@ pub unsafe extern "C" fn plank_transport_native_tangent_receive(
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[cfg(all(target_os = "linux", feature = "tangent-client"))]
+    #[test]
+    fn ownership_survives_endpoint_references_and_rejects_unsafe_paths() {
+        use std::os::unix::fs::PermissionsExt;
+        let directory = std::env::temp_dir().join(format!(
+            "plank-panel-lease-{}-{}",
+            std::process::id(),
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_nanos()
+        ));
+        std::fs::create_dir(&directory).unwrap();
+        std::fs::set_permissions(&directory, std::fs::Permissions::from_mode(0o700)).unwrap();
+        let logical_session = Arc::new(claim_client_lease(&directory).unwrap());
+        let old_endpoint = logical_session.clone();
+        drop(old_endpoint);
+        assert!(claim_client_lease(&directory).is_err());
+        let recovery_endpoint = logical_session.clone();
+        drop(logical_session);
+        assert!(claim_client_lease(&directory).is_err());
+        drop(recovery_endpoint);
+        drop(claim_client_lease(&directory).unwrap());
+        std::fs::set_permissions(&directory, std::fs::Permissions::from_mode(0o755)).unwrap();
+        assert!(claim_client_lease(&directory).is_err());
+        std::fs::set_permissions(&directory, std::fs::Permissions::from_mode(0o700)).unwrap();
+        let lock = directory.join("plank-tangent-panels.lock");
+        std::fs::remove_file(&lock).unwrap();
+        std::os::unix::fs::symlink(directory.join("unrelated"), &lock).unwrap();
+        assert!(claim_client_lease(&directory).is_err());
+        assert!(!directory.join("unrelated").exists());
+        std::fs::remove_file(lock).unwrap();
+        std::fs::remove_dir(directory).unwrap();
+    }
     #[test]
     fn queues_bound_count_and_bytes_without_losing_order() {
         let mut q = Queue::default();
@@ -629,5 +677,94 @@ mod tests {
         shared.set_state(EndpointState::Stopping);
         assert_eq!(rx.recv_timeout(Duration::from_secs(2)).unwrap(), None);
         worker.join().unwrap();
+    }
+
+    #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+    #[ignore = "run through scripts/test/run-plank-transport-native-loopback.sh"]
+    async fn encrypted_panel_failure_closes_only_its_streams() {
+        init_crypto_once();
+        let certificate = kynet::cert::load_cert_from_pem_file(Path::new(
+            &std::env::var("SC_NATIVE_TEST_CERTIFICATE").unwrap(),
+        ))
+        .await
+        .unwrap();
+        let key = kynet::cert::load_private_key_from_pem_file(Path::new(
+            &std::env::var("SC_NATIVE_TEST_PRIVATE_KEY").unwrap(),
+        ))
+        .await
+        .unwrap();
+        let reservation = std::net::UdpSocket::bind("127.0.0.1:0").unwrap();
+        let address = reservation.local_addr().unwrap();
+        drop(reservation);
+        let options = NativeOptions {
+            handshake_timeout: Duration::from_secs(5),
+            idle_timeout: Duration::from_secs(10),
+            keep_alive_interval: Duration::from_secs(1),
+            max_udp_payload_size: Some(1344),
+        };
+        let server = kynet::Connection::start_server_on_addr(
+            address,
+            vec![certificate],
+            key,
+            &Default::default(),
+        )
+        .unwrap();
+        let (host, client) = tokio::join!(
+            native::accept_server(&server, "panel-isolation", options),
+            native::connect_client(address, "localhost", None, "panel-isolation", options)
+        );
+        let (host_connection, _video, _audio, _input, mut host_data) = host.unwrap().into_parts();
+        let (client_connection, _cv, _ca, _ci, mut client_data, _) = client.unwrap().into_parts();
+        let host = Arc::new(NativeShared::new(false, 150_000_000));
+        let client = Arc::new(NativeShared::new(false, 150_000_000));
+        for peer in [&host, &client] {
+            peer.set_state(EndpointState::Ready);
+            let mut state = peer.tangent.state.lock().unwrap();
+            state.enabled = true;
+            state.status = 1;
+        }
+        let observe = async {
+            tokio::time::timeout(Duration::from_secs(5), async {
+                while host.tangent.state.lock().unwrap().status != 2
+                    || client.tangent.state.lock().unwrap().status != 2
+                {
+                    tokio::time::sleep(Duration::from_millis(1)).await;
+                }
+            })
+            .await
+            .unwrap();
+            client.tangent.fail(); // equivalent to a local USB exporter failure
+            tokio::time::timeout(Duration::from_secs(2), async {
+                while host.tangent.state.lock().unwrap().status != 3 {
+                    tokio::time::sleep(Duration::from_millis(1)).await;
+                }
+            })
+            .await
+            .expect("peer retained a dead panel lane");
+            client_data
+                .0
+                .send(DataPacket {
+                    payload: Bytes::from_static(b"desktop still connected"),
+                })
+                .await
+                .unwrap();
+            let packet = tokio::time::timeout(Duration::from_secs(2), host_data.1.recv())
+                .await
+                .unwrap()
+                .unwrap()
+                .unwrap();
+            assert_eq!(packet.payload.as_ref(), b"desktop still connected");
+            assert_eq!(host.state(), EndpointState::Ready);
+            assert_eq!(client.state(), EndpointState::Ready);
+        };
+        tokio::select! {
+            _ = run(host.clone(), &host_connection, false) => panic!("Host panel task returned"),
+            _ = run(client.clone(), &client_connection, true) => panic!("Client panel task returned"),
+            _ = observe => {},
+        }
+        host_connection.close();
+        client_connection.close();
+        server.close(0, "panel isolation completed");
+        let _ = tokio::time::timeout(Duration::from_secs(1), server.wait_idle()).await;
     }
 }
