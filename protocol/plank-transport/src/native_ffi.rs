@@ -75,6 +75,9 @@ mod microphone_lane;
 #[path = "native_camera.rs"]
 mod camera_lane;
 
+#[path = "native_tangent.rs"]
+mod tangent_lane;
+
 struct NativeVideoSubmission {
     #[cfg(feature = "sender-timing")]
     enqueued_at: Instant,
@@ -301,6 +304,7 @@ struct NativeShared {
     rate_policy: Arc<TransportRatePolicy>,
     microphone: microphone_lane::Microphone,
     camera: camera_lane::Camera,
+    tangent: tangent_lane::Tangent,
     reverse_allocation: Mutex<()>,
 }
 
@@ -336,6 +340,7 @@ impl NativeShared {
             rate_policy: TransportRatePolicy::new(initial_video_bitrate_bps),
             microphone: microphone_lane::Microphone::default(),
             camera: camera_lane::Camera::default(),
+            tangent: tangent_lane::Tangent::default(),
             reverse_allocation: Mutex::new(()),
         }
     }
@@ -393,6 +398,7 @@ impl NativeShared {
     }
 
     fn notify_all(&self) {
+        self.tangent.wake();
         self.state_changed.notify_all();
         self.video_receive_changed.notify_all();
         self.audio_receive_changed.notify_all();
@@ -971,10 +977,12 @@ async fn hold_server(shared: Arc<NativeShared>, protocols: NativeServerProtocols
     let mut stats = Box::pin(sample_stats(shared.clone(), stats_provider));
     let mut microphone = Box::pin(microphone_lane::run(shared.clone(), &connection, false));
     let mut camera = Box::pin(camera_lane::run(shared.clone(), &connection, false));
+    let mut tangent = Box::pin(tangent_lane::run(shared.clone(), &connection, false));
     shared.set_state(EndpointState::Ready);
     tokio::select! {
         _ = &mut microphone => unreachable!("microphone lane remains isolated"),
         _ = &mut camera => unreachable!("camera lane remains isolated"),
+        _ = &mut tangent => unreachable!("Tangent lane remains isolated"),
         result = &mut video => active_lane_result(result, "native video sender"),
         result = &mut audio => active_lane_result(result, "native audio sender"),
         result = &mut input => active_lane_result(result, "native input receiver"),
@@ -1011,10 +1019,12 @@ async fn hold_client(shared: Arc<NativeShared>, protocols: NativeClientProtocols
     let mut stats = Box::pin(sample_stats(shared.clone(), stats_provider));
     let mut microphone = Box::pin(microphone_lane::run(shared.clone(), &connection, true));
     let mut camera = Box::pin(camera_lane::run(shared.clone(), &connection, true));
+    let mut tangent = Box::pin(tangent_lane::run(shared.clone(), &connection, true));
     shared.set_state(EndpointState::Ready);
     tokio::select! {
         _ = &mut microphone => unreachable!("microphone lane remains isolated"),
         _ = &mut camera => unreachable!("camera lane remains isolated"),
+        _ = &mut tangent => unreachable!("Tangent lane remains isolated"),
         result = &mut video => active_lane_result(result, "native video receiver"),
         result = &mut audio => active_lane_result(result, "native audio receiver"),
         result = &mut input => active_lane_result(result, "native input sender"),
@@ -2030,6 +2040,7 @@ fn stop_endpoint(endpoint: &PlankTransportNativeEndpoint) -> i32 {
     if endpoint.shared.state() != EndpointState::Failed {
         endpoint.shared.set_state(EndpointState::Stopped);
     }
+    endpoint.shared.tangent.stop_worker();
     drop(worker_slot);
     if let Some(metrics) = endpoint.shared.metrics.get() {
         metrics.finish(endpoint.shared.state() == EndpointState::Failed);

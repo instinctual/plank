@@ -144,6 +144,9 @@ install -D -m 0644 \
 install -D -m 0644 \
   "$repo_dir/packaging/client/linux/udev/70-plank-client-wacom.rules" \
   "$stage_dir/usr/lib/udev/rules.d/70-$client_package-wacom.rules"
+install -D -m 0644 \
+  "$repo_dir/packaging/client/linux/udev/70-plank-client-tangent.rules" \
+  "$stage_dir/usr/lib/udev/rules.d/70-$client_package-tangent.rules"
 install -m 0755 "$repo_dir/packaging/client/linux/deb/postinst" \
   "$stage_dir/DEBIAN/postinst"
 install -m 0755 "$repo_dir/packaging/client/linux/deb/postrm" \
@@ -160,6 +163,10 @@ install -D -m 0644 "$ffmpeg_source_dir/COPYING.LGPLv2.1" \
   "$stage_dir/usr/share/doc/$client_package/COPYING.FFmpeg.LGPLv2.1"
 install -D -m 0644 "$ffmpeg_source_dir/COPYING.LGPLv3" \
   "$stage_dir/usr/share/doc/$client_package/COPYING.FFmpeg.LGPLv3"
+# rusb and libusb1-sys carry the same MIT notice. The libusb shared runtime is
+# distribution-owned, resolved by dpkg-shlibdeps, rather than bundled here.
+install -D -m 0644 "$repo_dir/packaging/client/linux/licenses/COPYING.rusb" \
+  "$stage_dir/usr/share/doc/$client_package/COPYING.rusb"
 
 for library in libavcodec libavutil libswresample; do
   cp -a "${ffmpeg_lib_dir}/${library}.so."* "$private_lib_dir/"
@@ -255,6 +262,7 @@ for required_package in \
   iputils-ping \
   python3 \
   intel-media-va-driver-non-free \
+  libusb-1.0-0 \
   qml6-module-qtquick \
   qml6-module-qtquick-controls \
   qml6-module-qtquick-layouts \
@@ -359,6 +367,11 @@ fi
 grep -Fq "./usr/lib/udev/rules.d/70-$client_package-wacom.rules" \
   <<<"$package_manifest" || {
   echo "client DEB is missing the Wacom udev access rule" >&2
+  exit 1
+}
+grep -Fq "./usr/lib/udev/rules.d/70-$client_package-tangent.rules" \
+  <<<"$package_manifest" || {
+  echo "client DEB is missing qualified Tangent access permissions" >&2
   exit 1
 }
 if grep -Fq "./usr/share/doc/$client_package/COPYING.nanors" \

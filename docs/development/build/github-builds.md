@@ -363,7 +363,7 @@ FFmpeg or Boost, and a Mac FFmpeg patch must not redownload Qt.
 
 | Product | Independent cache groups |
 | --- | --- |
-| Linux Host | Rust toolchain; Cargo downloads (including vendor-test dependencies); FFmpeg/codec build tree; Boost sources |
+| Linux Host | Rust toolchain; Cargo downloads (including vendor-test dependencies); FFmpeg/codec build tree; Boost sources; pinned USB/IP binary and corresponding source archives |
 | Ubuntu Client | Rust toolchain; Cargo downloads; FFmpeg libraries/source/archive |
 | macOS Host | Rust toolchain; Cargo downloads (capture/encoding/audio use Apple frameworks) |
 | macOS Client | Rust toolchain; Cargo downloads; native-library install/source/download tree; Qt |

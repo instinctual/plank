@@ -70,6 +70,15 @@ forwarding, touchscreen-as-trackpad emulation, or a relative/absolute mouse
 mode preference. Physical Wacom touch interfaces remain part of raw-HID Wacom
 device forwarding and are distinct from generic direct-touchscreen input.
 
+The operator also authorized qualified Tangent panel forwarding between Ubuntu
+Clients and Rocky Hosts. Keep it separate from Wacom, bound it to authenticated
+session ownership, and preserve ownership until disconnect rather than following
+window focus. The initial qualified USB shape is Element Mf/KnobX1; other panel
+models require descriptor and hardware qualification. Do not enable generic USB
+forwarding, firmware-programming commands or a public USB/IP listener. Bundle
+the verified Rocky VHCI driver and corresponding source/license in the Host RPM;
+do not enable an external driver repository or download drivers during install.
+
 UPnP/NAT traversal is not a PLANK capability. Do not restore the
 removed miniupnpc dependency, automatic gateway port mappings, IPv6 pinholes,
 or UPnP configuration and command-line toggles. Routing and firewall policy

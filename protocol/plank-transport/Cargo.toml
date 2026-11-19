@@ -13,6 +13,11 @@ default = []
 quinn-bbr = ["quinn-proto/plank-bbr-default"]
 quinn-telemetry = ["kynet/quinn-telemetry"]
 sender-timing = ["kynet/sender-timing", "kyproto/sender-timing"]
+tangent-client = ["dep:rusb", "dep:libc"]
+
+[target.'cfg(target_os = "linux")'.dependencies]
+rusb = { version = "=0.9.4", optional = true }
+libc = { version = "0.2", optional = true }
 
 [dependencies]
 anyhow = "1.0"

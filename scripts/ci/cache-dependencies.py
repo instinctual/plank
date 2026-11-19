@@ -13,13 +13,13 @@ import subprocess
 # Keep jointly-built trees together. In particular the Mac native libraries
 # share an install prefix; separate caches must never restore overlapping paths.
 COMPONENTS = {
-    'linux-host': ('rust', 'cargo', 'ffmpeg', 'boost'),
+    'linux-host': ('rust', 'cargo', 'ffmpeg', 'boost', 'usbip'),
     'linux-client': ('rust', 'cargo', 'ffmpeg'),
     'macos-host': ('rust', 'cargo'),
     'macos-client': ('rust', 'cargo', 'native', 'qt'),
 }
 PRODUCTS = tuple(COMPONENTS)
-ALL_COMPONENTS = ('rust', 'cargo', 'ffmpeg', 'boost', 'native', 'qt')
+ALL_COMPONENTS = ('rust', 'cargo', 'ffmpeg', 'boost', 'usbip', 'native', 'qt')
 HOST_DEPS = 'apps/host/linux/third-party/build-deps'
 CLIENT_PATCHES = 'apps/client/app/deploy/linux/ffmpeg-patches'
 IDENTITY_PATCH = CLIENT_PATCHES + '/0001-hevc-enable-hwaccel-for-identity-gbr.patch'
@@ -45,6 +45,10 @@ def dependency_inputs(root, product, component):
                           'third_party/quinn-proto-0.11.19/Cargo.lock'))
     elif component == 'boost':
         paths.add(RECIPES + 'boost.sh')
+    elif component == 'usbip':
+        paths.update((RECIPES + 'host-usbip.sh',
+                      'scripts/package/stage-tangent-usbip.py',
+                      'packaging/host/linux/usbip/inputs.json'))
     elif component == 'qt':
         paths.update((RECIPES + 'qt.sh', 'scripts/build/macos-client-target.sh'))
     elif component == 'native':
@@ -114,6 +118,8 @@ def cache_paths(root, deps, product, component):
                  'cargo/registry/src', 'cargo/git/db', 'cargo/git/checkouts')]
     elif component == 'boost':
         paths = [deps / 'boost-1.92.0']
+    elif component == 'usbip':
+        paths = [deps / 'usbip']
     elif component == 'qt':
         paths = [deps / 'qt']
     elif component == 'native':
@@ -148,6 +154,7 @@ def check_prepared(root, deps, product, component):
         'rust': ['cargo/bin/rustup', 'rustup/settings.toml'],
         'cargo': [],  # Locked fetch always runs; registry/Git sources may be absent.
         'boost': ['boost-1.92.0/CMakeLists.txt'],
+        'usbip': [],  # Both archives are independently hash-verified below.
         'qt': ['qt/6.10.2/macos/bin/qmake'],
         'native': ['macos-client/install/lib/' + name + '.dylib' for name in
                    ('libavcodec', 'libavutil', 'libswscale', 'libswresample',
@@ -158,6 +165,9 @@ def check_prepared(root, deps, product, component):
                    ['client-ffmpeg/install/lib/' + name + '.so' for name in
                     ('libavcodec', 'libavutil', 'libswscale', 'libswresample')]),
     }[component]
+    if component == 'usbip':
+        subprocess.run(['python3', str(root / 'scripts/package/stage-tangent-usbip.py'),
+                        '--verify-cache', '--cache', str(deps / 'usbip')], check=True)
     if any(not (deps / name).is_file() for name in required):
         raise ValueError('Incomplete prepared dependency cache')
     if component == 'ffmpeg' and product == 'linux-host':

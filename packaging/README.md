@@ -44,6 +44,15 @@ The RPM loads Linux `uhid` after reloading its udev rules so the active local
 session receives the `/dev/uhid` ACL before Sunshine advertises exact Wacom
 redirection. The module-load configuration repeats this setup at boot.
 
+Tangent forwarding adds a pinned USB/IP VHCI driver to the same RPM, including
+its original embedded signature, GPLv2 license and complete corresponding source
+under `/usr/share/doc/plank-host/usbip`. Installation refreshes compatibility
+links through the system's normal kernel ABI checks; it does not enable ELRepo,
+fetch another RPM or update the kernel. A missing/incompatible driver disables
+only Tangent forwarding. No TCP3240 listener is installed. The Ubuntu Client
+uses the system libusb runtime and a narrow active-seat udev rule. See the
+Tangent integration plan for the currently qualified panel models.
+
 `plank-host.service` starts at boot and runs one root-owned machine
 Sender. It follows logind's active local X11 session on `seat0` and attaches
 the Sender to that session's validated display, Xauthority, and audio paths.

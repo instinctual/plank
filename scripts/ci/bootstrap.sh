@@ -31,6 +31,7 @@ bash "$dependency_scripts/cargo.sh" "$role" "$target"
 case $role in
   linux-host)
     bash "$dependency_scripts/boost.sh"
+    bash "$dependency_scripts/host-usbip.sh"
     bash "$dependency_scripts/host-ffmpeg.sh"
     ;;
   linux-client)

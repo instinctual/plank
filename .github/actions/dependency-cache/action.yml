@@ -58,6 +58,13 @@ runs:
       with:
         key: ${{ steps.keys.outputs.native-key }}
         path: ${{ steps.keys.outputs.native-paths }}
+    - name: Restore usbip
+      if: ${{ inputs.operation == 'restore' && steps.keys.outputs.usbip-key != '' }}
+      id: usbip
+      uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0, Node24
+      with:
+        key: ${{ steps.keys.outputs.usbip-key }}
+        path: ${{ steps.keys.outputs.usbip-paths }}
     - name: Restore qt
       if: ${{ inputs.operation == 'restore' && steps.keys.outputs.qt-key != '' }}
       id: qt
@@ -74,6 +81,7 @@ runs:
         CACHE_MATCHED_CARGO: ${{ steps.cargo.outputs.cache-matched-key }}
         CACHE_MATCHED_FFMPEG: ${{ steps.ffmpeg.outputs.cache-matched-key }}
         CACHE_MATCHED_BOOST: ${{ steps.boost.outputs.cache-matched-key }}
+        CACHE_MATCHED_USBIP: ${{ steps.usbip.outputs.cache-matched-key }}
         CACHE_MATCHED_NATIVE: ${{ steps.native.outputs.cache-matched-key }}
         CACHE_MATCHED_QT: ${{ steps.qt.outputs.cache-matched-key }}
       run: python3 scripts/ci/cache-dependencies.py verify --product "$CACHE_PRODUCT"
@@ -113,6 +121,12 @@ runs:
       with:
         key: ${{ steps.keys.outputs.native-key }}
         path: ${{ steps.keys.outputs.native-paths }}
+    - name: Save usbip
+      if: ${{ inputs.operation == 'save' && steps.keys.outputs.usbip-key != '' && steps.keys.outputs.usbip-hit != 'true' }}
+      uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0, Node24
+      with:
+        key: ${{ steps.keys.outputs.usbip-key }}
+        path: ${{ steps.keys.outputs.usbip-paths }}
     - name: Save qt
       if: ${{ inputs.operation == 'save' && steps.keys.outputs.qt-key != '' && steps.keys.outputs.qt-hit != 'true' }}
       uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0, Node24

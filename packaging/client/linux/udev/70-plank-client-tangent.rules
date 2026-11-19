@@ -1,0 +1,4 @@
+# Qualified Element Mf USB access for the active local seat only. PLANK validates
+# the complete USB/HID descriptors before claiming interface 0. No generic USB
+# group, world-writable device, USB/IP listener or privileged GUI is installed.
+SUBSYSTEM=="usb", ENV{DEVTYPE}=="usb_device", ATTR{idVendor}=="04d8", ATTR{idProduct}=="fa1a", TAG+="uaccess"

@@ -14,6 +14,7 @@ pub mod metrics;
 pub mod native;
 pub mod native_ffi;
 pub mod rate_control;
+pub mod tangent;
 
 pub const ABI_VERSION: u32 = 14;
 

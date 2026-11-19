@@ -1,7 +1,7 @@
 # Tangent panel forwarding
 
 Branch: `tangent-panel-forwarding`, based on main `4a1c1046` (PLANK 1.4.18).
-Status: initial KnobX1 compatibility gate passed; not a shipping Client/Host feature.
+Status: initial KnobX1 compatibility gate passed; candidate integration in progress.
 
 ## Recorded qualification
 
@@ -14,8 +14,47 @@ independently verified afterward. Its USB/IP match table was empty. The existing
 Client process and TangentHub process were preserved.
 
 This was authenticated SSH carrying USB/IP for feasibility qualification, not a
-PLANK QUIC session capability. Production session ownership, packet validation,
-packaging and multi-panel/loss qualification remain unimplemented.
+PLANK QUIC session capability. It does not qualify the subsequent product
+implementation or its libusb Client exporter.
+
+## Candidate implementation
+
+- Linux serverinfo advertises `PlankTangentVersion=1` only if its narrowed
+  service namespace can open VHCI's attach attribute. Authenticated PLS1 launch
+  requests/accepts optional `tangent.version=1`; absent/unsupported peers leave
+  the capability disabled. Neither Mac product opens USB devices for this work.
+- Host-created KyProto reliable endpoint8 carries bounded schema1 records on
+  the existing QUIC connection. Per-direction queues have 128-record/64KiB
+  bounds. Peripheral failure retires this lane without terminating desktop media.
+- Slot generations, qualified descriptors, 4096-byte transfers, 128 outstanding
+  requests/64KiB and cancellation/completion accounting are checked before USB
+  responses reach VHCI. Descriptor replies cannot change the announced device
+  into a different interface class. Firmware/vendor commands are denied.
+- The Ubuntu exporter uses the system libusb through pinned rusb0.9.4. It does
+  not retain the probe's kernel export binding or persistent bus-ID table. A
+  protected runtime-directory file lock belongs to the logical Client session,
+  including transport recovery, and covers separate GUI processes for that user.
+  Three bounded workers per panel handle control, interrupt input and output;
+  cancellation releases pending input rather than replaying it.
+- The Host uses an AF_UNIX socketpair with VHCI. Closing the exact owned socket
+  removes its virtual device, avoiding detach-by-port reuse races. The existing
+  media process has write access only to the controller's attach attribute;
+  no extra capability, privileged network service or public USB/IP listener.
+- The Host RPM includes the actual driver, source and license. Lossless XZ
+  compression prevents RPM's generic ELF stripping from damaging the embedded
+  signature; a finished-RPM digest gate verifies the original bytes. The small
+  driver inputs have an independent dependency cache. Standard weak-modules
+  handling updates/removes only PLANK's module links, without initramfs rebuilds.
+
+Local validation passed 100 Rust tests (nine separate encrypted-network tests
+excluded by their existing harness), including 23 Tangent tests; 143 CI policy/
+packaging tests; and the 12 probe tests. The Host's constrained service namespace
+could open the attach attribute without broad capabilities. A further bounded
+header-only probe captured ordinary TangentHub enumeration/HID setup and ended
+cleanly; no input report contents or serial strings were recorded. Its setup
+sequence is now a regression fixture. Exact hosted packages and installed
+libusb/QUIC forwarding are still pending; do not equate these checks with
+candidate acceptance or qualification of real Tk/Kb/Bt panels.
 
 The signed ELRepo `kmod-usbip-0.0-12.el9_7.elrepo.x86_64.rpm` installed and loaded
 on the existing Rocky 9.7 kernel without a kernel/NVIDIA update or reboot.
@@ -38,6 +77,14 @@ and Bt panels from an Ubuntu Client to a Rocky Linux Host. Preserve TangentHub
 and the application's native mappings, including panel displays and feedback.
 Design for several panels and repeated models, with distinct device identities.
 Other Tangent families require their own descriptor and installed qualification.
+
+The operator selected **ownership until session disconnect**, including when
+another session window gains focus. Do not repeatedly reinitialize panels on
+window-focus changes. Include the required Rocky USB/IP driver files in the
+ordinary Host RPM, owned/tracked by that RPM; do not require enabling ELRepo or
+fetching another driver package during installation. Preserve corresponding
+source/license information and kernel ABI validation. The separately installed
+ELRepo RPM was only the qualification prerequisite.
 
 ## Architecture and first gate
 

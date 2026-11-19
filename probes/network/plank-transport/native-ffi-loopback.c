@@ -133,6 +133,11 @@ int main(int argc, char **argv) {
             fprintf(stderr, "application data was accepted before certificate approval\n");
             goto failure;
         }
+        if (plank_transport_native_tangent_enable(client, 1) !=
+                PLANK_TRANSPORT_ERROR_INVALID_STATE) {
+            fprintf(stderr, "Tangent was enabled before certificate approval\n");
+            goto failure;
+        }
         FILE *expected_file = fopen(argv[7], "rb");
         if (expected_file == NULL || fseek(expected_file, 0, SEEK_END) != 0) {
             fprintf(stderr, "failed to open expected DER certificate\n");
@@ -211,6 +216,37 @@ int main(int argc, char **argv) {
         print_error("native server", server);
         goto failure;
     }
+
+    /* Optional peripherals use their own reliable endpoint on this connection.
+     * The record is the schema1 Ready vector; no USB device is opened here. */
+    const uint8_t tangent_ready[] = {'P','T','N','G',1,2,2,0,0,0,0,0,0,0,0,3};
+    uint8_t tangent_received[sizeof(tangent_ready)];
+    size_t tangent_size = 0;
+    if (plank_transport_native_tangent_status(client) != 0 ||
+        plank_transport_native_tangent_status(server) != 0 ||
+        plank_transport_native_tangent_enable(client, 2) != PLANK_TRANSPORT_ERROR_INVALID_ARGUMENT ||
+        plank_transport_native_tangent_enable(client, 1) != PLANK_TRANSPORT_OK ||
+        plank_transport_native_tangent_enable(server, 1) != PLANK_TRANSPORT_OK) goto failure;
+    const struct timespec tangent_pause = {0, 10000000};
+    for (unsigned attempt = 0; attempt < 500; ++attempt) {
+        if (plank_transport_native_tangent_status(client) == 2 &&
+            plank_transport_native_tangent_status(server) == 2) break;
+        nanosleep(&tangent_pause, NULL);
+    }
+    if (plank_transport_native_tangent_status(client) != 2 ||
+        plank_transport_native_tangent_status(server) != 2 ||
+        plank_transport_native_tangent_send(client, tangent_ready, sizeof(tangent_ready)) != PLANK_TRANSPORT_OK ||
+        plank_transport_native_tangent_receive(server, NULL, 0, &tangent_size, 3000) !=
+            PLANK_TRANSPORT_ERROR_BUFFER_TOO_SMALL || tangent_size != sizeof(tangent_ready) ||
+        plank_transport_native_tangent_receive(server, tangent_received, sizeof(tangent_received), &tangent_size, 0) !=
+            PLANK_TRANSPORT_OK || memcmp(tangent_received, tangent_ready, sizeof(tangent_ready)) != 0 ||
+        plank_transport_native_tangent_send(server, tangent_ready, sizeof(tangent_ready)) != PLANK_TRANSPORT_OK ||
+        plank_transport_native_tangent_receive(client, tangent_received, sizeof(tangent_received), &tangent_size, 3000) !=
+            PLANK_TRANSPORT_OK || memcmp(tangent_received, tangent_ready, sizeof(tangent_ready)) != 0) {
+        fprintf(stderr, "Tangent bidirectional/short-buffer check failed\n");
+        goto failure;
+    }
+    printf("native_tangent_round_trip=pass short_buffer_preserves_record=pass\n");
 
     const size_t video_size = PLANK_LOOPBACK_VIDEO_BYTES;
     unsigned char *video = malloc(video_size);
@@ -526,6 +562,11 @@ int main(int argc, char **argv) {
     printf("native_peer_closure_without_input=pass queued_control_before_error=pass closure_ms=%.3f\n",
            closure_ms);
     plank_transport_native_endpoint_stop(client);
+    if (plank_transport_native_tangent_status(client) != 3 ||
+        plank_transport_native_tangent_status(server) != 3) {
+        fprintf(stderr, "Tangent remained ready after endpoint shutdown\n");
+        goto failure;
+    }
     plank_transport_native_endpoint_destroy(client);
     plank_transport_native_endpoint_destroy(server);
     if (metrics != NULL) {

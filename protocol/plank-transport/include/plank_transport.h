@@ -265,6 +265,32 @@ int32_t plank_transport_native_data_receive(
         uint8_t *payload, size_t payload_capacity,
         size_t *payload_size_out, uint32_t timeout_ms);
 
+/* Optional Tangent schema1 data lane, enabled only after authenticated capability
+ * agreement. Shares the QUIC connection, with separate bounded reliable queues.
+ * Status: 0 disabled, 1 starting, 2 ready, 3 failed. Failure is peripheral-only.
+ * TIMEOUT on send accepts nothing; retain/retry that same record in order.
+ * A short receive buffer leaves the record queued and reports its required size.
+ * Local USB access/validation/session ownership are separate responsibilities. */
+int32_t plank_transport_native_tangent_enable(
+        PlankTransportNativeEndpoint *endpoint, uint32_t version);
+/* Linux Host USB boundary; availability never loads a module or attaches a device. */
+int32_t plank_transport_native_tangent_host_available(void);
+int32_t plank_transport_native_tangent_host_enable(
+    PlankTransportNativeEndpoint *endpoint, uint32_t version);
+typedef struct PlankTransportTangentClient PlankTransportTangentClient;
+/* Retain across endpoint recovery; destroy after stopping the session's endpoint. */
+int32_t plank_transport_tangent_client_create(PlankTransportTangentClient **output);
+void plank_transport_tangent_client_destroy(PlankTransportTangentClient *owner);
+int32_t plank_transport_native_tangent_client_enable(
+    PlankTransportNativeEndpoint *endpoint, const PlankTransportTangentClient *owner, uint32_t version);
+int32_t plank_transport_native_tangent_status(
+        const PlankTransportNativeEndpoint *endpoint);
+int32_t plank_transport_native_tangent_send(
+        PlankTransportNativeEndpoint *endpoint, const uint8_t *payload, size_t size);
+int32_t plank_transport_native_tangent_receive(
+        PlankTransportNativeEndpoint *endpoint, uint8_t *payload, size_t capacity,
+        size_t *size_out, uint32_t timeout_ms);
+
 int32_t plank_transport_native_endpoint_stats(
         const PlankTransportNativeEndpoint *endpoint,
         PlankTransportNativeStats *stats);

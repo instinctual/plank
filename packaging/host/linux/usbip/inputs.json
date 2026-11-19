@@ -1,0 +1,19 @@
+{
+  "version": "0.0-12.el9_7.elrepo",
+  "kernel_abi": "5.14.0-611.5.1.el9_7.x86_64",
+  "binary": {
+    "name": "kmod-usbip-0.0-12.el9_7.elrepo.x86_64.rpm",
+    "url": "https://mirrors.opensource.is/elrepo/archive/elrepo/el9/x86_64/RPMS/kmod-usbip-0.0-12.el9_7.elrepo.x86_64.rpm",
+    "sha256": "8159d263e998e82232bd526011278e8cc0e232111808a3ef491e7ebae6baf130"
+  },
+  "source": {
+    "name": "kmod-usbip-0.0-12.el9_7.elrepo.src.rpm",
+    "url": "https://mirrors.opensource.is/elrepo/archive/elrepo/el9/SRPMS/kmod-usbip-0.0-12.el9_7.elrepo.src.rpm",
+    "sha256": "ad8fe111925452cc8fbce2fdeb8d946314685597690e4f13a0e67884452fc645"
+  },
+  "module": {
+    "member": "./lib/modules/5.14.0-611.5.1.el9_7.x86_64/extra/usbip/vhci-hcd.ko",
+    "sha256": "8d1aa228803be7325e20cdbb87b761f9a3886287f273fd087cb854d6ef46936d"
+  },
+  "rpm_public_certificate_fingerprint": "B8A755874DA240C9DAC4E71551600989EAA31D4A"
+}

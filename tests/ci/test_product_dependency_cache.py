@@ -43,6 +43,8 @@ class ProductDependencyCacheTests(unittest.TestCase):
             'scripts/build/bootstrap-macos-client-deps.sh', 'scripts/build/macos-client-target.sh',
             'scripts/build/relocate-openssl-pc.py', 'scripts/build/sanitize-ffmpeg-build-info.py',
             'scripts/build/verify-host-dependency-patches.sh', cache.IDENTITY_PATCH,
+            'scripts/package/stage-tangent-usbip.py',
+            'packaging/host/linux/usbip/inputs.json',
         )
         for name in (*inputs, *(str(p.relative_to(ROOT)) for p in
                                 (ROOT / cache.RECIPES).glob('*.sh'))):
@@ -108,6 +110,12 @@ class ProductDependencyCacheTests(unittest.TestCase):
         expected = {(product, 'cargo') for product in cache.PRODUCTS}
         for name in ('Cargo.lock', 'Cargo.toml'):
             self.assert_changes_only('protocol/plank-transport/' + name, expected)
+
+    def test_usbip_pin_and_preparation_do_not_rebuild_media_libraries(self):
+        for name in ('packaging/host/linux/usbip/inputs.json',
+                     'scripts/package/stage-tangent-usbip.py',
+                     'scripts/ci/dependencies/host-usbip.sh'):
+            self.assert_changes_only(name, {('linux-host', 'usbip')})
 
     def test_vendor_test_inputs_only_invalidate_host_cargo(self):
         for name in ('Cargo.lock', 'Cargo.toml'):

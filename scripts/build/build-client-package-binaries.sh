@@ -33,7 +33,7 @@ for command_name in cc c++ cargo cmp diff find git make mktemp nm patch pkg-conf
 done
 
 # Exact HEVC 4:4:4 hardware imports require native EGL/DMA-BUF support.
-pkg-config --exists egl libva libdrm || {
+pkg-config --exists egl libva libdrm libusb-1.0 || {
   echo "client EGL/DMA-BUF build dependencies are unavailable" >&2
   exit 1
 }
@@ -1882,6 +1882,12 @@ if [[ -z $runtime_log ]] ||
 fi
 rm -rf -- "$log_runtime_root"
 echo "client_persistent_log_runtime_gate=pass"
+
+# Reuse the application's Rust target directory; exercise the actual optional
+# Linux USB exporter, including cancellation and desktop-isolated failure.
+CARGO_TARGET_DIR="$build_dir/app/plank-transport-cargo" cargo test \
+  --manifest-path "$plank_transport_dir/Cargo.toml" --locked --offline --release \
+  --features tangent-client --lib tangent
 
 echo "client_binary=${client_binary}"
 echo "client_package_binary_gate=pass"

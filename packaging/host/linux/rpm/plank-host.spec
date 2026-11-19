@@ -1,12 +1,13 @@
 %{!?plank_version:%{error:plank_version must be defined by the package builder}}
 %{!?plank_release:%{error:plank_release must be defined by the package builder}}
+%{!?plank_usbip_kernel:%{error:plank_usbip_kernel must be defined by the package builder}}
 
 Name:           plank-host
 Version:        %{plank_version}
 Release:        %{plank_release}%{?dist}
 %global debug_package %{nil}
 Summary:        Authenticated PLANK workstation host
-License:        GPL-3.0-only
+License:        GPL-3.0-only AND GPL-2.0-only
 URL:            https://github.com/instinctual/plank
 Source0:        plank-host-payload.tar.gz
 
@@ -24,7 +25,7 @@ Requires(post): systemd systemd-udev kmod
 Requires(post): openssl
 Requires(post): hostname
 Requires(preun): systemd
-Requires(postun): systemd
+Requires(postun): systemd kmod
 
 %description
 PLANK host services, authentication broker, media host, and
@@ -56,6 +57,13 @@ cp -a payload/. %{buildroot}/
 /usr/bin/systemctl preset plank-display-prepare.service >/dev/null 2>&1 || :
 /usr/bin/udevadm control --reload-rules >/dev/null 2>&1 || :
 /usr/sbin/modprobe uhid >/dev/null 2>&1 || :
+# Only our exact module participates in weak-module installation. No repository,
+# driver download, forced ABI override or initramfs rebuild is needed.
+printf '%%s\n' '/lib/modules/%{plank_usbip_kernel}/extra/plank/vhci-hcd.ko.xz' | \
+  /usr/sbin/weak-modules --add-modules --no-initramfs \
+  >>/var/log/plank/host-install.log 2>&1 || :
+/usr/sbin/modprobe vhci-hcd >>/var/log/plank/host-install.log 2>&1 || \
+  echo 'PLANK: Tangent forwarding unavailable; see /var/log/plank/host-install.log' >&2
 /usr/bin/udevadm trigger --action=change --subsystem-match=misc --sysname-match=uhid >/dev/null 2>&1 || :
 
 %preun
@@ -65,6 +73,10 @@ fi
 %systemd_preun plank-pam-broker.service plank-display-prepare.service plank-host.service
 
 %postun
+# The standard helper preserves a replacement still present during an upgrade
+# and removes only symlinks targeting this module after uninstall.
+printf '%%s\n' '/lib/modules/%{plank_usbip_kernel}/extra/plank/vhci-hcd.ko.xz' | \
+  /usr/sbin/weak-modules --remove-modules --no-initramfs >/dev/null 2>&1 || :
 %systemd_postun plank-display-prepare.service
 %systemd_postun_with_restart plank-pam-broker.service plank-host.service
 
@@ -72,7 +84,13 @@ fi
 %license /usr/share/licenses/plank-host/LICENSE-Sunshine
 %license /usr/share/licenses/plank-host/LICENSE-Kyber-AGPLv3
 %license /usr/share/licenses/plank-host/LICENSE-Kyber-Notice
+%license /usr/share/licenses/plank-host/LICENSE-USBIP-GPLv2
 %doc /usr/share/doc/plank-host/README.md
+%doc /usr/share/doc/plank-host/usbip/
+%dir /usr/lib/modules/%{plank_usbip_kernel}
+%dir /usr/lib/modules/%{plank_usbip_kernel}/extra
+%dir /usr/lib/modules/%{plank_usbip_kernel}/extra/plank
+/usr/lib/modules/%{plank_usbip_kernel}/extra/plank/vhci-hcd.ko.xz
 /etc/pam.d/plank-host
 %config(noreplace) /etc/plank/host.conf
 %config(noreplace) /etc/logrotate.d/plank-host

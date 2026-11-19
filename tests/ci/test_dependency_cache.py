@@ -45,8 +45,8 @@ class DependencyCacheTests(unittest.TestCase):
 
     def test_composite_uses_independent_exact_keys_and_skips_existing_entries(self):
         action = (ROOT / '.github/actions/dependency-cache/action.yml').read_text()
-        self.assertEqual(action.count('actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9'), 6)
-        self.assertEqual(action.count('actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9'), 6)
+        self.assertEqual(action.count('actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9'), len(cache.ALL_COMPONENTS))
+        self.assertEqual(action.count('actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9'), len(cache.ALL_COMPONENTS))
         self.assertNotIn('restore-keys:', action)
         self.assertNotIn('always()', action)
         self.assertIn('$GITHUB_EVENT_NAME == pull_request', action)

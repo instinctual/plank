@@ -8,21 +8,45 @@ the focused plans and the artifact catalog.
 ## Current state
 
 Active development is on **`tangent-panel-forwarding`**, branched from main
-`4a1c1046`. The KnobX1 USB/IP compatibility probe passed on the authorized Ubuntu
-Client/Rocky Host pair: the unchanged TangentHub claimed the virtual device and
-the operator confirmed jog, Play/Stop and all four modes work in Flare. The
-temporary forwarding was stopped; the original Client USB binding and empty
-match table were verified. The signed, matching ELRepo USB/IP driver is installed
-on the test Host. No PLANK package, Host/Client runtime source, Wacom behavior,
-firmware, kernel version or NVIDIA driver was changed. See the
-[focused plan](docs/development/plans/tangent-panel-forwarding.plan) and private
-test notes. Production QUIC/session integration and multi-panel qualification
-are still outstanding; do not describe the probe as a completed product feature.
+`4a1c1046`, with matching Host/Client branches. The operator accepted KnobX1 jog,
+Play/Stop and all four modes in Flare through the initial bounded USB/IP probe.
+Temporary forwarding is stopped; the original Client USB driver, empty export
+match table and unused Host virtual ports were independently verified. The
+signed matching ELRepo driver remains installed as that test's prerequisite.
+No PLANK package, firmware, kernel version or NVIDIA driver has been replaced.
+
+Candidate **1.4.19-tangent-panel-forwarding** integrates a separately bounded
+reliable QUIC endpoint, authenticated capability negotiation, Linux VHCI Host
+boundary and unprivileged libusb Client exporter. Ownership belongs to the
+logical session until disconnect, including recovery, not to window focus.
+The normal Host RPM bundles actual signed driver bytes, corresponding source
+and license, with no external repository/download during installation. Its
+signature survives RPM stripping through lossless XZ packaging and a final
+digest gate. Client permissions are active-seat access to the qualified Mf ID.
+Mac products and Wacom remain outside this feature's device scope.
+
+Local checks passed 100 Rust tests (nine network fixtures await their dedicated
+harness), 23 Tangent cases, 143 CI/policy tests and 12 probe cases. Default and
+diagnostic/Client-feature Clippy checks passed. The narrow systemd attach-path
+exception was verified without broad capabilities. A second header-only probe
+confirmed TangentHub's setup sequence and ended cleanly. These are development
+checks; hosted candidate builds and installed libusb/QUIC forwarding, multi-panel,
+unplug, takeover and loss acceptance remain outstanding. See the
+[focused plan](docs/development/plans/tangent-panel-forwarding.plan),
+[protocol contract](protocol/tangent-panels.md) and private test notes. Do not
+claim the SSH proof qualifies the new production integration. No release or
+main merge is authorized for this task; Client candidate installation needs
+operator authorization before touching an end-user endpoint.
+
+Candidate child revisions: Linux Host `f6d28766`, Client `d0422594`; Kymux and
+common-C retain the release pins below. The real C ABI loopback passed both
+certificate trust modes with the optional panel lane, media and ordinary input;
+short receives preserved the queued record and peer-close delivery stayed bounded.
 
 **PLANK 1.4.18 is published** at
 [GitHub Releases](https://github.com/instinctual/plank/releases/tag/v1.4.18).
 The operator authorized commit, push and release. `macos-display-sleep` is merged
-into main; root, Linux Host, Client and Kymux canonical checkouts are on main.
+into main; it is the baseline for the active Tangent development branches.
 All four packages were freshly built from main and published. The Client update
 is bundled release notes only; Linux Host and transport runtime sources are
 unchanged. No additional deployment is queued.
@@ -262,8 +286,10 @@ documentation housekeeping; no package rebuild or deployment was needed.
 
 ## Next work and qualification limits
 
-Publication is complete. Wait for the operator's next task; no rebuild, remote
-probe or additional deployment is queued. The remaining check for the display-wake fix is a deliberate sleep/reconnect
+Finish Tangent candidate checks/builds, then qualify the exact packages on the
+authorized hardware pair. The initial kernel-export proof is not acceptance of
+the libusb Client backend. Keep other panel models unqualified until tested.
+The remaining check for the display-wake fix is a deliberate sleep/reconnect
 and idle-timer session test when the operator chooses to run it. Preserve Terminal and active sessions on the
 authorized development Mac; never reboot automatically.
 

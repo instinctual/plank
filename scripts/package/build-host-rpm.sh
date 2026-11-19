@@ -28,6 +28,13 @@ for command_name in cmake cpio install python3 readelf rg rpm rpm2cpio rpmbuild 
   }
 done
 
+# Fail before compiling if the pinned driver/source cache is unavailable.
+# Bootstrap prepares it; ordinary candidate builds never fetch drivers.
+usbip_stager="$repo_dir/scripts/package/stage-tangent-usbip.py"
+usbip_cache="${PLANK_DEP_ROOT:?prepared dependency root is required}/usbip"
+python3 "$usbip_stager" --verify-cache --cache "$usbip_cache"
+usbip_kernel=$(python3 "$usbip_stager" --kernel-abi)
+
 "${repo_dir}/scripts/build/build-host-package-binaries.sh" "$build_dir"
 
 work_dir=$(mktemp -d --tmpdir plank-host-rpm.XXXXXX)
@@ -122,6 +129,7 @@ install -D -m 0644 "$repo_dir/third_party/kyber-kymux/COPYING.md" \
   "$payload_dir/usr/share/licenses/plank-host/LICENSE-Kyber-Notice"
 install -D -m 0644 "$repo_dir/packaging/README.md" \
   "$payload_dir/usr/share/doc/plank-host/README.md"
+python3 "$usbip_stager" --payload "$payload_dir" --cache "$usbip_cache"
 
 source_epoch=$(git -C "$repo_dir" log -1 --format=%ct)
 tar --sort=name --mtime="@${source_epoch}" --owner=0 --group=0 \
@@ -132,6 +140,7 @@ install -m 0644 "$repo_dir/packaging/host/linux/rpm/plank-host.spec" \
 rpmbuild -bb --define "_topdir ${rpm_topdir}" \
   --define "plank_version ${rpm_version}" \
   --define "plank_release ${rpm_release}" \
+  --define "plank_usbip_kernel ${usbip_kernel}" \
   "$rpm_topdir/SPECS/plank-host.spec"
 
 mkdir -p "$output_dir"
@@ -239,4 +248,5 @@ mkdir "$work_dir/final-payload"
   rpm2cpio "$rpm_file" | cpio -idm --quiet
 )
 python3 "$repo_dir/scripts/test/check-package-build-paths.py" "$work_dir/final-payload"
+python3 "$usbip_stager" --verify-payload "$work_dir/final-payload"
 plank_collect_package "$repo_dir" host linux x86_64 rocky-9.7 "$rpm_file"

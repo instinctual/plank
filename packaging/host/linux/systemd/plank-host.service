@@ -33,6 +33,9 @@ ProtectHome=read-only
 ProtectSystem=full
 ReadOnlyPaths=-/vol/home
 ReadWritePaths=/etc/X11/xorg.conf.d
+# Permit attachment to the existing controller, not module loading or arbitrary
+# device binding. Closing the session-owned socket removes its virtual device.
+ReadWritePaths=-/sys/devices/platform/vhci_hcd.0/attach
 RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
 RestrictSUIDSGID=yes
 SystemCallArchitectures=native

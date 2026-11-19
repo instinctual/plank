@@ -195,7 +195,7 @@ sudo apt-get install -y \
   libpipewire-0.3-dev libdbus-1-dev libdrm-dev libinput-dev \
   libasound2-dev libpulse-dev libegl-dev libgles-dev libxkbcommon-dev \
   libxcursor-dev libxrandr-dev libxfixes-dev libxi-dev wayland-protocols \
-  libopus-dev libplacebo-dev libssl-dev libudev-dev libva-dev \
+  libopus-dev libplacebo-dev libssl-dev libudev-dev libusb-1.0-0-dev libva-dev \
   libvdpau-dev libwayland-dev libx11-dev zlib1g-dev
 ```
 
