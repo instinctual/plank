@@ -26,6 +26,8 @@ class QtPackageTests(unittest.TestCase):
         self.write('usr/libexec/plank-client-update-policy',
                    (ROOT / 'packaging/client/linux/update-policy.py').read_text())
         (self.stage / 'usr/libexec/plank-client-update-policy').chmod(0o755)
+        self.tangent_rule = (ROOT / 'packaging/client/linux/udev/70-plank-client-tangent.rules').read_text()
+        self.write('usr/lib/udev/rules.d/70-plank-client-tangent.rules', self.tangent_rule)
         template = (ROOT / 'packaging/client/config/plank-client.conf').read_text()
         self.write('usr/share/doc/plank-client/client.conf.example', template)
         self.write('etc/plank/client.conf', template)
@@ -68,6 +70,19 @@ class QtPackageTests(unittest.TestCase):
 
     def test_rejects_separate_configuration(self):
         self.write('etc/plank/client-qt.conf', 'obsolete configuration\n')
+        with self.assertRaisesRegex(ValueError, 'outside Client namespace'):
+            AUDIT.validate(self.package())
+
+    def test_tangent_rule_is_exact_and_does_not_allow_unrelated_udev_files(self):
+        rule = 'usr/lib/udev/rules.d/70-plank-client-tangent.rules'
+        (self.stage / rule).unlink()
+        with self.assertRaisesRegex(ValueError, 'missing required files'):
+            AUDIT.validate(self.package())
+        self.write(rule, 'SUBSYSTEM=="usb", MODE="0666"\n')
+        with self.assertRaisesRegex(ValueError, 'policy upgrade input'):
+            AUDIT.validate(self.package())
+        self.write(rule, self.tangent_rule)
+        self.write('usr/lib/udev/rules.d/99-unrelated.rules', 'fixture\n')
         with self.assertRaisesRegex(ValueError, 'outside Client namespace'):
             AUDIT.validate(self.package())
 
@@ -118,9 +133,11 @@ class QtPackageTests(unittest.TestCase):
         # Synthetic files in an isolated dpkg root; hooks must honor DPKG_ROOT.
         self.write('DEBIAN/control', self.control.replace('1.2.00', '1.1.039'))
         self.write('usr/bin/plank-client', 'old client\n')
+        (self.stage / 'usr/lib/udev/rules.d/70-plank-client-tangent.rules').unlink()
         previous = self.package('previous')
         self.write('DEBIAN/control', self.control)
         self.write('usr/bin/plank-client', 'Qt client\n')
+        self.write('usr/lib/udev/rules.d/70-plank-client-tangent.rules', self.tangent_rule)
         # Package default changed; the administrator's conffile still wins.
         self.write('etc/plank/client.conf', 'new default\n')
         candidate = self.package('candidate')

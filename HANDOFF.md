@@ -57,9 +57,14 @@ with 30 source symbols missing before FEC after byte-exact video reconstruction.
 The test and native/FEC path are unchanged from main; the independent Tangent
 isolation check passed. Record the full runner as failed, not accepted. No
 threshold was weakened or blind retry performed. Initial hosted run
-`44469164958` is for source `277783e7`; its Mac regression builds passed and Linux
-jobs are still running. That initial source predates the follow-up cleanup fixes;
-do not install those artifacts as the final candidate.
+`44469164958` is for source `277783e7`; its Host RPM (all three unchanged loss
+matrices included) and both Mac regression builds passed. The finished RPM's
+bundled signed-module/source digests were independently verified, with no
+separate `kmod-usbip` dependency. The Ubuntu job passed compilation/runtime
+checks but its final package-namespace gate rejected the new Tangent udev file.
+The exact file is now included in that gate with content, missing-file and
+unrelated-rule regression coverage. The initial source also predates follow-up
+cleanup fixes; do not install its artifacts as the final candidate.
 
 **PLANK 1.4.18 is published** at
 [GitHub Releases](https://github.com/instinctual/plank/releases/tag/v1.4.18).

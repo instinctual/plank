@@ -17,6 +17,7 @@ EXACT = {
     f'usr/share/metainfo/{DESKTOP}.appdata.xml',
     'usr/share/icons/hicolor/512x512/apps/plank-client.png',
     'usr/lib/udev/rules.d/70-plank-client-wacom.rules',
+    'usr/lib/udev/rules.d/70-plank-client-tangent.rules',
 }
 PREFIXES = ('usr/lib/plank/', 'usr/share/doc/plank-client/')
 
@@ -70,6 +71,7 @@ def validate(package):
     names, metadata = read_tar(package, '--fsys-tarfile',
                                {f'usr/share/applications/{DESKTOP}.desktop',
                                 'usr/libexec/plank-client-update-policy',
+                                'usr/lib/udev/rules.d/70-plank-client-tangent.rules',
                                 'usr/share/doc/plank-client/client.conf.example'}, True)
     if not EXACT.issubset(names):
         raise ValueError('Client package is missing required files')
@@ -78,6 +80,7 @@ def validate(package):
             raise ValueError('file outside Client namespace: ' + name)
     for installed, source in (
             ('usr/libexec/plank-client-update-policy', 'packaging/client/linux/update-policy.py'),
+            ('usr/lib/udev/rules.d/70-plank-client-tangent.rules', 'packaging/client/linux/udev/70-plank-client-tangent.rules'),
             ('usr/share/doc/plank-client/client.conf.example', 'packaging/client/config/plank-client.conf')):
         if metadata[installed] != (ROOT / source).read_text():
             raise ValueError('incorrect Client policy upgrade input')
