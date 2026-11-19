@@ -25,8 +25,8 @@ signature survives RPM stripping through lossless XZ packaging and a final
 digest gate. Client permissions are active-seat access to the qualified Mf ID.
 Mac products and Wacom remain outside this feature's device scope.
 
-Local checks passed 100 Rust tests (nine network fixtures await their dedicated
-harness), 23 Tangent cases, 143 CI/policy tests and 12 probe cases. Default and
+Local checks passed 101 Rust tests (10 network fixtures await their dedicated
+harness), 24 Tangent cases, 143 CI/policy tests and 12 probe cases. Default and
 diagnostic/Client-feature Clippy checks passed. The narrow systemd attach-path
 exception was verified without broad capabilities. A second header-only probe
 confirmed TangentHub's setup sequence and ended cleanly. These are development
@@ -38,7 +38,7 @@ claim the SSH proof qualifies the new production integration. No release or
 main merge is authorized for this task; Client candidate installation needs
 operator authorization before touching an end-user endpoint.
 
-Candidate child revisions: Linux Host `e310579c`, Client `d0422594`; Kymux and
+Candidate child revisions: Linux Host `044d5012`, Client `eb493571`; Kymux and
 common-C retain the release pins below. The real C ABI loopback passed both
 certificate trust modes with the optional panel lane, media and ordinary input;
 short receives preserved the queued record and peer-close delivery stayed bounded.
@@ -65,6 +65,16 @@ checks but its final package-namespace gate rejected the new Tangent udev file.
 The exact file is now included in that gate with content, missing-file and
 unrelated-rule regression coverage. The initial source also predates follow-up
 cleanup fixes; do not install its artifacts as the final candidate.
+
+Follow-up source `744b5d84` in run `44472489120` passed both Mac regression
+builds. Its Linux Host stopped in the first strict loss matrix: frame PTS 61500
+arrived where 60000 was expected, with zero proxy kernel drops. This is distinct
+from the local before-FEC counter assertion. The exercised native/FEC code is
+identical to main, but the cause remains unestablished. Preserve the failed
+result and unchanged thresholds. The Ubuntu package job was still running at
+this checkpoint. The final source also routes Tangent diagnostics to product
+logs, uses libusb's atomic auto-detach claim, validates USB descriptor versions,
+and refreshes the qualified device permissions when removing the Client.
 
 **PLANK 1.4.18 is published** at
 [GitHub Releases](https://github.com/instinctual/plank/releases/tag/v1.4.18).

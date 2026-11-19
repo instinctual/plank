@@ -34,6 +34,7 @@ impl Manifest {
         let d = descriptors;
         if d[0] != 18
             || d[1] != 1
+            || ![0x0100, 0x0110, 0x0200].contains(&short(d, 2))
             || d[4..7] != [0, 0, 0]
             || ![8, 16, 32, 64].contains(&d[7])
             || short(d, 8) != 0x04d8
@@ -348,7 +349,7 @@ pub(crate) mod tests {
         let m = Manifest::new(0x10002, &descriptors(), REPORT).unwrap();
         assert_eq!(Manifest::decode(&m.encode()).unwrap().encode(), m.encode());
         for offset in [
-            0, 1, 4, 7, 8, 10, 17, 18, 20, 22, 23, 27, 31, 32, 36, 41, 43, 47, 49, 50, 54, 56,
+            0, 1, 2, 3, 4, 7, 8, 10, 17, 18, 20, 22, 23, 27, 31, 32, 36, 41, 43, 47, 49, 50, 54, 56,
         ] {
             let mut d = descriptors();
             d[offset] ^= 0x80;

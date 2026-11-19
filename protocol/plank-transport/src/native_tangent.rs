@@ -55,8 +55,16 @@ pub(super) struct Tangent {
     received: Condvar,
     failed: tokio::sync::Notify,
     worker: Mutex<Option<std::thread::JoinHandle<()>>>,
+    log: Mutex<Option<extern "C" fn(*const c_char)>>,
 }
 impl Tangent {
+    fn report(&self, message: &str) {
+        let log = *self.log.lock().unwrap();
+        if let Some(log) = log {
+            let message = std::ffi::CString::new(message.replace('\0', "")).unwrap();
+            log(message.as_ptr());
+        }
+    }
     pub(super) fn stop_worker(&self) {
         self.wake();
         if let Some(worker) = self.worker.lock().unwrap().take() {
@@ -251,6 +259,7 @@ pub extern "C" fn plank_transport_native_tangent_host_available() -> i32 {
 pub unsafe extern "C" fn plank_transport_native_tangent_host_enable(
     endpoint: *mut PlankTransportNativeEndpoint,
     version: u32,
+    log: Option<extern "C" fn(*const c_char)>,
 ) -> i32 {
     catch_result(|| {
         let Some(endpoint_ref) = (unsafe { endpoint.as_ref() }) else {
@@ -263,6 +272,7 @@ pub unsafe extern "C" fn plank_transport_native_tangent_host_enable(
         if result != PLANK_TRANSPORT_OK {
             return result;
         }
+        *endpoint_ref.shared.tangent.log.lock().unwrap() = log;
         #[cfg(target_os = "linux")]
         {
             let shared = endpoint_ref.shared.clone();
@@ -270,7 +280,9 @@ pub unsafe extern "C" fn plank_transport_native_tangent_host_enable(
                 .name("plank-panel-host".into())
                 .spawn(move || {
                     if let Err(error) = host::run(shared.clone()) {
-                        eprintln!("PLANK Tangent Host forwarding stopped: {error}");
+                        shared
+                            .tangent
+                            .report(&format!("Tangent Host forwarding stopped: {error}"));
                     }
                     shared.tangent.fail();
                 }) {
@@ -379,6 +391,7 @@ pub unsafe extern "C" fn plank_transport_native_tangent_client_enable(
     endpoint: *mut PlankTransportNativeEndpoint,
     owner: *const PlankTransportTangentClient,
     version: u32,
+    log: Option<extern "C" fn(*const c_char)>,
 ) -> i32 {
     catch_result(|| {
         let (Some(endpoint_ref), Some(owner)) =
@@ -395,6 +408,7 @@ pub unsafe extern "C" fn plank_transport_native_tangent_client_enable(
             if result != PLANK_TRANSPORT_OK {
                 return result;
             }
+            *endpoint_ref.shared.tangent.log.lock().unwrap() = log;
             let lease = owner.lease.clone();
             let shared = endpoint_ref.shared.clone();
             match std::thread::Builder::new()
@@ -402,7 +416,9 @@ pub unsafe extern "C" fn plank_transport_native_tangent_client_enable(
                 .spawn(move || {
                     let _lease = lease;
                     if let Err(error) = client::run(shared.clone()) {
-                        eprintln!("PLANK Tangent Client forwarding stopped: {error}");
+                        shared
+                            .tangent
+                            .report(&format!("Tangent Client forwarding stopped: {error}"));
                     }
                     shared.tangent.fail();
                 }) {
@@ -416,7 +432,7 @@ pub unsafe extern "C" fn plank_transport_native_tangent_client_enable(
         }
         #[cfg(not(all(target_os = "linux", feature = "tangent-client")))]
         {
-            let _ = (owner, version);
+            let _ = (owner, version, log);
             PLANK_TRANSPORT_ERROR_INVALID_STATE
         }
     })
@@ -433,9 +449,16 @@ pub(super) async fn run(shared: Arc<NativeShared>, connection: &kyproto::Connect
     // Drop both reliable streams if the local USB backend fails, so its peer
     // promptly removes the corresponding virtual devices too. Keeping the
     // transport task alive with only a failed queue would strand peer URBs.
-    tokio::select! {
-        _result = connected(&shared, connection, client) => {},
-        _ = shared.tangent.failed.notified() => {},
+    let result = tokio::select! {
+        result = connected(&shared, connection, client) => Some(result),
+        _ = shared.tangent.failed.notified() => None,
+    };
+    if let Some(Err(error)) = result
+        && shared.state() == EndpointState::Ready
+    {
+        shared
+            .tangent
+            .report(&format!("Tangent panel transport stopped: {error}"));
     }
     shared.tangent.fail();
     // Do not end hold_client/hold_server because an optional peripheral failed.

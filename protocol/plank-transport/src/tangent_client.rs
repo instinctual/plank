@@ -80,9 +80,8 @@ impl Physical {
             original_kernel_driver,
             configuration: RwLock::new(()),
         };
-        if original_kernel_driver {
-            physical.handle.detach_kernel_driver(0)?;
-        }
+        // libusb's automatic claim refuses to detach another usbfs owner.
+        // Do not separately disconnect an interface before this atomic claim.
         physical.handle.set_auto_detach_kernel_driver(true)?;
         physical.handle.claim_interface(0)?;
         let mut report = [0; 27];
@@ -415,12 +414,14 @@ pub(super) fn run(shared: Arc<NativeShared>) -> Result<()> {
                     continue;
                 }
                 let Some(slot) = slots.iter().position(Option::is_none) else {
-                    break;
+                    continue; // still inventory owned panels after the ninth device
                 };
                 let (physical, manifest) = match Physical::open(device) {
                     Ok(device) => device,
                     Err(error) => {
-                        eprintln!("PLANK Tangent panel unavailable: {error}");
+                        shared
+                            .tangent
+                            .report(&format!("Tangent panel unavailable: {error}"));
                         refused.insert(id);
                         continue;
                     }

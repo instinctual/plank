@@ -140,9 +140,10 @@ TangentHub, the desktop and PLANK session untouched.
    outstanding requests and device counts. Do not feed unvalidated peer-controlled
    USB/IP messages directly into the kernel. Deny unrelated devices and firmware
    programming/vendor bootloader operations.
-4. Narrow privileged ownership for virtual-controller attachment and, if using
-   the kernel exporter, physical-device binding. The GUI and network parser stay
-   unprivileged. Bind ownership to the authenticated active session, clean up on
+4. Narrow privileged ownership for virtual-controller attachment. The Client GUI
+   and libusb exporter stay unprivileged; the existing restricted-capability Host
+   media worker receives only the controller's attach-path write exception.
+   Bind ownership to the authenticated active session, clean up on
    disconnect/crash/takeover, and restore Client-local ownership afterward.
 5. Multiple panels, stable identity within a session, hotplug, clean takeover,
    and recovery without stale jog commands or stuck buttons. Decide whether a
