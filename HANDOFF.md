@@ -7,74 +7,72 @@ the focused plans and the artifact catalog.
 
 ## Current state
 
-Active development is on **`tangent-panel-forwarding`**, branched from main
-`4a1c1046`, with matching Host/Client branches. The operator accepted KnobX1 jog,
-Play/Stop and all four modes in Flare through the initial bounded USB/IP probe.
-Temporary forwarding is stopped; the original Client USB driver, empty export
-match table and unused Host virtual ports were independently verified. The
-signed matching ELRepo driver remains installed as that test's prerequisite.
-No PLANK package, firmware, kernel version or NVIDIA driver has been replaced.
+Active development is on **`tangent-panel-forwarding`**, based on main
+`4a1c1046`. Candidate **1.4.19-tangent-panel-forwarding** runtime source is
+`59e0d3d1e9474489b7bfa5eb4863298af3f9954c`, with Linux Host `044d5012` and
+Client `eb493571`. All are pushed; Kymux and common-C retain the release pins
+below. No main merge or release is authorized for this task.
 
-Candidate **1.4.19-tangent-panel-forwarding** integrates a separately bounded
-reliable QUIC endpoint, authenticated capability negotiation, Linux VHCI Host
-boundary and unprivileged libusb Client exporter. Ownership belongs to the
-logical session until disconnect, including recovery, not to window focus.
-The normal Host RPM bundles actual signed driver bytes, corresponding source
-and license, with no external repository/download during installation. Its
-signature survives RPM stripping through lossless XZ packaging and a final
-digest gate. Client permissions are active-seat access to the qualified Mf ID.
-Mac products and Wacom remain outside this feature's device scope.
+The operator accepted KnobX1 jog, Play/Stop and all four modes in Flare through
+the initial bounded SSH/USB-IP proof. All probes are stopped. Original Client
+USB ownership, an empty export match table and unused Host virtual ports were
+verified, and the temporary Client kernel exporter was unloaded. The test Host's
+signed ELRepo driver prerequisite remains installed. No PLANK package, firmware,
+kernel version or NVIDIA driver has been replaced.
 
-Local checks passed 101 Rust tests (10 network fixtures await their dedicated
-harness), 24 Tangent cases, 143 CI/policy tests and 12 probe cases. Default and
-diagnostic/Client-feature Clippy checks passed. The narrow systemd attach-path
-exception was verified without broad capabilities. A second header-only probe
-confirmed TangentHub's setup sequence and ended cleanly. These are development
-checks; hosted candidate builds and installed libusb/QUIC forwarding, multi-panel,
-unplug, takeover and loss acceptance remain outstanding. See the
-[focused plan](docs/development/plans/tangent-panel-forwarding.plan),
-[protocol contract](protocol/tangent-panels.md) and private test notes. Do not
-claim the SSH proof qualifies the new production integration. No release or
-main merge is authorized for this task; Client candidate installation needs
-operator authorization before touching an end-user endpoint.
+The production candidate negotiates a separately bounded, authenticated reliable
+QUIC endpoint. It uses unprivileged Client libusb and the Host's narrowed VHCI
+attach path. Ownership belongs to the logical session until disconnect, including
+transport recovery. Driver/source/license bytes are bundled in the normal Host
+RPM, with a finished-payload digest gate and no external driver download during
+installation. Client permissions cover the qualified Mf ID and active seat only.
+Diagnostics enter existing product logs. Mac products and Wacom remain outside
+this feature's device scope. See the [plan](docs/development/plans/tangent-panel-forwarding.plan)
+and [protocol contract](protocol/tangent-panels.md).
 
-Candidate child revisions: Linux Host `044d5012`, Client `eb493571`; Kymux and
-common-C retain the release pins below. The real C ABI loopback passed both
-certificate trust modes with the optional panel lane, media and ordinary input;
-short receives preserved the queued record and peer-close delivery stayed bounded.
+Local checks passed 101 Rust unit tests, including 24 Tangent cases, 143 CI/policy
+tests and 12 probe cases. Default and Client-feature Clippy passed. The real C ABI
+loopback passed both certificate-trust modes, optional panel messages and ordinary
+media/input. A separate real encrypted failure test proved that a panel-backend
+failure retires the peer's panel channel while ordinary data remains available.
+The systemd attach exception and TangentHub's enumeration sequence were also
+checked. These do not qualify installed libusb/QUIC forwarding or real Tk/Kb/Bt
+panels. Unplug, multiple panels, takeover and loss acceptance remain outstanding.
+Terminal panel-channel failure currently requires reconnecting the session.
 
-Follow-up checks passed 101 Rust unit tests (10 harness-dependent tests excluded),
-including 24 Tangent cases, plus the real encrypted panel-failure isolation test.
-USB configuration changes now reclaim the exact HID interface if the kernel
-binds it again. Local backend failure closes the reliable panel streams so the
-peer removes its virtual devices. The temporary Client kernel exporter was
-unloaded after verifying restored local ownership; only the test Host's driver
-prerequisite remains installed. Terminal panel-lane errors currently require
-session reconnect; automatic lane replacement within live QUIC is still absent.
+Final-source run `44477575419` passed the Ubuntu package and both unsigned Mac
+regression builds. The Ubuntu artifact was downloaded, its ZIP/package digests
+and source provenance checked, and its exact udev rule, removal hook and libusb
+dependency independently verified. It is collected at:
+`artifacts/packages/candidates/1.4.19-tangent-panel-forwarding/linux/plank-client_1.4.19-tangent-panel-forwarding_amd64.deb`.
+SHA256: `b46515dcef3d703c3e977c7e88bf52a3571c35ef8aacc317f4ed3510b33baea9`.
+Installed-session validation is not recorded. Client installation on the end-user
+test endpoint still requires operator authorization.
 
-The broad local functional runner failed the existing `native.rs:583` assertion
-with 30 source symbols missing before FEC after byte-exact video reconstruction.
-The test and native/FEC path are unchanged from main; the independent Tangent
-isolation check passed. Record the full runner as failed, not accepted. No
-threshold was weakened or blind retry performed. Initial hosted run
-`44469164958` is for source `277783e7`; its Host RPM (all three unchanged loss
-matrices included) and both Mac regression builds passed. The finished RPM's
-bundled signed-module/source digests were independently verified, with no
-separate `kmod-usbip` dependency. The Ubuntu job passed compilation/runtime
-checks but its final package-namespace gate rejected the new Tangent udev file.
-The exact file is now included in that gate with content, missing-file and
-unrelated-rule regression coverage. The initial source also predates follow-up
-cleanup fixes; do not install its artifacts as the final candidate.
+The final Host RPM is **not ready**. Runs `44472489120` and `44477575419` each
+failed the first strict 150 Mbps loss matrix in the zero-loss phase (one missing
+frame, zero proxy kernel drops). This native/FEC path is unchanged from main.
+The earlier `277783e7` Host build, run `44469164958`, passed all three matrices
+and produced an RPM whose bundled module/source hashes were verified. It predates
+cleanup fixes and must not be installed as the final candidate. Its Ubuntu build
+failed the new udev file's package-namespace check, fixed before both later
+Ubuntu runs passed.
 
-Follow-up source `744b5d84` in run `44472489120` passed both Mac regression
-builds. Its Linux Host stopped in the first strict loss matrix: frame PTS 61500
-arrived where 60000 was expected, with zero proxy kernel drops. This is distinct
-from the local before-FEC counter assertion. The exercised native/FEC code is
-identical to main, but the cause remains unestablished. Preserve the failed
-result and unchanged thresholds. The Ubuntu package job was still running at
-this checkpoint. The final source also routes Tangent diagnostics to product
-logs, uses libusb's atomic auto-detach claim, validates USB descriptor versions,
-and refreshes the qualified device permissions when removing the Client.
+A read-only local socket observer reproduced the frame-loss failure with
+receive-socket overflow on both this candidate and a clean mainline checkout.
+The mainline socket first reported drops 75 ms into its test. Its separate hosted
+comparison `44478883295` passed all three matrices with zero unrecovered frames
+and zero proxy kernel drops. This does not establish the GitHub failures' exact
+cause. The single targeted Host-only retry of run `44477575419` retained identical
+source/limits and successful sibling jobs, but failed the other existing
+`native.rs:583` assertion: 37 missing source symbols before FEC, despite exact
+reconstructed video. Do not rerun repeatedly or install the superseded Host RPM.
+The operator has been asked whether to expand this task to investigate the
+transport qualification prerequisite or pause here. No production network setting,
+gate relaxation or automatic retry loop was introduced. The broader local functional runner also encountered the previously
+observed `native.rs:583` before-FEC counter assertion despite byte-exact payload
+reconstruction. Full results and temporary hardware-access details remain in
+private notes, outside Git.
 
 **PLANK 1.4.18 is published** at
 [GitHub Releases](https://github.com/instinctual/plank/releases/tag/v1.4.18).
