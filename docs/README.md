@@ -36,6 +36,8 @@
   describes bounded application checks for the production camera and microphone.
   [Sender-window recovery](development/investigations/sender-window-recovery.md)
   records delayed-acknowledgment comparisons and remaining live-session gates.
+  [Tangent panel forwarding](development/plans/tangent-panel-forwarding.plan)
+  records the KnobX1/Element USB compatibility gate and integration boundaries.
 - [Security](security/): threat models and security-focused contracts.
   [Private information policy](security/private-information.md) defines the
   boundary between public development material and private operational notes.

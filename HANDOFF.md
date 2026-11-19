@@ -7,6 +7,18 @@ the focused plans and the artifact catalog.
 
 ## Current state
 
+Active development is on **`tangent-panel-forwarding`**, branched from main
+`4a1c1046`. The KnobX1 USB/IP compatibility probe passed on the authorized Ubuntu
+Client/Rocky Host pair: the unchanged TangentHub claimed the virtual device and
+the operator confirmed jog, Play/Stop and all four modes work in Flare. The
+temporary forwarding was stopped; the original Client USB binding and empty
+match table were verified. The signed, matching ELRepo USB/IP driver is installed
+on the test Host. No PLANK package, Host/Client runtime source, Wacom behavior,
+firmware, kernel version or NVIDIA driver was changed. See the
+[focused plan](docs/development/plans/tangent-panel-forwarding.plan) and private
+test notes. Production QUIC/session integration and multi-panel qualification
+are still outstanding; do not describe the probe as a completed product feature.
+
 **PLANK 1.4.18 is published** at
 [GitHub Releases](https://github.com/instinctual/plank/releases/tag/v1.4.18).
 The operator authorized commit, push and release. `macos-display-sleep` is merged

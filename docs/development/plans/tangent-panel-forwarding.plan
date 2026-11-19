@@ -1,0 +1,114 @@
+# Tangent panel forwarding
+
+Branch: `tangent-panel-forwarding`, based on main `4a1c1046` (PLANK 1.4.18).
+Status: initial KnobX1 compatibility gate passed; not a shipping Client/Host feature.
+
+## Recorded qualification
+
+The operator authorized the hardware-test Host and confirmed **jog, Play/Stop
+and all four KnobX1 modes work correctly** in Flare through the bounded probe.
+The unchanged TangentHub process claimed the imported USB node once Flare was
+open. USB descriptors and the existing configured panel identity matched.
+The virtual port detached and the Client's original USB driver binding was
+independently verified afterward. Its USB/IP match table was empty. The existing
+Client process and TangentHub process were preserved.
+
+This was authenticated SSH carrying USB/IP for feasibility qualification, not a
+PLANK QUIC session capability. Production session ownership, packet validation,
+packaging and multi-panel/loss qualification remain unimplemented.
+
+The signed ELRepo `kmod-usbip-0.0-12.el9_7.elrepo.x86_64.rpm` installed and loaded
+on the existing Rocky 9.7 kernel without a kernel/NVIDIA update or reboot.
+RPM SHA256: `8159d263e998e82232bd526011278e8cc0e232111808a3ef491e7ebae6baf130`.
+Its RPM signature was verified against ELRepo v2 fingerprint
+`B8A755874DA240C9DAC4E71551600989EAA31D4A`, independently checked against ELRepo's
+published key. The running kernel accepted the module through its normal ABI
+checks. The test Host had Secure Boot disabled; MOK enrollment and a Secure
+Boot-enabled installation are **not** qualified. No ELRepo repository was enabled.
+
+Twelve portable tests cover fragmentation, bounds, firmware-request denial,
+metadata privacy, unused-port selection and setup/cleanup failure paths. Live
+testing also caught the kernel match table's literal newline handling and the
+need for USB/IP's `rebind` attribute during cleanup; both are covered in the probe.
+
+## Goal
+
+Forward the KnobX1 Element-Mf transport and real Tangent Element Mf, Tk, Kb
+and Bt panels from an Ubuntu Client to a Rocky Linux Host. Preserve TangentHub
+and the application's native mappings, including panel displays and feedback.
+Design for several panels and repeated models, with distinct device identities.
+Other Tangent families require their own descriptor and installed qualification.
+
+## Architecture and first gate
+
+The inspected KnobX1 has USB ID `04d8:fa1a`, one HID interface, 15-byte input
+reports and 64-byte output reports. Its report descriptor matches the emulator
+source. This identifies the initial qualification device; it does not establish
+compatibility with every panel or authorize all devices sharing vendor 04d8.
+
+The installed Linux TangentHub imports libusb enumeration, interface claim,
+transfer and reset functions. PLANK's Wacom UHID mirror creates HID devices,
+not USB-bus devices for libusb. Reusing its vendor filter would not establish
+TangentHub compatibility. Keep Wacom's persistent tablet lifecycle separate.
+
+Qualify the Linux USB/IP virtual host controller with the unchanged TangentHub
+before wiring a product capability. The Ubuntu endpoint has the kernel modules;
+Rocky 9.7's installed kernel configuration selects them but its RPMs omit them.
+A matching, independently signed kernel-module package is a prerequisite, not
+an excuse to update the Host kernel or NVIDIA driver. Verify package signature,
+kernel-symbol requirements, Secure Boot policy and load/unload behavior first.
+Do not silently install a package built for a newer Enterprise Linux minor.
+
+The [compatibility probe](../../../probes/linux/tangent-usbip.md) uses an explicitly selected device and authenticated SSH
+standard streams. It has no USB/IP TCP listener. This is a temporary hardware
+qualification route, not the product transport. It must restore the original
+USB binding on exit, bound buffering and duration, and leave other USB devices,
+TangentHub, the desktop and PLANK session untouched.
+
+## Product work after the compatibility gate
+
+1. A negotiated, versioned Tangent capability on the existing authenticated
+   PLANK connection; no additional exposed port or unauthenticated USB/IP daemon.
+2. A dedicated bounded reliable lane, separate from keyboard/Wacom queues.
+   Preserve ordered button transitions and relative encoder increments. Apply
+   backpressure rather than silently dropping or replaying old controls.
+3. Explicit device/interface qualification, bounded descriptors, transfer sizes,
+   outstanding requests and device counts. Do not feed unvalidated peer-controlled
+   USB/IP messages directly into the kernel. Deny unrelated devices and firmware
+   programming/vendor bootloader operations.
+4. Narrow privileged ownership for virtual-controller attachment and, if using
+   the kernel exporter, physical-device binding. The GUI and network parser stay
+   unprivileged. Bind ownership to the authenticated active session, clean up on
+   disconnect/crash/takeover, and restore Client-local ownership afterward.
+5. Multiple panels, stable identity within a session, hotplug, clean takeover,
+   and recovery without stale jog commands or stuck buttons. Decide whether a
+   virtual device can safely persist only after TangentHub reconnect testing;
+   Wacom's behavior is not evidence for this different consumer.
+6. Package prerequisites, permissions, administrator configuration, unavailable-
+   feature diagnostics and uninstall cleanup. No dependency on the emulator
+   repository, private infrastructure or changes to its firmware.
+
+## Acceptance
+
+- Stock TangentHub enumerates the imported Mf and accepts its normal native
+  profile. First prove enumeration and two-way control traffic, then real jog,
+  play/stop and mode changes in the application with operator observation.
+- Real Mf/Tk/Kb/Bt controls and display feedback; simultaneous modules, multiple
+  instances, identities, hotplug and exclusive session ownership.
+- Interrupted transport, stalled peer, malformed messages, overflow, unplug,
+  application/Client crash and takeover. No input replay or leaked device claim.
+- Existing keyboard, mouse, Wacom, media and session recovery remain functional.
+- Exact hosted-built candidates on qualified hardware before acceptance. The
+  compatibility probe and unit tests do not qualify the shipping integration.
+
+## References
+
+- [Tangential firmware](https://github.com/instinctual/tangential)
+- [Tangent Element](https://www.tangentwave.co.uk/product/element/)
+- [Linux USB/IP protocol](https://docs.kernel.org/usb/usbip_protocol.html)
+- [Linux UHID](https://docs.kernel.org/hid/uhid.html)
+- [ELRepo signing keys](https://elrepo.org/wiki/doku.php?id=key)
+
+Private target addresses, account data, device serials, captures and deployment
+commands belong outside Git. Record results here by hardware role and exact
+source/package revision only.
