@@ -1,9 +1,9 @@
 # Tangent panel forwarding
 
 Branch: `tangent-panel-forwarding`, based on main `4a1c1046` (PLANK 1.4.18).
-Status: initial KnobX1 compatibility gate passed; candidate integration and
-hosted packaging complete. Installed product qualification awaits Client
-installation authorization.
+Status: initial KnobX1 compatibility gate passed; candidate integration,
+hosted packaging and authorized installation complete. The operator will test
+the live product connection later.
 
 ## Receive-buffer qualification prerequisite
 
@@ -43,8 +43,13 @@ the full 4 MiB request granted. All 2700 frames recovered; worst phase p95 deliv
 was 11.564 ms, maximum delivery 20.013 ms and maximum receive gap 28.003 ms.
 Global settings and desktop processes were preserved. The Mac has no measured
 proxy kernel-drop count. These results qualify transport behavior, not installed
-panel forwarding; Linux policy activation and the exact libusb/QUIC product
-path still require the authorized hardware pair.
+panel forwarding. The authorized Linux installations subsequently passed exact
+binary, configuration/identity preservation, full unprivileged socket-grant and
+bundled-driver/source checks. Each unbound Linux socket reports 8388608 bytes
+for the 4194304-byte request; application defaults are unchanged. The Host
+advertises capability version1 and the active Client desktop user has read/write
+USB access. Live libusb/QUIC forwarding and application control acceptance remain
+pending, as distinct from the initial SSH proof.
 
 ## Recorded qualification
 

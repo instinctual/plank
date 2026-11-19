@@ -13,7 +13,8 @@ and the operator-approved shared 4 MiB QUIC receive-buffer request. Both product
 log the requested and OS-reported sizes. Linux packages include a commented,
 administrator-editable receive-ceiling policy; application buffer defaults,
 send budgets, FEC, wire negotiation and test thresholds are unchanged.
-No product package has been installed, and no merge/release is authorized.
+Both Linux candidates are installed on the authorized test pair. The operator
+will test the live panel connection later. No merge/release is authorized.
 
 | Candidate source | Revision |
 | --- | --- |
@@ -56,10 +57,20 @@ policy and absence of an external driver-package dependency were checked
 independently. Client checks verified the exact udev rule and maintainer hooks,
 libusb runtime dependency, both conffiles and absence of autostart entries.
 All 17 isolated Debian packaging tests passed on hosted Ubuntu, including
-administrator configuration preservation. Client installation on the end-user
-test endpoint has been requested and is awaiting operator authorization; the
-hardware-test Host installation is already authorized. The older 1.4.19 Client
-and initial Host artifact are superseded; do not install them as current.
+administrator configuration preservation. The operator explicitly authorized
+the Client installation/restart, in addition to the already-authorized Host
+upgrade. Both installed executable hashes match their verified package payloads;
+the Client GUI is open. Bookmarks, administrator configuration, Host identity
+and TLS material are unchanged. No reboot, kernel or NVIDIA update occurred.
+The older 1.4.19 Client and initial Host artifact are superseded.
+
+Both installed Linux systems now allow the full 4 MiB request: unprivileged,
+unbound OS socket checks report 8388608 bytes, including Linux's doubled
+accounting. Application default buffers remain unchanged. The Host reports
+`PlankTangentVersion=1`; the active Client desktop user can open the qualified
+USB node read/write without root. These are installation checks, not a connected
+PLANK session's receive-grant or Tangent control acceptance. Temporary installer
+copies were removed; no loss injection or forwarding probe is running.
 
 Local validation passed 103 Client-feature Rust tests, 146 CI/policy tests,
 Clippy, the real socket-grant test and both C ABI certificate-trust modes.
@@ -75,9 +86,15 @@ raw logs and deployment/access details remain private.
 The operator accepted KnobX1 jog, Play/Stop and all four modes in Flare through
 the initial bounded SSH/USB-IP proof. All probes are stopped. Original Client
 USB ownership, an empty export match table and unused Host virtual ports were
-verified, and the temporary Client kernel exporter was unloaded. The test Host's
-signed ELRepo driver prerequisite remains installed. No PLANK package, firmware,
-kernel version or NVIDIA driver has been replaced.
+verified, and the temporary Client kernel exporter was unloaded. The subsequent
+candidate installation removed the exact temporary ELRepo driver package and
+its weak-module links without rebuilding initramfs, then loaded the RPM-bundled
+signed VHCI module. Its resolved path, original decompressed hash and corresponding
+source hash were verified independently. Desktop and TangentHub processes were
+preserved. Flare is open, but its process ID changed during the installation
+window; no Flare restart command was issued and the cause is unestablished.
+Do not describe that as uninterrupted Flare acceptance. Firmware, kernel and
+NVIDIA versions are unchanged.
 
 The production candidate uses a separately bounded, authenticated reliable QUIC
 endpoint, unprivileged Client libusb and the Host's narrowed VHCI attach path.
@@ -360,11 +377,12 @@ documentation housekeeping; no package rebuild or deployment was needed.
 
 ## Next work and qualification limits
 
-After the pending end-user Client installation approval, qualify the exact
-1.4.20 packages on the authorized hardware pair. Confirm the installed receive
-ceiling/grant and the bundled VHCI module independently of the separately
-installed proof prerequisite. The initial kernel-export proof is not acceptance
-of the libusb Client backend. Keep other panel models unqualified until tested.
+The operator chose to test later. When the installed 1.4.20 Client connects to
+the authorized Host, inspect the live receive-grant logs, libusb/QUIC attachment
+and TangentHub ownership, then observe jog, play/stop and mode controls. Installed
+OS socket capacity and bundled-driver checks are complete; the initial
+kernel-export proof is still not acceptance of the libusb Client backend. Keep
+other panel models unqualified until tested. No new build or deployment is queued.
 The remaining check for the display-wake fix is a deliberate sleep/reconnect
 and idle-timer session test when the operator chooses to run it. Preserve Terminal and active sessions on the
 authorized development Mac; never reboot automatically.
