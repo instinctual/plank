@@ -33,12 +33,18 @@ Their hashes matched the original workflow manifests. Independent payload checks
 verified the DEB's active-seat USB rule and both maintainer hooks, and the RPM's
 original signed driver, corresponding source and license.
 
-The authorized hardware pair has 1.4.20 installed. Its KnobX1 was claimed by the
-Client and opened on the Host by TangentHub during a product session. A real Mf
-also enumerated. Jog, Play/Stop and all four emulator modes previously passed
-through the compatibility probe. Operator testing of every physical model's
-controls, display feedback, simultaneous use, hotplug and takeover on the new
-candidate remains open. Machine inventory and raw captures stay private.
+The authorized Rocky Host and Ubuntu Client are running the verified 1.4.21
+packages. The running Host supervisor, media worker, PAM broker and Client
+executable matched their packaged hashes. The Host answered HTTPS serverinfo
+with the Tangent capability and loaded its packaged VHCI driver. The relaunched
+Client's active desktop user could open the connected KnobX1 USB node read/write.
+The Host configuration, identity and TLS files and the Client configuration and
+preferences retained their original hashes. Both machines retained their boot IDs.
+
+On 1.4.20, TangentHub opened the forwarded KnobX1 and the genuine Mf enumerated.
+Emulator controls previously passed through the compatibility probe. Live controls,
+display feedback, simultaneous use, hotplug and takeover on 1.4.21 still need
+operator testing. Machine inventory and raw captures stay private.
 
 The previous candidate build and installation are recorded at
 [`dd5db332`](https://github.com/instinctual/plank/blob/dd5db332/HANDOFF.md).
