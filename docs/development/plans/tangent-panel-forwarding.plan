@@ -1,6 +1,9 @@
 # Tangent panel forwarding
 
-Branch: `tangent-panel-forwarding`, based on main `4a1c1046` (PLANK 1.4.18).
+The implementation originated on `tangent-panel-forwarding` from parent
+`4a1c1046` (PLANK 1.4.18). See the [handoff](../../../HANDOFF.md) for the
+mainline component pins and installed candidate.
+
 The KnobX1 passed the control test through the original compatibility probe.
 The installed 1.4.20 Client claimed the emulator and TangentHub opened its
 imported USB device. The genuine Mf also enumerated on the Host. All four

@@ -7,10 +7,13 @@ the focused plans and the artifact catalog.
 
 ## Current state
 
-Work is on **`tangent-panel-forwarding`**, based on main `4a1c1046`.
+`main` includes Tangent Element forwarding from Ubuntu Clients to Rocky Hosts
+and the shared 4 MiB QUIC receive-buffer request. The parent pins the same
+Client, Linux Host and Kymux revisions as their respective `main` branches.
 The 1.4.21 candidate implements Element Tk, Mf, Kb and Bt forwarding and
 retains the KnobX1. All four physical panels have the same measured 27-byte HID
-report and endpoint layout. All four captured descriptors passed the production manifest round trip.
+report and endpoint layout. Their captured descriptors passed the production
+manifest round trip.
 The Mf-only profile selected for an older peer accepted only the Mf. USB I/O
 errors, temporary claim failures, idle cancellations and local queue pressure are
 handled per panel. See the [protocol](protocol/tangent-panels.md) and
@@ -317,9 +320,9 @@ documentation housekeeping; no package rebuild or deployment was needed.
 
 ## Next work and qualification limits
 
-Test the 1.4.21 Rocky Host and Ubuntu Client as a pair. Check genuine Mf, Tk,
-Kb and Bt input and output in the application, unplug one panel with another
-in use, and verify session ownership through disconnect and takeover.
+The installed 1.4.21 pair is ready for the next operator test in Flare. Exercise
+controls and display feedback on each genuine Element model, unplug one while
+using another, and check panel ownership through disconnect and takeover.
 The remaining check for the display-wake fix is a deliberate sleep/reconnect
 and idle-timer session test when the operator chooses to run it. Preserve Terminal and active sessions on the
 authorized development Mac; never reboot automatically.
