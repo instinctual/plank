@@ -7,110 +7,27 @@ the focused plans and the artifact catalog.
 
 ## Current state
 
-Active development is on **`tangent-panel-forwarding`**, based on main
-`4a1c1046`. **1.4.20-tangent-panel-forwarding** contains Tangent panel forwarding
-and the operator-approved shared 4 MiB QUIC receive-buffer request. Both products
-log the requested and OS-reported sizes. Linux packages include a commented,
-administrator-editable receive-ceiling policy; application buffer defaults,
-send budgets, FEC, wire negotiation and test thresholds are unchanged.
-Both Linux candidates are installed on the authorized test pair. The operator
-will test the live panel connection later. No merge/release is authorized.
+Work is on **`tangent-panel-forwarding`**, based on main `4a1c1046`.
+The 1.4.21 candidate implements Element Tk, Mf, Kb and Bt forwarding and
+retains the KnobX1. All four physical panels have the same measured 27-byte HID
+report and endpoint layout. All four captured descriptors passed the production manifest round trip.
+The Mf-only profile selected for an older peer accepted only the Mf. USB I/O
+errors, temporary claim failures, idle cancellations and local queue pressure are
+handled per panel. See the [protocol](protocol/tangent-panels.md) and
+[hardware plan](docs/development/plans/tangent-panel-forwarding.plan).
 
-| Candidate source | Revision |
-| --- | --- |
-| Root runtime/build source | `2687e09ad234481e4ed5707f3c8ccf364e4e288c` |
-| Linux Host | `883b96aed5f9f824d49ef1b9a84b7335537cc14a` |
-| Client | `633ba511e36fb23c2d8e7e42bbc44b2d797909be` |
-| Kymux | `4ee4654d6f15ae30e39056f97b51761fe15322fe` |
-| Client common-C | `c7d1b83143be1511735526ae8ce75a6d5c25f63c` |
+The authorized hardware pair has 1.4.20 installed. Its KnobX1 was claimed by the
+Client and opened on the Host by TangentHub during a product session. A real Mf
+also enumerated. Jog, Play/Stop and all four emulator modes previously passed
+through the compatibility probe. Operator testing of every physical model's
+controls, display feedback, simultaneous use, hotplug and takeover on the new
+candidate remains open. Machine inventory and raw captures stay private.
 
-Hosted run `44486242662` passed policy, both Linux packages and both unsigned
-Mac regression builds. The exact Linux installers are downloaded and verified;
-no further build is queued. Supplemental transport run
-`44487124852` passed Linux and Mac functional qualification. The Host job and
-supplemental Linux job each passed three 900-frame, 150 Mbps loss matrices with
-zero unrecovered frames and zero proxy kernel drops. Both requested 4194304 bytes
-but Linux reported only 2097152 under the runner's ceiling; Linux's reported
-value includes doubled kernel accounting. These passes do not prove the full
-4 MiB request was granted or the packaged policy has been installed.
-
-The exact GitHub-built Mac transport executable was also qualified on the
-authorized development Mac with the shipping `sender-timing` feature. Its SHA256
-is `70b0ecadc4f39e1f42daa75458fbfd4d51a7e4841977b65099aff2462e38d2b9`.
-All three matrices recovered all 2700 frames with the full 4 MiB grant. Worst
-phase p95 delivery was 11.564 ms, maximum delivery 20.013 ms and maximum receive
-gap 28.003 ms, within unchanged limits. Observed boot time, global socket defaults
-and Terminal processes were preserved; temporary staging was removed. The Mac
-does not expose the proxy's kernel-drop counter. This is transport qualification,
-not an installed GUI, audio-listening or panel acceptance test.
-
-Both verified candidates are under
-`artifacts/packages/candidates/1.4.20-tangent-panel-forwarding/linux/`:
-
-| Installer | SHA256 |
-| --- | --- |
-| `plank-host-1.4.20-0.tangent_panel_forwarding.1.el9.x86_64.rpm` | `cf2f39ab63ce4368ba38cdc68bb85a26fadf41fff26ee050d9681b9faab96a89` |
-| `plank-client_1.4.20-tangent-panel-forwarding_amd64.deb` | `d5a8e2477d693af932692b08e374517eec6049bc1ead47fcb4bce2a591b77c10` |
-
-The Host's exact signed VHCI module, corresponding source, receive-ceiling
-policy and absence of an external driver-package dependency were checked
-independently. Client checks verified the exact udev rule and maintainer hooks,
-libusb runtime dependency, both conffiles and absence of autostart entries.
-All 17 isolated Debian packaging tests passed on hosted Ubuntu, including
-administrator configuration preservation. The operator explicitly authorized
-the Client installation/restart, in addition to the already-authorized Host
-upgrade. Both installed executable hashes match their verified package payloads;
-the Client GUI is open. Bookmarks, administrator configuration, Host identity
-and TLS material are unchanged. No reboot, kernel or NVIDIA update occurred.
-The older 1.4.19 Client and initial Host artifact are superseded.
-
-Both installed Linux systems now allow the full 4 MiB request: unprivileged,
-unbound OS socket checks report 8388608 bytes, including Linux's doubled
-accounting. Application default buffers remain unchanged. The Host reports
-`PlankTangentVersion=1`; the active Client desktop user can open the qualified
-USB node read/write without root. These are installation checks, not a connected
-PLANK session's receive-grant or Tangent control acceptance. Temporary installer
-copies were removed; no loss injection or forwarding probe is running.
-
-Local validation passed 103 Client-feature Rust tests, 146 CI/policy tests,
-Clippy, the real socket-grant test and both C ABI certificate-trust modes.
-The sustained local loss matrix still failed with the OS capping sockets at
-425984 reported bytes and 586 extra proxy drops. Do not call that a performance
-pass, request builder repairs or weaken gates. The hosted Ubuntu package fixtures
-provide the Debian validation unavailable on the local Rocky builder.
-Evidence is under `artifacts/qualification/tangent-panel-forwarding/receive-buffer-1.4.20/`;
-raw logs and deployment/access details remain private.
-
-## Tangent implementation and remaining hardware gate
-
-The operator accepted KnobX1 jog, Play/Stop and all four modes in Flare through
-the initial bounded SSH/USB-IP proof. All probes are stopped. Original Client
-USB ownership, an empty export match table and unused Host virtual ports were
-verified, and the temporary Client kernel exporter was unloaded. The subsequent
-candidate installation removed the exact temporary ELRepo driver package and
-its weak-module links without rebuilding initramfs, then loaded the RPM-bundled
-signed VHCI module. Its resolved path, original decompressed hash and corresponding
-source hash were verified independently. Desktop and TangentHub processes were
-preserved. Flare is open, but its process ID changed during the installation
-window; no Flare restart command was issued and the cause is unestablished.
-Do not describe that as uninterrupted Flare acceptance. Firmware, kernel and
-NVIDIA versions are unchanged.
-
-The production candidate uses a separately bounded, authenticated reliable QUIC
-endpoint, unprivileged Client libusb and the Host's narrowed VHCI attach path.
-Ownership belongs to the logical session until disconnect, including transport
-recovery. Actual driver/source/license bytes are bundled in the normal Host RPM;
-there is no external driver download during installation. Client permissions
-cover the qualified Mf ID and active seat only. Mac devices and Wacom remain
-outside this feature's scope. See the [plan](docs/development/plans/tangent-panel-forwarding.plan)
-and [protocol contract](protocol/tangent-panels.md).
-
-Encrypted failure tests prove that a panel-backend failure retires the peer's
-panel channel while ordinary data remains available. The systemd attach exception,
-TangentHub enumeration sequence, logical-session ownership and malformed-message
-limits are checked. These do not qualify installed libusb/QUIC forwarding or real
-Tk/Kb/Bt panels. Unplug, multiple panels, takeover and loss acceptance remain
-outstanding. Terminal panel-channel failure currently requires reconnecting.
+The previous candidate build and installation are recorded at
+[`dd5db332`](https://github.com/instinctual/plank/blob/dd5db332/HANDOFF.md).
+That candidate's shared receive-buffer change passed the Linux hosted and Mac
+hardware 150 Mbps qualification. The flow-control changes here are confined to
+USB submissions on the optional peripheral lane.
 
 ## Receive-buffer investigation context
 
@@ -377,12 +294,9 @@ documentation housekeeping; no package rebuild or deployment was needed.
 
 ## Next work and qualification limits
 
-The operator chose to test later. When the installed 1.4.20 Client connects to
-the authorized Host, inspect the live receive-grant logs, libusb/QUIC attachment
-and TangentHub ownership, then observe jog, play/stop and mode controls. Installed
-OS socket capacity and bundled-driver checks are complete; the initial
-kernel-export proof is still not acceptance of the libusb Client backend. Keep
-other panel models unqualified until tested. No new build or deployment is queued.
+Test the 1.4.21 Rocky Host and Ubuntu Client as a pair. Check genuine Mf, Tk,
+Kb and Bt input and output in the application, unplug one panel with another
+in use, and verify session ownership through disconnect and takeover.
 The remaining check for the display-wake fix is a deliberate sleep/reconnect
 and idle-timer session test when the operator chooses to run it. Preserve Terminal and active sessions on the
 authorized development Mac; never reboot automatically.

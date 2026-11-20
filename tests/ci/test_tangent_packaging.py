@@ -2,6 +2,7 @@
 import hashlib
 import importlib.util
 import lzma
+import re
 from pathlib import Path
 import tempfile
 import unittest
@@ -11,6 +12,25 @@ ROOT = Path(__file__).resolve().parents[2]
 SPEC = importlib.util.spec_from_file_location("tangent_package", ROOT / "scripts/package/stage-tangent-usbip.py")
 PACKAGE = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(PACKAGE)
+
+
+class ActiveSeatTests(unittest.TestCase):
+    def test_only_the_four_element_ids_receive_usb_access_and_retrigger(self):
+        linux = ROOT / "packaging/client/linux"
+        rules = [l for l in (linux / "udev/70-plank-client-tangent.rules").read_text().splitlines()
+                 if l and not l.startswith("#")]
+        self.assertEqual(len(rules), 1)
+        match = re.fullmatch(r'SUBSYSTEM=="usb", ENV\{DEVTYPE\}=="usb_device", ATTR\{idVendor\}=="04d8", '
+                             r'ATTR\{idProduct\}=="([a-f0-9|]+)", TAG\+="uaccess"', rules[0])
+        self.assertIsNotNone(match)
+        products = {"fa1a", "fa1c", "fa1e", "fa1f"}
+        self.assertEqual(set(match.group(1).split("|")), products)
+        for hook in ("postinst", "postrm"):
+            script = (linux / "deb" / hook).read_text()
+            loop = re.search(r'for product in ([a-f0-9 ]+); do', script)
+            self.assertIsNotNone(loop)
+            self.assertEqual(set(loop.group(1).split()), products)
+            self.assertIn('--attr-match=idVendor=04d8 --attr-match=idProduct="$product"', script)
 
 
 class DriverPackageTests(unittest.TestCase):

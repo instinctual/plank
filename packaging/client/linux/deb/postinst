@@ -25,8 +25,10 @@ if [ "$1" = configure ] || [ "$1" = abort-upgrade ] || \
         --subsystem-match=hidraw || true
       /usr/bin/udevadm trigger --action=change \
         --subsystem-match=input || true
-      /usr/bin/udevadm trigger --action=change --subsystem-match=usb \
-        --attr-match=idVendor=04d8 --attr-match=idProduct=fa1a || true
+      for product in fa1a fa1c fa1e fa1f; do
+        /usr/bin/udevadm trigger --action=change --subsystem-match=usb \
+          --attr-match=idVendor=04d8 --attr-match=idProduct="$product" || true
+      done
     fi
 
   fi

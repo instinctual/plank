@@ -73,8 +73,9 @@ device forwarding and are distinct from generic direct-touchscreen input.
 The operator also authorized qualified Tangent panel forwarding between Ubuntu
 Clients and Rocky Hosts. Keep it separate from Wacom, bound it to authenticated
 session ownership, and preserve ownership until disconnect rather than following
-window focus. The initial qualified USB shape is Element Mf/KnobX1; other panel
-models require descriptor and hardware qualification. Do not enable generic USB
+window focus. The allowed devices are the Element Mf (including KnobX1), Tk, Kb and Bt under
+their four measured USB IDs and shared HID descriptor. Track installed controls
+and panel feedback separately from descriptor verification. Do not enable generic USB
 forwarding, firmware-programming commands or a public USB/IP listener. Bundle
 the verified Rocky VHCI driver and corresponding source/license in the Host RPM;
 do not enable an external driver repository or download drivers during install.

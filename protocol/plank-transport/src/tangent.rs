@@ -7,11 +7,14 @@
 
 use std::collections::HashMap;
 
-#[path = "tangent_mf.rs"]
-pub mod mf;
+#[path = "tangent_element.rs"]
+pub mod element;
 
 pub const VERSION: u8 = 1;
 pub const MAX_DEVICES: u8 = 8;
+pub const ATTACH_UNAVAILABLE: [u8; 2] = 1u16.to_be_bytes();
+pub const DEVICE_IO_FAILED: [u8; 2] = 2u16.to_be_bytes();
+pub const PROFILE_REJECTED: [u8; 2] = 3u16.to_be_bytes();
 pub const MAX_TRANSFER: usize = 4096;
 pub const USBIP_HEADER: usize = 48;
 pub const RECORD_HEADER: usize = 16;
@@ -310,6 +313,36 @@ impl Transactions {
         Ok(())
     }
 
+    pub fn contains_sequence(&self, sequence: u32) -> bool {
+        self.requests.contains_key(&sequence) || self.unlinks.contains_key(&sequence)
+    }
+
+    pub fn cancelling(&self, sequence: u32) -> bool {
+        self.requests.get(&sequence).is_some_and(|request| {
+            self.unlinks.values().any(|unlink| {
+                unlink.target == sequence && unlink.target_ticket == Some(request.ticket)
+            })
+        })
+    }
+
+    /// Each forwarded submit needs space for a future cancellation. A pending
+    /// unlink for its current ticket already occupies that space. A late unlink
+    /// for an earlier ticket still counts until its own reply arrives.
+    pub fn slots_with_cancel_reserve(&self) -> usize {
+        let paired = self
+            .unlinks
+            .values()
+            .filter(|u| {
+                u.target_ticket.is_some_and(|ticket| {
+                    self.requests
+                        .get(&u.target)
+                        .is_some_and(|request| request.ticket == ticket)
+                })
+            })
+            .count();
+        self.outstanding() + self.requests.len() - paired
+    }
+
     pub fn outstanding(&self) -> usize {
         self.requests.len() + self.unlinks.len()
     }
@@ -326,13 +359,13 @@ impl Transactions {
 }
 
 #[cfg(test)]
-mod tests {
+pub(crate) mod tests {
     use super::*;
     const DEVICE: u32 = 0x10002;
     fn put(bytes: &mut [u8], offset: usize, value: u32) {
         bytes[offset..offset + 4].copy_from_slice(&value.to_be_bytes());
     }
-    fn submit(seq: u32, input: bool, length: usize) -> Vec<u8> {
+    pub(crate) fn submit(seq: u32, input: bool, length: usize) -> Vec<u8> {
         let mut bytes = vec![0; USBIP_HEADER + if input { 0 } else { length }];
         for (offset, value) in [
             (0, 1),
@@ -346,21 +379,21 @@ mod tests {
         }
         bytes
     }
-    fn reply(seq: u32, length: usize, input: bool) -> Vec<u8> {
+    pub(crate) fn reply(seq: u32, length: usize, input: bool) -> Vec<u8> {
         let mut bytes = vec![0; USBIP_HEADER + if input { length } else { 0 }];
         for (offset, value) in [(0, 3), (4, seq), (24, length as u32)] {
             put(&mut bytes, offset, value);
         }
         bytes
     }
-    fn unlink(seq: u32, target: u32) -> Vec<u8> {
+    pub(crate) fn unlink(seq: u32, target: u32) -> Vec<u8> {
         let mut bytes = vec![0; USBIP_HEADER];
         for (offset, value) in [(0, 2), (4, seq), (8, DEVICE), (20, target)] {
             put(&mut bytes, offset, value);
         }
         bytes
     }
-    fn unlink_reply(seq: u32) -> Vec<u8> {
+    pub(crate) fn unlink_reply(seq: u32) -> Vec<u8> {
         let mut bytes = vec![0; USBIP_HEADER];
         put(&mut bytes, 0, 4);
         put(&mut bytes, 4, seq);
@@ -510,9 +543,11 @@ mod tests {
         g.request(&unlink(2, 1)).unwrap();
         g.response(&reply(1, 15, true)).unwrap();
         g.request(&submit(1, true, 64)).unwrap();
+        assert_eq!(g.slots_with_cancel_reserve(), 3);
         g.response(&unlink_reply(2)).unwrap();
         assert_eq!(g.outstanding(), 1);
         assert_eq!(g.outstanding_bytes(), 64);
+        assert_eq!(g.slots_with_cancel_reserve(), 2);
         g.response(&reply(1, 64, true)).unwrap();
         assert_eq!(g.outstanding(), 0);
     }

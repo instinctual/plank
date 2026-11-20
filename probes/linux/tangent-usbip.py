@@ -24,7 +24,7 @@ import sys
 import time
 
 
-MF_ID = (0x04D8, 0xFA1A)
+ELEMENT_PRODUCTS = {0xFA1A, 0xFA1C, 0xFA1E, 0xFA1F}
 MF_DESCRIPTOR = bytes.fromhex(
     "05010908a10105f009017508950f810205f00902750895409102c0")
 BUS_ID = re.compile(r"[1-9][0-9]*-[1-9][0-9]*(?:\.[1-9][0-9]*)*")
@@ -60,7 +60,7 @@ def inspect_device(device):
     vendor = read_hex(device / "idVendor")
     product = read_hex(device / "idProduct")
     name = read_text(device / "product") if (device / "product").exists() else ""
-    if (vendor, product) != MF_ID and "tangent" not in name.lower():
+    if vendor != 0x04D8 or product not in ELEMENT_PRODUCTS:
         return None
     interfaces = []
     for interface in sorted(device.glob(device.name + ":*")):
@@ -249,8 +249,8 @@ def attach_device(device_id, speed, kernel_socket):
     finally:
         with contextlib.suppress(OSError):
             kernel_socket.shutdown(socket.SHUT_RDWR)
-        with contextlib.suppress(OSError):
-            write_attribute(controller / "detach", str(port))
+        # VHCI releases the device on EOF. Its numbered port may already
+        # belong to a new attachment by the time cleanup runs.
         notice("attach-closed", port=port)
 
 

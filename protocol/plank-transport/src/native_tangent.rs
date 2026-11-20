@@ -5,6 +5,7 @@
 use super::*;
 #[cfg(target_os = "linux")]
 use crate::tangent::Kind;
+use crate::tangent::element::Panels;
 use crate::tangent::{MAX_BODY, RECORD_HEADER, Record, VERSION};
 
 #[cfg(all(target_os = "linux", feature = "tangent-client"))]
@@ -223,7 +224,7 @@ async fn connected(
                     let mut state = shared.tangent.state.lock().unwrap();
                     if state.receive.room(packet.payload.len()) {
                         state.receive.push(packet.payload);
-                        shared.tangent.received.notify_one();
+                        shared.tangent.received.notify_all();
                         break;
                     }
                 }
@@ -258,7 +259,7 @@ pub extern "C" fn plank_transport_native_tangent_host_available() -> i32 {
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn plank_transport_native_tangent_host_enable(
     endpoint: *mut PlankTransportNativeEndpoint,
-    version: u32,
+    profile: u32,
     log: Option<extern "C" fn(*const c_char)>,
 ) -> i32 {
     catch_result(|| {
@@ -268,7 +269,12 @@ pub unsafe extern "C" fn plank_transport_native_tangent_host_enable(
         if endpoint_ref.mode != 1 || plank_transport_native_tangent_host_available() == 0 {
             return PLANK_TRANSPORT_ERROR_INVALID_STATE;
         }
-        let result = unsafe { plank_transport_native_tangent_enable(endpoint, version) };
+        let Some(panels) = Panels::from_profile(profile) else {
+            return PLANK_TRANSPORT_ERROR_INVALID_ARGUMENT;
+        };
+        #[cfg(not(target_os = "linux"))]
+        let _ = panels;
+        let result = unsafe { plank_transport_native_tangent_enable(endpoint, u32::from(VERSION)) };
         if result != PLANK_TRANSPORT_OK {
             return result;
         }
@@ -279,7 +285,7 @@ pub unsafe extern "C" fn plank_transport_native_tangent_host_enable(
             match std::thread::Builder::new()
                 .name("plank-panel-host".into())
                 .spawn(move || {
-                    if let Err(error) = host::run(shared.clone()) {
+                    if let Err(error) = host::run(shared.clone(), panels) {
                         shared
                             .tangent
                             .report(&format!("Tangent Host forwarding stopped: {error}"));
@@ -390,7 +396,7 @@ pub unsafe extern "C" fn plank_transport_tangent_client_destroy(
 pub unsafe extern "C" fn plank_transport_native_tangent_client_enable(
     endpoint: *mut PlankTransportNativeEndpoint,
     owner: *const PlankTransportTangentClient,
-    version: u32,
+    profile: u32,
     log: Option<extern "C" fn(*const c_char)>,
 ) -> i32 {
     catch_result(|| {
@@ -404,7 +410,11 @@ pub unsafe extern "C" fn plank_transport_native_tangent_client_enable(
         }
         #[cfg(all(target_os = "linux", feature = "tangent-client"))]
         {
-            let result = unsafe { plank_transport_native_tangent_enable(endpoint, version) };
+            let Some(panels) = Panels::from_profile(profile) else {
+                return PLANK_TRANSPORT_ERROR_INVALID_ARGUMENT;
+            };
+            let result =
+                unsafe { plank_transport_native_tangent_enable(endpoint, u32::from(VERSION)) };
             if result != PLANK_TRANSPORT_OK {
                 return result;
             }
@@ -415,7 +425,7 @@ pub unsafe extern "C" fn plank_transport_native_tangent_client_enable(
                 .name("plank-panel-client".into())
                 .spawn(move || {
                     let _lease = lease;
-                    if let Err(error) = client::run(shared.clone()) {
+                    if let Err(error) = client::run(shared.clone(), panels) {
                         shared
                             .tangent
                             .report(&format!("Tangent Client forwarding stopped: {error}"));
@@ -432,7 +442,7 @@ pub unsafe extern "C" fn plank_transport_native_tangent_client_enable(
         }
         #[cfg(not(all(target_os = "linux", feature = "tangent-client")))]
         {
-            let _ = (owner, version, log);
+            let _ = (owner, profile, log);
             PLANK_TRANSPORT_ERROR_INVALID_STATE
         }
     })
@@ -698,8 +708,29 @@ mod tests {
                 .unwrap()
         });
         shared.set_state(EndpointState::Stopping);
+        shared.tangent.wake();
         assert_eq!(rx.recv_timeout(Duration::from_secs(2)).unwrap(), None);
         worker.join().unwrap();
+    }
+
+    // Exercise the real encrypted stream on both platforms without an OS USB
+    // controller. Bound the wait so a missing attachment or reply fails the test.
+    async fn exchange(sender: &NativeShared, recipient: &NativeShared, record: Record<'_>) {
+        let wire = Bytes::from(record.encode().unwrap());
+        sender.tangent.state.lock().unwrap().send.push(wire);
+        sender.tangent.changed.notify_one();
+        let received = tokio::time::timeout(Duration::from_secs(2), async {
+            loop {
+                if let Some(bytes) = recipient.tangent.state.lock().unwrap().receive.pop() {
+                    recipient.tangent.space.notify_one();
+                    return bytes;
+                }
+                tokio::time::sleep(Duration::from_millis(1)).await;
+            }
+        })
+        .await
+        .expect("missing encrypted panel record");
+        assert_eq!(Record::decode(&received).unwrap(), record);
     }
 
     #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
@@ -756,7 +787,68 @@ mod tests {
             })
             .await
             .unwrap();
-            client.tangent.fail(); // equivalent to a local USB exporter failure
+            use crate::tangent::{DEVICE_IO_FAILED, Kind, element};
+            for (slot, pid) in [0x1a, 0x1c, 0x1e, 0x1f].into_iter().enumerate() {
+                let mut descriptor = element::tests::descriptors();
+                descriptor[10] = pid;
+                let manifest =
+                    element::Manifest::new(0x10002 + slot as u32, &descriptor, element::REPORT)
+                        .unwrap()
+                        .encode();
+                let attach = Record {
+                    kind: Kind::Attach,
+                    slot: slot as u8,
+                    generation: 1,
+                    body: &manifest,
+                };
+                exchange(&client, &host, attach).await;
+                exchange(
+                    &host,
+                    &client,
+                    Record {
+                        kind: Kind::Ready,
+                        body: &[],
+                        ..attach
+                    },
+                )
+                .await;
+            }
+            let failed = Record {
+                kind: Kind::Failed,
+                slot: 1,
+                generation: 1,
+                body: &DEVICE_IO_FAILED,
+            };
+            exchange(&host, &client, failed).await;
+            exchange(
+                &client,
+                &host,
+                Record {
+                    kind: Kind::Detach,
+                    body: &[],
+                    ..failed
+                },
+            )
+            .await;
+            let request = crate::tangent::tests::submit(7, true, 15);
+            let transfer = Record {
+                kind: Kind::Transfer,
+                slot: 0,
+                generation: 1,
+                body: &request,
+            };
+            exchange(&host, &client, transfer).await;
+            let report = crate::tangent::tests::reply(7, 15, true);
+            exchange(
+                &client,
+                &host,
+                Record {
+                    body: &report,
+                    ..transfer
+                },
+            )
+            .await;
+            client.tangent.fail(); // now take down the entire optional lane
             tokio::time::timeout(Duration::from_secs(2), async {
                 while host.tangent.state.lock().unwrap().status != 3 {
                     tokio::time::sleep(Duration::from_millis(1)).await;

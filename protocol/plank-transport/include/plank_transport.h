@@ -284,14 +284,19 @@ int32_t plank_transport_native_tangent_host_available(void);
 /* Synchronous diagnostic callback. Message storage is valid only for the call;
  * callback must not throw. Called outside transport and device queue locks. */
 typedef void (*PlankTransportTangentLog)(const char *message);
+/* Negotiated USB product set for the Linux device backends. Both use wire version 1. */
+enum {
+    PLANK_TANGENT_PROFILE_MF = 1,
+    PLANK_TANGENT_PROFILE_ELEMENT = 2
+};
 int32_t plank_transport_native_tangent_host_enable(
-    PlankTransportNativeEndpoint *endpoint, uint32_t version, PlankTransportTangentLog log);
+    PlankTransportNativeEndpoint *endpoint, uint32_t profile, PlankTransportTangentLog log);
 typedef struct PlankTransportTangentClient PlankTransportTangentClient;
 /* Retain across endpoint recovery; destroy after stopping the session's endpoint. */
 int32_t plank_transport_tangent_client_create(PlankTransportTangentClient **output);
 void plank_transport_tangent_client_destroy(PlankTransportTangentClient *owner);
 int32_t plank_transport_native_tangent_client_enable(
-    PlankTransportNativeEndpoint *endpoint, const PlankTransportTangentClient *owner, uint32_t version,
+    PlankTransportNativeEndpoint *endpoint, const PlankTransportTangentClient *owner, uint32_t profile,
     PlankTransportTangentLog log);
 int32_t plank_transport_native_tangent_status(
         const PlankTransportNativeEndpoint *endpoint);

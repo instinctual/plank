@@ -5,7 +5,7 @@ It is not a PLANK Client or an implemented PLANK forwarding feature. See the
 [integration plan](../../docs/development/plans/tangent-panel-forwarding.plan).
 
 `python3 probes/linux/tangent-usbip.py inventory` is read-only. It reports module
-availability, candidate panel descriptors and endpoint sizes without device
+availability, all four Element models and their endpoint sizes without device
 serials or input reports. Run it without sudo first. Unreadable or removed sysfs
 nodes are reported as inspection errors, not silently accepted.
 

@@ -3,11 +3,10 @@
 //! there is no persistent kernel bus-ID match table or privileged Client daemon.
 
 use super::*;
-use crate::tangent::{MAX_DEVICES, USBIP_HEADER, mf, word};
+use crate::tangent::{MAX_DEVICES, PROFILE_REJECTED, USBIP_HEADER, element, word};
 use rusb::{Context, DeviceHandle, UsbContext};
 use std::collections::{HashMap, HashSet};
 use std::sync::RwLock;
-use std::sync::mpsc::{self, SyncSender};
 use std::thread::JoinHandle;
 
 const USB_TIMEOUT: Duration = Duration::from_millis(100);
@@ -34,65 +33,75 @@ impl Drop for Physical {
 }
 
 impl Physical {
-    fn open(device: rusb::Device<Context>) -> Result<(Self, mf::Manifest)> {
+    fn open(
+        device: rusb::Device<Context>,
+        panels: element::Panels,
+    ) -> std::result::Result<(Self, element::Manifest), OpenError> {
         let description = device.device_descriptor()?;
-        anyhow::ensure!(
-            description.vendor_id() == 0x04d8
-                && description.product_id() == 0xfa1a
-                && device.speed() == rusb::Speed::Full,
-            "unqualified Tangent device"
-        );
+        if !panels.allows(description.vendor_id(), description.product_id())
+            || device.speed() != rusb::Speed::Full
+        {
+            return Err(OpenError::Unsupported);
+        }
         let handle = device.open()?;
         let mut descriptor = [0; 18];
-        anyhow::ensure!(
-            handle.read_control(0x80, 6, 0x100, 0, &mut descriptor, USB_TIMEOUT)? == 18,
-            "short device descriptor"
-        );
-        anyhow::ensure!(
-            (1..=2).contains(&descriptor[17]),
-            "unqualified configuration count"
-        );
+        if handle.read_control(0x80, 6, 0x100, 0, &mut descriptor, USB_TIMEOUT)? != descriptor.len()
+        {
+            return Err(OpenError::Usb(rusb::Error::Io));
+        }
+        if !(1..=2).contains(&descriptor[17]) {
+            return Err(OpenError::Unsupported);
+        }
         let mut descriptors = descriptor.to_vec();
         for index in 0..descriptor[17] {
             let mut configuration = [0; 41];
-            anyhow::ensure!(
-                handle.read_control(
-                    0x80,
-                    6,
-                    0x200 | u16::from(index),
-                    0,
-                    &mut configuration,
-                    USB_TIMEOUT
-                )? == 41,
-                "unqualified configuration descriptor"
-            );
+            let count = handle.read_control(
+                0x80,
+                6,
+                0x200 | u16::from(index),
+                0,
+                &mut configuration,
+                USB_TIMEOUT,
+            )?;
+            if count >= 9 && u16::from_le_bytes([configuration[2], configuration[3]]) != 41 {
+                return Err(OpenError::Unsupported);
+            }
+            if count != configuration.len() {
+                return Err(OpenError::Usb(rusb::Error::Io));
+            }
             descriptors.extend_from_slice(&configuration);
         }
         let device_id = (u32::from(device.bus_number()) << 16) | u32::from(device.address());
-        // Check the complete USB shape before detaching its HID interface.
-        let manifest = mf::Manifest::new(device_id, &descriptors, mf::REPORT)
-            .map_err(|_| anyhow!("unqualified Tangent USB shape"))?;
+        let manifest = element::Manifest::new(device_id, &descriptors, element::REPORT)
+            .map_err(|_| OpenError::Unsupported)?;
+        if descriptors[8..10] != description.vendor_id().to_le_bytes()
+            || descriptors[10..12] != description.product_id().to_le_bytes()
+        {
+            return Err(OpenError::Unsupported);
+        }
         let original_configuration = handle.active_configuration()?;
         let original_kernel_driver = handle.kernel_driver_active(0)?;
+        // Only an acquired interface is ours to restore. In particular a busy
+        // claim must never unbind or reconfigure another application's device.
+        handle.set_auto_detach_kernel_driver(true)?;
+        handle.claim_interface(0)?;
         let physical = Self {
             handle,
             original_configuration,
             original_kernel_driver,
             configuration: RwLock::new(()),
         };
-        // libusb's automatic claim refuses to detach another usbfs owner.
-        // Do not separately disconnect an interface before this atomic claim.
-        physical.handle.set_auto_detach_kernel_driver(true)?;
-        physical.handle.claim_interface(0)?;
         let mut report = [0; 27];
-        anyhow::ensure!(
-            physical
-                .handle
-                .read_control(0x81, 6, 0x2200, 0, &mut report, USB_TIMEOUT)?
-                == 27
-                && report == mf::REPORT,
-            "unqualified Tangent HID report"
-        );
+        if physical
+            .handle
+            .read_control(0x81, 6, 0x2200, 0, &mut report, USB_TIMEOUT)?
+            != report.len()
+        {
+            return Err(OpenError::Usb(rusb::Error::Io));
+        }
+        if report != element::REPORT {
+            return Err(OpenError::Unsupported);
+        }
         Ok((physical, manifest))
     }
 
@@ -163,24 +172,35 @@ impl Physical {
     }
 }
 
-struct Pending {
-    cancelled: AtomicBool,
-    unlink: Mutex<Option<u32>>,
+#[derive(Debug)]
+enum OpenError {
+    Usb(rusb::Error),
+    Unsupported,
+}
+impl From<rusb::Error> for OpenError {
+    fn from(error: rusb::Error) -> Self {
+        Self::Usb(error)
+    }
+}
+
+// A running libusb call completes or polls for cancellation within USB_TIMEOUT.
+// A queued URB can be removed immediately, even behind a permanently idle read.
+struct Running {
+    sequence: u32,
+    unlink: Option<u32>,
 }
 struct Accounting {
-    guard: mf::Device,
-    pending: HashMap<u32, Arc<Pending>>,
+    guard: element::Device,
+    queues: [VecDeque<Vec<u8>>; 3],
+    running: [Option<Running>; 3],
 }
 struct DeviceState {
     accounting: Mutex<Accounting>,
+    work: [Condvar; 3],
     stopped: AtomicBool,
     shared: Arc<NativeShared>,
     slot: u8,
     generation: u64,
-}
-struct Job {
-    bytes: Vec<u8>,
-    pending: Arc<Pending>,
 }
 
 fn response(command: u32, sequence: u32, status: i32, size: usize, data: &[u8]) -> Vec<u8> {
@@ -224,147 +244,63 @@ impl DeviceState {
             reply,
         )
     }
-    fn complete(&self, job: &Job, status: i32, size: usize, data: &[u8]) -> Result<()> {
-        let mut accounting = self.accounting.lock().unwrap();
-        let seq = word(&job.bytes, 4);
-        let pending = accounting
-            .pending
-            .remove(&seq)
-            .ok_or_else(|| anyhow!("missing USB completion"))?;
-        anyhow::ensure!(Arc::ptr_eq(&pending, &job.pending), "stale USB completion");
-        let reply = if let Some(unlink) = *pending.unlink.lock().unwrap() {
-            response(4, unlink, -104, 0, &[])
-        } else {
-            response(3, seq, status, size, data)
-        };
-        self.send_locked(&mut accounting, &reply)
-    }
-}
-
-struct Exported {
-    id: u32,
-    state: Arc<DeviceState>,
-    jobs: [SyncSender<Job>; 3], // control, interrupt IN, interrupt OUT
-    workers: Vec<JoinHandle<()>>,
-    ready: bool,
-}
-impl Exported {
     fn new(
-        physical: Physical,
-        manifest: mf::Manifest,
+        manifest: element::Manifest,
         shared: Arc<NativeShared>,
         slot: u8,
         generation: u64,
     ) -> Result<Self> {
-        let id = manifest.device_id;
-        let guard = mf::Device::new(manifest).map_err(|_| anyhow!("invalid panel manifest"))?;
-        let state = Arc::new(DeviceState {
+        Ok(Self {
             accounting: Mutex::new(Accounting {
-                guard,
-                pending: HashMap::new(),
+                guard: element::Device::new(manifest)
+                    .map_err(|_| anyhow!("invalid panel manifest"))?,
+                queues: Default::default(),
+                running: Default::default(),
             }),
+            work: Default::default(),
             stopped: AtomicBool::new(false),
             shared,
             slot,
             generation,
-        });
-        let physical = Arc::new(physical);
-        let mut senders = Vec::new();
-        let mut workers = Vec::new();
-        for _ in 0..3 {
-            let (tx, rx) = mpsc::sync_channel::<Job>(crate::tangent::MAX_OUTSTANDING);
-            senders.push(tx);
-            let thread_state = state.clone();
-            let physical = physical.clone();
-            let worker = std::thread::Builder::new()
-                .name("plank-panel-usb".into())
-                .spawn(move || {
-                    let state = thread_state;
-                    while !state.stopped.load(Ordering::Acquire)
-                        && state.shared.tangent.alive(&state.shared)
-                    {
-                        let job = match rx.recv_timeout(USB_TIMEOUT) {
-                            Ok(job) => job,
-                            Err(mpsc::RecvTimeoutError::Timeout) => continue,
-                            Err(_) => break,
-                        };
-                        let input = word(&job.bytes, 12) == 1;
-                        let interrupt_input = input && word(&job.bytes, 16) == 1;
-                        let mut data = vec![0; word(&job.bytes, 24) as usize];
-                        let result = loop {
-                            if state.stopped.load(Ordering::Acquire)
-                                || job.pending.cancelled.load(Ordering::Acquire)
-                                || !state.shared.tangent.alive(&state.shared)
-                            {
-                                break Err(rusb::Error::Interrupted);
-                            }
-                            match physical.execute(&job.bytes, &mut data) {
-                                Err(rusb::Error::Timeout) if interrupt_input => continue,
-                                result => break result,
-                            }
-                        };
-                        let (status, size) = match result {
-                            Ok(size) => (0, size),
-                            Err(error) => (usb_status(error), 0),
-                        };
-                        if state
-                            .complete(&job, status, size, if input { &data[..size] } else { &[] })
-                            .is_err()
-                            || status == -19
-                        {
-                            state.stopped.store(true, Ordering::Release);
-                            break;
-                        }
-                    }
-                });
-            match worker {
-                Ok(worker) => workers.push(worker),
-                Err(error) => {
-                    state.stopped.store(true, Ordering::Release);
-                    drop(senders);
-                    for worker in workers {
-                        let _ = worker.join();
-                    }
-                    return Err(error.into());
-                }
-            }
-        }
-        Ok(Self {
-            id,
-            state,
-            jobs: senders.try_into().ok().unwrap(),
-            workers,
-            ready: false,
         })
     }
+
+    fn stop(&self) {
+        let _accounting = self.accounting.lock().unwrap();
+        self.stopped.store(true, Ordering::Release);
+        for work in &self.work {
+            work.notify_one();
+        }
+    }
+
     fn request(&self, bytes: &[u8]) -> Result<()> {
-        anyhow::ensure!(
-            self.ready,
-            "Tangent transfer preceded attachment acknowledgement"
-        );
-        let mut accounting = self.state.accounting.lock().unwrap();
-        accounting
-            .guard
+        let mut a = self.accounting.lock().unwrap();
+        anyhow::ensure!(!self.stopped.load(Ordering::Acquire), "panel stopped");
+        a.guard
             .request(bytes)
-            .map_err(|_| anyhow!("unqualified Tangent request"))?;
+            .map_err(|_| anyhow!("invalid Tangent request"))?;
         let sequence = word(bytes, 4);
         if word(bytes, 0) == 2 {
-            if let Some(pending) = accounting.pending.get(&word(bytes, 20)) {
-                let mut unlink = pending.unlink.lock().unwrap();
-                anyhow::ensure!(unlink.is_none(), "duplicate USB cancellation");
-                *unlink = Some(sequence);
-                pending.cancelled.store(true, Ordering::Release);
+            let target = word(bytes, 20);
+            for queue in &mut a.queues {
+                if let Some(i) = queue.iter().position(|job| word(job, 4) == target) {
+                    queue.remove(i);
+                    return self.send_locked(&mut a, &response(4, sequence, -104, 0, &[]));
+                }
+            }
+            if let Some(job) = a
+                .running
+                .iter_mut()
+                .flatten()
+                .find(|j| j.sequence == target)
+            {
+                anyhow::ensure!(job.unlink.is_none(), "duplicate USB cancellation");
+                job.unlink = Some(sequence);
                 return Ok(());
             }
-            return self
-                .state
-                .send_locked(&mut accounting, &response(4, sequence, 0, 0, &[]));
+            // The ordinary completion has already been sent.
+            return self.send_locked(&mut a, &response(4, sequence, 0, 0, &[]));
         }
-        let pending = Arc::new(Pending {
-            cancelled: AtomicBool::new(false),
-            unlink: Mutex::new(None),
-        });
-        accounting.pending.insert(sequence, pending.clone());
         let queue = if word(bytes, 16) == 0 {
             0
         } else if word(bytes, 12) == 1 {
@@ -372,57 +308,291 @@ impl Exported {
         } else {
             2
         };
-        self.jobs[queue]
-            .try_send(Job {
-                bytes: bytes.to_vec(),
-                pending,
-            })
-            .map_err(|_| anyhow!("panel transfer queue exhausted"))?;
+        // guard.request bounds the sum of all three queues and their USB payloads.
+        a.queues[queue].push_back(bytes.to_vec());
+        self.work[queue].notify_one();
         Ok(())
+    }
+
+    fn next_job(&self, queue: usize) -> Option<Vec<u8>> {
+        let mut a = self.accounting.lock().unwrap();
+        loop {
+            if self.stopped.load(Ordering::Acquire) {
+                return None;
+            }
+            if let Some(bytes) = a.queues[queue].pop_front() {
+                a.running[queue] = Some(Running {
+                    sequence: word(&bytes, 4),
+                    unlink: None,
+                });
+                return Some(bytes);
+            }
+            a = self.work[queue].wait(a).unwrap();
+        }
+    }
+
+    fn complete(
+        &self,
+        queue: usize,
+        sequence: u32,
+        status: i32,
+        size: usize,
+        data: &[u8],
+    ) -> Result<()> {
+        let mut a = self.accounting.lock().unwrap();
+        let job = a.running[queue]
+            .as_ref()
+            .ok_or_else(|| anyhow!("missing USB completion"))?;
+        anyhow::ensure!(job.sequence == sequence, "stale USB completion");
+        let reply = match job.unlink {
+            Some(unlink) => response(4, unlink, -104, 0, &[]),
+            None => response(3, sequence, status, size, data),
+        };
+        a.running[queue] = None;
+        self.send_locked(&mut a, &reply)
+    }
+
+    fn worker(&self, queue: usize, physical: &Physical) {
+        while let Some(bytes) = self.next_job(queue) {
+            let input = word(&bytes, 12) == 1;
+            let mut data = vec![0; word(&bytes, 24) as usize];
+            let result = loop {
+                if self.stopped.load(Ordering::Acquire) || !self.shared.tangent.alive(&self.shared)
+                {
+                    return;
+                }
+                if self.accounting.lock().unwrap().running[queue]
+                    .as_ref()
+                    .is_some_and(|j| j.unlink.is_some())
+                {
+                    break Err(rusb::Error::Interrupted);
+                }
+                match physical.execute(&bytes, &mut data) {
+                    Err(rusb::Error::Timeout) if queue == 1 => continue,
+                    result => break result,
+                }
+            };
+            let (status, size) = match result {
+                Ok(size) => (0, size),
+                Err(error) => (usb_status(error), 0),
+            };
+            if self
+                .complete(
+                    queue,
+                    word(&bytes, 4),
+                    status,
+                    size,
+                    if input { &data[..size] } else { &[] },
+                )
+                .is_err()
+                || status == -19
+            {
+                self.stop();
+                return;
+            }
+        }
+    }
+}
+
+struct Exported {
+    id: u32,
+    state: Arc<DeviceState>,
+    workers: Vec<JoinHandle<()>>,
+    ready_since: Option<Instant>,
+}
+impl Exported {
+    fn new(
+        physical: Physical,
+        manifest: element::Manifest,
+        shared: Arc<NativeShared>,
+        slot: u8,
+        generation: u64,
+    ) -> Result<Self> {
+        let mut device = Self {
+            id: manifest.device_id,
+            state: Arc::new(DeviceState::new(manifest, shared, slot, generation)?),
+            workers: Vec::new(),
+            ready_since: None,
+        };
+        let physical = Arc::new(physical);
+        for queue in 0..3 {
+            let state = device.state.clone();
+            let physical = physical.clone();
+            device.workers.push(
+                std::thread::Builder::new()
+                    .name("plank-panel-usb".into())
+                    .spawn(move || state.worker(queue, &physical))?,
+            );
+        }
+        Ok(device)
     }
 }
 impl Drop for Exported {
     fn drop(&mut self) {
-        self.state.stopped.store(true, Ordering::Release);
+        self.state.stop();
         for worker in self.workers.drain(..) {
             let _ = worker.join();
         }
     }
 }
 
-pub(super) fn run(shared: Arc<NativeShared>) -> Result<()> {
+#[derive(Default)]
+struct Retries(HashMap<u32, Retry>);
+enum Retry {
+    Unsupported,
+    Later { when: Instant, delay: Duration },
+}
+impl Retries {
+    fn eligible(&self, id: u32, now: Instant) -> bool {
+        match self.0.get(&id) {
+            None => true,
+            Some(Retry::Later { when, .. }) => now >= *when,
+            Some(Retry::Unsupported) => false,
+        }
+    }
+    // Return true only on the first transient error, for rate-limited logging.
+    fn later(&mut self, id: u32, now: Instant) -> bool {
+        let delay = match self.0.get(&id) {
+            Some(Retry::Later { delay, .. }) => (*delay * 2).min(Duration::from_secs(30)),
+            _ => Duration::from_secs(1),
+        };
+        self.0
+            .insert(
+                id,
+                Retry::Later {
+                    when: now + delay,
+                    delay,
+                },
+            )
+            .is_none()
+    }
+}
+
+fn retire(slot: &mut Option<Exported>, shared: &NativeShared) -> Result<()> {
+    let device = slot.take().unwrap();
+    let (slot_id, generation) = (device.state.slot, device.state.generation);
+    // All local workers finish before the generation's ordered Detach barrier.
+    drop(device);
+    shared
+        .tangent
+        .send_record(shared, Kind::Detach, slot_id, generation, &[])
+}
+
+fn handle_record(
+    shared: &NativeShared,
+    slots: &mut [Option<Exported>; MAX_DEVICES as usize],
+    retries: &mut Retries,
+    generation: u64,
+    record: Record<'_>,
+) -> Result<()> {
+    let slot = &mut slots[usize::from(record.slot)];
+    let Some(device) = slot.as_mut() else {
+        anyhow::ensure!(record.generation <= generation, "unknown panel generation");
+        return Ok(());
+    }; // late reply after local detach
+    if record.generation < device.state.generation {
+        return Ok(()); // requests already queued by the previous virtual device
+    }
+    anyhow::ensure!(
+        device.state.generation == record.generation,
+        "stale panel generation"
+    );
+    match record.kind {
+        Kind::Ready => {
+            anyhow::ensure!(device.ready_since.is_none(), "duplicate panel ready");
+            device.ready_since = Some(Instant::now());
+        }
+        Kind::Transfer => {
+            anyhow::ensure!(
+                device.ready_since.is_some(),
+                "Tangent transfer preceded attachment acknowledgement"
+            );
+            if let Err(error) = device.state.request(record.body) {
+                if retries.later(device.id, Instant::now()) {
+                    shared
+                        .tangent
+                        .report(&format!("Retiring Tangent panel: {error}"));
+                }
+                retire(slot, shared)?;
+            }
+        }
+        Kind::Failed | Kind::Detach => {
+            if record.kind == Kind::Failed && record.body == PROFILE_REJECTED {
+                retries.0.insert(device.id, Retry::Unsupported);
+                shared
+                    .tangent
+                    .report("Host does not support this Tangent panel profile");
+            } else if retries.later(device.id, Instant::now()) {
+                shared
+                    .tangent
+                    .report("Host released a Tangent panel; retrying attachment");
+            }
+            retire(slot, shared)?;
+        }
+        Kind::Attach => return Err(anyhow!("unexpected Host panel announcement")),
+    }
+    Ok(())
+}
+
+pub(super) fn run(shared: Arc<NativeShared>, panels: element::Panels) -> Result<()> {
     let context = Context::new()?;
     let mut slots: [Option<Exported>; MAX_DEVICES as usize] = std::array::from_fn(|_| None);
-    let mut refused = HashSet::new();
+    let mut retries = Retries::default();
     let mut generation = 0u64;
+    let mut scan_failed = false;
     let mut next_scan = Instant::now();
     while shared.tangent.alive(&shared) {
         if Instant::now() >= next_scan && shared.tangent.state.lock().unwrap().status == 2 {
             next_scan = Instant::now() + Duration::from_secs(1);
-            let devices = context.devices()?;
+            let devices = match context.devices() {
+                Ok(devices) => {
+                    scan_failed = false;
+                    devices
+                }
+                Err(error) => {
+                    if !scan_failed {
+                        shared.tangent.report(&format!(
+                            "Tangent USB enumeration unavailable; retrying: {error}"
+                        ));
+                    }
+                    scan_failed = true;
+                    // A failed scan says nothing about already attached panels.
+                    continue;
+                }
+            };
             let mut present = HashSet::new();
             for device in devices.iter() {
+                let id = (u32::from(device.bus_number()) << 16) | u32::from(device.address());
+                present.insert(id);
                 let Ok(desc) = device.device_descriptor() else {
                     continue;
                 };
-                if desc.vendor_id() != 0x04d8 || desc.product_id() != 0xfa1a {
+                if !panels.allows(desc.vendor_id(), desc.product_id()) {
                     continue;
                 }
-                let id = (u32::from(device.bus_number()) << 16) | u32::from(device.address());
-                present.insert(id);
-                if refused.contains(&id) || slots.iter().flatten().any(|s| s.id == id) {
+                if !retries.eligible(id, Instant::now())
+                    || slots.iter().flatten().any(|s| s.id == id)
+                {
                     continue;
                 }
                 let Some(slot) = slots.iter().position(Option::is_none) else {
                     continue; // still inventory owned panels after the ninth device
                 };
-                let (physical, manifest) = match Physical::open(device) {
-                    Ok(device) => device,
-                    Err(error) => {
+                let (physical, manifest) = match Physical::open(device, panels) {
+                    Ok(opened) => opened,
+                    Err(OpenError::Unsupported) => {
+                        retries.0.insert(id, Retry::Unsupported);
                         shared
                             .tangent
-                            .report(&format!("Tangent panel unavailable: {error}"));
-                        refused.insert(id);
+                            .report("Tangent panel has unsupported USB or HID descriptors");
+                        continue;
+                    }
+                    Err(OpenError::Usb(error)) => {
+                        if retries.later(id, Instant::now()) {
+                            shared
+                                .tangent
+                                .report(&format!("Tangent panel unavailable; retrying: {error}"));
+                        }
                         continue;
                     }
                 };
@@ -431,7 +601,18 @@ pub(super) fn run(shared: Arc<NativeShared>) -> Result<()> {
                     .ok_or_else(|| anyhow!("Tangent generation exhausted"))?;
                 let announcement = manifest.encode();
                 let exported =
-                    Exported::new(physical, manifest, shared.clone(), slot as u8, generation)?;
+                    match Exported::new(physical, manifest, shared.clone(), slot as u8, generation)
+                    {
+                        Ok(exported) => exported,
+                        Err(error) => {
+                            if retries.later(id, Instant::now()) {
+                                shared.tangent.report(&format!(
+                                    "Tangent panel worker unavailable; retrying: {error}"
+                                ));
+                            }
+                            continue;
+                        }
+                    };
                 shared.tangent.send_record(
                     &shared,
                     Kind::Attach,
@@ -441,27 +622,22 @@ pub(super) fn run(shared: Arc<NativeShared>) -> Result<()> {
                 )?;
                 slots[slot] = Some(exported);
             }
-            refused.retain(|id| present.contains(id));
             for slot in &mut slots {
-                if slot.as_ref().is_some_and(|d| {
-                    !present.contains(&d.id) || d.state.stopped.load(Ordering::Acquire)
-                }) {
-                    let d = slot.take().unwrap();
-                    refused.insert(d.id);
-                    let slot_id = d.state.slot;
-                    let old_generation = d.state.generation;
-                    // Join completions before the ordered Detach barrier. No
-                    // worker may append an old response after slot retirement.
-                    drop(d);
-                    shared.tangent.send_record(
-                        &shared,
-                        Kind::Detach,
-                        slot_id,
-                        old_generation,
-                        &[],
-                    )?;
+                if let Some(d) = slot
+                    && (!present.contains(&d.id) || d.state.stopped.load(Ordering::Acquire))
+                {
+                    if present.contains(&d.id) {
+                        retries.later(d.id, Instant::now());
+                    }
+                    retire(slot, &shared)?;
+                } else if let Some(d) = slot
+                    && d.ready_since
+                        .is_some_and(|since| since.elapsed() >= Duration::from_secs(30))
+                {
+                    retries.0.remove(&d.id);
                 }
             }
+            retries.0.retain(|id, _| present.contains(id));
         }
         let Some(bytes) = shared
             .tangent
@@ -470,37 +646,7 @@ pub(super) fn run(shared: Arc<NativeShared>) -> Result<()> {
             continue;
         };
         let record = Record::decode(&bytes).map_err(|_| anyhow!("invalid Tangent record"))?;
-        let slot = &mut slots[usize::from(record.slot)];
-        let Some(device) = slot.as_mut() else {
-            anyhow::ensure!(record.generation <= generation, "unknown panel generation");
-            continue;
-        }; // late reply after local detach
-        if record.generation < device.state.generation {
-            continue; // requests already queued by the previous virtual device
-        }
-        anyhow::ensure!(
-            device.state.generation == record.generation,
-            "stale panel generation"
-        );
-        match record.kind {
-            Kind::Ready => {
-                anyhow::ensure!(!device.ready, "duplicate panel ready");
-                device.ready = true;
-            }
-            Kind::Transfer => device.request(record.body)?,
-            Kind::Failed | Kind::Detach => {
-                refused.insert(device.id);
-                *slot = None; // finish old completions before the detach barrier
-                shared.tangent.send_record(
-                    &shared,
-                    Kind::Detach,
-                    record.slot,
-                    record.generation,
-                    &[],
-                )?;
-            }
-            Kind::Attach => return Err(anyhow!("unexpected Host panel announcement")),
-        }
+        handle_record(&shared, &mut slots, &mut retries, generation, record)?;
     }
     Ok(())
 }
@@ -520,84 +666,139 @@ mod tests {
         assert_eq!(usb_status(rusb::Error::Pipe), -32);
     }
 
-    fn state_and_job() -> (DeviceState, Job) {
+    fn state() -> DeviceState {
         let shared = Arc::new(NativeShared::new(false, 100_000_000));
         shared.set_state(EndpointState::Ready);
         shared.tangent.state.lock().unwrap().status = 2;
-        let manifest = mf::Manifest::new(0x10002, &mf::tests::descriptors(), mf::REPORT).unwrap();
-        let mut guard = mf::Device::new(manifest).unwrap();
-        let mut bytes = vec![0; USBIP_HEADER];
-        for (offset, value) in [(0, 1u32), (4, 7), (8, 0x10002), (12, 1), (16, 1), (24, 15)] {
-            bytes[offset..offset + 4].copy_from_slice(&value.to_be_bytes());
-        }
-        guard.request(&bytes).unwrap();
-        let pending = Arc::new(Pending {
-            cancelled: AtomicBool::new(false),
-            unlink: Mutex::new(None),
-        });
-        let mut requests = HashMap::new();
-        requests.insert(7, pending.clone());
-        (
-            DeviceState {
-                accounting: Mutex::new(Accounting {
-                    guard,
-                    pending: requests,
-                }),
-                stopped: AtomicBool::new(false),
-                shared,
-                slot: 0,
-                generation: 1,
-            },
-            Job { bytes, pending },
-        )
+        let manifest =
+            element::Manifest::new(0x10002, &element::tests::descriptors(), element::REPORT)
+                .unwrap();
+        DeviceState::new(manifest, shared, 0, 1).unwrap()
     }
 
-    #[test]
-    fn completion_then_cancellation_preserves_wire_order() {
-        let (state, job) = state_and_job();
-        state.complete(&job, 0, 15, &[0; 15]).unwrap();
-        let mut cancel = vec![0; USBIP_HEADER];
-        for (offset, value) in [(0, 2u32), (4, 8), (8, 0x10002), (20, 7)] {
-            cancel[offset..offset + 4].copy_from_slice(&value.to_be_bytes());
-        }
-        let mut accounting = state.accounting.lock().unwrap();
-        accounting.guard.request(&cancel).unwrap();
-        state
-            .send_locked(&mut accounting, &response(4, 8, 0, 0, &[]))
-            .unwrap();
-        let mut transport = state.shared.tangent.state.lock().unwrap();
-        let first = transport.send.pop().unwrap();
-        let second = transport.send.pop().unwrap();
-        assert_eq!(word(Record::decode(&first).unwrap().body, 0), 3);
-        assert_eq!(word(Record::decode(&second).unwrap().body, 0), 4);
-        assert!(transport.send.pop().is_none());
-    }
-
-    #[test]
-    fn cancellation_replaces_completion_without_replaying_input() {
-        let (state, job) = state_and_job();
-        let mut cancel = vec![0; USBIP_HEADER];
-        for (offset, value) in [(0, 2u32), (4, 8), (8, 0x10002), (20, 7)] {
-            cancel[offset..offset + 4].copy_from_slice(&value.to_be_bytes());
-        }
-        state
-            .accounting
+    fn pop(state: &DeviceState) -> (u32, u32, i32) {
+        let bytes = state
+            .shared
+            .tangent
+            .state
             .lock()
             .unwrap()
-            .guard
-            .request(&cancel)
+            .send
+            .pop()
             .unwrap();
-        *job.pending.unlink.lock().unwrap() = Some(8);
-        job.pending.cancelled.store(true, Ordering::Release);
-        state.complete(&job, 0, 15, &[1; 15]).unwrap();
-        let mut transport = state.shared.tangent.state.lock().unwrap();
-        let bytes = transport.send.pop().unwrap();
-        let record = Record::decode(&bytes).unwrap();
-        assert_eq!(record.body.len(), USBIP_HEADER);
-        assert_eq!(word(record.body, 0), 4);
-        assert_eq!(word(record.body, 4), 8);
-        assert_eq!(word(record.body, 20) as i32, -104);
-        assert!(transport.send.pop().is_none());
-        assert!(state.complete(&job, 0, 15, &[1; 15]).is_err());
+        let body = Record::decode(&bytes).unwrap().body;
+        (word(body, 0), word(body, 4), word(body, 20) as i32)
+    }
+
+    #[test]
+    fn queued_idle_reads_cancel_immediately_without_consuming_future_input() {
+        use crate::tangent::tests::{submit, unlink};
+        let s = state();
+        s.request(&submit(1, true, 15)).unwrap();
+        let first = s.next_job(1).unwrap();
+        // Leave the first read in flight. Reuse a queued sequence often enough
+        // to catch queues that accumulate cancelled entries behind the idle URB.
+        for _ in 0..256 {
+            s.request(&submit(2, true, 15)).unwrap();
+            s.request(&unlink(3, 2)).unwrap();
+            assert_eq!(pop(&s), (4, 3, -104));
+        }
+        s.request(&unlink(4, 1)).unwrap();
+        assert!(s.shared.tangent.state.lock().unwrap().send.pop().is_none());
+        s.complete(1, word(&first, 4), 0, 15, &[1; 15]).unwrap();
+        assert_eq!(pop(&s), (4, 4, -104));
+        assert!(s.complete(1, 1, 0, 15, &[1; 15]).is_err());
+        assert!(s.accounting.lock().unwrap().queues[1].is_empty());
+        assert_eq!(
+            s.accounting
+                .lock()
+                .unwrap()
+                .guard
+                .transactions
+                .outstanding(),
+            0
+        );
+    }
+
+    #[test]
+    fn a_stopped_usb_worker_releases_only_its_slot_before_retry() {
+        use crate::tangent::tests::submit;
+        let shared = state().shared;
+        let mut slots = std::array::from_fn(|_| None);
+        for slot in 0..2u8 {
+            let id = 0x10002 + u32::from(slot);
+            let manifest =
+                element::Manifest::new(id, &element::tests::descriptors(), element::REPORT)
+                    .unwrap();
+            slots[usize::from(slot)] = Some(Exported {
+                id,
+                state: Arc::new(DeviceState::new(manifest, shared.clone(), slot, 1).unwrap()),
+                workers: vec![],
+                ready_since: Some(Instant::now()),
+            });
+        }
+        let mut retries = Retries::default();
+        slots[0].as_ref().unwrap().state.stop();
+        let mut bytes = submit(1, true, 15);
+        let first = Record {
+            kind: Kind::Transfer,
+            slot: 0,
+            generation: 1,
+            body: &bytes,
+        };
+        handle_record(&shared, &mut slots, &mut retries, 1, first).unwrap();
+        assert!(slots[0].is_none());
+        assert!(!retries.eligible(0x10002, Instant::now()));
+        let sent = shared.tangent.state.lock().unwrap().send.pop().unwrap();
+        assert_eq!(Record::decode(&sent).unwrap().kind, Kind::Detach);
+        handle_record(&shared, &mut slots, &mut retries, 1, first).unwrap(); // stale, no second barrier
+        bytes[8..12].copy_from_slice(&0x10003_u32.to_be_bytes());
+        handle_record(
+            &shared,
+            &mut slots,
+            &mut retries,
+            1,
+            Record {
+                kind: Kind::Transfer,
+                slot: 1,
+                generation: 1,
+                body: &bytes,
+            },
+        )
+        .unwrap();
+        let second = &slots[1].as_ref().unwrap().state;
+        assert_eq!(second.next_job(1).unwrap(), bytes);
+        second.complete(1, 1, 0, 15, &[0; 15]).unwrap();
+        assert_eq!(pop(second), (3, 1, 0));
+        assert!(shared.tangent.state.lock().unwrap().send.pop().is_none());
+    }
+
+    #[test]
+    fn completion_then_late_cancel_keeps_wire_order() {
+        use crate::tangent::tests::{submit, unlink};
+        let s = state();
+        s.request(&submit(7, true, 15)).unwrap();
+        s.next_job(1).unwrap();
+        s.complete(1, 7, 0, 15, &[0; 15]).unwrap();
+        s.request(&unlink(8, 7)).unwrap();
+        assert_eq!(pop(&s), (3, 7, 0));
+        assert_eq!(pop(&s), (4, 8, 0));
+    }
+
+    #[test]
+    fn transient_retries_are_bounded_and_unsupported_devices_wait_for_unplug() {
+        let now = Instant::now();
+        let mut retries = Retries::default();
+        for i in 0..10 {
+            let t = now + Duration::from_secs(40 * i);
+            assert!(retries.eligible(1, t));
+            assert_eq!(retries.later(1, t), i == 0);
+            assert!(!retries.eligible(1, t));
+            assert!(retries.eligible(1, t + Duration::from_secs(30)));
+        }
+        retries.0.insert(2, Retry::Unsupported);
+        assert!(!retries.eligible(2, now + Duration::from_secs(3600)));
+        retries.0.retain(|id, _| *id == 1);
+        assert!(retries.eligible(2, now));
     }
 }

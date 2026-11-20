@@ -1,8 +1,30 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
-//! Initial qualified Element Mf USB shape. Control meanings remain in TangentHub.
-//! Additional panel models need their own descriptor/transfer qualification.
+//! Shared USB shape of the Element Mf, Tk, Kb and Bt. TangentHub interprets reports.
 
 use super::{Error, MAX_TRANSFER, Result, Transactions, USBIP_HEADER, word};
+
+/// Negotiated set of USB products. Both sets use the same version-1 bus records.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Panels {
+    Mf,
+    Element,
+}
+
+impl Panels {
+    pub fn from_profile(profile: u32) -> Option<Self> {
+        match profile {
+            1 => Some(Self::Mf),
+            2 => Some(Self::Element),
+            _ => None,
+        }
+    }
+
+    pub fn allows(self, vendor: u16, product: u16) -> bool {
+        vendor == 0x04d8
+            && (product == 0xfa1a
+                || (self == Self::Element && matches!(product, 0xfa1c | 0xfa1e | 0xfa1f)))
+    }
+}
 
 pub const REPORT: &[u8] = &[
     0x05, 0x01, 0x09, 0x08, 0xa1, 0x01, 0x05, 0xf0, 0x09, 0x01, 0x75, 0x08, 0x95, 0x0f, 0x81, 0x02,
@@ -37,8 +59,7 @@ impl Manifest {
             || ![0x0100, 0x0110, 0x0200].contains(&short(d, 2))
             || d[4..7] != [0, 0, 0]
             || ![8, 16, 32, 64].contains(&d[7])
-            || short(d, 8) != 0x04d8
-            || short(d, 10) != 0xfa1a
+            || !Panels::Element.allows(short(d, 8), short(d, 10))
             || !(1..=2).contains(&d[17])
         {
             return Err(Error::Unsupported);
@@ -124,6 +145,10 @@ impl Manifest {
             &bytes[MANIFEST_HEADER..MANIFEST_HEADER + size],
             &bytes[MANIFEST_HEADER + size..],
         )
+    }
+
+    pub fn allowed_by(&self, panels: Panels) -> bool {
+        panels.allows(short(&self.descriptors, 8), short(&self.descriptors, 10))
     }
 
     pub fn encode(&self) -> Vec<u8> {
@@ -284,7 +309,7 @@ impl Manifest {
 /// Callers use these methods before bytes reach either kernel endpoint.
 pub struct Device {
     pub manifest: Manifest,
-    transactions: Transactions,
+    pub(crate) transactions: Transactions,
 }
 impl Device {
     pub fn new(manifest: Manifest) -> Result<Self> {
@@ -344,6 +369,36 @@ pub(crate) mod tests {
         b[46..48].copy_from_slice(&length.to_le_bytes());
         b
     }
+    #[test]
+    fn four_element_ids_preserve_their_own_enumeration_and_require_the_same_hid() {
+        for pid in [0xfa1a_u16, 0xfa1c, 0xfa1e, 0xfa1f] {
+            let mut usb = descriptors();
+            usb[10..12].copy_from_slice(&pid.to_le_bytes());
+            let m = Manifest::new(0x10002, &usb, REPORT).unwrap();
+            let decoded = Manifest::decode(&m.encode()).unwrap();
+            assert!(decoded.allowed_by(Panels::Element));
+            assert_eq!(decoded.allowed_by(Panels::Mf), pid == 0xfa1a);
+            let request = control(0x80, 6, 0x100, 18);
+            let mut reply = vec![0; USBIP_HEADER];
+            reply[..4].copy_from_slice(&3u32.to_be_bytes());
+            reply.extend_from_slice(&usb[..18]);
+            decoded.check_response(&request, &reply).unwrap();
+            reply[USBIP_HEADER + 10] ^= 1;
+            assert!(decoded.check_response(&request, &reply).is_err());
+            assert!(Manifest::new(0x10002, &usb, &REPORT[1..]).is_err());
+            usb[8] = 0;
+            assert!(Manifest::new(0x10002, &usb, REPORT).is_err());
+        }
+        assert_eq!(Panels::from_profile(1), Some(Panels::Mf));
+        assert_eq!(Panels::from_profile(2), Some(Panels::Element));
+        assert_eq!(Panels::from_profile(3), None);
+        for pid in [0xfa19_u16, 0xfa1b, 0xfa1d, 0xfa20] {
+            let mut usb = descriptors();
+            usb[10..12].copy_from_slice(&pid.to_le_bytes());
+            assert!(Manifest::new(0x10002, &usb, REPORT).is_err());
+        }
+    }
+
     #[test]
     fn manifest_roundtrip_and_descriptor_mutations() {
         let m = Manifest::new(0x10002, &descriptors(), REPORT).unwrap();

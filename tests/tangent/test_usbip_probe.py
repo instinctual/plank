@@ -102,6 +102,10 @@ class InventoryTests(unittest.TestCase):
             data = probe.inspect_device(device)
             self.assertNotIn("DO-NOT-EXPORT", str(data))
             self.assertTrue(data["interfaces"][0]["hid_descriptors"][0]["matches_mf"])
+            for product, model in [("fa1c","Tk"),("fa1e","Kb"),("fa1f","Bt")]:
+                (device / "idProduct").write_text(product)
+                (device / "product").write_text("element-" + model)
+                self.assertEqual(probe.inspect_device(device)["product"], product)
             (device / "idProduct").write_text("1234")
             (device / "product").write_text("Unrelated USB device")
             self.assertIsNone(probe.inspect_device(device))
@@ -114,6 +118,16 @@ class InventoryTests(unittest.TestCase):
                     self.fail("failed attachment must not enter the context")
             self.assertEqual(write.call_count, 1)
             self.assertEqual(write.call_args.args[0].name, "attach")
+
+    def test_completed_import_closes_only_its_socket(self):
+        channel = Mock()
+        channel.fileno.return_value = 42
+        with patch.object(probe, "read_text", return_value="hs 0002 004 0 0 0-0"), \
+                patch.object(probe, "write_attribute") as write, patch.object(probe, "notice"):
+            with probe.attach_device(DEVICE_ID, 2, channel):
+                pass
+        channel.shutdown.assert_called_once()
+        self.assertEqual([c.args[0].name for c in write.call_args_list], ["attach"])
 
     def test_export_restores_original_driver_after_partial_setup_failure(self):
         metadata = {"vendor": "04d8", "product": "fa1a", "bus_number": 1,
