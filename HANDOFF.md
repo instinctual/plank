@@ -16,6 +16,23 @@ errors, temporary claim failures, idle cancellations and local queue pressure ar
 handled per panel. See the [protocol](protocol/tangent-panels.md) and
 [hardware plan](docs/development/plans/tangent-panel-forwarding.plan).
 
+The 1.4.21 package source is `0846e788e23a631fceef564789af5e71699ab55c`,
+with Client `f0cac4126cfb6eb7d2217a9747f290e11b9dcabd`, Linux Host
+`8b02eac3119245374cb2c7cb01471b0ac1d2adf6` and Kymux
+`4ee4654d6f15ae30e39056f97b51761fe15322fe`. Exact recursive pins are
+recorded with the Linux installer hashes in
+`artifacts/qualification/tangent-panel-forwarding/element-1.4.21/qualification.json`.
+
+[Hosted build 44794024295](https://github.com/instinctual/plank/actions/runs/44794024295)
+passed both Linux package jobs and both unsigned Mac regression builds. The
+encrypted test exchanged four panel manifests, retired one slot and continued
+with another. Rocky passed three 150 Mbps transport matrices. Ubuntu passed
+30 panel tests and 17 DEB packaging fixtures. Both Linux installers were
+downloaded to `artifacts/packages/candidates/1.4.21-tangent-panel-forwarding/linux/`.
+Their hashes matched the original workflow manifests. Independent payload checks
+verified the DEB's active-seat USB rule and both maintainer hooks, and the RPM's
+original signed driver, corresponding source and license.
+
 The authorized hardware pair has 1.4.20 installed. Its KnobX1 was claimed by the
 Client and opened on the Host by TangentHub during a product session. A real Mf
 also enumerated. Jog, Play/Stop and all four emulator modes previously passed
