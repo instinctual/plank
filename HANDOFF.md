@@ -7,6 +7,17 @@ the focused plans and the artifact catalog.
 
 ## Current state
 
+Release 1.4.22 is staged at `4449300ed0d7fe383f0c25d03a925f83b3ccb8b2`.
+Both Linux installers have verified hashes in `artifacts/packages/releases/1.4.22/linux/`.
+The Linux package and unsigned Mac regression builds passed. The exact Mac
+transport executable recovered all 2,700 frames across three 150 Mbps loopback
+matrices on the authorized development Mac.
+Apple reports that a developer agreement requires the Account Holder's attention
+before notarization can proceed. Once resolved, resume the original protected
+Host and Client runs `44829276164` and `44829281215` for these packages.
+The release tag must identify the staged source. CI-only commit `89a14a79`
+adds fixed error categories for protected notarization diagnostics.
+
 `main` includes Tangent Element forwarding from Ubuntu Clients to Rocky Hosts
 and the shared 4 MiB QUIC receive-buffer request. The parent pins the same
 Client, Linux Host and Kymux revisions as their respective `main` branches.
