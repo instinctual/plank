@@ -36,6 +36,14 @@ Their hashes matched the original workflow manifests. Independent payload checks
 verified the DEB's active-seat USB rule and both maintainer hooks, and the RPM's
 original signed driver, corresponding source and license.
 
+Mainline `6056c09f` passed the Linux Host and Client builds and both unsigned
+Mac builds. The first Linux Host attempt recovered the complete video frame
+and counted 65 missing source symbols before FEC where the test requires zero.
+A single retry on the same commit passed that check and all three 150 Mbps
+loss matrices. Both attempts reported the same 2 MiB socket buffer. A local
+diagnostic also reproduced the assertion with a smaller buffer. The cause on
+the hosted runner remains open. [Mainline CI results](https://github.com/instinctual/plank/actions/runs/44812075584).
+
 The authorized Rocky Host and Ubuntu Client are running the verified 1.4.21
 packages. The running Host supervisor, media worker, PAM broker and Client
 executable matched their packaged hashes. The Host answered HTTPS serverinfo
