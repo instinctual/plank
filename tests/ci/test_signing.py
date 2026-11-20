@@ -36,6 +36,26 @@ class SigningTests(unittest.TestCase):
                 signing.command('import fixture', ['fixture', 'sensitive argument'])
         self.assertNotIn('sensitive', str(failure.exception))
 
+    def test_notarization_failure_only_reports_fixed_categories(self):
+        cases = (
+            ('HTTP status code: 401. Invalid credentials.', 'HTTP 401'),
+            ('HTTP status code: 403. A required agreement is missing.', 'agreement'),
+            ('HTTP status code: 403. Access forbidden.', 'HTTP 403'),
+            ('HTTP status code: 503.', 'service or rate-limit'),
+            ('HTTP status code: 429.', 'service or rate-limit'),
+            ('The network connection was lost.', 'could not reach'),
+            ('The keychain could not be found.', 'temporary signing keychain'),
+            ('Unexpected response.', 'unclassified'),
+        )
+        for output, expected in cases:
+            with self.subTest(output=output):
+                result = subprocess.CompletedProcess([], 1, 'private-stdout', output + ' private-stderr')
+                with patch.object(signing.subprocess, 'run', return_value=result), self.assertRaises(signing.SigningError) as error:
+                    signing.command('validate notarization credentials', ['private-argument'])
+                message = str(error.exception)
+                self.assertIn(expected, message)
+                self.assertNotIn('private-', message)
+
     def test_cleanup_restores_search_list_and_removes_material(self):
         with tempfile.TemporaryDirectory() as temporary:
             directory = Path(temporary) / 'plank-macos-signing'

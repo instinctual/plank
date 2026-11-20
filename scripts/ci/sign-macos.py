@@ -23,11 +23,41 @@ class SigningError(Exception):
     pass
 
 
+def notarization_failure_hint(output):
+    # Apple's response can contain account identifiers, paths and echoed input.
+    # Return only fixed diagnostic strings. Never reflect any part of the output.
+    message = output.casefold()
+    if ("agreement" in message or "contract" in message) and any(
+            word in message for word in ("missing", "expired", "accept", "required", "in effect")):
+        return "Apple reports an agreement requiring the account holder's attention"
+    match = re.search(r"\bhttp status code:\s*([1-5]\d\d)\b", message)
+    if match:
+        code = int(match[1])
+        if code == 401:
+            return "Apple rejected the account credentials (HTTP 401)"
+        if code == 403:
+            return "Apple denied access for the configured account and team (HTTP 403)"
+        if code == 429 or 500 <= code < 600:
+            return "Apple reported a service or rate-limit error"
+    if "invalid credentials" in message or "username or password is incorrect" in message:
+        return "Apple rejected the account credentials"
+    if any(term in message for term in ("the request timed out", "could not connect to the server",
+                                        "specified hostname could not be found", "network connection was lost",
+                                        "not connected to the internet")):
+        return "the runner could not reach the notarization service"
+    if "keychain" in message and any(term in message for term in ("denied", "not found", "could not", "interaction is not allowed")):
+        return "the tool could not access the temporary signing keychain"
+    return "unclassified notarization preflight error"
+
+
 def command(stage, args):
     # Never log command arguments or Apple-tool output containing credentials.
     # Child environments no longer contain the GitHub secret injection.
     result = subprocess.run(args, capture_output=True, text=True)
     if result.returncode:
+        if stage == "validate notarization credentials":
+            hint = notarization_failure_hint(result.stderr + "\n" + result.stdout)
+            raise SigningError(f"{stage} failed (exit {result.returncode}): {hint}")
         raise SigningError(f"{stage} failed (exit {result.returncode}); check the protected signing inputs")
     return result.stdout
 
