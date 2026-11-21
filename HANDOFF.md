@@ -7,6 +7,14 @@ the focused plans and the artifact catalog.
 
 ## Current state
 
+The `nvenc-keyframe-quality` candidate sets the Linux NVENC I-to-P bit ratio
+to 2 for low-latency CBR. A hardware comparison at 5120×2160, 60 fps and
+50 Mbps used the same synthetic canvas and single-frame VBV for both settings.
+Two forced HEVC 10-bit 4:4:4 refreshes improved by 1.52 and 1.68 dB PSNR.
+The encoded clip averaged 38.46 Mbps at scale 1 and 38.55 Mbps at scale 2.
+Installed-session picture quality and end-to-end recovery time still need a
+comparison on the candidate. The pending 1.4.22 release uses its frozen source.
+
 Release 1.4.22 is staged at `4449300ed0d7fe383f0c25d03a925f83b3ccb8b2`.
 Both Linux installers have verified hashes in `artifacts/packages/releases/1.4.22/linux/`.
 The Linux package and unsigned Mac regression builds passed. The exact Mac

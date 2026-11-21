@@ -1,10 +1,7 @@
 #!/usr/bin/env python3
-"""Source gate: ineligible encoder probes must not acquire capture resources.
-
-This checks the production lambdas, not a second implementation of their policy.
-It supplements (does not replace) real encoder/profile tests on an NVIDIA Host.
-"""
+"""Check Linux encoder probe ordering and NVENC setup in the source being packaged."""
 import pathlib
+import re
 import sys
 import unittest
 
@@ -47,6 +44,14 @@ class EncoderProbeOrder(unittest.TestCase):
         ):
             self.assertTrue(call in source, f"Missing active profile probe: {call}")
         self.assertIn("validate_h264_high10_444_identity(", source)
+
+
+class NvencRecoveryKeyframes(unittest.TestCase):
+    def test_single_frame_cbr_requests_two_to_one_keyframe_ratio(self):
+        source = (SOURCE.parent / "nvenc/nvenc_base.cpp").read_text()
+        setup = source.split("void nvenc_base::configure_rate_control(", 1)[1].split("\n  }", 1)[0]
+        self.assertRegex(setup, r"rcParams\.rateControlMode\s*=\s*NV_ENC_PARAMS_RC_CBR\s*;")
+        self.assertEqual(re.findall(r"rcParams\.lowDelayKeyFrameScale\s*=\s*(\w+)\s*;", setup), ["2"])
 
 
 if __name__ == "__main__":
