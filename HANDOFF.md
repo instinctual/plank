@@ -15,6 +15,16 @@ The encoded clip averaged 38.46 Mbps at scale 1 and 38.55 Mbps at scale 2.
 Installed-session picture quality and end-to-end recovery time still need a
 comparison on the candidate. The pending 1.4.22 release uses its frozen source.
 
+Linux Host `6df9ae7e` is pinned by candidate source `b02c5bbf`. The verified
+1.4.23 Rocky RPM is in `artifacts/packages/candidates/1.4.23-nvenc-keyframe-quality/linux/`.
+The [first runner](https://github.com/instinctual/plank/actions/runs/44934700853/job/136938754045)
+reconstructed the test frame but counted 82 missing source symbols before FEC
+on its clean loopback. The [same-source Host build](https://github.com/instinctual/plank/actions/runs/44935475149)
+passed that assertion and recovered all 2,700 frames in three 150 Mbps matrices.
+Separate clean-loopback tests at the measured IDR sizes took about 0.95 ms
+with the original sizes and 1.45 ms with the larger sizes, measured from Host
+submission to Client reassembly. See `artifacts/qualification/nvenc-keyframe-quality/1.4.23/`.
+
 Release 1.4.22 is staged at `4449300ed0d7fe383f0c25d03a925f83b3ccb8b2`.
 Both Linux installers have verified hashes in `artifacts/packages/releases/1.4.22/linux/`.
 The Linux package and unsigned Mac regression builds passed. The exact Mac
